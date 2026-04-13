@@ -218,6 +218,18 @@ App.tsx main.tsx
 
 **Convention (enforced):** every page folder must contain `components/`, `hooks/`, `{page}Slice.ts` (for local UI state), `{Page}Page.tsx`, and `index.ts` (barrel). Logic lives in hooks, JSX in components (component + hook pattern). **Server state goes through one app-wide `shared/api/api.ts` RTK Query instance** — there is no per-feature API file. Pages import the generated hooks (e.g., `useListRecipesQuery`) directly.
 
+**UI library policy — Syncfusion first:** for any control we'd otherwise hand-roll (tables, dialogs, calendars, autocompletes, toasts), reach for the corresponding `@syncfusion/ej2-react-*` component and adapt it. The Community License is paid for and these components ship with the accessibility, keyboard navigation, theming, and edit-in-place behaviour we'd otherwise have to recreate. Concretely:
+
+| UI need | Use |
+|---|---|
+| Editable tables / lists | `@syncfusion/ej2-react-grids` `GridComponent` |
+| Calendar / weekly planner | `@syncfusion/ej2-react-schedule` `ScheduleComponent` (the Meal Plan page is built on this) |
+| Modal dialogs | `@syncfusion/ej2-react-popups` `DialogComponent` |
+| Toasts | `@syncfusion/ej2-react-notifications` `ToastComponent` |
+| Autocomplete / combobox | `@syncfusion/ej2-react-dropdowns` (`AutoCompleteComponent`, `ComboBoxComponent`) |
+
+When Syncfusion's built-in popups/editors don't match our domain flow (e.g. the Schedule's quick-info is too generic for the cook flow), disable them via `showQuickInfo={false}` / `args.cancel = true` on `popupOpen` / `actionBegin` and drive the mutation through our own `DialogComponent` plus RTK Query. Forms wrap Syncfusion controls in **react-hook-form**'s `Controller` so the per-field validation rules from the form-library convention still apply. Custom HTML stays for layout shells (`<section>`, `<header>`, page-level CSS grid) only — never for the controls themselves.
+
 **Key packages:**
 - `@azure/msal-react`, `@azure/msal-browser` — authority `https://login.microsoftonline.com/common`
 - `@reduxjs/toolkit`, `react-redux`
