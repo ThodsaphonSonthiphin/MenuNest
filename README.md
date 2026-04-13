@@ -1,6 +1,6 @@
 # 🍽️ MenuNest
 
-Family meal-planning web app — สร้าง recipe library, บันทึก stock วัตถุดิบ, วางแผนมื้ออาหาร และเช็คว่าของพอสำหรับเมนูที่เลือกหรือไม่
+Family meal-planning web app — build a recipe library, track pantry stock, plan daily meals, and see what you need to buy when stock runs low.
 
 **Domain:** menunest.app
 
@@ -8,13 +8,15 @@ Family meal-planning web app — สร้าง recipe library, บันทึ
 
 ## Features (MVP)
 
-- 🔐 Login ด้วย Microsoft Entra ID (work, school, หรือ personal account)
-- 👪 Family — สร้าง family ใหม่ / เข้าร่วมด้วย invite code, กำหนดความสัมพันธ์ของสมาชิก
-- 🧂 Ingredient master — รายการวัตถุดิบกลางของครอบครัว (autocomplete + สร้างใหม่ได้)
-- 📖 Recipe library — เก็บสูตรอาหาร + รูป + วัตถุดิบและปริมาณ
-- 📦 Stock — บันทึกวัตถุดิบที่มี (manual, เพิ่ม/ลดด้วยตนเอง)
-- 📅 Meal plan — วางแผนแต่ละวัน × มื้อ (breakfast/lunch/dinner)
-- ✅ Stock check — เทียบ recipe กับ stock ปัจจุบัน บอกว่าขาดอะไรบ้าง
+- 🔐 Sign in with Microsoft Entra ID (work, school, or personal account)
+- 👪 Family management — create a family, invite members with a code, set relationships between members
+- 🧂 Ingredient master — per-family list with autocomplete and on-the-fly creation
+- 📖 Recipe library — store recipes with photos and ingredient quantities
+- 📦 Stock — manually track what you have on hand
+- 📅 Meal plan — plan meals by day × slot (breakfast / lunch / dinner)
+- ✅ Stock check — compare a recipe against current stock and report what's missing
+- 🍳 Cook action — one click on a planned meal deducts ingredients from stock automatically (clamped at zero; partial deductions allowed with a warning)
+- 🛒 Shopping list — persistent lists you can build manually or auto-generate from meal plans; checking an item as bought adds it to stock automatically
 
 ---
 
@@ -22,19 +24,19 @@ Family meal-planning web app — สร้าง recipe library, บันทึ
 
 ### Frontend — `frontend/`
 - React 18 + TypeScript + Vite
-- Redux Toolkit (RTK + RTK Query) — state + API client
+- Redux Toolkit (RTK + RTK Query) — state and API client
 - React Router v6
-- MSAL.js (`@azure/msal-react`) — Entra ID auth
+- MSAL.js (`@azure/msal-react`) — Entra ID authentication
 - Syncfusion (Community License) — Grid, Schedule, inputs
-- Pattern: page-scoped folders (`pages/{feature}/{components,hooks,api,slice}`) + component + hook style
+- Pattern: page-scoped folders (`pages/{feature}/{components,hooks,api,slice}`) with a component-plus-hook style
 
 ### Backend — `backend/`
 - ASP.NET 10 (LTS) Clean Architecture
-- EF Core 10 + SQL Server provider (Azure SQL)
-- `Mediator` (martinothamar) — CQRS + pipeline behaviors
+- EF Core 10 with the SQL Server provider (Azure SQL)
+- `Mediator` (martinothamar) — CQRS with pipeline behaviors
 - `FluentValidation` — request validation
 - `Mapster` — DTO mapping
-- `Microsoft.Identity.Web` — JWT bearer auth (multi-tenant + personal)
+- `Microsoft.Identity.Web` — JWT bearer auth (multi-tenant + personal accounts)
 - `Azure.Storage.Blobs` — recipe image storage
 - Serilog + Application Insights
 
@@ -42,7 +44,7 @@ Family meal-planning web app — สร้าง recipe library, บันทึ
 - Azure App Service (backend)
 - Azure Static Web Apps (frontend)
 - Azure SQL Database
-- Azure Storage Account (Blob container: `recipe-images`)
+- Azure Storage Account (blob container: `recipe-images`)
 - Application Insights
 - Azure App Registration (Entra ID — multi-tenant + personal)
 
@@ -58,7 +60,7 @@ menunest/
 └── infra/            # Bicep / ARM templates (optional)
 ```
 
-Detailed implementation plan: [docs/plan.md](docs/plan.md)
+Full implementation plan: [docs/plan.md](docs/plan.md)
 
 ---
 
@@ -67,9 +69,9 @@ Detailed implementation plan: [docs/plan.md](docs/plan.md)
 ### Prerequisites
 - .NET 10 SDK
 - Node.js 20+ and npm
-- Azure SQL / SQL Server LocalDB หรือ Docker SQL container
-- Azurite (Blob Storage emulator) หรือ Azure Storage account
-- Azure App Registration (สำหรับ Entra ID)
+- Azure SQL, SQL Server LocalDB, or a Docker SQL container
+- Azurite (Blob Storage emulator) or an Azure Storage account
+- An Azure App Registration (for Entra ID)
 
 ### Setup
 ```bash
@@ -80,20 +82,20 @@ dotnet ef database update --project src/MenuNest.Infrastructure --startup-projec
 dotnet run --project src/MenuNest.WebApi
 # → https://localhost:5001/swagger
 
-# Frontend (คนละ terminal)
+# Frontend (in a separate terminal)
 cd frontend
 npm install
 npm run dev
 # → http://localhost:5173
 ```
 
-Copy `appsettings.Development.json.example` และ `.env.example` แล้วกรอก credential ของตัวเอง
+Copy `appsettings.Development.json.example` and `.env.example`, then fill in your own credentials.
 
 ---
 
 ## Contributing
 
-โปรเจกต์นี้เป็น family/personal use — ไม่รับ PR ภายนอก
+This is a family/personal project — external pull requests are not accepted.
 
 ---
 
