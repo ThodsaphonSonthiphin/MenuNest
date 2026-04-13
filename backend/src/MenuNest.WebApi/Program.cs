@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using MenuNest.Application;
 using MenuNest.Infrastructure;
 using MenuNest.WebApi.Middleware;
@@ -79,7 +80,15 @@ builder.Services.AddCors(options =>
 // ----------------------------------------------------------------------
 // Web
 // ----------------------------------------------------------------------
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // The SPA serialises enums as their string names (e.g. "Breakfast")
+        // — without this converter, the model binder rejects the body and
+        // ASP.NET reports "The request field is required."
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
