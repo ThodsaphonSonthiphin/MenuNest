@@ -12,7 +12,7 @@ Greenfield app for family meal planning — users build a recipe library, track 
 - Database: Azure SQL Database (empty — fresh schema via EF Core migrations)
 - Storage: Azure Blob Storage (recipe photos)
 - Auth: Microsoft Entra ID — multi-tenant + personal accounts (`common` authority)
-- Hosting: Azure App Service (backend), Azure Static Web Apps or App Service (frontend)
+- Hosting: Azure App Service (backend, Linux .NET 10) + Azure Static Web Apps (frontend)
 
 ## Scope (MVP)
 
@@ -236,10 +236,15 @@ App.tsx main.tsx
 **Resources (single resource group `rg-family-menu`):**
 - Azure SQL Database (existing, empty)
 - Azure Storage Account + container `recipe-images` (private)
-- Azure App Service (Linux, .NET 10) — backend
-- Azure Static Web Apps — frontend (or a separate App Service)
+- Azure App Service (Linux, .NET 10) — backend API at e.g. `menunest-api.azurewebsites.net`
+- Azure Static Web Apps — frontend at e.g. `menunest.azurestaticapps.net` (or a custom domain `menunest.app`)
 - Azure App Registration — the Entra ID app (single app, multi-tenant + personal, redirect URIs for both localhost dev and prod)
 - Application Insights
+
+**Frontend / backend integration:**
+- `frontend/staticwebapp.config.json` tells SWA to fall back to `index.html` for all non-asset paths (so React Router owns client routing) and sets basic security headers.
+- The backend enables CORS for the SWA origin, configured via the `Cors__AllowedOrigins` app setting (comma-separated list). Local dev adds `http://localhost:5173` automatically.
+- Auth is handled entirely client-side by MSAL against Entra ID; SWA's built-in `/.auth/*` endpoints are not used because we need multi-tenant + personal accounts, which SWA's bundled auth does not support.
 
 **Config (App Service application settings):**
 - `ConnectionStrings__DefaultConnection` — Azure SQL (managed identity or SQL auth)

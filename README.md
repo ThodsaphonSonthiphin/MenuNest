@@ -93,6 +93,47 @@ Copy `appsettings.Development.json.example` and `.env.example`, then fill in you
 
 ---
 
+## Deployment (Azure)
+
+The app is split across two Azure services:
+
+- **Frontend → Azure Static Web Apps.** Hosts the built `frontend/dist`.
+  SPA routing and security headers live in
+  [frontend/staticwebapp.config.json](frontend/staticwebapp.config.json).
+  SWA's built-in `/.auth/*` endpoints are **not** used — auth is handled
+  client-side by MSAL against Entra ID (needed for personal accounts).
+- **Backend → Azure App Service (Linux, .NET 10).** Hosts the Web API,
+  connects to Azure SQL and Blob Storage.
+
+### Backend configuration (App Service → Application settings)
+
+| Setting | Value |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | Azure SQL connection string (use Managed Identity where possible) |
+| `AzureAd__ClientId` | Entra ID app client ID |
+| `AzureAd__Audience` | `api://<api-app-id>` |
+| `AzureBlob__ConnectionString` | Storage account connection string (or use Managed Identity) |
+| `Cors__AllowedOrigins` | Comma-separated list including the SWA origin, e.g. `https://menunest.azurestaticapps.net,https://menunest.app` |
+
+### Frontend configuration (SWA → Application settings / `.env.production`)
+
+| Setting | Value |
+|---|---|
+| `VITE_MSAL_CLIENT_ID` | Entra ID app client ID |
+| `VITE_MSAL_AUTHORITY` | `https://login.microsoftonline.com/common` |
+| `VITE_API_SCOPE` | `api://<api-app-id>/access_as_user` |
+| `VITE_API_BASE_URL` | `https://menunest-api.azurewebsites.net` |
+| `VITE_SYNCFUSION_LICENSE_KEY` | Your Syncfusion Community License key |
+
+### Entra ID App Registration (one-time setup)
+
+- Platform: **Single-page application** with redirect URIs for both
+  `http://localhost:5173` (dev) and the production SWA URL.
+- Expose an API scope `access_as_user`.
+- Supported account types: **multi-tenant + personal Microsoft accounts**.
+
+---
+
 ## Contributing
 
 This is a family/personal project — external pull requests are not accepted.

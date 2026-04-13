@@ -17,6 +17,32 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         sql => sql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
 // ----------------------------------------------------------------------
+// CORS — allow the SPA (Vite dev server, Azure Static Web App in prod)
+// ----------------------------------------------------------------------
+const string CorsPolicyName = "SpaCors";
+
+var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    .ToList();
+
+// Always permit the Vite dev server when running locally.
+if (builder.Environment.IsDevelopment() && !allowedOrigins.Contains("http://localhost:5173"))
+{
+    allowedOrigins.Add("http://localhost:5173");
+}
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(CorsPolicyName, policy =>
+    {
+        policy.WithOrigins(allowedOrigins.ToArray())
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
+// ----------------------------------------------------------------------
 // Web
 // ----------------------------------------------------------------------
 builder.Services.AddControllers();
@@ -30,6 +56,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors(CorsPolicyName);
 app.UseAuthorization();
 app.MapControllers();
 
