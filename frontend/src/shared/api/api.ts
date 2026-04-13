@@ -97,7 +97,12 @@ export interface StockItemDto {
   unit: string
   quantity: number
   updatedAt: string
-  updatedByDisplayName: string
+  updatedByUserId: string
+}
+
+export interface UpsertStockRequest {
+  ingredientId: string
+  quantity: number
 }
 
 export interface MealPlanEntryDto {
@@ -258,7 +263,33 @@ export const api = createApi({
     // -------------------- Stock --------------------
     listStock: build.query<StockItemDto[], void>({
       query: () => '/api/stock',
-      providesTags: ['Stock'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((s) => ({ type: 'Stock' as const, id: s.id })),
+              { type: 'Stock', id: 'LIST' },
+            ]
+          : [{ type: 'Stock', id: 'LIST' }],
+    }),
+
+    upsertStock: build.mutation<StockItemDto, UpsertStockRequest>({
+      query: (body) => ({
+        url: '/api/stock',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Stock', id: 'LIST' }],
+    }),
+
+    deleteStock: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/stock/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, id) => [
+        { type: 'Stock', id },
+        { type: 'Stock', id: 'LIST' },
+      ],
     }),
 
     // -------------------- Meal Plan --------------------
@@ -288,6 +319,8 @@ export const {
   useUpdateRecipeMutation,
   useDeleteRecipeMutation,
   useListStockQuery,
+  useUpsertStockMutation,
+  useDeleteStockMutation,
   useListMealPlanQuery,
   useListShoppingListsQuery,
 } = api

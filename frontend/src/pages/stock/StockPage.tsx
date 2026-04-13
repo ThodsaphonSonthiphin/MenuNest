@@ -1,34 +1,211 @@
-import { useListStockQuery } from '../../shared/api/api'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import {
+  useDeleteStockMutation,
+  useListIngredientsQuery,
+  useListStockQuery,
+  useUpsertStockMutation,
+} from '../../shared/api/api'
+import type { StockItemDto } from '../../shared/api/api'
+
+interface AddStockForm {
+  ingredientId: string
+  quantity: string
+}
 
 export function StockPage() {
-  const { data, isLoading, error } = useListStockQuery()
+  const { data: stock, isLoading, error } = useListStockQuery()
+  const { data: ingredients } = useListIngredientsQuery()
+  const [upsertStock, { isLoading: isUpserting }] = useUpsertStockMutation()
+  const [deleteStock] = useDeleteStockMutation()
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const addForm = useForm<AddStockForm>({
+    defaultValues: { ingredientId: '', quantity: '' },
+  })
+
+  // Ingredients the family has but no stock row yet — candidates for "+ add".
+  const stockedIds = new Set((stock ?? []).map((s) => s.ingredientId))
+  const availableIngredients = (ingredients ?? []).filter((i) => !stockedIds.has(i.id))
+
+  const onAdd = addForm.handleSubmit(async (values) => {
+    setErrorMessage(null)
+    const qty = Number(values.quantity)
+    if (!(qty >= 0)) {
+      addForm.setError('quantity', { type: 'validate', message: 'ต้องเป็นเลขไม่ติดลบ' })
+      return
+    }
+    try {
+      await upsertStock({ ingredientId: values.ingredientId, quantity: qty }).unwrap()
+      addForm.reset({ ingredientId: '', quantity: '' })
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err))
+    }
+  })
+
+  const adjustQuantity = async (item: StockItemDto, delta: number) => {
+    const next = Math.max(0, item.quantity + delta)
+    if (next === item.quantity) return
+    setErrorMessage(null)
+    try {
+      await upsertStock({ ingredientId: item.ingredientId, quantity: next }).unwrap()
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err))
+    }
+  }
+
+  const setQuantity = async (item: StockItemDto, value: string) => {
+    const next = Number(value)
+    if (!(next >= 0) || next === item.quantity) return
+    setErrorMessage(null)
+    try {
+      await upsertStock({ ingredientId: item.ingredientId, quantity: next }).unwrap()
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err))
+    }
+  }
+
+  const handleDelete = async (item: StockItemDto) => {
+    if (!confirm(`ลบ "${item.ingredientName}" ออกจาก stock?`)) return
+    setErrorMessage(null)
+    try {
+      await deleteStock(item.id).unwrap()
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err))
+    }
+  }
 
   return (
     <section className="page page--stock">
       <header className="page__header">
         <h1>Stock</h1>
-        <button type="button" className="btn btn--primary">+ Add ingredient</button>
       </header>
 
-      {isLoading && <p>Loading…</p>}
-      {error && <p>Failed to load stock.</p>}
-      {data && data.length === 0 && <p>No stock yet — add your first ingredient.</p>}
+      <form onSubmit={onAdd} className="row-add" noValidate style={{ alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <select
+            aria-invalid={addForm.formState.errors.ingredientId ? 'true' : 'false'}
+            disabled={isUpserting || availableIngredients.length === 0}
+            {...addForm.register('ingredientId', { required: 'กรุณาเลือกวัตถุดิบ' })}
+            style={{
+              padding: 8,
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              font: 'inherit',
+            }}
+          >
+            <option value="">
+              {availableIngredients.length === 0
+                ? 'วัตถุดิบทั้งหมดมีใน stock แล้ว'
+                : '-- เลือกวัตถุดิบ --'}
+            </option>
+            {availableIngredients.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name} ({i.unit})
+              </option>
+            ))}
+          </select>
+          {addForm.formState.errors.ingredientId && (
+            <p className="field-error">{addForm.formState.errors.ingredientId.message}</p>
+          )}
+        </div>
 
-      {data && data.length > 0 && (
-        <table className="stock-table">
+        <div style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <input
+            type="number"
+            min="0"
+            step="any"
+            placeholder="จำนวน *"
+            aria-invalid={addForm.formState.errors.quantity ? 'true' : 'false'}
+            disabled={isUpserting}
+            {...addForm.register('quantity', {
+              required: 'กรอกจำนวน',
+              validate: (v) => Number(v) >= 0 || 'ต้องเป็นเลขไม่ติดลบ',
+            })}
+          />
+          {addForm.formState.errors.quantity && (
+            <p className="field-error">{addForm.formState.errors.quantity.message}</p>
+          )}
+        </div>
+
+        <button type="submit" className="btn btn--primary" disabled={isUpserting}>
+          {isUpserting ? '...' : '+ เพิ่ม'}
+        </button>
+      </form>
+
+      {errorMessage && <div className="error-banner">{errorMessage}</div>}
+
+      {isLoading && <p>Loading…</p>}
+      {error && !isLoading && <p>Failed to load stock.</p>}
+      {stock && stock.length === 0 && !isLoading && (
+        <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>
+          ยังไม่มี stock — เพิ่มวัตถุดิบด้านบนได้เลย
+        </p>
+      )}
+
+      {stock && stock.length > 0 && (
+        <table className="data-table">
           <thead>
             <tr>
-              <th>Ingredient</th>
-              <th>On hand</th>
-              <th>Last updated</th>
+              <th>วัตถุดิบ</th>
+              <th style={{ width: 240 }}>คงเหลือ</th>
+              <th>อัปเดตล่าสุด</th>
+              <th style={{ width: 80 }}></th>
             </tr>
           </thead>
           <tbody>
-            {data.map((item) => (
-              <tr key={item.id}>
+            {stock.map((item) => (
+              <tr key={item.id} className={item.quantity === 0 ? 'row--empty' : undefined}>
                 <td>{item.ingredientName}</td>
-                <td>{item.quantity} {item.unit}</td>
-                <td>{new Date(item.updatedAt).toLocaleString()}</td>
+                <td>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button
+                      type="button"
+                      className="btn btn--outline btn--sm"
+                      onClick={() => adjustQuantity(item, -1)}
+                      disabled={item.quantity <= 0}
+                      aria-label="decrease"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      defaultValue={item.quantity}
+                      onBlur={(e) => setQuantity(item, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                      }}
+                      style={{ width: 80, textAlign: 'center' }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn--outline btn--sm"
+                      onClick={() => adjustQuantity(item, 1)}
+                      aria-label="increase"
+                    >
+                      +
+                    </button>
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+                      {item.unit}
+                    </span>
+                  </div>
+                </td>
+                <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+                  {new Date(item.updatedAt).toLocaleString('th-TH')}
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn--outline btn--sm"
+                    onClick={() => handleDelete(item)}
+                    aria-label="delete"
+                  >
+                    🗑️
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -36,4 +213,17 @@ export function StockPage() {
       )}
     </section>
   )
+}
+
+function getErrorMessage(err: unknown): string {
+  if (typeof err === 'object' && err !== null && 'data' in err) {
+    const data = (err as { data?: { detail?: string; title?: string; errors?: Record<string, string[]> } }).data
+    if (data?.errors) {
+      const first = Object.values(data.errors)[0]?.[0]
+      if (first) return first
+    }
+    if (data?.detail) return data.detail
+    if (data?.title) return data.title
+  }
+  return 'Something went wrong. Please try again.'
 }
