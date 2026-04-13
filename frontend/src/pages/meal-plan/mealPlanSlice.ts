@@ -1,11 +1,17 @@
 import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
+import type { MealSlot } from '../../shared/api/api'
+
+export interface FocusedSlot {
+  date: string  // ISO yyyy-mm-dd
+  slot: MealSlot
+}
 
 interface MealPlanState {
   /** ISO date for the first day (Monday) of the week being viewed. */
   viewStartDate: string
-  /** Entry currently expanded in the side dialog, or null. */
-  focusedEntryId: string | null
+  /** Slot currently expanded in the side dialog, or null. */
+  focusedSlot: FocusedSlot | null
   /** Whether the recipe-picker dialog is open. */
   recipePickerOpen: boolean
   /** Whether the cook-confirm dialog is open. */
@@ -17,12 +23,17 @@ function startOfThisWeek(): string {
   const dow = today.getDay()
   const monday = new Date(today)
   monday.setDate(today.getDate() - ((dow + 6) % 7))
-  return monday.toISOString().slice(0, 10)
+  // Use local Y/M/D — toISOString shifts into UTC and can land on the
+  // previous day east of Greenwich.
+  const y = monday.getFullYear()
+  const m = String(monday.getMonth() + 1).padStart(2, '0')
+  const d = String(monday.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 const initialState: MealPlanState = {
   viewStartDate: startOfThisWeek(),
-  focusedEntryId: null,
+  focusedSlot: null,
   recipePickerOpen: false,
   cookDialogOpen: false,
 }
@@ -34,8 +45,8 @@ const mealPlanSlice = createSlice({
     setViewStartDate(state, action: PayloadAction<string>) {
       state.viewStartDate = action.payload
     },
-    selectEntry(state, action: PayloadAction<string | null>) {
-      state.focusedEntryId = action.payload
+    selectSlot(state, action: PayloadAction<FocusedSlot | null>) {
+      state.focusedSlot = action.payload
     },
     openRecipePicker(state) {
       state.recipePickerOpen = true
@@ -54,7 +65,7 @@ const mealPlanSlice = createSlice({
 
 export const {
   setViewStartDate,
-  selectEntry,
+  selectSlot,
   openRecipePicker,
   closeRecipePicker,
   openCookDialog,

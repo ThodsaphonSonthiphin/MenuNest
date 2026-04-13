@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import {
   Scheduler,
@@ -11,15 +11,17 @@ import type {
   SchedulerEventClickEvent,
 } from '@syncfusion/react-scheduler'
 import { Dialog } from '@syncfusion/react-popups'
-import { Button, Color, Variant } from '@syncfusion/react-buttons'
+import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { TextBox } from '@syncfusion/react-inputs'
 
 import {
+  useCookMealPlanBatchMutation,
   useCreateMealPlanEntryMutation,
   useDeleteMealPlanEntryMutation,
   useGetStockCheckQuery,
   useListMealPlanQuery,
   useListRecipesQuery,
+  useStockCheckBatchQuery,
 } from '../../shared/api/api'
 import type { MealPlanEntryDto, MealSlot } from '../../shared/api/api'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
@@ -28,9 +30,10 @@ import { useAppDispatch, useAppSelector } from '../../store'
 import {
   closeRecipePicker,
   openRecipePicker,
-  selectEntry,
+  selectSlot,
   setViewStartDate,
 } from './mealPlanSlice'
+import type { FocusedSlot } from './mealPlanSlice'
 
 // ----------------------------------------------------------------------
 // Slot ↔ time-of-day mapping
@@ -129,7 +132,7 @@ function entryToEvent(entry: MealPlanEntryDto): SchedulerEvent {
 export function MealPlanPage() {
   const dispatch = useAppDispatch()
   const viewStartDate = useAppSelector((s) => s.mealPlan.viewStartDate)
-  const focusedEntryId = useAppSelector((s) => s.mealPlan.focusedEntryId)
+  const focusedSlot = useAppSelector((s) => s.mealPlan.focusedSlot)
   const recipePickerOpen = useAppSelector((s) => s.mealPlan.recipePickerOpen)
 
   const breakpoint = useBreakpoint()
@@ -142,22 +145,39 @@ export function MealPlanPage() {
 
   const { data: entries } = useListMealPlanQuery({ from: fromIso, to: toIso })
   const events = useMemo(() => (entries ?? []).map(entryToEvent), [entries])
-  const focusedEntry = entries?.find((e) => e.id === focusedEntryId) ?? null
+
+  // All entries that share the focused slot — typically one or more
+  // recipes the user planned for that meal.
+  const focusedEntries = useMemo(
+    () =>
+      focusedSlot
+        ? (entries ?? []).filter(
+            (e) => e.date === focusedSlot.date && e.mealSlot === focusedSlot.slot,
+          )
+        : [],
+    [entries, focusedSlot],
+  )
+
+  // Auto-clear the focused-slot pointer when its entries have all been
+  // deleted — without this the dialog appears closed but Redux still
+  // holds a stale (date, slot) reference. Subsequent user actions stay
+  // correct, but the state is misleading and complicates debugging.
+  useEffect(() => {
+    if (focusedSlot && focusedEntries.length === 0) {
+      dispatch(selectSlot(null))
+    }
+  }, [focusedSlot, focusedEntries.length, dispatch])
 
   const [pickerSlot, setPickerSlot] = useState<{ date: string; slot: MealSlot } | null>(null)
 
   const handleCellClick = (args: SchedulerCellClickEvent) => {
-    // Always cancel default — Syncfusion would otherwise pop the
-    // built-in event editor that we've replaced with our own dialogs.
     args.cancel = true
-
     const slot = slotFromHour(args.startTime.getHours())
     if (!slot) return
-
     const date = formatIso(args.startTime)
-    const existing = entries?.find((e) => e.date === date && e.mealSlot === slot)
+    const existing = entries?.some((e) => e.date === date && e.mealSlot === slot)
     if (existing) {
-      dispatch(selectEntry(existing.id))
+      dispatch(selectSlot({ date, slot }))
     } else {
       setPickerSlot({ date, slot })
       dispatch(openRecipePicker())
@@ -167,7 +187,10 @@ export function MealPlanPage() {
   const handleEventClick = (args: SchedulerEventClickEvent) => {
     args.cancel = true
     const id = (args.data?.Id ?? args.data?.id) as string | undefined
-    if (id) dispatch(selectEntry(id))
+    const entry = entries?.find((e) => e.id === id)
+    if (entry) {
+      dispatch(selectSlot({ date: entry.date, slot: entry.mealSlot }))
+    }
   }
 
   const handleSelectedDateChange = (args: SchedulerDateChangeEvent) => {
@@ -180,7 +203,7 @@ export function MealPlanPage() {
     setPickerSlot(null)
     dispatch(closeRecipePicker())
   }
-  const closeDetail = () => dispatch(selectEntry(null))
+  const closeDetail = () => dispatch(selectSlot(null))
 
   return (
     <section className="page page--meal-plan">
@@ -226,13 +249,26 @@ export function MealPlanPage() {
       </Dialog>
 
       <Dialog
-        open={!!focusedEntry}
+        open={!!focusedSlot && focusedEntries.length > 0}
         onClose={closeDetail}
         modal
-        header={focusedEntry?.recipeName ?? ''}
-        style={{ width: '560px' }}
+        header={
+          focusedSlot
+            ? `${dayLabel(focusedSlot.date)} · ${SLOT_LABELS[focusedSlot.slot]}`
+            : ''
+        }
+        style={{ width: '720px' }}
       >
-        {focusedEntry && <EntryDetailContent entry={focusedEntry} onClose={closeDetail} />}
+        {focusedSlot && (
+          <MealSlotDetailContent
+            entries={focusedEntries}
+            onAddRecipe={() => {
+              setPickerSlot(focusedSlot)
+              dispatch(openRecipePicker())
+            }}
+            onClose={closeDetail}
+          />
+        )}
       </Dialog>
     </section>
   )
@@ -322,26 +358,62 @@ function RecipePickerForm({ date, slot, onDone }: RecipePickerFormProps) {
 }
 
 // ----------------------------------------------------------------------
-// Entry detail (stock check) inside Dialog
+// Meal slot detail (multi-recipe table with batch cook)
 // ----------------------------------------------------------------------
 
-interface EntryDetailProps {
-  entry: MealPlanEntryDto
+interface MealSlotDetailProps {
+  entries: MealPlanEntryDto[]
+  onAddRecipe: () => void
   onClose: () => void
 }
 
-function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
-  const { data: stockCheck, isLoading } = useGetStockCheckQuery(entry.id)
+function MealSlotDetailContent({ entries, onAddRecipe, onClose }: MealSlotDetailProps) {
   const [deleteEntry, { isLoading: isDeleting }] = useDeleteMealPlanEntryMutation()
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [cookBatch, { isLoading: isCooking }] = useCookMealPlanBatchMutation()
   const { confirm } = useConfirm()
 
-  const handleDelete = async () => {
+  // Selection of entry ids. Initialise with all Planned entries pre-checked
+  // so the common case (cook everything I planned) is one click.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(entries.filter((e) => e.status === 'Planned').map((e) => e.id)),
+  )
+
+  // Drop selections for entries that disappear (e.g. row deleted).
+  useEffect(() => {
+    setSelectedIds((prev) => {
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (entries.some((e) => e.id === id)) next.add(id)
+      }
+      return next
+    })
+  }, [entries])
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+
+  const selectedArray = useMemo(() => Array.from(selectedIds), [selectedIds])
+
+  const { data: stockCheck } = useStockCheckBatchQuery(
+    { entryIds: selectedArray },
+    { skip: selectedArray.length === 0 },
+  )
+
+  const toggle = (id: string, status: MealPlanEntryDto['status']) => {
+    if (status !== 'Planned') return
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleDelete = async (entry: MealPlanEntryDto) => {
     const ok = await confirm({
-      title: 'ลบรายการ meal plan',
+      title: 'ลบรายการ',
       message: (
         <>
-          ลบ <strong>"{entry.recipeName}"</strong> ออกจาก meal plan?
+          ลบ <strong>"{entry.recipeName}"</strong> ออกจากมื้อนี้?
         </>
       ),
       confirmText: 'ลบ',
@@ -351,6 +423,16 @@ function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
     setErrorMessage(null)
     try {
       await deleteEntry(entry.id).unwrap()
+    } catch (err) {
+      setErrorMessage(getErrorMessage(err))
+    }
+  }
+
+  const handleCook = async () => {
+    if (selectedArray.length === 0) return
+    setErrorMessage(null)
+    try {
+      await cookBatch({ entryIds: selectedArray }).unwrap()
       onClose()
     } catch (err) {
       setErrorMessage(getErrorMessage(err))
@@ -360,104 +442,153 @@ function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
   return (
     <div>
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
-      <p style={{ color: 'var(--color-text-muted)', marginBottom: 12 }}>
-        {dayLabel(entry.date)} · {SLOT_LABELS[entry.mealSlot]}
-        {entry.status === 'Cooked' && entry.cookedAt && (
-          <> · ✓ cooked {new Date(entry.cookedAt).toLocaleString('th-TH')}</>
-        )}
-      </p>
 
-      {entry.cookNotes && (
-        <p
-          style={{
-            background: '#fff8e1',
-            padding: 8,
-            borderRadius: 6,
-            fontSize: 13,
-            marginBottom: 12,
-          }}
-        >
-          📝 {entry.cookNotes}
-        </p>
-      )}
-
-      <h3 style={{ marginTop: 0 }}>Stock check</h3>
-      {isLoading && <p>Checking stock…</p>}
-      {stockCheck && stockCheck.lines.length === 0 && (
-        <p style={{ color: 'var(--color-text-muted)' }}>Recipe นี้ไม่มี ingredient list</p>
-      )}
-      {stockCheck && stockCheck.lines.length > 0 && (
-        <>
-          <div className="table-scroll" style={{ marginBottom: 12 }}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Ingredient</th>
-                <th style={{ width: 90 }}>Required</th>
-                <th style={{ width: 90 }}>On hand</th>
-                <th style={{ width: 90 }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stockCheck.lines.map((line) => (
-                <tr
-                  key={line.ingredientId}
-                  className={line.missing > 0 ? 'row--empty' : undefined}
-                >
-                  <td>{line.ingredientName}</td>
+      <div className="table-scroll" style={{ marginBottom: 12 }}>
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th style={{ width: 50 }}>เลือก</th>
+              <th>Recipe</th>
+              <th style={{ width: 200 }}>Stock</th>
+              <th style={{ width: 200 }}>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {entries.map((entry) => {
+              const isPlanned = entry.status === 'Planned'
+              const checked = selectedIds.has(entry.id)
+              return (
+                <tr key={entry.id} className={isPlanned ? undefined : 'row--cooked'}>
                   <td>
-                    {line.required} {line.unit}
-                  </td>
-                  <td>
-                    {line.available} {line.unit}
-                  </td>
-                  <td>
-                    {line.missing === 0 ? (
-                      <span style={{ color: 'green' }}>✅ enough</span>
+                    {isPlanned ? (
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggle(entry.id, entry.status)}
+                        aria-label={`เลือก ${entry.recipeName}`}
+                      />
                     ) : (
-                      <span style={{ color: 'var(--color-danger)' }}>
-                        ❌ short {line.missing} {line.unit}
-                      </span>
+                      <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ fontWeight: 500 }}>{entry.recipeName}</td>
+                  <td>
+                    <RowStockBadge entryId={entry.id} status={entry.status} />
+                  </td>
+                  <td>
+                    {isPlanned ? (
+                      <>
+                        <span className="status status--planned">Planned</span>
+                        <Button
+                          type="button"
+                          size={Size.Small}
+                          variant={Variant.Outlined}
+                          color={Color.Error}
+                          onClick={() => handleDelete(entry)}
+                          disabled={isDeleting}
+                          aria-label="ลบ"
+                          style={{ marginLeft: 6 }}
+                        >
+                          🗑
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <span className="status status--cooked">✓ Cooked</span>
+                        {entry.cookedAt && (
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: 12, marginLeft: 6 }}>
+                            {new Date(entry.cookedAt).toLocaleTimeString('th-TH', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-          <p
-            style={{
-              fontWeight: 600,
-              color: stockCheck.isSufficient ? 'green' : 'var(--color-danger)',
-            }}
-          >
-            {stockCheck.isSufficient
-              ? '✅ Stock พอสำหรับ recipe นี้'
-              : `⚠️ ขาด ${stockCheck.missingCount} อย่าง`}
-          </p>
-        </>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {stockCheck && stockCheck.missingCount > 0 && (
+        <div
+          style={{
+            background: '#fff3e0',
+            border: '1px solid #ffb74d',
+            borderRadius: 6,
+            padding: '10px 14px',
+            fontSize: 13,
+            color: '#e65100',
+            marginBottom: 12,
+          }}
+        >
+          ⚠️ ขาด{' '}
+          {stockCheck.lines
+            .filter((l) => l.missing > 0)
+            .map((l) => `${l.ingredientName} ${l.missing} ${l.unit}`)
+            .join(', ')}{' '}
+          — เมื่อกด Cook ระบบจะหักเท่าที่มี
+        </div>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          alignItems: 'center',
+          paddingTop: 8,
+          borderTop: '1px solid #eee',
+        }}
+      >
         <Button
           type="button"
           variant={Variant.Outlined}
-          color={Color.Error}
-          onClick={handleDelete}
-          disabled={isDeleting}
+          color={Color.Primary}
+          onClick={onAddRecipe}
         >
-          🗑️ Remove from plan
+          + เพิ่ม recipe
         </Button>
+        <div style={{ flex: 1 }} />
         <Button
           type="button"
           variant={Variant.Outlined}
           color={Color.Secondary}
           onClick={onClose}
         >
-          Close
+          ยกเลิก
+        </Button>
+        <Button
+          type="button"
+          variant={Variant.Filled}
+          color={Color.Primary}
+          onClick={handleCook}
+          disabled={selectedArray.length === 0 || isCooking}
+        >
+          🍳 Cook selected ({selectedArray.length})
         </Button>
       </div>
     </div>
+  )
+}
+
+/**
+ * Per-row stock badge — reuses the single-entry stock check so each
+ * row tells the user "this one alone is short". The selected-set
+ * banner above the footer reports the *aggregate*.
+ *
+ * TODO: consolidate into the batch endpoint if slot sizes regularly exceed 4.
+ */
+function RowStockBadge({ entryId, status }: { entryId: string; status: MealPlanEntryDto['status'] }) {
+  const { data } = useGetStockCheckQuery(entryId, { skip: status !== 'Planned' })
+  if (status !== 'Planned') return <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+  if (!data) return <span style={{ color: 'var(--color-text-muted)' }}>…</span>
+  return data.isSufficient ? (
+    <span style={{ color: 'green' }}>✅ พอ</span>
+  ) : (
+    <span style={{ color: 'var(--color-danger)' }}>⚠️ ขาด {data.missingCount} อย่าง</span>
   )
 }
 
