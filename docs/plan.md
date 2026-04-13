@@ -274,7 +274,7 @@ App.tsx main.tsx
 13. Sign out → sign in with another account → join the family using the invite code → see the same data
 
 **Tests:**
-- Unit tests: Application layer (command/query handlers) with xUnit + NSubstitute
+- Unit tests: Application layer (command/query handlers) with xUnit + Moq
 - Integration tests: Infrastructure layer with `Microsoft.EntityFrameworkCore.InMemory` or Testcontainers (SQL Server)
 - Frontend: Vitest + React Testing Library — test hooks and the key components (RecipeForm, StockCheckPanel)
 
