@@ -23,6 +23,7 @@ import {
 } from '../../shared/api/api'
 import type { MealPlanEntryDto, MealSlot } from '../../shared/api/api'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
+import { useConfirm } from '../../shared/hooks/useConfirm'
 import { useAppDispatch, useAppSelector } from '../../store'
 import {
   closeRecipePicker,
@@ -333,9 +334,20 @@ function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
   const { data: stockCheck, isLoading } = useGetStockCheckQuery(entry.id)
   const [deleteEntry, { isLoading: isDeleting }] = useDeleteMealPlanEntryMutation()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const { confirm } = useConfirm()
 
   const handleDelete = async () => {
-    if (!confirm(`ลบ "${entry.recipeName}" ออกจาก meal plan?`)) return
+    const ok = await confirm({
+      title: 'ลบรายการ meal plan',
+      message: (
+        <>
+          ลบ <strong>"{entry.recipeName}"</strong> ออกจาก meal plan?
+        </>
+      ),
+      confirmText: 'ลบ',
+      destructive: true,
+    })
+    if (!ok) return
     setErrorMessage(null)
     try {
       await deleteEntry(entry.id).unwrap()

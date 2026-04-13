@@ -12,6 +12,7 @@ import {
   useListIngredientsQuery,
   useUpdateRecipeMutation,
 } from '../../shared/api/api'
+import { useConfirm } from '../../shared/hooks/useConfirm'
 
 interface RecipeFormLine {
   ingredientId: string
@@ -39,6 +40,7 @@ export function RecipeDetailPage() {
   const [updateRecipe, { isLoading: isUpdating }] = useUpdateRecipeMutation()
   const [deleteRecipe, { isLoading: isDeleting }] = useDeleteRecipeMutation()
   const [createIngredient] = useCreateIngredientMutation()
+  const { confirm } = useConfirm()
 
   const {
     control,
@@ -165,7 +167,17 @@ export function RecipeDetailPage() {
 
   const handleDelete = async () => {
     if (!id || isNew) return
-    if (!confirm('ลบ recipe นี้หรือไม่?')) return
+    const ok = await confirm({
+      title: 'ลบ recipe',
+      message: (
+        <>
+          ลบ recipe <strong>"{recipe?.name ?? ''}"</strong> หรือไม่?
+        </>
+      ),
+      confirmText: 'ลบ',
+      destructive: true,
+    })
+    if (!ok) return
     setFormError(null)
     try {
       await deleteRecipe(id).unwrap()

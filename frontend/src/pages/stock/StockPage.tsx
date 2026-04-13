@@ -10,6 +10,7 @@ import {
   useUpsertStockMutation,
 } from '../../shared/api/api'
 import type { StockItemDto } from '../../shared/api/api'
+import { useConfirm } from '../../shared/hooks/useConfirm'
 
 interface AddStockForm {
   ingredientId: string
@@ -21,6 +22,7 @@ export function StockPage() {
   const { data: ingredients } = useListIngredientsQuery()
   const [upsertStock, { isLoading: isUpserting }] = useUpsertStockMutation()
   const [deleteStock] = useDeleteStockMutation()
+  const { confirm } = useConfirm()
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -99,7 +101,17 @@ export function StockPage() {
   }
 
   const handleDelete = async (item: StockItemDto) => {
-    if (!confirm(`ลบ "${item.ingredientName}" ออกจาก stock?`)) return
+    const ok = await confirm({
+      title: 'ลบรายการ stock',
+      message: (
+        <>
+          ลบ <strong>"{item.ingredientName}"</strong> ออกจาก stock?
+        </>
+      ),
+      confirmText: 'ลบ',
+      destructive: true,
+    })
+    if (!ok) return
     setErrorMessage(null)
     try {
       await deleteStock(item.id).unwrap()

@@ -9,6 +9,7 @@ import {
   useDeleteIngredientMutation,
 } from '../../shared/api/api'
 import type { IngredientDto } from '../../shared/api/api'
+import { useConfirm } from '../../shared/hooks/useConfirm'
 
 interface IngredientForm {
   name: string
@@ -20,6 +21,7 @@ export function IngredientsPage() {
   const [createIngredient, { isLoading: isCreating }] = useCreateIngredientMutation()
   const [updateIngredient] = useUpdateIngredientMutation()
   const [deleteIngredient] = useDeleteIngredientMutation()
+  const { confirm } = useConfirm()
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -64,7 +66,17 @@ export function IngredientsPage() {
   })
 
   const handleDelete = async (ingredient: IngredientDto) => {
-    if (!confirm(`ลบ "${ingredient.name}" หรือไม่?`)) return
+    const ok = await confirm({
+      title: 'ลบวัตถุดิบ',
+      message: (
+        <>
+          ลบ <strong>"{ingredient.name}"</strong> หรือไม่?
+        </>
+      ),
+      confirmText: 'ลบ',
+      destructive: true,
+    })
+    if (!ok) return
     setErrorMessage(null)
     try {
       await deleteIngredient(ingredient.id).unwrap()
