@@ -111,7 +111,7 @@ The app is split across two Azure services:
 |---|---|
 | `ConnectionStrings__DefaultConnection` | Azure SQL connection string (use Managed Identity where possible) |
 | `AzureAd__ClientId` | Entra ID app client ID |
-| `AzureAd__Audience` | `api://<api-app-id>` |
+| `AzureAd__Audience` | Entra ID app client ID (**GUID only**, not `api://{guid}`) — MSAL.js SPAs receive v2.0 tokens whose `aud` claim is the bare client ID |
 | `AzureBlob__ConnectionString` | Storage account connection string (or use Managed Identity) |
 | `Cors__AllowedOrigins` | Comma-separated list including the SWA origin, e.g. `https://menunest.azurestaticapps.net,https://menunest.app` |
 
