@@ -60,7 +60,13 @@ function slotFromHour(hour: number): MealSlot | null {
 // ----------------------------------------------------------------------
 
 function formatIso(date: Date): string {
-  return date.toISOString().slice(0, 10)
+  // Use LOCAL Y/M/D — `toISOString()` converts to UTC, which shifts
+  // the date by a day when the user's zone is east of Greenwich
+  // (e.g. clicking Wed 07:00 in TH-UTC+7 would serialize as Tue).
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
 function addDays(iso: string, days: number): string {
@@ -185,6 +191,11 @@ export function MealPlanPage() {
         height={isMobile ? '70vh' : '650px'}
         selectedDate={new Date(viewStartDate + 'T00:00:00')}
         view={isMobile ? 'Day' : 'Week'}
+        // The redux week-anchor is computed via mondayOf(), so the
+        // grid must also start on Monday — otherwise Sunday cells
+        // render in the visible week but fall outside the fetched
+        // range, producing "save succeeded but row never appears".
+        firstDayOfWeek={1}
         eventSettings={{ dataSource: events }}
         showQuickInfoPopup={false}
         eventDrag={false}
