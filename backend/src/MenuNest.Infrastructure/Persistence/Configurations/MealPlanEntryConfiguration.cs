@@ -23,7 +23,9 @@ internal sealed class MealPlanEntryConfiguration : IEntityTypeConfiguration<Meal
         builder.Property(m => m.Notes).HasMaxLength(500);
         builder.Property(m => m.CookNotes).HasMaxLength(500);
 
-        builder.HasIndex(m => new { m.FamilyId, m.Date, m.MealSlot }).IsUnique();
+        // Non-unique: multiple MealPlanEntries can share the same slot
+        // (e.g., several dishes per meal).
+        builder.HasIndex(m => new { m.FamilyId, m.Date, m.MealSlot });
 
         builder.HasOne<Family>()
             .WithMany()
