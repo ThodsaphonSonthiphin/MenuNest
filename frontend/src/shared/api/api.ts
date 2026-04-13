@@ -59,8 +59,35 @@ export interface IngredientDto {
 export interface RecipeSummaryDto {
   id: string
   name: string
+  description: string | null
+  imageBlobPath: string | null
   ingredientCount: number
-  imageUrl: string | null
+}
+
+export interface RecipeIngredientInput {
+  ingredientId: string
+  quantity: number
+}
+
+export interface RecipeIngredientDto {
+  ingredientId: string
+  ingredientName: string
+  unit: string
+  quantity: number
+}
+
+export interface RecipeDetailDto {
+  id: string
+  name: string
+  description: string | null
+  imageBlobPath: string | null
+  ingredients: RecipeIngredientDto[]
+}
+
+export interface RecipeUpsertRequest {
+  name: string
+  description: string | null
+  ingredients: RecipeIngredientInput[]
 }
 
 export interface StockItemDto {
@@ -182,7 +209,50 @@ export const api = createApi({
     // -------------------- Recipes --------------------
     listRecipes: build.query<RecipeSummaryDto[], void>({
       query: () => '/api/recipes',
-      providesTags: ['Recipes'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((r) => ({ type: 'Recipes' as const, id: r.id })),
+              { type: 'Recipes', id: 'LIST' },
+            ]
+          : [{ type: 'Recipes', id: 'LIST' }],
+    }),
+
+    getRecipe: build.query<RecipeDetailDto, string>({
+      query: (id) => `/api/recipes/${id}`,
+      providesTags: (_res, _err, id) => [{ type: 'Recipes', id }],
+    }),
+
+    createRecipe: build.mutation<RecipeDetailDto, RecipeUpsertRequest>({
+      query: (body) => ({
+        url: '/api/recipes',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Recipes', id: 'LIST' }],
+    }),
+
+    updateRecipe: build.mutation<RecipeDetailDto, { id: string } & RecipeUpsertRequest>({
+      query: ({ id, ...body }) => ({
+        url: `/api/recipes/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_res, _err, arg) => [
+        { type: 'Recipes', id: arg.id },
+        { type: 'Recipes', id: 'LIST' },
+      ],
+    }),
+
+    deleteRecipe: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/recipes/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, id) => [
+        { type: 'Recipes', id },
+        { type: 'Recipes', id: 'LIST' },
+      ],
     }),
 
     // -------------------- Stock --------------------
@@ -213,6 +283,10 @@ export const {
   useUpdateIngredientMutation,
   useDeleteIngredientMutation,
   useListRecipesQuery,
+  useGetRecipeQuery,
+  useCreateRecipeMutation,
+  useUpdateRecipeMutation,
+  useDeleteRecipeMutation,
   useListStockQuery,
   useListMealPlanQuery,
   useListShoppingListsQuery,
