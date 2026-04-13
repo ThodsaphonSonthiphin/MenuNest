@@ -1,0 +1,138 @@
+# ============================================================
+# MenuNest .gitignore
+# ============================================================
+
+# ---------- OS ----------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ---------- IDE / editors ----------
+.vs/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ---------- .NET / Backend ----------
+# Build output
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# ASP.NET
+wwwroot/dist/
+*.pidb
+*.svclog
+*.scc
+
+# NuGet
+packages/
+*.nupkg
+*.snupkg
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Publish
+PublishScripts/
+publish/
+*.publishsettings
+*.publishproj
+PublishProfiles/
+
+# MSBuild
+*.binlog
+
+# Test results
+TestResults/
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+*.trx
+
+# User-specific
+*.rsuser
+appsettings.Development.json
+appsettings.Local.json
+secrets.json
+
+# EF Core
+*.mdf
+*.ldf
+*.ndf
+
+# ---------- Node / Frontend ----------
+node_modules/
+.pnp
+.pnp.js
+.yarn/
+.yarn-integrity
+
+# Build
+dist/
+build/
+.vite/
+.cache/
+.parcel-cache/
+.turbo/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Syncfusion
+syncfusion-license.txt
+
+# ---------- Azure / Infra ----------
+.azure/
+*.pubxml
+*.pubxml.user
+.vs/azure/
+azure-pipelines-generated.yml
+
+# Bicep
+*.bicepparam.local
+*.parameters.local.json
+
+# ---------- Misc ----------
+.superpowers/
+*.bak
+*.tmp
+*.temp
+.DS_Store?
+._*
+
+# ---------- Docs / Notes (local only) ----------
+/notes.local.md
+/scratch/
