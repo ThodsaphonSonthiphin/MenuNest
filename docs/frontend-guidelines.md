@@ -5,6 +5,17 @@ repo. Keep this short — when in doubt, the rules below override "what feels
 idiomatic in React" because they reflect concrete decisions taken by the
 project owner.
 
+> **Syncfusion reference docs:**
+> - Component catalogue + live demos: <https://react.syncfusion.com/react-ui>
+> - Pure React Scheduler (used on the Meal Plan page): <https://react.syncfusion.com/react-ui/scheduler>
+> - Marketing / licensing entry point: <https://syncfusion.com>
+>
+> Always check those docs (or the package's `.d.ts` files under
+> `node_modules/@syncfusion/react-*`) before guessing prop names — Pure
+> React's API is **not** identical to the legacy `ej2-react-*` library and
+> the older Stack Overflow answers / blog posts almost certainly refer to
+> the legacy one.
+
 ## 1. Stack
 
 - **React 19** (`react@^19.2`) + **TypeScript** + **Vite 8**.
@@ -15,29 +26,50 @@ project owner.
 - **React Router v7** with `createBrowserRouter`.
 - **MSAL.js** (`@azure/msal-react`) for Entra ID authentication.
 
-## 2. UI components — Syncfusion first
+## 2. UI components — Syncfusion *Pure React* first
 
 For any control you'd otherwise hand-roll, **reach for the corresponding
-Syncfusion `@syncfusion/ej2-react-*` component first** and adapt it. The
-Community License is paid for and these components give us accessibility,
-keyboard navigation, theming, and edit-in-place for free.
+Syncfusion *Pure React* (`@syncfusion/react-*`) component first** and adapt
+it. The Community License is paid for and these components give us
+accessibility, keyboard navigation, theming, and edit-in-place for free.
 
-| UI need | Component |
+> **Pure React, not the legacy `ej2-react` wrappers.** Syncfusion ships two
+> parallel React libraries. We use the Pure React one (`@syncfusion/react-*`).
+> Do not pull in `@syncfusion/ej2-react-*` packages — they have a different
+> API surface (`<ScheduleComponent>` + `<ViewsDirective>` + `<Inject services={[...]}/>`)
+> and we explicitly opted out.
+
+| UI need | Pure React package |
 |---|---|
-| Editable tables / lists | `GridComponent` (`@syncfusion/ej2-react-grids`) |
-| Calendar / weekly planner | `ScheduleComponent` (`@syncfusion/ej2-react-schedule`) |
-| Modal dialogs | `DialogComponent` (`@syncfusion/ej2-react-popups`) |
-| Toasts | `ToastComponent` (`@syncfusion/ej2-react-notifications`) |
-| Autocomplete / combobox | `AutoCompleteComponent`, `ComboBoxComponent` (`@syncfusion/ej2-react-dropdowns`) |
-| Tabs / nav | `@syncfusion/ej2-react-navigations` |
+| Editable tables / lists | `@syncfusion/react-grid` (singular!) |
+| Calendar / weekly planner | `@syncfusion/react-scheduler` (`Scheduler`, `DayView`, `WeekView`, …) |
+| Modal dialogs / tooltips | `@syncfusion/react-popups` (`Dialog`, `Tooltip`) |
+| Autocomplete / dropdown | `@syncfusion/react-dropdowns` (`DropDownList`, `ComboBox`, `AutoComplete`) |
+| Buttons / Switch / Chip | `@syncfusion/react-buttons` |
+| Inputs (Textbox, NumericTextbox, Form) | `@syncfusion/react-inputs` |
 
-**Disable built-in editors when needed.** Syncfusion components ship with
-default popups and inline editors (Schedule's "quick info", Grid's CRUD
-dialog, etc.). When our domain flow doesn't match — e.g. the cook action on
-a meal plan entry needs its own confirm dialog — turn the built-ins off
-(`showQuickInfo={false}`) and cancel events with `args.cancel = true` in
-`popupOpen` / `actionBegin`. Then drive the mutation through your own
-`DialogComponent` + RTK Query.
+**Pure React component conventions** (different from legacy):
+
+- Views render as **plain children**, not directives:
+  ```tsx
+  <Scheduler defaultView="Week">
+    <DayView />
+    <WeekView />
+  </Scheduler>
+  ```
+  No `<ViewsDirective>` / `<ViewDirective>` / `<Inject services={[...]} />`.
+- Event handler props are **camelCased with `on` prefix**: `onCellClick`,
+  `onEventClick`, `onSelectedDateChange` — not the legacy `cellClick` /
+  `eventClick`.
+- CSS imports per package: `@syncfusion/react-{name}/styles/material.css`.
+  Each package's stylesheet pulls in what it transitively needs.
+
+**Disable built-in editors when needed.** Pure React Scheduler ships with a
+default quick-info popup and an event editor. When our domain flow needs
+something custom (the cook confirm flow, the recipe picker), turn the
+built-ins off (`showQuickInfoPopup={false}`) and set `args.cancel = true`
+inside `onCellClick` / `onEventClick`. Then drive the mutation through your
+own `Dialog` + RTK Query.
 
 **Custom HTML stays for layout only.** `<section>`, `<header>`, the page CSS
 grid — fine. Never re-implement table/dialog/dropdown primitives.

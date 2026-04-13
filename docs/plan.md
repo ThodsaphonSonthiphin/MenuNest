@@ -218,24 +218,25 @@ App.tsx main.tsx
 
 **Convention (enforced):** every page folder must contain `components/`, `hooks/`, `{page}Slice.ts` (for local UI state), `{Page}Page.tsx`, and `index.ts` (barrel). Logic lives in hooks, JSX in components (component + hook pattern). **Server state goes through one app-wide `shared/api/api.ts` RTK Query instance** — there is no per-feature API file. Pages import the generated hooks (e.g., `useListRecipesQuery`) directly.
 
-**UI library policy — Syncfusion first:** for any control we'd otherwise hand-roll (tables, dialogs, calendars, autocompletes, toasts), reach for the corresponding `@syncfusion/ej2-react-*` component and adapt it. The Community License is paid for and these components ship with the accessibility, keyboard navigation, theming, and edit-in-place behaviour we'd otherwise have to recreate. Concretely:
+**UI library policy — Syncfusion *Pure React* first:** for any control we'd otherwise hand-roll, reach for the corresponding **Pure React** Syncfusion package (`@syncfusion/react-*`, *not* the legacy `@syncfusion/ej2-react-*` wrappers) and adapt it. The Community License is paid for and these components ship with the accessibility, keyboard navigation, theming, and edit-in-place behaviour we'd otherwise have to recreate. Concretely:
 
 | UI need | Use |
 |---|---|
-| Editable tables / lists | `@syncfusion/ej2-react-grids` `GridComponent` |
-| Calendar / weekly planner | `@syncfusion/ej2-react-schedule` `ScheduleComponent` (the Meal Plan page is built on this) |
-| Modal dialogs | `@syncfusion/ej2-react-popups` `DialogComponent` |
-| Toasts | `@syncfusion/ej2-react-notifications` `ToastComponent` |
-| Autocomplete / combobox | `@syncfusion/ej2-react-dropdowns` (`AutoCompleteComponent`, `ComboBoxComponent`) |
+| Editable tables / lists | `@syncfusion/react-grid` (singular) |
+| Calendar / weekly planner | `@syncfusion/react-scheduler` — the Meal Plan page is built on this |
+| Modal dialogs / tooltips | `@syncfusion/react-popups` |
+| Autocomplete / dropdown | `@syncfusion/react-dropdowns` |
+| Buttons / Switch / Chip | `@syncfusion/react-buttons` |
+| Inputs (Textbox, NumericTextbox, Form) | `@syncfusion/react-inputs` |
 
-When Syncfusion's built-in popups/editors don't match our domain flow (e.g. the Schedule's quick-info is too generic for the cook flow), disable them via `showQuickInfo={false}` / `args.cancel = true` on `popupOpen` / `actionBegin` and drive the mutation through our own `DialogComponent` plus RTK Query. Forms wrap Syncfusion controls in **react-hook-form**'s `Controller` so the per-field validation rules from the form-library convention still apply. Custom HTML stays for layout shells (`<section>`, `<header>`, page-level CSS grid) only — never for the controls themselves.
+Pure React differs from the legacy library: views render as plain children (`<DayView />`, `<WeekView />`) without the `ViewsDirective`/`Inject services={[...]}` ceremony, event props are camelCased with `on` prefix (`onCellClick`, `onEventClick`), and the per-package CSS lives at `@syncfusion/react-{package}/styles/material.css`. When Syncfusion's built-in popups/editors don't match our domain flow (e.g. the Scheduler's quick-info is too generic for the cook flow), disable them via `showQuickInfoPopup={false}` and set `args.cancel = true` inside `onCellClick` / `onEventClick`, then drive the mutation through our own `Dialog` plus RTK Query. Forms wrap Syncfusion controls in **react-hook-form**'s `Controller` so the per-field validation rules from the form-library convention still apply. Custom HTML stays for layout shells (`<section>`, `<header>`, page-level CSS grid) only — never for the controls themselves.
 
 **Key packages:**
 - `@azure/msal-react`, `@azure/msal-browser` — authority `https://login.microsoftonline.com/common`
 - `@reduxjs/toolkit`, `react-redux`
 - `react-router-dom` v6
-- `@syncfusion/ej2-react-schedule` (meal plan calendar), `-grids`, `-inputs`, `-navigations`, `-dropdowns`
-- The Syncfusion license is registered in `main.tsx` via `registerLicense(import.meta.env.VITE_SYNCFUSION_KEY)`
+- `@syncfusion/react-scheduler` (meal plan calendar), `react-grid`, `react-popups`, `react-dropdowns`, `react-buttons`, `react-inputs` — **Pure React**, not the legacy `ej2-react-*` wrappers. Reference docs: <https://react.syncfusion.com/react-ui> (component catalogue + live demos) and <https://syncfusion.com> (licensing).
+- The Syncfusion license is registered in `main.tsx` via `registerLicense(import.meta.env.VITE_SYNCFUSION_KEY)` from `@syncfusion/react-base`.
 
 **Auth flow:**
 - `MsalProvider` wraps `App`

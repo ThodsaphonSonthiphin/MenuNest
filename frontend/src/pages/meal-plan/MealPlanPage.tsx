@@ -1,11 +1,23 @@
 import { useMemo, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import {
+  Scheduler,
+  DayView,
+  WeekView,
+} from '@syncfusion/react-scheduler'
+import type {
+  SchedulerCellClickEvent,
+  SchedulerDateChangeEvent,
+  SchedulerEventClickEvent,
+} from '@syncfusion/react-scheduler'
+import { Dialog } from '@syncfusion/react-popups'
+
 import {
   useCreateMealPlanEntryMutation,
   useDeleteMealPlanEntryMutation,
   useGetStockCheckQuery,
   useListMealPlanQuery,
   useListRecipesQuery,
-  MEAL_SLOTS,
 } from '../../shared/api/api'
 import type { MealPlanEntryDto, MealSlot } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store'
@@ -16,11 +28,33 @@ import {
   setViewStartDate,
 } from './mealPlanSlice'
 
+// ----------------------------------------------------------------------
+// Slot ↔ time-of-day mapping
+// ----------------------------------------------------------------------
+
 const SLOT_LABELS: Record<MealSlot, string> = {
   Breakfast: '🌅 Breakfast',
   Lunch: '🌞 Lunch',
   Dinner: '🌙 Dinner',
 }
+
+/** Visual time bands so the Scheduler renders three distinct rows per day. */
+const SLOT_HOURS: Record<MealSlot, { start: number; end: number }> = {
+  Breakfast: { start: 7, end: 9 },
+  Lunch: { start: 12, end: 14 },
+  Dinner: { start: 18, end: 20 },
+}
+
+function slotFromHour(hour: number): MealSlot | null {
+  if (hour < 11) return 'Breakfast'
+  if (hour < 16) return 'Lunch'
+  if (hour < 22) return 'Dinner'
+  return null
+}
+
+// ----------------------------------------------------------------------
+// Date helpers (ISO yyyy-mm-dd is the canonical wire format)
+// ----------------------------------------------------------------------
 
 function formatIso(date: Date): string {
   return date.toISOString().slice(0, 10)
@@ -32,10 +66,55 @@ function addDays(iso: string, days: number): string {
   return formatIso(d)
 }
 
+function mondayOf(date: Date): Date {
+  const d = new Date(date)
+  const dow = d.getDay() // 0 = Sunday
+  d.setDate(d.getDate() - ((dow + 6) % 7))
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
 function dayLabel(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleDateString('th-TH', { weekday: 'short', day: '2-digit', month: 'short' })
 }
+
+// ----------------------------------------------------------------------
+// MealPlanEntryDto → Scheduler EventModel
+// ----------------------------------------------------------------------
+
+interface SchedulerEvent extends Record<string, unknown> {
+  Id: string
+  Subject: string
+  StartTime: Date
+  EndTime: Date
+  IsReadonly: boolean
+  CategoryColor: string
+  MealSlot: MealSlot
+  Status: MealPlanEntryDto['status']
+}
+
+function entryToEvent(entry: MealPlanEntryDto): SchedulerEvent {
+  const { start, end } = SLOT_HOURS[entry.mealSlot]
+  const startTime = new Date(entry.date + 'T00:00:00')
+  startTime.setHours(start, 0, 0, 0)
+  const endTime = new Date(entry.date + 'T00:00:00')
+  endTime.setHours(end, 0, 0, 0)
+  return {
+    Id: entry.id,
+    Subject: entry.recipeName,
+    StartTime: startTime,
+    EndTime: endTime,
+    IsReadonly: entry.status === 'Cooked',
+    CategoryColor: entry.status === 'Cooked' ? '#9e9e9e' : '#f57c00',
+    MealSlot: entry.mealSlot,
+    Status: entry.status,
+  }
+}
+
+// ----------------------------------------------------------------------
+// MealPlanPage
+// ----------------------------------------------------------------------
 
 export function MealPlanPage() {
   const dispatch = useAppDispatch()
@@ -43,28 +122,25 @@ export function MealPlanPage() {
   const focusedEntryId = useAppSelector((s) => s.mealPlan.focusedEntryId)
   const recipePickerOpen = useAppSelector((s) => s.mealPlan.recipePickerOpen)
 
-  const days = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(viewStartDate, i))
-  }, [viewStartDate])
+  const fromIso = viewStartDate
+  const toIso = addDays(viewStartDate, 6)
 
-  const fromIso = days[0]
-  const toIso = days[days.length - 1]
-
-  const { data: entries, isLoading } = useListMealPlanQuery({ from: fromIso, to: toIso })
-  const [pickerSlot, setPickerSlot] = useState<{ date: string; slot: MealSlot } | null>(null)
-
-  const grid = useMemo(() => {
-    const map = new Map<string, MealPlanEntryDto>()
-    for (const e of entries ?? []) {
-      map.set(`${e.date}|${e.mealSlot}`, e)
-    }
-    return map
-  }, [entries])
-
+  const { data: entries } = useListMealPlanQuery({ from: fromIso, to: toIso })
+  const events = useMemo(() => (entries ?? []).map(entryToEvent), [entries])
   const focusedEntry = entries?.find((e) => e.id === focusedEntryId) ?? null
 
-  const handleSlotClick = (date: string, slot: MealSlot) => {
-    const existing = grid.get(`${date}|${slot}`)
+  const [pickerSlot, setPickerSlot] = useState<{ date: string; slot: MealSlot } | null>(null)
+
+  const handleCellClick = (args: SchedulerCellClickEvent) => {
+    // Always cancel default — Syncfusion would otherwise pop the
+    // built-in event editor that we've replaced with our own dialogs.
+    args.cancel = true
+
+    const slot = slotFromHour(args.startTime.getHours())
+    if (!slot) return
+
+    const date = formatIso(args.startTime)
+    const existing = entries?.find((e) => e.date === date && e.mealSlot === slot)
     if (existing) {
       dispatch(selectEntry(existing.id))
     } else {
@@ -73,140 +149,116 @@ export function MealPlanPage() {
     }
   }
 
-  const handlePickerClose = () => {
+  const handleEventClick = (args: SchedulerEventClickEvent) => {
+    args.cancel = true
+    const id = (args.data?.Id ?? args.data?.id) as string | undefined
+    if (id) dispatch(selectEntry(id))
+  }
+
+  const handleSelectedDateChange = (args: SchedulerDateChangeEvent) => {
+    // Sync the redux week-anchor whenever the user navigates the
+    // built-in Prev/Next/Today toolbar — that drives the API fetch.
+    dispatch(setViewStartDate(formatIso(mondayOf(args.value))))
+  }
+
+  const closePicker = () => {
     setPickerSlot(null)
     dispatch(closeRecipePicker())
   }
-
-  const goPrevWeek = () => dispatch(setViewStartDate(addDays(viewStartDate, -7)))
-  const goNextWeek = () => dispatch(setViewStartDate(addDays(viewStartDate, 7)))
-  const goToday = () => {
-    const today = new Date()
-    const dow = today.getDay()
-    const monday = new Date(today)
-    monday.setDate(today.getDate() - ((dow + 6) % 7))
-    dispatch(setViewStartDate(formatIso(monday)))
-  }
+  const closeDetail = () => dispatch(selectEntry(null))
 
   return (
     <section className="page page--meal-plan">
       <header className="page__header">
         <h1>Meal Plan</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="btn btn--outline btn--sm" onClick={goPrevWeek}>
-            ◀ Prev
-          </button>
-          <button type="button" className="btn btn--outline btn--sm" onClick={goToday}>
-            Today
-          </button>
-          <button type="button" className="btn btn--outline btn--sm" onClick={goNextWeek}>
-            Next ▶
-          </button>
-        </div>
       </header>
 
-      <p style={{ color: 'var(--color-text-muted)', fontSize: 13, marginBottom: 12 }}>
-        Week of <strong>{dayLabel(fromIso)}</strong> – <strong>{dayLabel(toIso)}</strong>
-      </p>
+      <Scheduler
+        height="650px"
+        selectedDate={new Date(viewStartDate + 'T00:00:00')}
+        defaultView="Week"
+        eventSettings={{ dataSource: events }}
+        showQuickInfoPopup={false}
+        eventDrag={false}
+        eventResize={false}
+        onCellClick={handleCellClick}
+        onEventClick={handleEventClick}
+        onSelectedDateChange={handleSelectedDateChange}
+      >
+        <DayView />
+        <WeekView />
+      </Scheduler>
 
-      {isLoading && <p>Loading…</p>}
+      <Dialog
+        open={recipePickerOpen && !!pickerSlot}
+        onClose={closePicker}
+        modal
+        header={
+          pickerSlot
+            ? `เลือก recipe — ${dayLabel(pickerSlot.date)} · ${SLOT_LABELS[pickerSlot.slot]}`
+            : ''
+        }
+        style={{ width: '560px' }}
+      >
+        {pickerSlot && (
+          <RecipePickerForm date={pickerSlot.date} slot={pickerSlot.slot} onDone={closePicker} />
+        )}
+      </Dialog>
 
-      <table className="meal-plan-grid">
-        <thead>
-          <tr>
-            <th></th>
-            {MEAL_SLOTS.map((slot) => (
-              <th key={slot}>{SLOT_LABELS[slot]}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {days.map((date) => (
-            <tr key={date}>
-              <th scope="row">{dayLabel(date)}</th>
-              {MEAL_SLOTS.map((slot) => {
-                const entry = grid.get(`${date}|${slot}`)
-                return (
-                  <td
-                    key={slot}
-                    className={`meal-cell ${entry ? 'meal-cell--filled' : ''} ${
-                      entry?.status === 'Cooked' ? 'meal-cell--cooked' : ''
-                    }`}
-                    onClick={() => handleSlotClick(date, slot)}
-                  >
-                    {entry ? (
-                      <>
-                        <div className="meal-cell__name">{entry.recipeName}</div>
-                        {entry.status === 'Cooked' && (
-                          <div className="meal-cell__badge">✓ cooked</div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="meal-cell__empty">+</div>
-                    )}
-                  </td>
-                )
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      {recipePickerOpen && pickerSlot && (
-        <RecipePickerDialog
-          date={pickerSlot.date}
-          slot={pickerSlot.slot}
-          onClose={handlePickerClose}
-        />
-      )}
-
-      {focusedEntry && (
-        <EntryDetailDialog
-          entry={focusedEntry}
-          onClose={() => dispatch(selectEntry(null))}
-        />
-      )}
+      <Dialog
+        open={!!focusedEntry}
+        onClose={closeDetail}
+        modal
+        header={focusedEntry?.recipeName ?? ''}
+        style={{ width: '560px' }}
+      >
+        {focusedEntry && <EntryDetailContent entry={focusedEntry} onClose={closeDetail} />}
+      </Dialog>
     </section>
   )
 }
 
 // ----------------------------------------------------------------------
+// Recipe picker (form inside Dialog)
+// ----------------------------------------------------------------------
 
-interface RecipePickerProps {
+interface RecipePickerFormProps {
   date: string
   slot: MealSlot
-  onClose: () => void
+  onDone: () => void
 }
 
-function RecipePickerDialog({ date, slot, onClose }: RecipePickerProps) {
+interface PickerFormValues {
+  search: string
+}
+
+function RecipePickerForm({ date, slot, onDone }: RecipePickerFormProps) {
   const { data: recipes, isLoading } = useListRecipesQuery()
   const [createEntry, { isLoading: isCreating }] = useCreateMealPlanEntryMutation()
-  const [search, setSearch] = useState('')
+  const { register, watch } = useForm<PickerFormValues>({ defaultValues: { search: '' } })
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const filtered = (recipes ?? []).filter((r) =>
-    r.name.toLowerCase().includes(search.trim().toLowerCase()),
-  )
+  const search = watch('search').trim().toLowerCase()
+  const filtered = (recipes ?? []).filter((r) => r.name.toLowerCase().includes(search))
 
   const pick = async (recipeId: string) => {
     setErrorMessage(null)
     try {
       await createEntry({ date, mealSlot: slot, recipeId, notes: null }).unwrap()
-      onClose()
+      onDone()
     } catch (err) {
       setErrorMessage(getErrorMessage(err))
     }
   }
 
   return (
-    <DialogShell onClose={onClose} title={`เลือก recipe — ${dayLabel(date)} · ${SLOT_LABELS[slot]}`}>
+    <div>
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
       <input
         type="search"
         placeholder="🔍 ค้นหา recipe..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
         autoFocus
+        {...register('search')}
         style={{
           width: '100%',
           padding: 10,
@@ -237,10 +289,12 @@ function RecipePickerDialog({ date, slot, onClose }: RecipePickerProps) {
           </li>
         ))}
       </ul>
-    </DialogShell>
+    </div>
   )
 }
 
+// ----------------------------------------------------------------------
+// Entry detail (stock check) inside Dialog
 // ----------------------------------------------------------------------
 
 interface EntryDetailProps {
@@ -248,7 +302,7 @@ interface EntryDetailProps {
   onClose: () => void
 }
 
-function EntryDetailDialog({ entry, onClose }: EntryDetailProps) {
+function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
   const { data: stockCheck, isLoading } = useGetStockCheckQuery(entry.id)
   const [deleteEntry, { isLoading: isDeleting }] = useDeleteMealPlanEntryMutation()
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -265,7 +319,7 @@ function EntryDetailDialog({ entry, onClose }: EntryDetailProps) {
   }
 
   return (
-    <DialogShell onClose={onClose} title={entry.recipeName}>
+    <div>
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
       <p style={{ color: 'var(--color-text-muted)', marginBottom: 12 }}>
         {dayLabel(entry.date)} · {SLOT_LABELS[entry.mealSlot]}
@@ -355,35 +409,6 @@ function EntryDetailDialog({ entry, onClose }: EntryDetailProps) {
         <button type="button" className="btn btn--outline" onClick={onClose}>
           Close
         </button>
-      </div>
-    </DialogShell>
-  )
-}
-
-// ----------------------------------------------------------------------
-
-interface DialogShellProps {
-  title: string
-  onClose: () => void
-  children: React.ReactNode
-}
-
-function DialogShell({ title, onClose, children }: DialogShellProps) {
-  return (
-    <div className="dialog-backdrop" onClick={onClose}>
-      <div className="dialog" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="dialog__header">
-          <h2>{title}</h2>
-          <button
-            type="button"
-            className="dialog__close"
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="dialog__body">{children}</div>
       </div>
     </div>
   )
