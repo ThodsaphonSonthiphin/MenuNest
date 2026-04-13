@@ -14,6 +14,27 @@
   background: var(--color-bg);
 }
 
+/* ----------------------------------------------------------------------
+ * Syncfusion Material 3 theme override — re-tint the primary palette
+ * from default purple (#6750A4) to MenuNest orange (#F57C00) so every
+ * Syncfusion control matches the rest of the app.
+ *
+ * Tokens are declared by @syncfusion/react-base/styles/material.css as
+ * RGB triplets ("R, G, B") consumed via rgba(var(--sf-...), alpha).
+ * We override them in :root so our values win regardless of import
+ * order, and keep .sf-light-mode in sync because that selector also
+ * sets the same vars in the base stylesheet.
+ * -------------------------------------------------------------------- */
+:root,
+.sf-light-mode {
+  /* Primary — orange #F57C00 */
+  --sf-color-primary: 245, 124, 0;
+  --sf-color-on-primary: 255, 255, 255;
+  /* Primary container — light orange #FFE0B2 with dark-orange text */
+  --sf-color-primary-container: 255, 224, 178;
+  --sf-color-on-primary-container: 102, 51, 0;
+}
+
 * {
   box-sizing: border-box;
 }

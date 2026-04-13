@@ -285,15 +285,23 @@ function RecipePickerForm({ date, slot, onDone }: RecipePickerFormProps) {
       <ul className="recipe-pick-list">
         {filtered.map((recipe) => (
           <li key={recipe.id}>
-            <button
+            <Button
               type="button"
-              className="recipe-pick-item"
+              variant={Variant.Outlined}
+              color={Color.Secondary}
               onClick={() => pick(recipe.id)}
               disabled={isCreating}
+              style={{
+                width: '100%',
+                justifyContent: 'space-between',
+                textAlign: 'left',
+              }}
             >
-              <strong>{recipe.name}</strong>
-              <span>{recipe.ingredientCount} ingredients</span>
-            </button>
+              <span style={{ flex: 1, fontWeight: 600 }}>{recipe.name}</span>
+              <span style={{ color: 'var(--color-text-muted)', fontSize: 12 }}>
+                {recipe.ingredientCount} ingredients
+              </span>
+            </Button>
           </li>
         ))}
       </ul>

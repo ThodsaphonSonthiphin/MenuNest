@@ -1,9 +1,12 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Button, Color, Variant } from '@syncfusion/react-buttons'
+import { TextBox } from '@syncfusion/react-inputs'
 import { useListRecipesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store'
 import { setSearchTerm } from './recipesSlice'
 
 export function RecipesPage() {
+  const navigate = useNavigate()
   const { data, isLoading, error } = useListRecipesQuery()
   const searchTerm = useAppSelector((s) => s.recipes.searchTerm)
   const dispatch = useAppDispatch()
@@ -16,25 +19,20 @@ export function RecipesPage() {
     <section className="page page--recipes">
       <header className="page__header">
         <h1>Recipes</h1>
-        <Link to="/recipes/new" className="btn btn--primary">
+        <Button
+          variant={Variant.Filled}
+          color={Color.Primary}
+          onClick={() => navigate('/recipes/new')}
+        >
           + New recipe
-        </Link>
+        </Button>
       </header>
 
-      <div style={{ marginBottom: 16 }}>
-        <input
-          type="search"
+      <div style={{ marginBottom: 16, maxWidth: 400 }}>
+        <TextBox
           placeholder="🔍 ค้นหา recipe..."
           value={searchTerm}
-          onChange={(e) => dispatch(setSearchTerm(e.target.value))}
-          style={{
-            width: '100%',
-            maxWidth: 400,
-            padding: 10,
-            border: '1px solid var(--color-border)',
-            borderRadius: 6,
-            font: 'inherit',
-          }}
+          onChange={(e) => dispatch(setSearchTerm(e.value ?? ''))}
         />
       </div>
 
