@@ -2,10 +2,12 @@ import { createSlice } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
 
 interface MealPlanState {
-  /** ISO date for the first day of the week currently being viewed. */
+  /** ISO date for the first day (Monday) of the week being viewed. */
   viewStartDate: string
-  /** Entry currently expanded in the sidebar, or null. */
+  /** Entry currently expanded in the side dialog, or null. */
   focusedEntryId: string | null
+  /** Whether the recipe-picker dialog is open. */
+  recipePickerOpen: boolean
   /** Whether the cook-confirm dialog is open. */
   cookDialogOpen: boolean
 }
@@ -21,6 +23,7 @@ function startOfThisWeek(): string {
 const initialState: MealPlanState = {
   viewStartDate: startOfThisWeek(),
   focusedEntryId: null,
+  recipePickerOpen: false,
   cookDialogOpen: false,
 }
 
@@ -31,8 +34,14 @@ const mealPlanSlice = createSlice({
     setViewStartDate(state, action: PayloadAction<string>) {
       state.viewStartDate = action.payload
     },
-    focusEntry(state, action: PayloadAction<string | null>) {
+    selectEntry(state, action: PayloadAction<string | null>) {
       state.focusedEntryId = action.payload
+    },
+    openRecipePicker(state) {
+      state.recipePickerOpen = true
+    },
+    closeRecipePicker(state) {
+      state.recipePickerOpen = false
     },
     openCookDialog(state) {
       state.cookDialogOpen = true
@@ -43,5 +52,12 @@ const mealPlanSlice = createSlice({
   },
 })
 
-export const { setViewStartDate, focusEntry, openCookDialog, closeCookDialog } = mealPlanSlice.actions
+export const {
+  setViewStartDate,
+  selectEntry,
+  openRecipePicker,
+  closeRecipePicker,
+  openCookDialog,
+  closeCookDialog,
+} = mealPlanSlice.actions
 export default mealPlanSlice.reducer

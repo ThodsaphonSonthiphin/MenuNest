@@ -105,16 +105,51 @@ export interface UpsertStockRequest {
   quantity: number
 }
 
+export type MealSlot = 'Breakfast' | 'Lunch' | 'Dinner'
+export const MEAL_SLOTS: MealSlot[] = ['Breakfast', 'Lunch', 'Dinner']
+
+export type MealEntryStatus = 'Planned' | 'Cooked' | 'Skipped'
+
 export interface MealPlanEntryDto {
   id: string
   date: string
-  mealSlot: 'Breakfast' | 'Lunch' | 'Dinner'
+  mealSlot: MealSlot
   recipeId: string
   recipeName: string
-  status: 'Planned' | 'Cooked' | 'Skipped'
+  notes: string | null
+  status: MealEntryStatus
   cookedAt: string | null
   cookNotes: string | null
-  stockStatus: 'Sufficient' | 'PartiallyShort' | 'ShortSome'
+}
+
+export interface CreateMealPlanEntryRequest {
+  date: string
+  mealSlot: MealSlot
+  recipeId: string
+  notes: string | null
+}
+
+export interface UpdateMealPlanEntryRequest {
+  recipeId: string
+  notes: string | null
+}
+
+export interface StockCheckLineDto {
+  ingredientId: string
+  ingredientName: string
+  unit: string
+  required: number
+  available: number
+  missing: number
+}
+
+export interface StockCheckDto {
+  mealPlanEntryId: string
+  recipeId: string
+  recipeName: string
+  lines: StockCheckLineDto[]
+  isSufficient: boolean
+  missingCount: number
 }
 
 export interface ShoppingListSummaryDto {
@@ -295,7 +330,55 @@ export const api = createApi({
     // -------------------- Meal Plan --------------------
     listMealPlan: build.query<MealPlanEntryDto[], { from: string; to: string }>({
       query: ({ from, to }) => `/api/meal-plan?from=${from}&to=${to}`,
-      providesTags: ['MealPlan'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((m) => ({ type: 'MealPlan' as const, id: m.id })),
+              { type: 'MealPlan', id: 'LIST' },
+            ]
+          : [{ type: 'MealPlan', id: 'LIST' }],
+    }),
+
+    createMealPlanEntry: build.mutation<MealPlanEntryDto, CreateMealPlanEntryRequest>({
+      query: (body) => ({
+        url: '/api/meal-plan',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'MealPlan', id: 'LIST' }],
+    }),
+
+    updateMealPlanEntry: build.mutation<
+      MealPlanEntryDto,
+      { id: string } & UpdateMealPlanEntryRequest
+    >({
+      query: ({ id, ...body }) => ({
+        url: `/api/meal-plan/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_res, _err, arg) => [
+        { type: 'MealPlan', id: arg.id },
+        { type: 'MealPlan', id: 'LIST' },
+      ],
+    }),
+
+    deleteMealPlanEntry: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/meal-plan/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, id) => [
+        { type: 'MealPlan', id },
+        { type: 'MealPlan', id: 'LIST' },
+      ],
+    }),
+
+    getStockCheck: build.query<StockCheckDto, string>({
+      query: (mealPlanEntryId) => `/api/meal-plan/${mealPlanEntryId}/stock-check`,
+      providesTags: (_res, _err, id) => [
+        { type: 'MealPlan', id: `stock-check-${id}` },
+      ],
     }),
 
     // -------------------- Shopping Lists --------------------
@@ -322,5 +405,9 @@ export const {
   useUpsertStockMutation,
   useDeleteStockMutation,
   useListMealPlanQuery,
+  useCreateMealPlanEntryMutation,
+  useUpdateMealPlanEntryMutation,
+  useDeleteMealPlanEntryMutation,
+  useGetStockCheckQuery,
   useListShoppingListsQuery,
 } = api

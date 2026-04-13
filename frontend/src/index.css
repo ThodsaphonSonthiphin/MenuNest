@@ -377,3 +377,146 @@ textarea[aria-invalid="true"] {
   font-size: 12px;
   color: var(--color-text-muted);
 }
+
+/* ---------- Meal plan grid ---------- */
+
+.meal-plan-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 4px;
+  table-layout: fixed;
+}
+.meal-plan-grid th {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  padding: 8px;
+  text-align: left;
+}
+.meal-plan-grid th[scope="row"] {
+  width: 110px;
+  font-size: 13px;
+  text-transform: none;
+  color: var(--color-text);
+  font-weight: 600;
+}
+.meal-cell {
+  height: 70px;
+  background: #fafafa;
+  border: 1px dashed var(--color-border);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  vertical-align: top;
+  transition: all 0.15s;
+}
+.meal-cell:hover {
+  border-color: var(--color-primary);
+  background: #fff8e1;
+}
+.meal-cell--filled {
+  background: white;
+  border-style: solid;
+}
+.meal-cell--cooked {
+  opacity: 0.65;
+  background: #f6f8fa;
+}
+.meal-cell__name {
+  font-weight: 500;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.meal-cell__badge {
+  font-size: 11px;
+  color: green;
+  margin-top: 4px;
+}
+.meal-cell__empty {
+  color: var(--color-text-muted);
+  font-size: 24px;
+  text-align: center;
+  line-height: 54px;
+}
+
+/* ---------- Recipe picker list ---------- */
+
+.recipe-pick-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+.recipe-pick-item {
+  width: 100%;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.recipe-pick-item:hover {
+  border-color: var(--color-primary);
+  background: #fff8e1;
+}
+.recipe-pick-item span {
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+
+/* ---------- Dialog ---------- */
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.dialog {
+  background: white;
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+}
+.dialog__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dialog__header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+.dialog__close {
+  background: transparent;
+  border: 0;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+.dialog__body {
+  padding: 16px 20px;
+  overflow-y: auto;
+}
