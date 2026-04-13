@@ -269,6 +269,23 @@ a:hover { color: var(--color-primary-hover); }
   font-size: 14px;
 }
 
+.field-required {
+  color: var(--color-danger);
+  font-weight: 700;
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 12px;
+  margin: 4px 0 0;
+}
+
+input[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--color-danger) !important;
+  background: #fff5f5;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;

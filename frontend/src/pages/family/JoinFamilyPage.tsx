@@ -1,38 +1,44 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
 import { useCreateFamilyMutation } from '../../shared/api/api'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 
+interface CreateFamilyForm {
+  name: string
+}
+
 export function JoinFamilyPage() {
   const { displayName, familyId, isLoadingProfile } = useCurrentUser()
-  const [inviteCode, setInviteCode] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
-  const [familyName, setFamilyName] = useState('')
+
+  const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CreateFamilyForm>({ defaultValues: { name: '' } })
 
   // Once /api/me reports a family (either because the user already
   // belongs to one, or because Create Family just succeeded and RTK
-  // Query refetched Me), navigate back into the app shell. Without
-  // this, JoinFamilyPage stays mounted because FamilyRequiredRoute
-  // only wraps the app shell, not /join-family.
+  // Query refetched Me), navigate back into the app shell.
   if (!isLoadingProfile && familyId) {
     return <Navigate to="/" replace />
   }
 
-  const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
-
-  const handleCreate = async (event: React.FormEvent) => {
-    event.preventDefault()
-    const trimmed = familyName.trim()
-    if (!trimmed) return
-
+  const onSubmit = handleSubmit(async (values) => {
     try {
-      await createFamily({ name: trimmed }).unwrap()
-      // On success, RTK Query invalidates the Me tag, useCurrentUser
-      // refetches, FamilyRequiredRoute sees a familyId, and the app
-      // router navigates the user out of /join-family automatically.
+      await createFamily({ name: values.name.trim() }).unwrap()
     } catch {
-      // The error is rendered below from `createError`.
+      // surfaced below from createError
     }
+  })
+
+  const closeForm = () => {
+    setShowCreateForm(false)
+    reset()
   }
 
   return (
@@ -43,14 +49,7 @@ export function JoinFamilyPage() {
 
         <div className="join-family__option">
           <label htmlFor="invite-code">มี invite code แล้ว?</label>
-          <input
-            id="invite-code"
-            type="text"
-            placeholder="XXXX-XXXX"
-            value={inviteCode}
-            onChange={(e) => setInviteCode(e.target.value)}
-            disabled
-          />
+          <input id="invite-code" type="text" placeholder="XXXX-XXXX" disabled />
           <button type="button" className="btn btn--primary" disabled>
             Join (coming soon)
           </button>
@@ -69,41 +68,40 @@ export function JoinFamilyPage() {
             </button>
           </div>
         ) : (
-          <form className="join-family__option" onSubmit={handleCreate}>
-            <label htmlFor="family-name">Family name</label>
+          <form className="join-family__option" onSubmit={onSubmit} noValidate>
+            <label htmlFor="family-name">
+              Family name <span className="field-required">*</span>
+            </label>
             <input
               id="family-name"
               type="text"
               placeholder="ครอบครัว..."
-              value={familyName}
-              onChange={(e) => setFamilyName(e.target.value)}
               autoFocus
-              required
-              maxLength={120}
               disabled={isCreating}
+              aria-invalid={errors.name ? 'true' : 'false'}
+              {...register('name', {
+                required: 'Family name is required.',
+                maxLength: { value: 120, message: 'Maximum 120 characters.' },
+                validate: (v) => v.trim().length > 0 || 'Family name is required.',
+              })}
             />
+            {errors.name && <p className="field-error">{errors.name.message}</p>}
+
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                type="submit"
-                className="btn btn--primary"
-                disabled={isCreating || !familyName.trim()}
-              >
+              <button type="submit" className="btn btn--primary" disabled={isCreating}>
                 {isCreating ? 'Creating…' : 'Create'}
               </button>
               <button
                 type="button"
                 className="btn btn--outline"
-                onClick={() => {
-                  setShowCreateForm(false)
-                  setFamilyName('')
-                }}
+                onClick={closeForm}
                 disabled={isCreating}
               >
                 Cancel
               </button>
             </div>
             {createError && (
-              <p style={{ color: 'var(--color-danger)', marginTop: 8 }}>
+              <p className="field-error" style={{ marginTop: 8 }}>
                 Could not create family. Please try again.
               </p>
             )}

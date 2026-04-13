@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
 import {
   useListIngredientsQuery,
   useCreateIngredientMutation,
@@ -7,60 +8,58 @@ import {
 } from '../../shared/api/api'
 import type { IngredientDto } from '../../shared/api/api'
 
+interface IngredientForm {
+  name: string
+  unit: string
+}
+
 export function IngredientsPage() {
   const { data, isLoading, error } = useListIngredientsQuery()
   const [createIngredient, { isLoading: isCreating }] = useCreateIngredientMutation()
   const [updateIngredient] = useUpdateIngredientMutation()
   const [deleteIngredient] = useDeleteIngredientMutation()
 
-  const [newName, setNewName] = useState('')
-  const [newUnit, setNewUnit] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editName, setEditName] = useState('')
-  const [editUnit, setEditUnit] = useState('')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const name = newName.trim()
-    const unit = newUnit.trim()
-    if (!name || !unit) return
+  const addForm = useForm<IngredientForm>({ defaultValues: { name: '', unit: '' } })
+  const editForm = useForm<IngredientForm>({ defaultValues: { name: '', unit: '' } })
+
+  const onAdd = addForm.handleSubmit(async (values) => {
     setErrorMessage(null)
     try {
-      await createIngredient({ name, unit }).unwrap()
-      setNewName('')
-      setNewUnit('')
+      await createIngredient({ name: values.name.trim(), unit: values.unit.trim() }).unwrap()
+      addForm.reset()
     } catch (err) {
       setErrorMessage(getErrorMessage(err))
     }
-  }
+  })
 
   const startEdit = (ingredient: IngredientDto) => {
     setEditingId(ingredient.id)
-    setEditName(ingredient.name)
-    setEditUnit(ingredient.unit)
     setErrorMessage(null)
+    editForm.reset({ name: ingredient.name, unit: ingredient.unit })
   }
 
   const cancelEdit = () => {
     setEditingId(null)
-    setEditName('')
-    setEditUnit('')
+    editForm.reset()
   }
 
-  const saveEdit = async () => {
+  const onSaveEdit = editForm.handleSubmit(async (values) => {
     if (!editingId) return
-    const name = editName.trim()
-    const unit = editUnit.trim()
-    if (!name || !unit) return
     setErrorMessage(null)
     try {
-      await updateIngredient({ id: editingId, name, unit }).unwrap()
+      await updateIngredient({
+        id: editingId,
+        name: values.name.trim(),
+        unit: values.unit.trim(),
+      }).unwrap()
       cancelEdit()
     } catch (err) {
       setErrorMessage(getErrorMessage(err))
     }
-  }
+  })
 
   const handleDelete = async (ingredient: IngredientDto) => {
     if (!confirm(`ลบ "${ingredient.name}" หรือไม่?`)) return
@@ -72,6 +71,16 @@ export function IngredientsPage() {
     }
   }
 
+  // Pre-populate the edit form when a different row is picked.
+  useEffect(() => {
+    if (!editingId || !data) return
+    const source = data.find((i) => i.id === editingId)
+    if (source) {
+      editForm.reset({ name: source.name, unit: source.unit })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingId])
+
   return (
     <section className="page page--ingredients">
       <header className="page__header">
@@ -82,38 +91,47 @@ export function IngredientsPage() {
         Master list นี้ใช้เป็น autocomplete เวลาสร้าง recipe / เพิ่ม stock — 1 ingredient = 1 หน่วย
       </p>
 
-      <form onSubmit={handleCreate} className="ingredient-add">
-        <input
-          type="text"
-          placeholder="ชื่อวัตถุดิบ (เช่น ไข่ไก่)"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          disabled={isCreating}
-          maxLength={120}
-          required
-        />
-        <input
-          type="text"
-          placeholder="หน่วย (เช่น ฟอง)"
-          value={newUnit}
-          onChange={(e) => setNewUnit(e.target.value)}
-          disabled={isCreating}
-          maxLength={40}
-          required
-          style={{ maxWidth: 120 }}
-        />
-        <button
-          type="submit"
-          className="btn btn--primary"
-          disabled={isCreating || !newName.trim() || !newUnit.trim()}
-        >
+      <form onSubmit={onAdd} className="ingredient-add" noValidate>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <input
+            type="text"
+            placeholder="ชื่อวัตถุดิบ * (เช่น ไข่ไก่)"
+            aria-invalid={addForm.formState.errors.name ? 'true' : 'false'}
+            disabled={isCreating}
+            {...addForm.register('name', {
+              required: 'กรุณากรอกชื่อวัตถุดิบ',
+              maxLength: { value: 120, message: 'ยาวเกิน 120 ตัวอักษร' },
+              validate: (v) => v.trim().length > 0 || 'กรุณากรอกชื่อวัตถุดิบ',
+            })}
+          />
+          {addForm.formState.errors.name && (
+            <p className="field-error">{addForm.formState.errors.name.message}</p>
+          )}
+        </div>
+
+        <div style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <input
+            type="text"
+            placeholder="หน่วย * (เช่น ฟอง)"
+            aria-invalid={addForm.formState.errors.unit ? 'true' : 'false'}
+            disabled={isCreating}
+            {...addForm.register('unit', {
+              required: 'กรุณากรอกหน่วย',
+              maxLength: { value: 40, message: 'ยาวเกิน 40 ตัวอักษร' },
+              validate: (v) => v.trim().length > 0 || 'กรุณากรอกหน่วย',
+            })}
+          />
+          {addForm.formState.errors.unit && (
+            <p className="field-error">{addForm.formState.errors.unit.message}</p>
+          )}
+        </div>
+
+        <button type="submit" className="btn btn--primary" disabled={isCreating}>
           {isCreating ? '...' : '+ เพิ่ม'}
         </button>
       </form>
 
-      {errorMessage && (
-        <div className="error-banner">{errorMessage}</div>
-      )}
+      {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
       {isLoading && <p>Loading…</p>}
       {error && !isLoading && <p>Failed to load ingredients.</p>}
@@ -138,20 +156,32 @@ export function IngredientsPage() {
                 <tr key={ingredient.id}>
                   <td>
                     <input
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      maxLength={120}
+                      aria-invalid={editForm.formState.errors.name ? 'true' : 'false'}
+                      {...editForm.register('name', {
+                        required: 'กรุณากรอกชื่อ',
+                        maxLength: { value: 120, message: 'ยาวเกิน 120 ตัวอักษร' },
+                        validate: (v) => v.trim().length > 0 || 'กรุณากรอกชื่อ',
+                      })}
                     />
+                    {editForm.formState.errors.name && (
+                      <p className="field-error">{editForm.formState.errors.name.message}</p>
+                    )}
                   </td>
                   <td>
                     <input
-                      value={editUnit}
-                      onChange={(e) => setEditUnit(e.target.value)}
-                      maxLength={40}
+                      aria-invalid={editForm.formState.errors.unit ? 'true' : 'false'}
+                      {...editForm.register('unit', {
+                        required: 'กรุณากรอกหน่วย',
+                        maxLength: { value: 40, message: 'ยาวเกิน 40 ตัวอักษร' },
+                        validate: (v) => v.trim().length > 0 || 'กรุณากรอกหน่วย',
+                      })}
                     />
+                    {editForm.formState.errors.unit && (
+                      <p className="field-error">{editForm.formState.errors.unit.message}</p>
+                    )}
                   </td>
                   <td>
-                    <button type="button" className="btn btn--primary btn--sm" onClick={saveEdit}>
+                    <button type="button" className="btn btn--primary btn--sm" onClick={onSaveEdit}>
                       Save
                     </button>{' '}
                     <button type="button" className="btn btn--outline btn--sm" onClick={cancelEdit}>
