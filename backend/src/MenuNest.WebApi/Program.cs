@@ -1,20 +1,36 @@
-using MenuNest.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
+using MenuNest.Application;
+using MenuNest.Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Options;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ----------------------------------------------------------------------
-// Infrastructure
+// Layers
 // ----------------------------------------------------------------------
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException(
-        "ConnectionStrings:DefaultConnection is not configured. " +
-        "Set it in appsettings.Development.json or via environment variables.");
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(
-        connectionString,
-        sql => sql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+// ----------------------------------------------------------------------
+// Authentication — Entra ID JWT bearer
+// Multi-tenant + personal Microsoft accounts: the issuer varies per
+// tenant, so we disable issuer validation here. A stricter per-tenant
+// allow-list can be layered on top in a follow-up.
+// ----------------------------------------------------------------------
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+
+builder.Services
+    .Configure<JwtBearerOptions>(
+        JwtBearerDefaults.AuthenticationScheme,
+        options =>
+        {
+            options.TokenValidationParameters.ValidateIssuer = false;
+        });
+
+builder.Services.AddAuthorization();
 
 // ----------------------------------------------------------------------
 // CORS — allow the SPA (Vite dev server, Azure Static Web App in prod)
@@ -25,7 +41,6 @@ var allowedOrigins = (builder.Configuration["Cors:AllowedOrigins"] ?? string.Emp
     .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     .ToList();
 
-// Always permit the Vite dev server when running locally.
 if (builder.Environment.IsDevelopment() && !allowedOrigins.Contains("http://localhost:5173"))
 {
     allowedOrigins.Add("http://localhost:5173");
@@ -57,6 +72,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicyName);
+app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 

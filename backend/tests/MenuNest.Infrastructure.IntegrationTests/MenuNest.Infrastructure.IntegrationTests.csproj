@@ -22,6 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Needed to instantiate DefaultHttpContext / ClaimsPrincipal
+         in unit tests for CurrentUserService. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\MenuNest.Infrastructure\MenuNest.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\MenuNest.Application\MenuNest.Application.csproj" />
     <ProjectReference Include="..\..\src\MenuNest.Domain\MenuNest.Domain.csproj" />
