@@ -3,6 +3,7 @@ using MenuNest.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,7 +68,16 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
+    // OpenAPI document at /openapi/v1.json and Scalar UI at /scalar.
+    // Scalar picks up the OpenAPI document automatically.
     app.MapOpenApi();
+    app.MapScalarApiReference(options =>
+    {
+        options
+            .WithTitle("MenuNest API")
+            .WithTheme(ScalarTheme.Moon)
+            .WithDefaultHttpClient(ScalarTarget.JavaScript, ScalarClient.Fetch);
+    });
 }
 
 app.UseHttpsRedirection();
