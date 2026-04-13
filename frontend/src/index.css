@@ -1,0 +1,237 @@
+:root {
+  --color-primary: #f57c00;
+  --color-primary-hover: #ef6c00;
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e0e0e0;
+  --color-text: #212121;
+  --color-text-muted: #757575;
+  --color-danger: #c62828;
+
+  font-family: 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover { color: var(--color-primary-hover); }
+
+/* ---------- App shell ---------- */
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-navbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-navbar__brand {
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.app-navbar__links {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.app-navbar__link {
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+.app-navbar__link--active,
+.app-navbar__link:hover {
+  background: #fff3e0;
+  color: var(--color-primary);
+}
+
+.app-navbar__right {
+  margin-left: auto;
+}
+
+.app-navbar__menu summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+.app-navbar__menu summary:hover {
+  background: #f5f5f5;
+}
+.app-navbar__menu ul {
+  position: absolute;
+  right: 24px;
+  margin-top: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 200px;
+  list-style: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.app-navbar__menu li a,
+.app-navbar__menu li button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: var(--color-text);
+  cursor: pointer;
+}
+.app-navbar__menu li a:hover,
+.app-navbar__menu li button:hover {
+  background: #f5f5f5;
+}
+
+.app-main {
+  flex: 1;
+  padding: 32px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---------- Pages ---------- */
+
+.page {
+  background: var(--color-surface);
+  border-radius: 8px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+}
+
+.page__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-text);
+}
+
+.btn--primary {
+  background: var(--color-primary);
+  color: white;
+}
+.btn--primary:hover { background: var(--color-primary-hover); }
+
+.btn--outline {
+  border-color: var(--color-border);
+}
+.btn--outline:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn--microsoft {
+  background: #2f2f2f;
+  color: white;
+  padding: 10px 20px;
+}
+.btn--microsoft:hover { background: #1f1f1f; }
+
+/* ---------- Login ---------- */
+
+.page--login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #fff3e0 0%, #ffccbc 100%);
+}
+
+.login-card {
+  background: white;
+  padding: 48px;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  text-align: center;
+  max-width: 420px;
+  width: 100%;
+}
+.login-card__logo { font-size: 48px; }
+.login-card__tagline { color: var(--color-text-muted); margin-bottom: 24px; }
+.login-card__footer { font-size: 12px; color: var(--color-text-muted); margin-top: 16px; }
+
+/* ---------- Join Family ---------- */
+
+.page--join-family {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.card {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  max-width: 480px;
+  width: 100%;
+}
+.join-family__option {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+}
+.join-family__option input {
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+}
+.divider {
+  text-align: center;
+  color: var(--color-text-muted);
+  margin: 16px 0;
+  font-size: 12px;
+}

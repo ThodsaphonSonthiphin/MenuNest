@@ -184,40 +184,39 @@ pages/
   recipes/
     components/           RecipeCard.tsx, RecipeList.tsx, RecipeForm.tsx, IngredientPicker.tsx
     hooks/                useRecipes.ts, useRecipeForm.ts
-    recipesApi.ts         -- RTK Query endpoints
     recipesSlice.ts       -- local UI state (filter, selection)
     RecipesPage.tsx       -- container
     RecipeDetailPage.tsx
     index.ts              -- barrel
   stock/
-    components/ hooks/ stockApi.ts stockSlice.ts StockPage.tsx
+    components/ hooks/ stockSlice.ts StockPage.tsx
   meal-plan/
     components/           MealPlanCalendar.tsx, MealSlotCard.tsx, StockCheckPanel.tsx, CookConfirmDialog.tsx
     hooks/                useMealPlan.ts, useStockCheck.ts, useCookMeal.ts
-    mealPlanApi.ts mealPlanSlice.ts MealPlanPage.tsx
+    mealPlanSlice.ts MealPlanPage.tsx
   shopping/
     components/           ShoppingListCard.tsx, ShoppingListDetail.tsx, ShoppingItemRow.tsx, GenerateFromPlanDialog.tsx
     hooks/                useShoppingLists.ts, useShoppingListDetail.ts
-    shoppingApi.ts shoppingSlice.ts ShoppingListsPage.tsx ShoppingListDetailPage.tsx
+    shoppingSlice.ts ShoppingListsPage.tsx ShoppingListDetailPage.tsx
   ingredients/
     ... (CRUD page for the master list)
   family/
-    components/ hooks/ familyApi.ts familySlice.ts FamilyPage.tsx JoinFamilyPage.tsx
+    components/ hooks/ familySlice.ts FamilyPage.tsx JoinFamilyPage.tsx
   auth/
     LoginPage.tsx, AuthCallback.tsx
 shared/
   components/             AppLayout.tsx, NavBar.tsx, ProtectedRoute.tsx, FamilyRequiredRoute.tsx
   hooks/                  useCurrentUser.ts, useDebounce.ts
-  api/                    baseApi.ts (RTK Query base with auth header injection)
+  api/                    api.ts (single app-wide RTK Query API — all endpoints here)
   auth/                   msalConfig.ts, authProvider.tsx
   utils/                  formatters.ts
 store/
-  index.ts                -- configureStore, combines page slices + baseApi reducer
+  index.ts                -- configureStore, combines page slices + api reducer
 router.tsx                -- createBrowserRouter, lazy-loads pages
 App.tsx main.tsx
 ```
 
-**Convention (enforced):** every page folder must contain `components/`, `hooks/`, `{page}Api.ts`, `{page}Slice.ts`, `{Page}Page.tsx`, and `index.ts` (barrel). Logic lives in hooks, JSX in components (component + hook pattern).
+**Convention (enforced):** every page folder must contain `components/`, `hooks/`, `{page}Slice.ts` (for local UI state), `{Page}Page.tsx`, and `index.ts` (barrel). Logic lives in hooks, JSX in components (component + hook pattern). **Server state goes through one app-wide `shared/api/api.ts` RTK Query instance** — there is no per-feature API file. Pages import the generated hooks (e.g., `useListRecipesQuery`) directly.
 
 **Key packages:**
 - `@azure/msal-react`, `@azure/msal-browser` — authority `https://login.microsoftonline.com/common`
