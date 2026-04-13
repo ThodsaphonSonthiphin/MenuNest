@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { NumericTextBox } from '@syncfusion/react-inputs'
@@ -24,6 +24,18 @@ export function StockPage() {
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // The +/- buttons fire faster than the network round-trip. Two
+  // issues to guard against:
+  //   1. Stale closure — each click would read the pre-mutation
+  //      `item.quantity`, so 5 rapid clicks all resolve to the same
+  //      target (+1) on the server.
+  //   2. Request races — firing N concurrent upserts does not guarantee
+  //      the DB ends at the last-clicked value.
+  // Per-ingredient we track both the pending target AND a serialised
+  // "flush" chain so the server sees writes in click order.
+  const pendingQuantityRef = useRef<Map<string, number>>(new Map())
+  const flushChainRef = useRef<Map<string, Promise<void>>>(new Map())
+
   const addForm = useForm<AddStockForm>({
     defaultValues: { ingredientId: '', quantity: null },
   })
@@ -46,25 +58,44 @@ export function StockPage() {
     }
   })
 
-  const adjustQuantity = async (item: StockItemDto, delta: number) => {
-    const next = Math.max(0, item.quantity + delta)
-    if (next === item.quantity) return
-    setErrorMessage(null)
-    try {
-      await upsertStock({ ingredientId: item.ingredientId, quantity: next }).unwrap()
-    } catch (err) {
-      setErrorMessage(getErrorMessage(err))
-    }
+  // Serialise upserts for a given ingredient — each new click chains
+  // after the previous in-flight request and re-reads the pending
+  // target at send time, so the last click always wins on the server.
+  const scheduleUpsert = (ingredientId: string) => {
+    const prev = flushChainRef.current.get(ingredientId) ?? Promise.resolve()
+    const next = prev.then(async () => {
+      const target = pendingQuantityRef.current.get(ingredientId)
+      if (target == null) return
+      pendingQuantityRef.current.delete(ingredientId)
+      try {
+        await upsertStock({ ingredientId, quantity: target }).unwrap()
+      } catch (err) {
+        setErrorMessage(getErrorMessage(err))
+      }
+    })
+    flushChainRef.current.set(ingredientId, next)
+    // Clean up the chain map once this link is done so it doesn't leak.
+    void next.finally(() => {
+      if (flushChainRef.current.get(ingredientId) === next) {
+        flushChainRef.current.delete(ingredientId)
+      }
+    })
   }
 
-  const setQuantity = async (item: StockItemDto, next: number | null | undefined) => {
-    if (next == null || next < 0 || next === item.quantity) return
+  const adjustQuantity = (item: StockItemDto, delta: number) => {
+    const current = pendingQuantityRef.current.get(item.ingredientId) ?? item.quantity
+    const next = Math.max(0, current + delta)
+    if (next === current) return
+    pendingQuantityRef.current.set(item.ingredientId, next)
     setErrorMessage(null)
-    try {
-      await upsertStock({ ingredientId: item.ingredientId, quantity: next }).unwrap()
-    } catch (err) {
-      setErrorMessage(getErrorMessage(err))
-    }
+    scheduleUpsert(item.ingredientId)
+  }
+
+  const setQuantity = (item: StockItemDto, next: number | null | undefined) => {
+    if (next == null || next < 0 || next === item.quantity) return
+    pendingQuantityRef.current.set(item.ingredientId, next)
+    setErrorMessage(null)
+    scheduleUpsert(item.ingredientId)
   }
 
   const handleDelete = async (item: StockItemDto) => {
@@ -155,7 +186,7 @@ export function StockPage() {
             <thead>
               <tr>
                 <th>วัตถุดิบ</th>
-                <th style={{ width: 260 }}>คงเหลือ</th>
+                <th style={{ width: 340 }}>คงเหลือ</th>
                 <th>อัปเดตล่าสุด</th>
                 <th style={{ width: 80 }}></th>
               </tr>
@@ -176,7 +207,7 @@ export function StockPage() {
                       >
                         −
                       </Button>
-                      <div style={{ width: 90 }}>
+                      <div style={{ width: 140 }}>
                         <NumericTextBox
                           min={0}
                           value={item.quantity}
