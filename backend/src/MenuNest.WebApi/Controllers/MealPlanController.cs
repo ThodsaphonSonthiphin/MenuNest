@@ -4,6 +4,7 @@ using MenuNest.Application.UseCases.MealPlan.CreateMealPlanEntry;
 using MenuNest.Application.UseCases.MealPlan.DeleteMealPlanEntry;
 using MenuNest.Application.UseCases.MealPlan.ListMealPlan;
 using MenuNest.Application.UseCases.MealPlan.StockCheck;
+using MenuNest.Application.UseCases.MealPlan.StockCheckBatch;
 using MenuNest.Application.UseCases.MealPlan.UpdateMealPlanEntry;
 using MenuNest.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -71,6 +72,15 @@ public sealed class MealPlanController : ControllerBase
         var check = await _mediator.Send(new StockCheckQuery(id), ct);
         return Ok(check);
     }
+
+    [HttpPost("stock-check-batch")]
+    public async Task<ActionResult<StockCheckBatchDto>> StockCheckBatch(
+        [FromBody] StockCheckBatchRequest request,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new StockCheckBatchQuery(request.EntryIds), ct);
+        return Ok(result);
+    }
 }
 
 public sealed record CreateMealPlanEntryRequest(
@@ -80,3 +90,5 @@ public sealed record CreateMealPlanEntryRequest(
     string? Notes);
 
 public sealed record UpdateMealPlanEntryRequest(Guid RecipeId, string? Notes);
+
+public sealed record StockCheckBatchRequest(IReadOnlyList<Guid> EntryIds);
