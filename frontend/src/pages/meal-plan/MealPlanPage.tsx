@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import {
   Scheduler,
   DayView,
@@ -11,6 +11,8 @@ import type {
   SchedulerEventClickEvent,
 } from '@syncfusion/react-scheduler'
 import { Dialog } from '@syncfusion/react-popups'
+import { Button, Color, Variant } from '@syncfusion/react-buttons'
+import { TextBox } from '@syncfusion/react-inputs'
 
 import {
   useCreateMealPlanEntryMutation,
@@ -241,7 +243,7 @@ interface PickerFormValues {
 function RecipePickerForm({ date, slot, onDone }: RecipePickerFormProps) {
   const { data: recipes, isLoading } = useListRecipesQuery()
   const [createEntry, { isLoading: isCreating }] = useCreateMealPlanEntryMutation()
-  const { register, watch } = useForm<PickerFormValues>({ defaultValues: { search: '' } })
+  const { control, watch } = useForm<PickerFormValues>({ defaultValues: { search: '' } })
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const search = watch('search').trim().toLowerCase()
@@ -260,20 +262,20 @@ function RecipePickerForm({ date, slot, onDone }: RecipePickerFormProps) {
   return (
     <div>
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
-      <input
-        type="search"
-        placeholder="🔍 ค้นหา recipe..."
-        autoFocus
-        {...register('search')}
-        style={{
-          width: '100%',
-          padding: 10,
-          marginBottom: 12,
-          border: '1px solid var(--color-border)',
-          borderRadius: 6,
-          font: 'inherit',
-        }}
-      />
+      <div style={{ marginBottom: 12 }}>
+        <Controller
+          control={control}
+          name="search"
+          render={({ field }) => (
+            <TextBox
+              placeholder="🔍 ค้นหา recipe..."
+              autoFocus
+              value={field.value}
+              onChange={(e) => field.onChange(e.value ?? '')}
+            />
+          )}
+        />
+      </div>
       {isLoading && <p>Loading…</p>}
       {recipes && recipes.length === 0 && (
         <p style={{ color: 'var(--color-text-muted)' }}>
@@ -406,17 +408,23 @@ function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
       )}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-        <button
+        <Button
           type="button"
-          className="btn btn--outline"
+          variant={Variant.Outlined}
+          color={Color.Error}
           onClick={handleDelete}
           disabled={isDeleting}
         >
           🗑️ Remove from plan
-        </button>
-        <button type="button" className="btn btn--outline" onClick={onClose}>
+        </Button>
+        <Button
+          type="button"
+          variant={Variant.Outlined}
+          color={Color.Secondary}
+          onClick={onClose}
+        >
           Close
-        </button>
+        </Button>
       </div>
     </div>
   )

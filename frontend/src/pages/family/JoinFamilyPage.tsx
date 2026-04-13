@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
+import { Button, Color, Variant } from '@syncfusion/react-buttons'
+import { TextBox } from '@syncfusion/react-inputs'
 import { useCreateFamilyMutation } from '../../shared/api/api'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 
@@ -11,19 +13,15 @@ interface CreateFamilyForm {
 export function JoinFamilyPage() {
   const { displayName, familyId, isLoadingProfile } = useCurrentUser()
   const [showCreateForm, setShowCreateForm] = useState(false)
-
   const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
   } = useForm<CreateFamilyForm>({ defaultValues: { name: '' } })
 
-  // Once /api/me reports a family (either because the user already
-  // belongs to one, or because Create Family just succeeded and RTK
-  // Query refetched Me), navigate back into the app shell.
   if (!isLoadingProfile && familyId) {
     return <Navigate to="/" replace />
   }
@@ -32,7 +30,7 @@ export function JoinFamilyPage() {
     try {
       await createFamily({ name: values.name.trim() }).unwrap()
     } catch {
-      // surfaced below from createError
+      // surfaced below via createError
     }
   })
 
@@ -48,57 +46,70 @@ export function JoinFamilyPage() {
         <p>คุณยังไม่ได้เข้าร่วม family</p>
 
         <div className="join-family__option">
-          <label htmlFor="invite-code">มี invite code แล้ว?</label>
-          <input id="invite-code" type="text" placeholder="XXXX-XXXX" disabled />
-          <button type="button" className="btn btn--primary" disabled>
+          <label>มี invite code แล้ว?</label>
+          <TextBox placeholder="XXXX-XXXX" disabled />
+          <Button variant={Variant.Filled} color={Color.Primary} disabled>
             Join (coming soon)
-          </button>
+          </Button>
         </div>
 
         <div className="divider">or</div>
 
         {!showCreateForm ? (
           <div className="join-family__option">
-            <button
-              type="button"
-              className="btn btn--outline"
+            <Button
+              variant={Variant.Outlined}
+              color={Color.Primary}
               onClick={() => setShowCreateForm(true)}
             >
               + Create a new family
-            </button>
+            </Button>
           </div>
         ) : (
           <form className="join-family__option" onSubmit={onSubmit} noValidate>
             <label htmlFor="family-name">
               Family name <span className="field-required">*</span>
             </label>
-            <input
-              id="family-name"
-              type="text"
-              placeholder="ครอบครัว..."
-              autoFocus
-              disabled={isCreating}
-              aria-invalid={errors.name ? 'true' : 'false'}
-              {...register('name', {
+            <Controller
+              control={control}
+              name="name"
+              rules={{
                 required: 'Family name is required.',
                 maxLength: { value: 120, message: 'Maximum 120 characters.' },
                 validate: (v) => v.trim().length > 0 || 'Family name is required.',
-              })}
+              }}
+              render={({ field, fieldState }) => (
+                <TextBox
+                  id="family-name"
+                  placeholder="ครอบครัว..."
+                  autoFocus
+                  disabled={isCreating}
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.value ?? '')}
+                  color={fieldState.error ? ('Error' as never) : undefined}
+                />
+              )}
             />
             {errors.name && <p className="field-error">{errors.name.message}</p>}
 
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" className="btn btn--primary" disabled={isCreating}>
+              <Button
+                type="submit"
+                variant={Variant.Filled}
+                color={Color.Primary}
+                disabled={isCreating}
+              >
                 {isCreating ? 'Creating…' : 'Create'}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="btn btn--outline"
+                variant={Variant.Outlined}
+                color={Color.Secondary}
                 onClick={closeForm}
                 disabled={isCreating}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
             {createError && (
               <p className="field-error" style={{ marginTop: 8 }}>

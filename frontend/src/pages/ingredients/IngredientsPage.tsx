@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
+import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
+import { TextBox } from '@syncfusion/react-inputs'
 import {
   useListIngredientsQuery,
   useCreateIngredientMutation,
@@ -71,13 +73,10 @@ export function IngredientsPage() {
     }
   }
 
-  // Pre-populate the edit form when a different row is picked.
   useEffect(() => {
     if (!editingId || !data) return
     const source = data.find((i) => i.id === editingId)
-    if (source) {
-      editForm.reset({ name: source.name, unit: source.unit })
-    }
+    if (source) editForm.reset({ name: source.name, unit: source.unit })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingId])
 
@@ -92,17 +91,23 @@ export function IngredientsPage() {
       </p>
 
       <form onSubmit={onAdd} className="ingredient-add" noValidate>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <input
-            type="text"
-            placeholder="ชื่อวัตถุดิบ * (เช่น ไข่ไก่)"
-            aria-invalid={addForm.formState.errors.name ? 'true' : 'false'}
-            disabled={isCreating}
-            {...addForm.register('name', {
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180 }}>
+          <Controller
+            control={addForm.control}
+            name="name"
+            rules={{
               required: 'กรุณากรอกชื่อวัตถุดิบ',
               maxLength: { value: 120, message: 'ยาวเกิน 120 ตัวอักษร' },
               validate: (v) => v.trim().length > 0 || 'กรุณากรอกชื่อวัตถุดิบ',
-            })}
+            }}
+            render={({ field }) => (
+              <TextBox
+                placeholder="ชื่อวัตถุดิบ * (เช่น ไข่ไก่)"
+                disabled={isCreating}
+                value={field.value}
+                onChange={(e) => field.onChange(e.value ?? '')}
+              />
+            )}
           />
           {addForm.formState.errors.name && (
             <p className="field-error">{addForm.formState.errors.name.message}</p>
@@ -110,25 +115,31 @@ export function IngredientsPage() {
         </div>
 
         <div style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <input
-            type="text"
-            placeholder="หน่วย * (เช่น ฟอง)"
-            aria-invalid={addForm.formState.errors.unit ? 'true' : 'false'}
-            disabled={isCreating}
-            {...addForm.register('unit', {
+          <Controller
+            control={addForm.control}
+            name="unit"
+            rules={{
               required: 'กรุณากรอกหน่วย',
               maxLength: { value: 40, message: 'ยาวเกิน 40 ตัวอักษร' },
               validate: (v) => v.trim().length > 0 || 'กรุณากรอกหน่วย',
-            })}
+            }}
+            render={({ field }) => (
+              <TextBox
+                placeholder="หน่วย * (เช่น ฟอง)"
+                disabled={isCreating}
+                value={field.value}
+                onChange={(e) => field.onChange(e.value ?? '')}
+              />
+            )}
           />
           {addForm.formState.errors.unit && (
             <p className="field-error">{addForm.formState.errors.unit.message}</p>
           )}
         </div>
 
-        <button type="submit" className="btn btn--primary" disabled={isCreating}>
+        <Button type="submit" variant={Variant.Filled} color={Color.Primary} disabled={isCreating}>
           {isCreating ? '...' : '+ เพิ่ม'}
-        </button>
+        </Button>
       </form>
 
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
@@ -143,78 +154,98 @@ export function IngredientsPage() {
 
       {data && data.length > 0 && (
         <div className="table-scroll">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>ชื่อ</th>
-              <th>หน่วย</th>
-              <th style={{ width: 180 }}>การทำงาน</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((ingredient) =>
-              editingId === ingredient.id ? (
-                <tr key={ingredient.id}>
-                  <td>
-                    <input
-                      aria-invalid={editForm.formState.errors.name ? 'true' : 'false'}
-                      {...editForm.register('name', {
-                        required: 'กรุณากรอกชื่อ',
-                        maxLength: { value: 120, message: 'ยาวเกิน 120 ตัวอักษร' },
-                        validate: (v) => v.trim().length > 0 || 'กรุณากรอกชื่อ',
-                      })}
-                    />
-                    {editForm.formState.errors.name && (
-                      <p className="field-error">{editForm.formState.errors.name.message}</p>
-                    )}
-                  </td>
-                  <td>
-                    <input
-                      aria-invalid={editForm.formState.errors.unit ? 'true' : 'false'}
-                      {...editForm.register('unit', {
-                        required: 'กรุณากรอกหน่วย',
-                        maxLength: { value: 40, message: 'ยาวเกิน 40 ตัวอักษร' },
-                        validate: (v) => v.trim().length > 0 || 'กรุณากรอกหน่วย',
-                      })}
-                    />
-                    {editForm.formState.errors.unit && (
-                      <p className="field-error">{editForm.formState.errors.unit.message}</p>
-                    )}
-                  </td>
-                  <td>
-                    <button type="button" className="btn btn--primary btn--sm" onClick={onSaveEdit}>
-                      Save
-                    </button>{' '}
-                    <button type="button" className="btn btn--outline btn--sm" onClick={cancelEdit}>
-                      Cancel
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={ingredient.id}>
-                  <td>{ingredient.name}</td>
-                  <td>{ingredient.unit}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn--outline btn--sm"
-                      onClick={() => startEdit(ingredient)}
-                    >
-                      ✏️ Edit
-                    </button>{' '}
-                    <button
-                      type="button"
-                      className="btn btn--outline btn--sm"
-                      onClick={() => handleDelete(ingredient)}
-                    >
-                      🗑️ Delete
-                    </button>
-                  </td>
-                </tr>
-              ),
-            )}
-          </tbody>
-        </table>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>ชื่อ</th>
+                <th>หน่วย</th>
+                <th style={{ width: 220 }}>การทำงาน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((ingredient) =>
+                editingId === ingredient.id ? (
+                  <tr key={ingredient.id}>
+                    <td>
+                      <Controller
+                        control={editForm.control}
+                        name="name"
+                        rules={{
+                          required: 'กรุณากรอกชื่อ',
+                          maxLength: { value: 120, message: 'ยาวเกิน 120 ตัวอักษร' },
+                          validate: (v) => v.trim().length > 0 || 'กรุณากรอกชื่อ',
+                        }}
+                        render={({ field }) => (
+                          <TextBox value={field.value} onChange={(e) => field.onChange(e.value ?? '')} />
+                        )}
+                      />
+                      {editForm.formState.errors.name && (
+                        <p className="field-error">{editForm.formState.errors.name.message}</p>
+                      )}
+                    </td>
+                    <td>
+                      <Controller
+                        control={editForm.control}
+                        name="unit"
+                        rules={{
+                          required: 'กรุณากรอกหน่วย',
+                          maxLength: { value: 40, message: 'ยาวเกิน 40 ตัวอักษร' },
+                          validate: (v) => v.trim().length > 0 || 'กรุณากรอกหน่วย',
+                        }}
+                        render={({ field }) => (
+                          <TextBox value={field.value} onChange={(e) => field.onChange(e.value ?? '')} />
+                        )}
+                      />
+                      {editForm.formState.errors.unit && (
+                        <p className="field-error">{editForm.formState.errors.unit.message}</p>
+                      )}
+                    </td>
+                    <td>
+                      <Button
+                        size={Size.Small}
+                        variant={Variant.Filled}
+                        color={Color.Primary}
+                        onClick={onSaveEdit}
+                      >
+                        Save
+                      </Button>{' '}
+                      <Button
+                        size={Size.Small}
+                        variant={Variant.Outlined}
+                        color={Color.Secondary}
+                        onClick={cancelEdit}
+                      >
+                        Cancel
+                      </Button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={ingredient.id}>
+                    <td>{ingredient.name}</td>
+                    <td>{ingredient.unit}</td>
+                    <td>
+                      <Button
+                        size={Size.Small}
+                        variant={Variant.Outlined}
+                        color={Color.Primary}
+                        onClick={() => startEdit(ingredient)}
+                      >
+                        ✏️ Edit
+                      </Button>{' '}
+                      <Button
+                        size={Size.Small}
+                        variant={Variant.Outlined}
+                        color={Color.Error}
+                        onClick={() => handleDelete(ingredient)}
+                      >
+                        🗑️ Delete
+                      </Button>
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

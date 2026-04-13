@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { useFieldArray, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm } from 'react-hook-form'
+import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
+import { NumericTextBox, TextArea, TextBox } from '@syncfusion/react-inputs'
+import { Autocomplete } from '@syncfusion/react-dropdowns'
 import {
   useCreateIngredientMutation,
   useCreateRecipeMutation,
@@ -14,7 +17,7 @@ interface RecipeFormLine {
   ingredientId: string
   ingredientName: string
   unit: string
-  quantity: string // keep as string so the user can clear it
+  quantity: number | null
 }
 
 interface RecipeFormValues {
@@ -38,10 +41,9 @@ export function RecipeDetailPage() {
   const [createIngredient] = useCreateIngredientMutation()
 
   const {
-    register,
+    control,
     handleSubmit,
     reset,
-    control,
     formState: { errors },
   } = useForm<RecipeFormValues>({
     defaultValues: { name: '', description: '', lines: [] },
@@ -53,7 +55,6 @@ export function RecipeDetailPage() {
   const [pickerError, setPickerError] = useState<string | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
-  // Populate from fetched recipe.
   useEffect(() => {
     if (!recipe) return
     reset({
@@ -63,7 +64,7 @@ export function RecipeDetailPage() {
         ingredientId: ri.ingredientId,
         ingredientName: ri.ingredientName,
         unit: ri.unit,
-        quantity: ri.quantity.toString(),
+        quantity: ri.quantity,
       })),
     })
   }, [recipe, reset])
@@ -97,7 +98,7 @@ export function RecipeDetailPage() {
         ingredientId: match.id,
         ingredientName: match.name,
         unit: match.unit,
-        quantity: '1',
+        quantity: 1,
       })
       setPickerName('')
       setPickerUnit('')
@@ -116,7 +117,7 @@ export function RecipeDetailPage() {
         ingredientId: created.id,
         ingredientName: created.name,
         unit: created.unit,
-        quantity: '1',
+        quantity: 1,
       })
       setPickerName('')
       setPickerUnit('')
@@ -136,6 +137,10 @@ export function RecipeDetailPage() {
       ingredientId: l.ingredientId,
       quantity: Number(l.quantity),
     }))
+    if (payloadLines.some((l) => !(l.quantity > 0))) {
+      setFormError('จำนวนของทุกวัตถุดิบต้องเป็นเลขบวก')
+      return
+    }
 
     try {
       if (isNew) {
@@ -185,14 +190,14 @@ export function RecipeDetailPage() {
           <h1 style={{ margin: '4px 0 0' }}>{isNew ? 'New recipe' : recipe?.name ?? 'Recipe'}</h1>
         </div>
         {!isNew && (
-          <button
-            type="button"
-            className="btn btn--outline"
+          <Button
+            variant={Variant.Outlined}
+            color={Color.Error}
             onClick={handleDelete}
             disabled={isDeleting}
           >
             🗑️ Delete
-          </button>
+          </Button>
         )}
       </header>
 
@@ -203,22 +208,21 @@ export function RecipeDetailPage() {
           <label htmlFor="recipe-name" style={{ display: 'block', marginBottom: 4, fontWeight: 500 }}>
             Name <span className="field-required">*</span>
           </label>
-          <input
-            id="recipe-name"
-            type="text"
-            aria-invalid={errors.name ? 'true' : 'false'}
-            {...register('name', {
+          <Controller
+            control={control}
+            name="name"
+            rules={{
               required: 'กรุณากรอกชื่อ recipe',
               maxLength: { value: 200, message: 'ยาวเกิน 200 ตัวอักษร' },
               validate: (v) => v.trim().length > 0 || 'กรุณากรอกชื่อ recipe',
-            })}
-            style={{
-              width: '100%',
-              padding: 10,
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              font: 'inherit',
             }}
+            render={({ field }) => (
+              <TextBox
+                id="recipe-name"
+                value={field.value}
+                onChange={(e) => field.onChange(e.value ?? '')}
+              />
+            )}
           />
           {errors.name && <p className="field-error">{errors.name.message}</p>}
         </div>
@@ -230,24 +234,20 @@ export function RecipeDetailPage() {
           >
             Description <span style={{ color: 'var(--color-text-muted)' }}>(optional)</span>
           </label>
-          <textarea
-            id="recipe-desc"
-            rows={3}
-            {...register('description', {
-              maxLength: { value: 4000, message: 'ยาวเกิน 4000 ตัวอักษร' },
-            })}
-            style={{
-              width: '100%',
-              padding: 10,
-              border: '1px solid var(--color-border)',
-              borderRadius: 6,
-              font: 'inherit',
-              resize: 'vertical',
-            }}
+          <Controller
+            control={control}
+            name="description"
+            rules={{ maxLength: { value: 4000, message: 'ยาวเกิน 4000 ตัวอักษร' } }}
+            render={({ field }) => (
+              <TextArea
+                id="recipe-desc"
+                rows={3}
+                value={field.value}
+                onChange={(e) => field.onChange(e.value ?? '')}
+              />
+            )}
           />
-          {errors.description && (
-            <p className="field-error">{errors.description.message}</p>
-          )}
+          {errors.description && <p className="field-error">{errors.description.message}</p>}
         </div>
 
         <div>
@@ -257,98 +257,109 @@ export function RecipeDetailPage() {
 
           {fields.length > 0 && (
             <div className="table-scroll" style={{ marginBottom: 12 }}>
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th style={{ width: 160 }}>Quantity *</th>
-                  <th style={{ width: 80 }}>Unit</th>
-                  <th style={{ width: 60 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {fields.map((field, index) => {
-                  const lineErrors = errors.lines?.[index]
-                  return (
-                    <tr key={field.id}>
-                      <td>{field.ingredientName}</td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          aria-invalid={lineErrors?.quantity ? 'true' : 'false'}
-                          {...register(`lines.${index}.quantity` as const, {
-                            required: 'กรอกจำนวน',
-                            validate: (v) =>
-                              Number(v) > 0 || 'ต้องเป็นเลขบวก',
-                          })}
-                        />
-                        {lineErrors?.quantity && (
-                          <p className="field-error">{lineErrors.quantity.message}</p>
-                        )}
-                      </td>
-                      <td>{field.unit}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn--outline btn--sm"
-                          onClick={() => remove(index)}
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th style={{ width: 180 }}>Quantity *</th>
+                    <th style={{ width: 80 }}>Unit</th>
+                    <th style={{ width: 60 }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fields.map((field, index) => {
+                    const lineErrors = errors.lines?.[index]
+                    return (
+                      <tr key={field.id}>
+                        <td>{field.ingredientName}</td>
+                        <td>
+                          <Controller
+                            control={control}
+                            name={`lines.${index}.quantity` as const}
+                            rules={{
+                              validate: (v) =>
+                                (v != null && Number(v) > 0) || 'ต้องเป็นเลขบวก',
+                            }}
+                            render={({ field: qField }) => (
+                              <NumericTextBox
+                                min={0}
+                                value={qField.value ?? null}
+                                onChange={(e) => qField.onChange((e.value as number | null) ?? null)}
+                              />
+                            )}
+                          />
+                          {lineErrors?.quantity && (
+                            <p className="field-error">{lineErrors.quantity.message}</p>
+                          )}
+                        </td>
+                        <td>{field.unit}</td>
+                        <td>
+                          <Button
+                            type="button"
+                            size={Size.Small}
+                            variant={Variant.Outlined}
+                            color={Color.Secondary}
+                            onClick={() => remove(index)}
+                          >
+                            ✕
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
 
           <div className="row-add" style={{ alignItems: 'flex-start' }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <input
-                list="ingredient-options"
-                type="text"
-                placeholder="Ingredient name"
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180 }}>
+              <Autocomplete
+                dataSource={availableIngredients.map((i) => ({
+                  id: i.id,
+                  label: i.name,
+                  unit: i.unit,
+                }))}
+                fields={{ text: 'label', value: 'label' }}
                 value={pickerName}
-                onChange={(e) => {
-                  setPickerName(e.target.value)
+                placeholder="Ingredient name"
+                disabled={isLoadingIngredients}
+                onChange={(e: { value: unknown }) => {
+                  setPickerName((e.value as string) ?? '')
                   setPickerError(null)
                 }}
-                disabled={isLoadingIngredients}
               />
             </div>
             <div style={{ width: 140, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <input
-                type="text"
+              <TextBox
                 placeholder="Unit (if new)"
                 value={pickerUnit}
-                onChange={(e) => setPickerUnit(e.target.value)}
+                onChange={(e) => setPickerUnit(e.value ?? '')}
               />
             </div>
-            <button type="button" className="btn btn--outline" onClick={handleAddLine}>
+            <Button
+              type="button"
+              variant={Variant.Outlined}
+              color={Color.Primary}
+              onClick={handleAddLine}
+            >
               + add
-            </button>
+            </Button>
           </div>
           {pickerError && <p className="field-error">{pickerError}</p>}
-          <datalist id="ingredient-options">
-            {availableIngredients.map((i) => (
-              <option key={i.id} value={i.name} label={i.unit} />
-            ))}
-          </datalist>
           <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginTop: 4 }}>
             เลือกจาก master list หรือพิมพ์ชื่อใหม่ + หน่วย เพื่อสร้างทันที
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="submit" className="btn btn--primary" disabled={saving}>
+          <Button type="submit" variant={Variant.Filled} color={Color.Primary} disabled={saving}>
             {saving ? 'Saving…' : isNew ? 'Create' : 'Save'}
-          </button>
-          <Link to="/recipes" className="btn btn--outline">
-            Cancel
+          </Button>
+          <Link to="/recipes" style={{ textDecoration: 'none' }}>
+            <Button type="button" variant={Variant.Outlined} color={Color.Secondary}>
+              Cancel
+            </Button>
           </Link>
         </div>
       </form>
