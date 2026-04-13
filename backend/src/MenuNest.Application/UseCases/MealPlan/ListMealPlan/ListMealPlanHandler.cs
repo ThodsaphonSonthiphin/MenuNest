@@ -26,23 +26,27 @@ public sealed class ListMealPlanHandler : IQueryHandler<ListMealPlanQuery, IRead
             (from, to) = (to, from);
         }
 
+        // OrderBy must run on entity properties, not on the projected
+        // positional record — see the matching note in ListStockHandler
+        // for the EF-translation rationale.
         var items = await _db.MealPlanEntries
             .Where(m => m.FamilyId == familyId && m.Date >= from && m.Date <= to)
             .Join(
                 _db.Recipes,
                 m => m.RecipeId,
                 r => r.Id,
-                (m, r) => new MealPlanEntryDto(
-                    m.Id,
-                    m.Date,
-                    m.MealSlot,
-                    r.Id,
-                    r.Name,
-                    m.Notes,
-                    m.Status,
-                    m.CookedAt,
-                    m.CookNotes))
-            .OrderBy(e => e.Date).ThenBy(e => e.MealSlot)
+                (m, r) => new { Entry = m, Recipe = r })
+            .OrderBy(x => x.Entry.Date).ThenBy(x => x.Entry.MealSlot)
+            .Select(x => new MealPlanEntryDto(
+                x.Entry.Id,
+                x.Entry.Date,
+                x.Entry.MealSlot,
+                x.Recipe.Id,
+                x.Recipe.Name,
+                x.Entry.Notes,
+                x.Entry.Status,
+                x.Entry.CookedAt,
+                x.Entry.CookNotes))
             .ToListAsync(ct);
 
         return items;

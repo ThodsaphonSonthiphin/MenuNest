@@ -19,21 +19,27 @@ public sealed class ListStockHandler : IQueryHandler<ListStockQuery, IReadOnlyLi
     {
         var (_, familyId) = await _userProvisioner.RequireFamilyAsync(ct);
 
+        // Note: Order BEFORE the DTO projection. EF Core can't translate
+        // `OrderBy(s => s.IngredientName)` when `s` is already a positional
+        // record produced by Join's result selector — it can't decompose the
+        // constructor call back into a column reference. Sorting on the
+        // entity property keeps the chain translatable.
         var items = await _db.StockItems
             .Where(s => s.FamilyId == familyId)
             .Join(
                 _db.Ingredients,
                 s => s.IngredientId,
                 i => i.Id,
-                (s, i) => new StockItemDto(
-                    s.Id,
-                    i.Id,
-                    i.Name,
-                    i.Unit,
-                    s.Quantity,
-                    s.UpdatedAt ?? s.CreatedAt,
-                    s.UpdatedByUserId))
-            .OrderBy(s => s.IngredientName)
+                (s, i) => new { Stock = s, Ingredient = i })
+            .OrderBy(x => x.Ingredient.Name)
+            .Select(x => new StockItemDto(
+                x.Stock.Id,
+                x.Ingredient.Id,
+                x.Ingredient.Name,
+                x.Ingredient.Unit,
+                x.Stock.Quantity,
+                x.Stock.UpdatedAt ?? x.Stock.CreatedAt,
+                x.Stock.UpdatedByUserId))
             .ToListAsync(ct);
 
         return items;
