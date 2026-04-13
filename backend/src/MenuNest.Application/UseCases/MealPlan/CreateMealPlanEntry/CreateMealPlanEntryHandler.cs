@@ -32,13 +32,6 @@ public sealed class CreateMealPlanEntryHandler : ICommandHandler<CreateMealPlanE
             .FirstOrDefaultAsync(r => r.Id == command.RecipeId && r.FamilyId == familyId, ct)
             ?? throw new DomainException("Recipe not found.");
 
-        var slotTaken = await _db.MealPlanEntries
-            .AnyAsync(m => m.FamilyId == familyId && m.Date == command.Date && m.MealSlot == command.MealSlot, ct);
-        if (slotTaken)
-        {
-            throw new DomainException("This meal slot is already occupied. Remove it first before adding another recipe.");
-        }
-
         var entry = MealPlanEntry.Create(
             familyId,
             command.Date,
