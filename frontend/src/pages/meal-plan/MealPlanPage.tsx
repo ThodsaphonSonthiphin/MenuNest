@@ -20,6 +20,7 @@ import {
   useListRecipesQuery,
 } from '../../shared/api/api'
 import type { MealPlanEntryDto, MealSlot } from '../../shared/api/api'
+import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
 import { useAppDispatch, useAppSelector } from '../../store'
 import {
   closeRecipePicker,
@@ -122,6 +123,11 @@ export function MealPlanPage() {
   const focusedEntryId = useAppSelector((s) => s.mealPlan.focusedEntryId)
   const recipePickerOpen = useAppSelector((s) => s.mealPlan.recipePickerOpen)
 
+  const breakpoint = useBreakpoint()
+  // Phones can't fit a 7-column week view comfortably — use the
+  // single-day view there; tablets and up keep the week.
+  const isMobile = breakpoint === 'mobile'
+
   const fromIso = viewStartDate
   const toIso = addDays(viewStartDate, 6)
 
@@ -174,9 +180,9 @@ export function MealPlanPage() {
       </header>
 
       <Scheduler
-        height="650px"
+        height={isMobile ? '70vh' : '650px'}
         selectedDate={new Date(viewStartDate + 'T00:00:00')}
-        defaultView="Week"
+        view={isMobile ? 'Day' : 'Week'}
         eventSettings={{ dataSource: events }}
         showQuickInfoPopup={false}
         eventDrag={false}
@@ -349,7 +355,8 @@ function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
       )}
       {stockCheck && stockCheck.lines.length > 0 && (
         <>
-          <table className="data-table" style={{ marginBottom: 12 }}>
+          <div className="table-scroll" style={{ marginBottom: 12 }}>
+          <table className="data-table">
             <thead>
               <tr>
                 <th>Ingredient</th>
@@ -384,6 +391,7 @@ function EntryDetailContent({ entry, onClose }: EntryDetailProps) {
               ))}
             </tbody>
           </table>
+          </div>
           <p
             style={{
               fontWeight: 600,

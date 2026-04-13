@@ -145,6 +145,7 @@ export function StockPage() {
       )}
 
       {stock && stock.length > 0 && (
+        <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -210,6 +211,7 @@ export function StockPage() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </section>
   )

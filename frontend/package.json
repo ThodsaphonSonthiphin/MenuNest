@@ -15,6 +15,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "@syncfusion/react-buttons": "^33.1.44",
     "@syncfusion/react-dropdowns": "^33.1.44",
+    "@syncfusion/react-grid": "^33.1.44",
     "@syncfusion/react-inputs": "^33.1.44",
     "@syncfusion/react-popups": "^33.1.44",
     "@syncfusion/react-scheduler": "^33.1.44",

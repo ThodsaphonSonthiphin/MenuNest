@@ -39,18 +39,37 @@ a:hover { color: var(--color-primary-hover); }
 }
 
 .app-navbar {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 12px 24px;
+  gap: 16px;
+  padding: 12px 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
+@media (min-width: 640px) {
+  .app-navbar { padding: 12px 24px; gap: 24px; }
+}
+
+.app-navbar__hamburger {
+  background: transparent;
+  border: 0;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.app-navbar__hamburger:hover { background: #f5f5f5; }
+
 .app-navbar__brand {
   font-weight: 700;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--color-text);
+  white-space: nowrap;
+}
+@media (min-width: 640px) {
+  .app-navbar__brand { font-size: 18px; }
 }
 
 .app-navbar__links {
@@ -75,20 +94,23 @@ a:hover { color: var(--color-primary-hover); }
 
 .app-navbar__right {
   margin-left: auto;
+  position: relative;
 }
 
-.app-navbar__menu summary {
+.app-navbar__account-trigger {
+  background: transparent;
+  border: 0;
+  font: inherit;
   cursor: pointer;
-  list-style: none;
   padding: 6px 12px;
   border-radius: 6px;
 }
-.app-navbar__menu summary:hover {
-  background: #f5f5f5;
-}
-.app-navbar__menu ul {
+.app-navbar__account-trigger:hover { background: #f5f5f5; }
+
+.app-navbar__account-menu {
   position: absolute;
-  right: 24px;
+  right: 0;
+  top: 100%;
   margin-top: 4px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -97,31 +119,77 @@ a:hover { color: var(--color-primary-hover); }
   min-width: 200px;
   list-style: none;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  z-index: 100;
 }
-.app-navbar__menu li a,
-.app-navbar__menu li button {
+.app-navbar__account-menu li a {
   display: block;
-  width: 100%;
-  text-align: left;
   padding: 8px 12px;
   border-radius: 4px;
-  border: 0;
-  background: transparent;
-  font: inherit;
   color: var(--color-text);
-  cursor: pointer;
 }
-.app-navbar__menu li a:hover,
-.app-navbar__menu li button:hover {
-  background: #f5f5f5;
+.app-navbar__account-menu li a:hover { background: #f5f5f5; }
+
+/* ---------- Mobile drawer ---------- */
+
+.app-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 900;
+}
+
+.app-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+  padding: 16px 12px;
+  z-index: 1000;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
+  animation: drawer-slide 0.18s ease-out;
+}
+@keyframes drawer-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+.app-drawer__links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.app-drawer__link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 8px;
+  color: var(--color-text);
+  font-weight: 500;
+}
+.app-drawer__link:hover,
+.app-drawer__link--active {
+  background: #fff3e0;
+  color: var(--color-primary);
+}
+.app-drawer__divider {
+  border-top: 1px solid var(--color-border);
+  margin: 8px 0;
 }
 
 .app-main {
   flex: 1;
-  padding: 32px;
+  padding: 16px;
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
+}
+@media (min-width: 640px) {
+  .app-main { padding: 24px; }
+}
+@media (min-width: 1024px) {
+  .app-main { padding: 32px; }
 }
 
 /* ---------- Pages ---------- */
@@ -129,15 +197,27 @@ a:hover { color: var(--color-primary-hover); }
 .page {
   background: var(--color-surface);
   border-radius: 8px;
-  padding: 24px;
+  padding: 16px;
   border: 1px solid var(--color-border);
+}
+@media (min-width: 640px) {
+  .page { padding: 24px; }
 }
 
 .page__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 16px;
+}
+.page__header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+@media (min-width: 640px) {
+  .page__header h1 { font-size: 28px; }
 }
 
 /* ---------- Buttons ---------- */
@@ -248,6 +328,11 @@ a:hover { color: var(--color-primary-hover); }
   display: flex;
   gap: 8px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.ingredient-add > *,
+.row-add > * {
+  min-width: 0;
 }
 .ingredient-add input,
 .row-add input {
@@ -286,10 +371,20 @@ textarea[aria-invalid="true"] {
   background: #fff5f5;
 }
 
+/* Wrap any wide table in <div class="table-scroll"> on the page so
+ * mobile users can pan horizontally instead of overflowing the
+ * viewport. The .data-table itself stays unchanged. */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .data-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  min-width: 480px;
 }
 .data-table thead {
   background: #f6f8fa;

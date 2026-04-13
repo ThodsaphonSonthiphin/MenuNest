@@ -256,7 +256,8 @@ export function RecipeDetailPage() {
           </label>
 
           {fields.length > 0 && (
-            <table className="data-table" style={{ marginBottom: 12 }}>
+            <div className="table-scroll" style={{ marginBottom: 12 }}>
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Name</th>
@@ -302,6 +303,7 @@ export function RecipeDetailPage() {
                 })}
               </tbody>
             </table>
+            </div>
           )}
 
           <div className="row-add" style={{ alignItems: 'flex-start' }}>

@@ -142,6 +142,7 @@ export function IngredientsPage() {
       )}
 
       {data && data.length > 0 && (
+        <div className="table-scroll">
         <table className="data-table">
           <thead>
             <tr>
@@ -214,6 +215,7 @@ export function IngredientsPage() {
             )}
           </tbody>
         </table>
+        </div>
       )}
     </section>
   )
