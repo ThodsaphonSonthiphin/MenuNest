@@ -152,6 +152,34 @@ export interface StockCheckDto {
   missingCount: number
 }
 
+export interface StockCheckBatchDto {
+  lines: StockCheckLineDto[]
+  isSufficient: boolean
+  missingCount: number
+}
+
+export interface CookDeducted {
+  ingredientId: string
+  ingredientName: string
+  unit: string
+  amount: number
+}
+
+export interface CookShortfall {
+  ingredientId: string
+  ingredientName: string
+  unit: string
+  required: number
+  deducted: number
+  missing: number
+}
+
+export interface CookBatchResult {
+  deducted: CookDeducted[]
+  partial: CookShortfall[]
+  cookedEntryIds: string[]
+}
+
 export interface ShoppingListSummaryDto {
   id: string
   name: string
@@ -374,11 +402,44 @@ export const api = createApi({
       ],
     }),
 
+    cookMealPlanBatch: build.mutation<CookBatchResult, { entryIds: string[] }>({
+      query: ({ entryIds }) => ({
+        url: '/api/meal-plan/cook-batch',
+        method: 'POST',
+        body: { entryIds },
+      }),
+      invalidatesTags: (_res, _err, arg) => [
+        { type: 'MealPlan', id: 'LIST' },
+        ...arg.entryIds.map((id) => ({ type: 'MealPlan' as const, id })),
+        { type: 'Stock', id: 'LIST' },
+      ],
+    }),
+
     getStockCheck: build.query<StockCheckDto, string>({
       query: (mealPlanEntryId) => `/api/meal-plan/${mealPlanEntryId}/stock-check`,
       providesTags: (_res, _err, id) => [
         { type: 'MealPlan', id: `stock-check-${id}` },
       ],
+    }),
+
+    stockCheckBatch: build.query<StockCheckBatchDto, { entryIds: string[] }>({
+      // The cache key must be order-insensitive — the user's checkbox toggle
+      // can produce the same logical set in any order. RTK Query derives the
+      // cache key from the query arg (not the body), so we normalise the arg
+      // via serializeQueryArgs and also send a sorted body for symmetry.
+      query: ({ entryIds }) => ({
+        url: '/api/meal-plan/stock-check-batch',
+        method: 'POST',
+        body: { entryIds: [...entryIds].sort() },
+      }),
+      serializeQueryArgs: ({ endpointName, queryArgs }) => ({
+        endpointName,
+        entryIds: [...queryArgs.entryIds].sort(),
+      }),
+      providesTags: (_res, _err, arg) =>
+        [...arg.entryIds]
+          .sort()
+          .map((id) => ({ type: 'MealPlan' as const, id: `stock-check-batch-${id}` })),
     }),
 
     // -------------------- Shopping Lists --------------------
@@ -409,5 +470,7 @@ export const {
   useUpdateMealPlanEntryMutation,
   useDeleteMealPlanEntryMutation,
   useGetStockCheckQuery,
+  useStockCheckBatchQuery,
+  useCookMealPlanBatchMutation,
   useListShoppingListsQuery,
 } = api
