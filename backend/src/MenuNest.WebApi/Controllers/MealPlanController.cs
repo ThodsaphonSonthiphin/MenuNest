@@ -1,5 +1,6 @@
 using Mediator;
 using MenuNest.Application.UseCases.MealPlan;
+using MenuNest.Application.UseCases.MealPlan.CookBatch;
 using MenuNest.Application.UseCases.MealPlan.CreateMealPlanEntry;
 using MenuNest.Application.UseCases.MealPlan.DeleteMealPlanEntry;
 using MenuNest.Application.UseCases.MealPlan.ListMealPlan;
@@ -81,6 +82,15 @@ public sealed class MealPlanController : ControllerBase
         var result = await _mediator.Send(new StockCheckBatchQuery(request.EntryIds), ct);
         return Ok(result);
     }
+
+    [HttpPost("cook-batch")]
+    public async Task<ActionResult<CookBatchResult>> CookBatch(
+        [FromBody] CookBatchRequest request,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(new CookBatchCommand(request.EntryIds), ct);
+        return Ok(result);
+    }
 }
 
 public sealed record CreateMealPlanEntryRequest(
@@ -92,3 +102,5 @@ public sealed record CreateMealPlanEntryRequest(
 public sealed record UpdateMealPlanEntryRequest(Guid RecipeId, string? Notes);
 
 public sealed record StockCheckBatchRequest(IReadOnlyList<Guid> EntryIds);
+
+public sealed record CookBatchRequest(IReadOnlyList<Guid> EntryIds);
