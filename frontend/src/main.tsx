@@ -9,13 +9,24 @@ import { store } from './store'
 import App from './App'
 
 // Syncfusion *Pure React* (@syncfusion/react-*) theme — Material 3.
-// Each package ships its own stylesheet that pulls in transitive
-// dependencies, so we import one per package we actually use.
-import '@syncfusion/react-scheduler/styles/material.css'
-import '@syncfusion/react-popups/styles/material.css'
-import '@syncfusion/react-dropdowns/styles/material.css'
+//
+// IMPORTANT: each package's `styles/material.css` only contains the
+// CSS for its own components. The shared theme tokens
+// (`--sf-color-*`, `--sf-spacing-*`) live in @syncfusion/react-base
+// and MUST be imported FIRST or every other component looks
+// unstyled / black-on-white. Then we import every transitive
+// component the Scheduler depends on (calendars/dropdowns/lists/
+// navigations/popups/buttons/inputs) plus our directly-used ones.
+import '@syncfusion/react-base/styles/material.css'
 import '@syncfusion/react-buttons/styles/material.css'
 import '@syncfusion/react-inputs/styles/material.css'
+import '@syncfusion/react-calendars/styles/material.css'
+import '@syncfusion/react-lists/styles/material.css'
+import '@syncfusion/react-navigations/styles/material.css'
+import '@syncfusion/react-dropdowns/styles/material.css'
+import '@syncfusion/react-splitbuttons/styles/material.css'
+import '@syncfusion/react-popups/styles/material.css'
+import '@syncfusion/react-scheduler/styles/material.css'
 
 import './index.css'
 
