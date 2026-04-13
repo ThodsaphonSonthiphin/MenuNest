@@ -138,7 +138,45 @@ export const api = createApi({
     // -------------------- Ingredients --------------------
     listIngredients: build.query<IngredientDto[], void>({
       query: () => '/api/ingredients',
-      providesTags: ['Ingredients'],
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((i) => ({ type: 'Ingredients' as const, id: i.id })),
+              { type: 'Ingredients', id: 'LIST' },
+            ]
+          : [{ type: 'Ingredients', id: 'LIST' }],
+    }),
+
+    createIngredient: build.mutation<IngredientDto, { name: string; unit: string }>({
+      query: (body) => ({
+        url: '/api/ingredients',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: [{ type: 'Ingredients', id: 'LIST' }],
+    }),
+
+    updateIngredient: build.mutation<IngredientDto, { id: string; name: string; unit: string }>({
+      query: ({ id, ...body }) => ({
+        url: `/api/ingredients/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: (_res, _err, arg) => [
+        { type: 'Ingredients', id: arg.id },
+        { type: 'Ingredients', id: 'LIST' },
+      ],
+    }),
+
+    deleteIngredient: build.mutation<void, string>({
+      query: (id) => ({
+        url: `/api/ingredients/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, id) => [
+        { type: 'Ingredients', id },
+        { type: 'Ingredients', id: 'LIST' },
+      ],
     }),
 
     // -------------------- Recipes --------------------
@@ -171,6 +209,9 @@ export const {
   useGetMeQuery,
   useCreateFamilyMutation,
   useListIngredientsQuery,
+  useCreateIngredientMutation,
+  useUpdateIngredientMutation,
+  useDeleteIngredientMutation,
   useListRecipesQuery,
   useListStockQuery,
   useListMealPlanQuery,

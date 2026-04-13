@@ -235,3 +235,67 @@ a:hover { color: var(--color-primary-hover); }
   margin: 16px 0;
   font-size: 12px;
 }
+
+/* ---------- Shared: data table + add form ---------- */
+
+.btn--sm {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.ingredient-add,
+.row-add {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ingredient-add input,
+.row-add input {
+  padding: 8px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+}
+
+.error-banner {
+  background: #fdecea;
+  color: var(--color-danger);
+  border: 1px solid #f5c6cb;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.data-table thead {
+  background: #f6f8fa;
+}
+.data-table th,
+.data-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-border);
+}
+.data-table th {
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+.data-table tr:hover {
+  background: #fafafa;
+}
+.data-table input {
+  padding: 6px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font: inherit;
+  width: 100%;
+}

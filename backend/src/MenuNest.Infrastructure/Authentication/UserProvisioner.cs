@@ -1,5 +1,6 @@
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Exceptions;
 using MenuNest.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,5 +43,17 @@ internal sealed class UserProvisioner : IUserProvisioner
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
         return user;
+    }
+
+    public async Task<(User User, Guid FamilyId)> RequireFamilyAsync(CancellationToken ct = default)
+    {
+        var user = await GetOrProvisionCurrentAsync(ct);
+
+        if (user.FamilyId is not Guid familyId)
+        {
+            throw new DomainException("You must join or create a family before using this feature.");
+        }
+
+        return (user, familyId);
     }
 }

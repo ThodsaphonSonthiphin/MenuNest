@@ -1,5 +1,6 @@
 using MenuNest.Application;
 using MenuNest.Infrastructure;
+using MenuNest.WebApi.Middleware;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -97,6 +98,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicyName);
 app.UseAuthentication();

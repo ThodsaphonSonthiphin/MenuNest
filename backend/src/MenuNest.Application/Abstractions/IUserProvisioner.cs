@@ -1,4 +1,5 @@
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Exceptions;
 
 namespace MenuNest.Application.Abstractions;
 
@@ -12,4 +13,14 @@ namespace MenuNest.Application.Abstractions;
 public interface IUserProvisioner
 {
     Task<User> GetOrProvisionCurrentAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Family-scoped helper: returns the current <see cref="User"/>
+    /// and their <c>FamilyId</c>, or throws <see cref="DomainException"/>
+    /// if the caller has not joined a family yet. Handlers for
+    /// family-scoped resources (ingredients, recipes, stock, …) use
+    /// this to fail fast with a clean 400 instead of silently
+    /// returning empty results.
+    /// </summary>
+    Task<(User User, Guid FamilyId)> RequireFamilyAsync(CancellationToken ct = default);
 }
