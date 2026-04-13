@@ -1,6 +1,0 @@
-@MenuNest.WebApi_HostAddress = http://localhost:5229
-
-GET {{MenuNest.WebApi_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

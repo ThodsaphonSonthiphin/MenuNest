@@ -1,3 +1,4 @@
+using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,8 +9,10 @@ namespace MenuNest.Infrastructure.Persistence;
 /// <see cref="IEntityTypeConfiguration{TEntity}"/> classes under
 /// <see cref="Configurations"/> and picked up via
 /// <see cref="ModelBuilder.ApplyConfigurationsFromAssembly(System.Reflection.Assembly, Func{Type, bool}?)"/>.
+/// Implements <see cref="IApplicationDbContext"/> so Application-layer
+/// handlers can depend on the abstraction instead of the concrete type.
 /// </summary>
-public sealed class AppDbContext : DbContext
+public sealed class AppDbContext : DbContext, IApplicationDbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 

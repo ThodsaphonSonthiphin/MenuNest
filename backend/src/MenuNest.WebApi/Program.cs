@@ -1,6 +1,8 @@
 using MenuNest.Application;
 using MenuNest.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.Identity.Web;
 using Scalar.AspNetCore;
@@ -12,6 +14,14 @@ var builder = WebApplication.CreateBuilder(args);
 // ----------------------------------------------------------------------
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Mediator (martinothamar/Mediator) — the source generator scans
+// referenced assemblies for IRequestHandler / ICommandHandler /
+// IQueryHandler implementations and wires DI for us.
+builder.Services.AddMediator(options =>
+{
+    options.ServiceLifetime = ServiceLifetime.Scoped;
+});
 
 // ----------------------------------------------------------------------
 // Authentication — Entra ID JWT bearer
@@ -31,7 +41,14 @@ builder.Services
             options.TokenValidationParameters.ValidateIssuer = false;
         });
 
-builder.Services.AddAuthorization();
+// Every request requires auth by default; opt-out with [AllowAnonymous]
+// on individual endpoints (e.g. health checks).
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 
 // ----------------------------------------------------------------------
 // CORS — allow the SPA (Vite dev server, Azure Static Web App in prod)

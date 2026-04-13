@@ -1,3 +1,5 @@
+using System.Reflection;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MenuNest.Application;
@@ -10,9 +12,13 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        // Intentionally empty for now — use-case handlers will be
-        // registered here (or by a source-generated Mediator hook)
-        // as they land.
+        // FluentValidation: discover every AbstractValidator<T> in the
+        // Application assembly and register it with scoped lifetime.
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
+        // Mediator handlers are registered automatically by the
+        // source generator in Program.cs (AddMediator).
+
         return services;
     }
 }

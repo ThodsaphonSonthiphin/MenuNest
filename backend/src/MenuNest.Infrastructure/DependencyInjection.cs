@@ -27,8 +27,14 @@ public static class DependencyInjection
                 connectionString,
                 sql => sql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
 
+        // Expose the same AppDbContext via the Application-layer
+        // IApplicationDbContext interface so handlers stay decoupled
+        // from the concrete Infrastructure type.
+        services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<IUserProvisioner, UserProvisioner>();
 
         return services;
     }
