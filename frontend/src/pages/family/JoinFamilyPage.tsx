@@ -1,12 +1,22 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { useCreateFamilyMutation } from '../../shared/api/api'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 
 export function JoinFamilyPage() {
-  const { displayName } = useCurrentUser()
+  const { displayName, familyId, isLoadingProfile } = useCurrentUser()
   const [inviteCode, setInviteCode] = useState('')
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [familyName, setFamilyName] = useState('')
+
+  // Once /api/me reports a family (either because the user already
+  // belongs to one, or because Create Family just succeeded and RTK
+  // Query refetched Me), navigate back into the app shell. Without
+  // this, JoinFamilyPage stays mounted because FamilyRequiredRoute
+  // only wraps the app shell, not /join-family.
+  if (!isLoadingProfile && familyId) {
+    return <Navigate to="/" replace />
+  }
 
   const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
 
