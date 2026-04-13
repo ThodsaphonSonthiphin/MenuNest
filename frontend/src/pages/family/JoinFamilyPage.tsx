@@ -1,12 +1,34 @@
 import { useState } from 'react'
+import { useCreateFamilyMutation } from '../../shared/api/api'
+import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 
 export function JoinFamilyPage() {
+  const { displayName } = useCurrentUser()
   const [inviteCode, setInviteCode] = useState('')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [familyName, setFamilyName] = useState('')
+
+  const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
+
+  const handleCreate = async (event: React.FormEvent) => {
+    event.preventDefault()
+    const trimmed = familyName.trim()
+    if (!trimmed) return
+
+    try {
+      await createFamily({ name: trimmed }).unwrap()
+      // On success, RTK Query invalidates the Me tag, useCurrentUser
+      // refetches, FamilyRequiredRoute sees a familyId, and the app
+      // router navigates the user out of /join-family automatically.
+    } catch {
+      // The error is rendered below from `createError`.
+    }
+  }
 
   return (
     <section className="page page--join-family">
       <div className="card">
-        <h1>ยินดีต้อนรับ</h1>
+        <h1>ยินดีต้อนรับ{displayName ? `, ${displayName}` : ''}</h1>
         <p>คุณยังไม่ได้เข้าร่วม family</p>
 
         <div className="join-family__option">
@@ -17,19 +39,66 @@ export function JoinFamilyPage() {
             placeholder="XXXX-XXXX"
             value={inviteCode}
             onChange={(e) => setInviteCode(e.target.value)}
+            disabled
           />
-          <button type="button" className="btn btn--primary" disabled={!inviteCode}>
-            Join
+          <button type="button" className="btn btn--primary" disabled>
+            Join (coming soon)
           </button>
         </div>
 
         <div className="divider">or</div>
 
-        <div className="join-family__option">
-          <button type="button" className="btn btn--outline">
-            + Create a new family
-          </button>
-        </div>
+        {!showCreateForm ? (
+          <div className="join-family__option">
+            <button
+              type="button"
+              className="btn btn--outline"
+              onClick={() => setShowCreateForm(true)}
+            >
+              + Create a new family
+            </button>
+          </div>
+        ) : (
+          <form className="join-family__option" onSubmit={handleCreate}>
+            <label htmlFor="family-name">Family name</label>
+            <input
+              id="family-name"
+              type="text"
+              placeholder="ครอบครัว..."
+              value={familyName}
+              onChange={(e) => setFamilyName(e.target.value)}
+              autoFocus
+              required
+              maxLength={120}
+              disabled={isCreating}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                type="submit"
+                className="btn btn--primary"
+                disabled={isCreating || !familyName.trim()}
+              >
+                {isCreating ? 'Creating…' : 'Create'}
+              </button>
+              <button
+                type="button"
+                className="btn btn--outline"
+                onClick={() => {
+                  setShowCreateForm(false)
+                  setFamilyName('')
+                }}
+                disabled={isCreating}
+              >
+                Cancel
+              </button>
+            </div>
+            {createError && (
+              <p style={{ color: 'var(--color-danger)', marginTop: 8 }}>
+                Could not create family. Please try again.
+              </p>
+            )}
+          </form>
+        )}
       </div>
     </section>
   )

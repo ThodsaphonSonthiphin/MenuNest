@@ -36,6 +36,7 @@ export interface MeDto {
   displayName: string
   familyId: string | null
   familyName: string | null
+  familyInviteCode: string | null
 }
 
 export interface FamilyDto {
@@ -43,6 +44,10 @@ export interface FamilyDto {
   name: string
   inviteCode: string
   memberCount: number
+}
+
+export interface CreateFamilyRequest {
+  name: string
 }
 
 export interface IngredientDto {
@@ -119,6 +124,17 @@ export const api = createApi({
       providesTags: ['Me'],
     }),
 
+    createFamily: build.mutation<FamilyDto, CreateFamilyRequest>({
+      query: (body) => ({
+        url: '/api/families',
+        method: 'POST',
+        body,
+      }),
+      // New family membership changes what /api/me returns, so evict
+      // the cached Me entry and let the guard re-evaluate.
+      invalidatesTags: ['Me', 'Family'],
+    }),
+
     // -------------------- Ingredients --------------------
     listIngredients: build.query<IngredientDto[], void>({
       query: () => '/api/ingredients',
@@ -153,6 +169,7 @@ export const api = createApi({
 
 export const {
   useGetMeQuery,
+  useCreateFamilyMutation,
   useListIngredientsQuery,
   useListRecipesQuery,
   useListStockQuery,
