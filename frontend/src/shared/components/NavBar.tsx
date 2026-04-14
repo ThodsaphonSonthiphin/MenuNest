@@ -9,6 +9,7 @@ const navItems = [
   { to: '/stock', label: 'Stock' },
   { to: '/meal-plan', label: 'Meal Plan' },
   { to: '/shopping', label: 'Shopping' },
+  { to: '/ai-assistant', label: 'AI' },
 ]
 
 export function NavBar() {

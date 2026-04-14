@@ -11,6 +11,7 @@ import { StockPage } from './pages/stock'
 import { MealPlanPage } from './pages/meal-plan'
 import { ShoppingListsPage, ShoppingListDetailPage } from './pages/shopping'
 import { IngredientsPage } from './pages/ingredients'
+import { AiAssistantPage } from './pages/ai-assistant'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
               { path: '/shopping/:id', element: <ShoppingListDetailPage /> },
               { path: '/ingredients', element: <IngredientsPage /> },
               { path: '/family', element: <FamilyPage /> },
+              { path: '/ai-assistant', element: <AiAssistantPage /> },
               { path: '*', element: <Navigate to="/" replace /> },
             ],
           },
