@@ -1,4 +1,6 @@
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
+import { Grid, Column, Columns } from '@syncfusion/react-grid'
+import type { ColumnTemplateProps } from '@syncfusion/react-grid'
 import type { MealPlanEntryDto } from '../../../shared/api/api'
 import { useMealSlotDetail } from '../hooks/useMealSlotDetail'
 import { RowStockBadge } from './RowStockBadge'
@@ -23,84 +25,93 @@ export function MealSlotDetail({ entries, onAddRecipe, onClose }: MealSlotDetail
     handleCook,
   } = useMealSlotDetail(entries)
 
+  const CheckboxTemplate = ({ data: entry }: ColumnTemplateProps<MealPlanEntryDto>) => {
+    const isPlanned = entry.status === 'Planned'
+    if (isPlanned) {
+      return (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(entry.id)}
+          onChange={() => toggle(entry.id, entry.status)}
+          aria-label={`เลือก ${entry.recipeName}`}
+        />
+      )
+    }
+    return <span style={{ color: 'var(--color-text-muted)' }}>—</span>
+  }
+
+  const RecipeTemplate = ({ data: entry }: ColumnTemplateProps<MealPlanEntryDto>) => (
+    <span style={{ fontWeight: 500 }}>{entry.recipeName}</span>
+  )
+
+  const StockTemplate = ({ data: entry }: ColumnTemplateProps<MealPlanEntryDto>) => (
+    <RowStockBadge status={entry.status} stockCheck={allPlannedStockCheck} />
+  )
+
+  const StatusTemplate = ({ data: entry }: ColumnTemplateProps<MealPlanEntryDto>) => {
+    const isPlanned = entry.status === 'Planned'
+    if (isPlanned) {
+      return (
+        <div>
+          <span className="status status--planned">Planned</span>
+          <Button
+            type="button"
+            size={Size.Small}
+            variant={Variant.Outlined}
+            color={Color.Error}
+            onClick={() => handleDelete(entry)}
+            disabled={isDeleting}
+            aria-label="ลบ"
+            style={{ marginLeft: 6 }}
+          >
+            🗑
+          </Button>
+        </div>
+      )
+    }
+    return (
+      <div>
+        <span className="status status--cooked">✓ Cooked</span>
+        {entry.cookedAt && (
+          <span
+            style={{
+              color: 'var(--color-text-muted)',
+              fontSize: 12,
+              marginLeft: 6,
+            }}
+          >
+            {new Date(entry.cookedAt).toLocaleTimeString('th-TH', {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  const rowClass = ({ data: entry }: { data?: MealPlanEntryDto }) => {
+    if (entry && entry.status !== 'Planned') return 'row--cooked'
+    return ''
+  }
+
   return (
     <div>
       {errorMessage && <div className="error-banner">{errorMessage}</div>}
 
-      <div className="table-scroll" style={{ marginBottom: 12 }}>
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th style={{ width: 50 }}>เลือก</th>
-              <th>Recipe</th>
-              <th style={{ width: 200 }}>Stock</th>
-              <th style={{ width: 200 }}>สถานะ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => {
-              const isPlanned = entry.status === 'Planned'
-              const checked = selectedIds.has(entry.id)
-              return (
-                <tr key={entry.id} className={isPlanned ? undefined : 'row--cooked'}>
-                  <td>
-                    {isPlanned ? (
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggle(entry.id, entry.status)}
-                        aria-label={`เลือก ${entry.recipeName}`}
-                      />
-                    ) : (
-                      <span style={{ color: 'var(--color-text-muted)' }}>—</span>
-                    )}
-                  </td>
-                  <td style={{ fontWeight: 500 }}>{entry.recipeName}</td>
-                  <td>
-                    <RowStockBadge status={entry.status} stockCheck={allPlannedStockCheck} />
-                  </td>
-                  <td>
-                    {isPlanned ? (
-                      <>
-                        <span className="status status--planned">Planned</span>
-                        <Button
-                          type="button"
-                          size={Size.Small}
-                          variant={Variant.Outlined}
-                          color={Color.Error}
-                          onClick={() => handleDelete(entry)}
-                          disabled={isDeleting}
-                          aria-label="ลบ"
-                          style={{ marginLeft: 6 }}
-                        >
-                          🗑
-                        </Button>
-                      </>
-                    ) : (
-                      <>
-                        <span className="status status--cooked">✓ Cooked</span>
-                        {entry.cookedAt && (
-                          <span
-                            style={{
-                              color: 'var(--color-text-muted)',
-                              fontSize: 12,
-                              marginLeft: 6,
-                            }}
-                          >
-                            {new Date(entry.cookedAt).toLocaleTimeString('th-TH', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+      <div style={{ marginBottom: 12 }}>
+        <Grid
+          dataSource={entries as MealPlanEntryDto[]}
+          height="auto"
+          rowClass={rowClass}
+        >
+          <Columns>
+            <Column headerText="เลือก" width={50} template={CheckboxTemplate} />
+            <Column field="recipeName" headerText="Recipe" template={RecipeTemplate} />
+            <Column headerText="Stock" width={200} template={StockTemplate} />
+            <Column headerText="สถานะ" width={200} template={StatusTemplate} />
+          </Columns>
+        </Grid>
       </div>
 
       {stockCheck && stockCheck.missingCount > 0 && (

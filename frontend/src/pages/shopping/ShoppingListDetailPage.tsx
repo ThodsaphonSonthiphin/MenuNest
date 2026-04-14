@@ -1,8 +1,10 @@
 import { Link, useParams } from 'react-router-dom'
-import { Button, Color, Variant } from '@syncfusion/react-buttons'
+import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
+import { Grid, Column, Columns } from '@syncfusion/react-grid'
+import type { ColumnTemplateProps } from '@syncfusion/react-grid'
 import { useGetShoppingListDetailQuery } from '../../shared/api/api'
+import type { ShoppingListItemDto } from '../../shared/api/api'
 import { useShoppingListDetail } from './hooks/useShoppingListDetail'
-import { ShoppingItemRow } from './components/ShoppingItemRow'
 import { AddItemForm } from './components/AddItemForm'
 
 export function ShoppingListDetailPage() {
@@ -60,6 +62,109 @@ export function ShoppingListDetailPage() {
 
   const isBusy = isBuying || isUnbuying || isDeletingItem || isCompleting || isRegenerating
 
+  /* ---------- Column templates for unbought items ---------- */
+
+  const UnboughtCheckboxTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <input
+      type="checkbox"
+      checked={false}
+      onChange={() => handleBuy(item.id)}
+      aria-label={`ซื้อ ${item.ingredientName}`}
+    />
+  )
+
+  const UnboughtNameTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => {
+    const hasSource =
+      item.sourceMealPlanEntryIds != null && item.sourceMealPlanEntryIds.length > 0
+    return (
+      <span style={{ fontWeight: 500 }}>
+        {item.ingredientName}
+        {hasSource && (
+          <span
+            style={{
+              marginLeft: 6,
+              fontSize: 11,
+              color: 'var(--color-text-muted)',
+              background: '#fff3e0',
+              borderRadius: 4,
+              padding: '2px 6px',
+            }}
+          >
+            จาก meal plan
+          </span>
+        )}
+      </span>
+    )
+  }
+
+  const UnboughtQtyTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <span style={{ fontSize: 13 }}>
+      {item.quantity} {item.unit}
+    </span>
+  )
+
+  const UnboughtActionTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <div style={{ textAlign: 'right' }}>
+      <Button
+        type="button"
+        size={Size.Small}
+        variant={Variant.Outlined}
+        color={Color.Error}
+        onClick={() => handleDeleteItem(item.id, item.ingredientName)}
+        aria-label="ลบ"
+      >
+        🗑
+      </Button>
+    </div>
+  )
+
+  /* ---------- Column templates for bought items ---------- */
+
+  const BoughtCheckboxTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <input type="checkbox" checked disabled aria-label={`${item.ingredientName} (ซื้อแล้ว)`} />
+  )
+
+  const BoughtNameTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <span style={{ textDecoration: 'line-through', color: 'var(--color-text-muted)' }}>
+      {item.ingredientName}
+    </span>
+  )
+
+  const BoughtQtyTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+      {item.quantity} {item.unit}
+    </span>
+  )
+
+  const BoughtTimeTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => {
+    const boughtTime = item.boughtAt
+      ? new Date(item.boughtAt).toLocaleTimeString('th-TH', {
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+      : null
+    return (
+      <span style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+        {boughtTime && <>ซื้อ {boughtTime}</>}
+      </span>
+    )
+  }
+
+  const BoughtActionTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
+    <div style={{ textAlign: 'right' }}>
+      <Button
+        type="button"
+        size={Size.Small}
+        variant={Variant.Outlined}
+        color={Color.Secondary}
+        onClick={() => handleUnbuy(item.id)}
+        aria-label="ยกเลิกซื้อ"
+      >
+        ↩
+      </Button>
+    </div>
+  )
+
   return (
     <section className="page page--shopping-detail">
       <header className="page__header">
@@ -115,31 +220,15 @@ export function ShoppingListDetailPage() {
           <h2 style={{ fontSize: 15, marginBottom: 8, color: 'var(--color-text-muted)' }}>
             ยังไม่ได้ซื้อ ({unboughtItems.length})
           </h2>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 36 }}></th>
-                  <th>วัตถุดิบ</th>
-                  <th style={{ width: 120 }}>จำนวน</th>
-                  <th style={{ width: 100 }}></th>
-                  <th style={{ width: 60 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {unboughtItems.map((item) => (
-                  <ShoppingItemRow
-                    key={item.id}
-                    item={item}
-                    listId={listId}
-                    onBuy={handleBuy}
-                    onUnbuy={handleUnbuy}
-                    onDelete={handleDeleteItem}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Grid dataSource={unboughtItems as ShoppingListItemDto[]} height="auto">
+            <Columns>
+              <Column headerText="" width={36} template={UnboughtCheckboxTemplate} />
+              <Column field="ingredientName" headerText="วัตถุดิบ" template={UnboughtNameTemplate} />
+              <Column headerText="จำนวน" width={120} template={UnboughtQtyTemplate} />
+              <Column headerText="" width={100} />
+              <Column headerText="" width={60} template={UnboughtActionTemplate} />
+            </Columns>
+          </Grid>
         </div>
       )}
 
@@ -149,31 +238,15 @@ export function ShoppingListDetailPage() {
           <h2 style={{ fontSize: 15, marginBottom: 8, color: 'var(--color-text-muted)' }}>
             ซื้อแล้ว ({boughtItems.length})
           </h2>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th style={{ width: 36 }}></th>
-                  <th>วัตถุดิบ</th>
-                  <th style={{ width: 120 }}>จำนวน</th>
-                  <th style={{ width: 100 }}>เวลา</th>
-                  <th style={{ width: 60 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {boughtItems.map((item) => (
-                  <ShoppingItemRow
-                    key={item.id}
-                    item={item}
-                    listId={listId}
-                    onBuy={handleBuy}
-                    onUnbuy={handleUnbuy}
-                    onDelete={handleDeleteItem}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Grid dataSource={boughtItems as ShoppingListItemDto[]} height="auto">
+            <Columns>
+              <Column headerText="" width={36} template={BoughtCheckboxTemplate} />
+              <Column field="ingredientName" headerText="วัตถุดิบ" template={BoughtNameTemplate} />
+              <Column headerText="จำนวน" width={120} template={BoughtQtyTemplate} />
+              <Column headerText="เวลา" width={100} template={BoughtTimeTemplate} />
+              <Column headerText="" width={60} template={BoughtActionTemplate} />
+            </Columns>
+          </Grid>
         </div>
       )}
 
