@@ -1,7 +1,8 @@
 using Mediator;
 using MenuNest.Application.UseCases.ShoppingList;
-using MenuNest.Application.UseCases.ShoppingList.ListShoppingLists;
+using MenuNest.Application.UseCases.ShoppingList.CreateShoppingList;
 using MenuNest.Application.UseCases.ShoppingList.GetShoppingListDetail;
+using MenuNest.Application.UseCases.ShoppingList.ListShoppingLists;
 using MenuNest.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,6 +32,18 @@ public sealed class ShoppingListsController : ControllerBase
         return Ok(result);
     }
 
-    // POST, DELETE, /complete, /items, /items/{itemId}, /buy, /unbuy, /regenerate
+    [HttpPost]
+    public async Task<ActionResult<ShoppingListDto>> Create(
+        [FromBody] CreateShoppingListRequest request,
+        CancellationToken ct)
+    {
+        var result = await _mediator.Send(
+            new CreateShoppingListCommand(request.Name, request.FromDate, request.ToDate), ct);
+        return CreatedAtAction(nameof(GetDetail), new { id = result.Id }, result);
+    }
+
+    // DELETE, /complete, /items, /items/{itemId}, /buy, /unbuy, /regenerate
     // are wired in subsequent tasks as the handlers are created.
 }
+
+public sealed record CreateShoppingListRequest(string Name, DateOnly? FromDate, DateOnly? ToDate);
