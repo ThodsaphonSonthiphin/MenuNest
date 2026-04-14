@@ -34,7 +34,7 @@ public sealed class IngredientsController : ControllerBase
         var ingredient = await _mediator.Send(
             new CreateIngredientCommand(request.Name, request.Unit),
             ct);
-        return CreatedAtAction(nameof(List), new { id = ingredient.Id }, ingredient);
+        return CreatedAtAction(nameof(List), new { id = ingredient.IngredientId }, ingredient);
     }
 
     [HttpPut("{id:guid}")]

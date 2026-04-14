@@ -1,7 +1,8 @@
+import { useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
-import type { ColumnTemplateProps } from '@syncfusion/react-grid'
+import type { ColumnTemplateProps, GridRef } from '@syncfusion/react-grid'
 import {
   useGetShoppingListDetailQuery,
   useListIngredientsQuery,
@@ -17,7 +18,7 @@ export function ShoppingListDetailPage() {
   const listId = id!
 
   const { data, isLoading, error } = useGetShoppingListDetailQuery(listId)
-  const { data: allIngredients } = useListIngredientsQuery()
+  const { data: allIngredients,isFetching } = useListIngredientsQuery()
   const [addItem] = useAddShoppingListItemMutation()
   const [deleteItem] = useDeleteShoppingListItemMutation()
   const {
@@ -33,9 +34,11 @@ export function ShoppingListDetailPage() {
   } = useShoppingListDetail(listId)
 
   const unboughtItems = data?.items.filter((i) => !i.isBought)
+  const gridRef = useRef<GridRef | null>(null)
 
   const { dm, onDataChangeStart } = useRtkDataManager(unboughtItems, {
     key: 'id',
+    gridRef,
     onAdd: (row) =>
       addItem({
         listId,
@@ -224,8 +227,9 @@ export function ShoppingListDetailPage() {
             ยังไม่ได้ซื้อ ({unboughtItems.length})
           </h2>
         )}
-        {isActive && dm && allIngredients ? (
+        {isActive && dm && allIngredients && !isFetching ? (
           <Grid
+            ref={gridRef}
             dataSource={dm}
             toolbar={['Add', 'Delete', 'Update', 'Cancel']}
             editSettings={{
@@ -235,7 +239,7 @@ export function ShoppingListDetailPage() {
               mode: 'Normal',
               confirmOnDelete: true,
             }}
-            onDataChangeStart={onDataChangeStart}
+             onDataChangeStart={onDataChangeStart}
             height="auto"
           >
             <Columns>
@@ -248,7 +252,7 @@ export function ShoppingListDetailPage() {
                   type: 'DropDownEdit',
                   params: {
                     dataSource: allIngredients,
-                    fields: { text: 'name', value: 'id' },
+                    fields: { text: 'name', value: 'ingredientId' },
                     placeholder: 'เลือกวัตถุดิบ',
                   },
                 }}

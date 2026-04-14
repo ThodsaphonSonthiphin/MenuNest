@@ -1,4 +1,6 @@
+import { useRef } from 'react'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
+import type { GridRef } from '@syncfusion/react-grid'
 import {
   useListIngredientsQuery,
   useCreateIngredientMutation,
@@ -13,12 +15,15 @@ export function IngredientsPage() {
   const [update] = useUpdateIngredientMutation()
   const [remove] = useDeleteIngredientMutation()
 
+  const gridRef = useRef<GridRef | null>(null)
+
   const { dm, onDataChangeStart } = useRtkDataManager(data, {
     key: 'id',
+    gridRef,
     onAdd: (row) => create({ name: row.name as string, unit: row.unit as string }).unwrap(),
     onUpdate: (row) =>
-      update({ id: row.id as string, name: row.name as string, unit: row.unit as string }).unwrap(),
-    onDelete: (rows) => remove(rows[0].id as string).unwrap(),
+      update({ id: row.ingredientId as string, name: row.name as string, unit: row.unit as string }).unwrap(),
+    onDelete: (rows) => remove(rows[0].ingredientId as string).unwrap(),
   })
 
   return (
@@ -35,6 +40,7 @@ export function IngredientsPage() {
 
       {dm && (
         <Grid
+          ref={gridRef}
           dataSource={dm}
           toolbar={['Add', 'Edit', 'Delete', 'Update', 'Cancel']}
           editSettings={{

@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef } from 'react'
+import type { RefObject } from 'react'
 import { DataManager, JsonAdaptor } from '@syncfusion/react-data'
+import type { GridRef } from '@syncfusion/react-grid'
 
 // ---------------------------------------------------------------------------
 // A Syncfusion DataManager that reads from RTK Query cache and writes
@@ -21,6 +23,12 @@ export interface UseRtkDataManagerOptions<T> {
   onUpdate?: (row: T) => Promise<void>
   /** Called when the Grid deletes row(s) (toolbar Delete). */
   onDelete?: (rows: T[]) => Promise<void>
+  /**
+   * Ref to the Grid instance. When provided, `cancelDataChanges()` is called
+   * after each successful mutation so the Grid exits edit mode even though
+   * `e.cancel = true` was set (which prevents the Grid from doing so itself).
+   */
+  gridRef?: RefObject<GridRef | null>
 }
 
 export interface UseRtkDataManagerResult {
@@ -56,12 +64,12 @@ export function useRtkDataManager<T>(
   data: T[] | undefined,
   options?: UseRtkDataManagerOptions<T>,
 ): UseRtkDataManagerResult {
-  const { key = 'id', onAdd, onUpdate, onDelete } = options ?? {}
+  const { key = 'id', onAdd, onUpdate, onDelete, gridRef } = options ?? {}
 
   // Keep callbacks in a ref so onDataChangeStart doesn't need to be
   // recreated when callbacks change (they often capture closures).
-  const cbRef = useRef({ onAdd, onUpdate, onDelete })
-  cbRef.current = { onAdd, onUpdate, onDelete }
+  const cbRef = useRef({ onAdd, onUpdate, onDelete, gridRef })
+  cbRef.current = { onAdd, onUpdate, onDelete, gridRef }
 
   const dm = useMemo(() => {
     if (!data) return null
@@ -78,14 +86,23 @@ export function useRtkDataManager<T>(
       // cache invalidation will trigger a re-render with fresh data.
       e.cancel = true
 
+      let promise: Promise<void> | undefined
       if (e.action === 'Add') {
-        cbRef.current.onAdd?.(e.data as T)
+        promise = cbRef.current.onAdd?.(e.data as T)
       } else if (e.action === 'Edit') {
-        cbRef.current.onUpdate?.(e.data as T)
+        promise = cbRef.current.onUpdate?.(e.data as T)
       } else if (e.action === 'Delete') {
         const rows = Array.isArray(e.data) ? e.data : [e.data]
-        cbRef.current.onDelete?.(rows as T[])
+        promise = cbRef.current.onDelete?.(rows as T[])
       }
+
+      // On success, exit edit mode. Because e.cancel=true prevents the Grid
+      // from doing this itself, we call cancelDataChanges() imperatively.
+      // On failure, leave the Grid in edit mode so the user can see/fix the row.
+      promise?.then(
+        () => { cbRef.current.gridRef?.current?.cancelDataChanges() },
+        () => { /* mutation failed — stay in edit mode */ },
+      )
     },
     [],
   )
