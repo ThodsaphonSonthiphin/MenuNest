@@ -14,6 +14,7 @@
     "@azure/msal-react": "^5.2.1",
     "@reduxjs/toolkit": "^2.11.2",
     "@syncfusion/react-buttons": "^33.1.44",
+    "@syncfusion/react-data": "^33.1.44",
     "@syncfusion/react-dropdowns": "^33.1.44",
     "@syncfusion/react-grid": "^33.1.44",
     "@syncfusion/react-inputs": "^33.1.44",

@@ -2,25 +2,24 @@ import { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
-import type { ColumnTemplateProps, SaveEvent, DeleteEvent } from '@syncfusion/react-grid'
+import type { ColumnTemplateProps } from '@syncfusion/react-grid'
 import {
   useGetShoppingListDetailQuery,
   useListIngredientsQuery,
-  useAddShoppingListItemMutation,
-  useDeleteShoppingListItemMutation,
+  api,
 } from '../../shared/api/api'
-import type { ShoppingListItemDto } from '../../shared/api/api'
+import type { ShoppingListItemDto, ShoppingListDetailDto } from '../../shared/api/api'
 import { useShoppingListDetail } from './hooks/useShoppingListDetail'
+import { useAuthDataManager } from '../../shared/data/useAuthDataManager'
+import { useAppDispatch } from '../../store'
 
 export function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>()
   const listId = id!
+  const dispatch = useAppDispatch()
 
   const { data, isLoading, error } = useGetShoppingListDetailQuery(listId)
   const { data: allIngredients } = useListIngredientsQuery()
-
-  const [addItem] = useAddShoppingListItemMutation()
-  const [deleteItem] = useDeleteShoppingListItemMutation()
 
   const {
     errorMessage,
@@ -34,25 +33,36 @@ export function ShoppingListDetailPage() {
     handleRegenerate,
   } = useShoppingListDetail(listId)
 
-  const handleUnboughtDataChangeStart = useCallback(
-    async (e: SaveEvent<ShoppingListItemDto> | DeleteEvent<ShoppingListItemDto>) => {
-      e.cancel = true
-      try {
-        if (e.action === 'Add') {
-          const row = (e as SaveEvent<ShoppingListItemDto>).data
-          const ingredientId = String(row.ingredientId)
-          const quantity = Number(row.quantity) || 1
-          await addItem({ listId, ingredientId, quantity }).unwrap()
-        } else if (e.action === 'Delete') {
-          const rows = (e as DeleteEvent<ShoppingListItemDto>).data
-          await deleteItem({ listId, itemId: rows[0].id }).unwrap()
-        }
-      } catch {
-        // errors surface via RTK Query cache; nothing extra to do here
+  // DataManager for unbought-items grid CRUD (Add / Delete).
+  // GET  → /api/shopping-lists/{id}  (detail endpoint, then extract unbought items)
+  // POST → /api/shopping-lists/{id}/items
+  // DEL  → /api/shopping-lists/{id}/items/{itemId}
+  const transformResponse = useCallback(
+    (raw: unknown) => {
+      const detail = raw as ShoppingListDetailDto
+      if (detail?.items) {
+        return detail.items.filter((i) => !i.isBought)
       }
+      // If the response is already an array (e.g. after insert/delete) pass through
+      return raw
     },
-    [addItem, deleteItem, listId],
+    [],
   )
+
+  const dm = useAuthDataManager({
+    url: `/api/shopping-lists/${listId}/items`,
+    readUrl: `/api/shopping-lists/${listId}`,
+    transformResponse,
+  })
+
+  // After the Grid completes an Add/Delete via DataManager, invalidate RTK
+  // Query cache so counts, bought/unbought split, and other pages stay in sync.
+  const handleDataChangeComplete = useCallback(() => {
+    dispatch(api.util.invalidateTags([
+      { type: 'ShoppingListDetail', id: listId },
+      { type: 'ShoppingLists', id: 'LIST' },
+    ]))
+  }, [dispatch, listId])
 
   if (isLoading) {
     return (
@@ -93,8 +103,6 @@ export function ShoppingListDetailPage() {
   const isBusy = isBuying || isUnbuying || isCompleting || isRegenerating
 
   /* ---------- Column templates for unbought items ---------- */
-  // Checkbox + name merged into one column so the Add row only shows
-  // dropdown + numeric (no spurious text inputs for display-only fields).
 
   const UnboughtNameTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => {
     const hasSource =
@@ -230,16 +238,16 @@ export function ShoppingListDetailPage() {
         </div>
       </div>
 
-      {/* Unbought section — toolbar Add/Delete enabled for active lists */}
+      {/* Unbought section — uses DataManager for Add/Delete when active */}
       <div style={{ marginBottom: 24 }}>
         {unboughtItems.length > 0 && (
           <h2 style={{ fontSize: 15, marginBottom: 8, color: 'var(--color-text-muted)' }}>
             ยังไม่ได้ซื้อ ({unboughtItems.length})
           </h2>
         )}
-        {isActive ? (
+        {isActive && dm ? (
           <Grid
-            dataSource={unboughtItems as ShoppingListItemDto[]}
+            dataSource={dm}
             toolbar={['Add', 'Delete', 'Update', 'Cancel']}
             editSettings={{
               allowAdd: true,
@@ -248,7 +256,7 @@ export function ShoppingListDetailPage() {
               mode: 'Normal',
               confirmOnDelete: true,
             }}
-            onDataChangeStart={handleUnboughtDataChangeStart}
+            onDataChangeComplete={handleDataChangeComplete}
             height="auto"
           >
             <Columns>
@@ -280,6 +288,8 @@ export function ShoppingListDetailPage() {
               />
             </Columns>
           </Grid>
+        ) : isActive && !dm ? (
+          <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p>
         ) : (
           unboughtItems.length > 0 && (
             <Grid dataSource={unboughtItems as ShoppingListItemDto[]} height="auto">

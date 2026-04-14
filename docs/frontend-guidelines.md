@@ -41,7 +41,7 @@ accessibility, keyboard navigation, theming, and edit-in-place for free.
 
 | UI need | Pure React package |
 |---|---|
-| **Tables (any tabular data)** | `@syncfusion/react-grid` — **always** use DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never use plain `<table>`. |
+| **Tables (any tabular data)** | `@syncfusion/react-grid` — **always** use DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never use plain `<table>`. Use `@syncfusion/react-data` DataManager + `useAuthDataManager` hook (at `shared/data/useAuthDataManager.ts`) for server-side CRUD — toolbar Add/Edit/Delete goes through DataManager → REST API directly. Call `dispatch(api.util.invalidateTags([...]))` after DataManager mutates to sync RTK Query cache. |
 | Calendar / weekly planner | `@syncfusion/react-scheduler` (`Scheduler`, `DayView`, `WeekView`, …) |
 | Modal dialogs / tooltips | `@syncfusion/react-popups` (`Dialog`, `Tooltip`) |
 | Autocomplete / dropdown | `@syncfusion/react-dropdowns` (`DropDownList`, `ComboBox`, `AutoComplete`) |

@@ -1,50 +1,19 @@
-import { useCallback, useState } from 'react'
+import { useCallback } from 'react'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
-import type { SaveEvent, DeleteEvent } from '@syncfusion/react-grid'
-import {
-  useListIngredientsQuery,
-  useCreateIngredientMutation,
-  useUpdateIngredientMutation,
-  useDeleteIngredientMutation,
-} from '../../shared/api/api'
-import type { IngredientDto } from '../../shared/api/api'
+import { useAuthDataManager } from '../../shared/data/useAuthDataManager'
+import { api } from '../../shared/api/api'
+import { useAppDispatch } from '../../store'
 
 export function IngredientsPage() {
-  const { data, isLoading, error } = useListIngredientsQuery()
-  const [createIngredient] = useCreateIngredientMutation()
-  const [updateIngredient] = useUpdateIngredientMutation()
-  const [deleteIngredient] = useDeleteIngredientMutation()
+  const dm = useAuthDataManager({ url: '/api/ingredients' })
+  const dispatch = useAppDispatch()
 
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-  const handleDataChangeStart = useCallback(
-    async (e: SaveEvent<IngredientDto> | DeleteEvent<IngredientDto>) => {
-      // Let RTK Query cache handle data refresh via tag invalidation;
-      // cancel the Grid's local dataSource mutation.
-      e.cancel = true
-      setErrorMessage(null)
-
-      try {
-        if (e.action === 'Add') {
-          const row = (e as SaveEvent<IngredientDto>).data
-          await createIngredient({ name: row.name.trim(), unit: row.unit.trim() }).unwrap()
-        } else if (e.action === 'Edit') {
-          const row = (e as SaveEvent<IngredientDto>).data
-          await updateIngredient({
-            id: row.id,
-            name: row.name.trim(),
-            unit: row.unit.trim(),
-          }).unwrap()
-        } else if (e.action === 'Delete') {
-          const rows = (e as DeleteEvent<IngredientDto>).data
-          await deleteIngredient(rows[0].id).unwrap()
-        }
-      } catch (err) {
-        setErrorMessage(getErrorMessage(err))
-      }
-    },
-    [createIngredient, updateIngredient, deleteIngredient],
-  )
+  // After any CRUD operation completes, invalidate RTK Query cache so other
+  // pages (recipes, stock, etc.) that depend on the ingredients list stay
+  // in sync.
+  const handleDataChangeComplete = useCallback(() => {
+    dispatch(api.util.invalidateTags([{ type: 'Ingredients', id: 'LIST' }]))
+  }, [dispatch])
 
   return (
     <section className="page page--ingredients">
@@ -56,14 +25,11 @@ export function IngredientsPage() {
         Master list นี้ใช้เป็น autocomplete เวลาสร้าง recipe / เพิ่ม stock — 1 ingredient = 1 หน่วย
       </p>
 
-      {errorMessage && <div className="error-banner">{errorMessage}</div>}
+      {!dm && <p>Loading...</p>}
 
-      {isLoading && <p>Loading...</p>}
-      {error && !isLoading && <p>Failed to load ingredients.</p>}
-
-      {data && (
+      {dm && (
         <Grid
-          dataSource={data as IngredientDto[]}
+          dataSource={dm}
           toolbar={['Add', 'Edit', 'Delete', 'Update', 'Cancel']}
           editSettings={{
             allowAdd: true,
@@ -72,7 +38,7 @@ export function IngredientsPage() {
             mode: 'Normal',
             confirmOnDelete: true,
           }}
-          onDataChangeStart={handleDataChangeStart}
+          onDataChangeComplete={handleDataChangeComplete}
           height="auto"
         >
           <Columns>
@@ -92,17 +58,4 @@ export function IngredientsPage() {
       )}
     </section>
   )
-}
-
-function getErrorMessage(err: unknown): string {
-  if (typeof err === 'object' && err !== null && 'data' in err) {
-    const data = (err as { data?: { detail?: string; title?: string; errors?: Record<string, string[]> } }).data
-    if (data?.errors) {
-      const first = Object.values(data.errors)[0]?.[0]
-      if (first) return first
-    }
-    if (data?.detail) return data.detail
-    if (data?.title) return data.title
-  }
-  return 'Something went wrong. Please try again.'
 }
