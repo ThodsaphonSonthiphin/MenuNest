@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useAiAssistant } from './hooks/useAiAssistant'
-import { useAzureSpeech } from './hooks/useAzureSpeech'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 import { RecipeCard } from './components/RecipeCard'
 import { ConfirmationMessage } from './components/ConfirmationMessage'
@@ -21,9 +20,6 @@ export function AiAssistantPage() {
     handleSendMessage,
   } = useAiAssistant()
 
-  const { isListening, transcript, error: speechError, startListening, stopListening, setTranscript } =
-    useAzureSpeech()
-
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -31,21 +27,12 @@ export function AiAssistantPage() {
   void displayName
 
   const onSend = useCallback(async () => {
-    const text = inputValue.trim() || transcript.trim()
+    const text = inputValue.trim()
     if (!text) return
 
     setInputValue('')
-    setTranscript('')
     await handleSendMessage(text)
-  }, [inputValue, transcript, handleSendMessage, setTranscript])
-
-  const onMicPress = useCallback(() => {
-    if (isListening) {
-      stopListening()
-    } else {
-      startListening()
-    }
-  }, [isListening, startListening, stopListening])
+  }, [inputValue, handleSendMessage])
 
   const handleConfirm = useCallback(() => {
     handleSendMessage('ได้เลย ยืนยัน')
@@ -143,30 +130,19 @@ export function AiAssistantPage() {
                   className="ai-input-bar__text"
                   type="text"
                   placeholder="ถามเรื่องอาหาร..."
-                  value={isListening ? transcript : inputValue}
+                  value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && onSend()}
                   disabled={isSending}
                 />
                 <button
-                  className={`ai-input-bar__mic ${isListening ? 'ai-input-bar__mic--active' : ''}`}
-                  onMouseDown={onMicPress}
-                  onMouseUp={() => isListening && stopListening()}
-                  onTouchStart={onMicPress}
-                  onTouchEnd={() => isListening && stopListening()}
-                  disabled={isSending}
-                >
-                  🎤
-                </button>
-                <button
                   className="ai-input-bar__send"
                   onClick={onSend}
-                  disabled={isSending || (!inputValue.trim() && !transcript.trim())}
+                  disabled={isSending || !inputValue.trim()}
                 >
                   ➤
                 </button>
               </div>
-              {speechError && <p className="ai-speech-error">{speechError}</p>}
             </>
           )}
         </div>
