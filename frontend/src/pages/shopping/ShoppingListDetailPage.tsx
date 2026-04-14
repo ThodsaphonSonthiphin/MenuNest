@@ -93,37 +93,38 @@ export function ShoppingListDetailPage() {
   const isBusy = isBuying || isUnbuying || isCompleting || isRegenerating
 
   /* ---------- Column templates for unbought items ---------- */
-
-  const UnboughtCheckboxTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
-    <input
-      type="checkbox"
-      checked={false}
-      onChange={() => handleBuy(item.id)}
-      aria-label={`ซื้อ ${item.ingredientName}`}
-    />
-  )
+  // Checkbox + name merged into one column so the Add row only shows
+  // dropdown + numeric (no spurious text inputs for display-only fields).
 
   const UnboughtNameTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => {
     const hasSource =
       item.sourceMealPlanEntryIds != null && item.sourceMealPlanEntryIds.length > 0
     return (
-      <span style={{ fontWeight: 500 }}>
-        {item.ingredientName}
-        {hasSource && (
-          <span
-            style={{
-              marginLeft: 6,
-              fontSize: 11,
-              color: 'var(--color-text-muted)',
-              background: '#fff3e0',
-              borderRadius: 4,
-              padding: '2px 6px',
-            }}
-          >
-            จาก meal plan
-          </span>
-        )}
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          type="checkbox"
+          checked={false}
+          onChange={() => handleBuy(item.id)}
+          aria-label={`ซื้อ ${item.ingredientName}`}
+        />
+        <span style={{ fontWeight: 500 }}>
+          {item.ingredientName}
+          {hasSource && (
+            <span
+              style={{
+                marginLeft: 6,
+                fontSize: 11,
+                color: 'var(--color-text-muted)',
+                background: '#fff3e0',
+                borderRadius: 4,
+                padding: '2px 6px',
+              }}
+            >
+              จาก meal plan
+            </span>
+          )}
+        </span>
+      </div>
     )
   }
 
@@ -252,7 +253,6 @@ export function ShoppingListDetailPage() {
           >
             <Columns>
               <Column field="id" isPrimaryKey visible={false} />
-              <Column field="isBought" headerText=" " width={36} template={UnboughtCheckboxTemplate} allowEditing={false} />
               <Column
                 field="ingredientId"
                 headerText="วัตถุดิบ"
@@ -270,7 +270,7 @@ export function ShoppingListDetailPage() {
               <Column
                 field="quantity"
                 headerText="จำนวน"
-                width={120}
+                width={160}
                 template={UnboughtQtyTemplate}
                 edit={{
                   type: 'NumericEdit',
@@ -278,17 +278,14 @@ export function ShoppingListDetailPage() {
                 }}
                 validationRules={{ required: true }}
               />
-              <Column field="unit" headerText=" " width={100} allowEditing={false} />
             </Columns>
           </Grid>
         ) : (
           unboughtItems.length > 0 && (
             <Grid dataSource={unboughtItems as ShoppingListItemDto[]} height="auto">
               <Columns>
-                <Column headerText="" width={36} template={UnboughtCheckboxTemplate} />
                 <Column field="ingredientName" headerText="วัตถุดิบ" template={UnboughtNameTemplate} />
-                <Column headerText="จำนวน" width={120} template={UnboughtQtyTemplate} />
-                <Column headerText="" width={100} />
+                <Column field="quantity" headerText="จำนวน" width={160} template={UnboughtQtyTemplate} />
               </Columns>
             </Grid>
           )
