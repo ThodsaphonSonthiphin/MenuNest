@@ -715,11 +715,13 @@ textarea[aria-invalid="true"] {
 .ai-assistant-layout {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 140px);
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .ai-assistant-sidebar {
-  width: 240px;
+  width: 200px;
   flex-shrink: 0;
   overflow-y: auto;
   border-right: 1px solid var(--color-border, #e0e0e0);
@@ -763,6 +765,7 @@ textarea[aria-invalid="true"] {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  overflow: hidden;
 }
 
 .ai-assistant-empty {
@@ -783,12 +786,14 @@ textarea[aria-invalid="true"] {
 }
 
 .ai-chat-bubble {
-  max-width: 80%;
+  max-width: 75%;
   padding: 10px 14px;
   border-radius: 16px;
   font-size: 14px;
   line-height: 1.5;
   white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .ai-chat-bubble--user {
@@ -913,9 +918,24 @@ textarea[aria-invalid="true"] {
   50% { transform: scale(1.1); }
 }
 
+.page--ai-assistant {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  overflow: hidden;
+}
+
+.page--ai-assistant .page__header {
+  flex-shrink: 0;
+}
+
 /* Mobile: hide sidebar */
 @media (max-width: 768px) {
   .ai-assistant-sidebar {
     display: none;
+  }
+
+  .ai-assistant-layout {
+    height: calc(100vh - 120px);
   }
 }
