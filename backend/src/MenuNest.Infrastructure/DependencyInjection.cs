@@ -1,4 +1,6 @@
 using MenuNest.Application.Abstractions;
+using MenuNest.Infrastructure.AI;
+using MenuNest.Infrastructure.AI.Tools;
 using MenuNest.Infrastructure.Authentication;
 using MenuNest.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +37,25 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserProvisioner, UserProvisioner>();
+
+        // AI services
+        services.Configure<AzureOpenAiOptions>(configuration.GetSection(AzureOpenAiOptions.SectionName));
+        services.Configure<AzureSpeechOptions>(configuration.GetSection(AzureSpeechOptions.SectionName));
+        services.AddHttpClient();
+
+        // Register all AI tools
+        services.AddScoped<IToolDefinition, SearchRecipesTool>();
+        services.AddScoped<IToolDefinition, CheckStockTool>();
+        services.AddScoped<IToolDefinition, GetMealPlanTool>();
+        services.AddScoped<IToolDefinition, GetShoppingListsTool>();
+        services.AddScoped<IToolDefinition, GetFamilyInfoTool>();
+        services.AddScoped<IToolDefinition, CreateRecipeTool>();
+        services.AddScoped<IToolDefinition, AddToMealPlanTool>();
+        services.AddScoped<IToolDefinition, CreateShoppingListTool>();
+        services.AddScoped<IToolDefinition, AddShoppingItemsTool>();
+
+        services.AddScoped<IAiChatService, AzureOpenAiChatService>();
+        services.AddScoped<ISpeechTokenProvider, SpeechTokenProvider>();
 
         return services;
     }
