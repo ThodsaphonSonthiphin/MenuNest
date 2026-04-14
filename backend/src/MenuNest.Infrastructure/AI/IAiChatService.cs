@@ -1,26 +1,7 @@
-using MenuNest.Domain.Entities;
-
-namespace MenuNest.Infrastructure.AI;
-
-public sealed record AiChatResponse(
-    string Content,
-    string? ToolCallsJson,
-    string? StructuredDataJson,
-    bool HasPendingWriteActions);
-
-public interface IAiChatService
-{
-    Task<AiChatResponse> ChatAsync(
-        IReadOnlyList<ChatMessage> history,
-        string userMessage,
-        Guid familyId,
-        Guid userId,
-        CancellationToken ct);
-
-    Task<AiChatResponse> ExecutePendingActionsAsync(
-        IReadOnlyList<ChatMessage> history,
-        string pendingToolCallsJson,
-        Guid familyId,
-        Guid userId,
-        CancellationToken ct);
-}
+// Interface and response record have been moved to:
+//   MenuNest.Application.Abstractions.IAiChatService
+//   MenuNest.Application.Abstractions.AiChatResponse
+//
+// This file is kept as a placeholder so git history is clear.
+// The Infrastructure implementation (AzureOpenAiChatService) references
+// the Application-layer interface directly.

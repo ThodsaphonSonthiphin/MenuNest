@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpenAI.Chat;
+using AiChatResponse = MenuNest.Application.Abstractions.AiChatResponse;
 using DomainChatMessage = MenuNest.Domain.Entities.ChatMessage;
 
 namespace MenuNest.Infrastructure.AI;
