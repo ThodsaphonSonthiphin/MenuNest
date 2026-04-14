@@ -39,7 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IUserProvisioner, UserProvisioner>();
 
         // AI services
-        services.Configure<AzureOpenAiOptions>(configuration.GetSection(AzureOpenAiOptions.SectionName));
+        services.Configure<GeminiOptions>(configuration.GetSection(GeminiOptions.SectionName));
         services.Configure<AzureSpeechOptions>(configuration.GetSection(AzureSpeechOptions.SectionName));
         services.AddHttpClient();
 
@@ -54,7 +54,7 @@ public static class DependencyInjection
         services.AddScoped<IToolDefinition, CreateShoppingListTool>();
         services.AddScoped<IToolDefinition, AddShoppingItemsTool>();
 
-        services.AddScoped<IAiChatService, AzureOpenAiChatService>();
+        services.AddScoped<IAiChatService, GeminiChatService>();
         services.AddScoped<ISpeechTokenProvider, SpeechTokenProvider>();
 
         return services;
