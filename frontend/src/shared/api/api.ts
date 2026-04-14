@@ -241,6 +241,35 @@ export interface AddRelationshipRequest {
     relationType: string
 }
 
+// Chat types
+export interface ConversationSummaryDto {
+    id: string
+    title: string
+    createdAt: string
+    updatedAt: string | null
+}
+
+export interface ChatMessageDto {
+    id: string
+    role: string
+    content: string
+    structuredData: string | null
+    createdAt: string
+}
+
+export interface SendMessageResponseDto {
+    messageId: string
+    role: string
+    content: string
+    structuredData: string | null
+    createdAt: string
+}
+
+export interface SpeechTokenDto {
+    token: string
+    region: string
+}
+
 // ----------------------------------------------------------------------
 export const api = createApi({
     reducerPath: 'api',
@@ -263,6 +292,8 @@ export const api = createApi({
         'Relationships',
         'ShoppingLists',
         'ShoppingListDetail',
+        'ChatConversations',
+        'ChatMessages',
     ],
     endpoints: (build) => ({
         // -------------------- Me / Family --------------------
@@ -581,6 +612,39 @@ export const api = createApi({
                 {type: 'ShoppingLists', id: 'LIST'},
             ],
         }),
+        // -------------------- Chat - Conversations --------------------
+        listConversations: build.query<ConversationSummaryDto[], void>({
+            query: () => '/api/chat/conversations',
+            providesTags: ['ChatConversations'],
+        }),
+        createConversation: build.mutation<ConversationSummaryDto, void>({
+            query: () => ({url: '/api/chat/conversations', method: 'POST'}),
+            invalidatesTags: ['ChatConversations'],
+        }),
+        deleteConversation: build.mutation<void, string>({
+            query: (id) => ({url: `/api/chat/conversations/${id}`, method: 'DELETE'}),
+            invalidatesTags: ['ChatConversations'],
+        }),
+        // -------------------- Chat - Messages --------------------
+        getChatMessages: build.query<ChatMessageDto[], string>({
+            query: (conversationId) => `/api/chat/conversations/${conversationId}/messages`,
+            providesTags: (_result, _err, id) => [{type: 'ChatMessages', id}],
+        }),
+        sendChatMessage: build.mutation<SendMessageResponseDto, {conversationId: string; content: string}>({
+            query: ({conversationId, content}) => ({
+                url: `/api/chat/conversations/${conversationId}/messages`,
+                method: 'POST',
+                body: {content},
+            }),
+            invalidatesTags: (_result, _err, {conversationId}) => [
+                {type: 'ChatMessages', id: conversationId},
+                'ChatConversations',
+            ],
+        }),
+        // -------------------- Chat - Speech --------------------
+        getSpeechToken: build.query<SpeechTokenDto, void>({
+            query: () => '/api/chat/speech-token',
+        }),
     }),
 })
 export const {
@@ -622,4 +686,10 @@ export const {
     useBuyShoppingListItemMutation,
     useUnbuyShoppingListItemMutation,
     useRegenerateShoppingListMutation,
+    useListConversationsQuery,
+    useCreateConversationMutation,
+    useDeleteConversationMutation,
+    useGetChatMessagesQuery,
+    useSendChatMessageMutation,
+    useGetSpeechTokenQuery,
 } = api
