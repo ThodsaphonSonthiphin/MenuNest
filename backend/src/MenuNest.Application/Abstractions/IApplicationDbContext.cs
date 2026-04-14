@@ -21,6 +21,8 @@ public interface IApplicationDbContext
     DbSet<MealPlanEntry> MealPlanEntries { get; }
     DbSet<ShoppingList> ShoppingLists { get; }
     DbSet<ShoppingListItem> ShoppingListItems { get; }
+    DbSet<ChatConversation> ChatConversations { get; }
+    DbSet<ChatMessage> ChatMessages { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
