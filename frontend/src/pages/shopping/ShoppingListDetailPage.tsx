@@ -34,7 +34,7 @@ export function ShoppingListDetailPage() {
 
   const unboughtItems = data?.items.filter((i) => !i.isBought)
 
-  const dm = useRtkDataManager(unboughtItems, {
+  const { dm, onDataChangeStart } = useRtkDataManager(unboughtItems, {
     key: 'id',
     onAdd: (row) =>
       addItem({
@@ -235,6 +235,7 @@ export function ShoppingListDetailPage() {
               mode: 'Normal',
               confirmOnDelete: true,
             }}
+            onDataChangeStart={onDataChangeStart}
             height="auto"
           >
             <Columns>

@@ -13,7 +13,7 @@ export function IngredientsPage() {
   const [update] = useUpdateIngredientMutation()
   const [remove] = useDeleteIngredientMutation()
 
-  const dm = useRtkDataManager(data, {
+  const { dm, onDataChangeStart } = useRtkDataManager(data, {
     key: 'id',
     onAdd: (row) => create({ name: row.name as string, unit: row.unit as string }).unwrap(),
     onUpdate: (row) =>
@@ -44,6 +44,7 @@ export function IngredientsPage() {
             mode: 'Normal',
             confirmOnDelete: true,
           }}
+          onDataChangeStart={onDataChangeStart}
           height="auto"
         >
           <Columns>

@@ -1,15 +1,15 @@
-import { useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import { DataManager, JsonAdaptor } from '@syncfusion/react-data'
 
 // ---------------------------------------------------------------------------
 // A Syncfusion DataManager that reads from RTK Query cache and writes
-// through RTK Query mutations. The Grid gets built-in toolbar CRUD while
-// RTK Query stays the single source of truth for server data + auth.
+// through RTK Query mutations via Grid's onDataChangeStart event.
 //
 // Data flow:
 //   Read:  Server → RTK Query cache → JsonAdaptor → Grid renders
-//   Write: Grid CRUD → RtkAdaptor → mutation callback → RTK Query → Server
-//          → cache invalidates → data prop updates → DataManager recreated
+//   Write: Grid CRUD → onDataChangeStart (e.cancel=true) → mutation
+//          → RTK Query → Server → cache invalidates → data updates
+//          → DataManager recreated → Grid refreshes
 // ---------------------------------------------------------------------------
 
 export interface UseRtkDataManagerOptions<T> {
@@ -23,86 +23,72 @@ export interface UseRtkDataManagerOptions<T> {
   onDelete?: (rows: T[]) => Promise<void>
 }
 
+export interface UseRtkDataManagerResult {
+  /** DataManager to pass as Grid's dataSource. null until data loads. */
+  dm: DataManager | null
+  /**
+   * Wire this to Grid's `onDataChangeStart` prop. It calls `e.cancel = true`
+   * and dispatches the appropriate RTK Query mutation based on `e.action`.
+   */
+  onDataChangeStart: (e: { action: string; data: unknown; cancel?: boolean }) => void
+}
+
 /**
- * Wraps RTK Query data in a Syncfusion `DataManager` so the Grid can
- * use its built-in toolbar Add/Edit/Delete/Update/Cancel features while
- * RTK Query handles all server communication + caching.
+ * Wraps RTK Query data in a Syncfusion `DataManager` (JsonAdaptor) so the
+ * Grid can use its built-in toolbar Add/Edit/Delete/Update/Cancel features
+ * while RTK Query handles all server communication + caching.
  *
- * Returns `null` until `data` is defined (so the Grid doesn't mount
- * with empty data — which would break edit.params.dataSource on
- * DropDownEdit columns that also use this pattern).
+ * Returns `{ dm, onDataChangeStart }`. `dm` is `null` until `data` is
+ * defined — use this as a guard so the Grid doesn't mount with empty data.
  *
  * @example
  * ```tsx
  * const { data } = useListIngredientsQuery()
  * const [create] = useCreateIngredientMutation()
- * const dm = useRtkDataManager(data, {
+ * const { dm, onDataChangeStart } = useRtkDataManager(data, {
  *   onAdd: (row) => create({ name: row.name, unit: row.unit }).unwrap(),
  * })
  * if (!dm) return <p>Loading…</p>
- * <Grid dataSource={dm} ...>
+ * <Grid dataSource={dm} onDataChangeStart={onDataChangeStart} ...>
  * ```
  */
-export function useRtkDataManager<T extends Record<string, unknown>>(
+export function useRtkDataManager<T>(
   data: T[] | undefined,
   options?: UseRtkDataManagerOptions<T>,
-): DataManager | null {
+): UseRtkDataManagerResult {
   const { key = 'id', onAdd, onUpdate, onDelete } = options ?? {}
 
-  // Keep callbacks in a ref so the DataManager doesn't need to be
-  // recreated when only the callbacks change (they often capture
-  // closures that update every render).
+  // Keep callbacks in a ref so onDataChangeStart doesn't need to be
+  // recreated when callbacks change (they often capture closures).
   const cbRef = useRef({ onAdd, onUpdate, onDelete })
   cbRef.current = { onAdd, onUpdate, onDelete }
 
-  return useMemo(() => {
+  const dm = useMemo(() => {
     if (!data) return null
-
-    // Custom JsonAdaptor subclass that intercepts CUD operations and
-    // delegates to the RTK Query mutations via the ref'd callbacks.
-    class RtkAdaptor extends JsonAdaptor {
-      override insert(
-        dm: DataManager,
-        newRow: object,
-        _tableName?: string,
-        _query?: unknown,
-      ): object {
-        // Fire-and-forget the async mutation — the RTK Query cache
-        // invalidation will cause `data` to update, which recreates
-        // the DataManager and refreshes the Grid.
-        cbRef.current.onAdd?.(newRow as T)
-        return super.insert(dm, newRow)
-      }
-
-      override update(
-        dm: DataManager,
-        _keyField: string,
-        value: object,
-        _tableName?: string,
-      ): object {
-        cbRef.current.onUpdate?.(value as T)
-        return super.update(dm, _keyField, value)
-      }
-
-      override remove(
-        dm: DataManager,
-        _keyField: string,
-        value: object,
-        _tableName?: string,
-      ): object {
-        // Syncfusion passes the deleted row's key value (not the full
-        // object) for single delete. For batch delete it's an array.
-        // We normalise to T[] for the callback.
-        const rows = Array.isArray(value) ? value : [value]
-        cbRef.current.onDelete?.(rows as T[])
-        return super.remove(dm, _keyField, value)
-      }
-    }
-
     return new DataManager({
       json: data as unknown as object[],
-      adaptor: new RtkAdaptor(),
+      adaptor: new JsonAdaptor(),
       key,
     } as never)
   }, [data, key])
+
+  const onDataChangeStart = useCallback(
+    (e: { action: string; data: unknown; cancel?: boolean }) => {
+      // Prevent the Grid from modifying its local dataSource — RTK Query
+      // cache invalidation will trigger a re-render with fresh data.
+      e.cancel = true
+
+      if (e.action === 'Add') {
+        cbRef.current.onAdd?.(e.data as T)
+      } else if (e.action === 'Edit') {
+        cbRef.current.onUpdate?.(e.data as T)
+      } else if (e.action === 'Delete') {
+        const rows = Array.isArray(e.data) ? e.data : [e.data]
+        cbRef.current.onDelete?.(rows as T[])
+      }
+    },
+    [],
+  )
+
+  return { dm, onDataChangeStart }
 }
