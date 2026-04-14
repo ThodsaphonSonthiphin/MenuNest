@@ -1,7 +1,7 @@
 import { useListShoppingListsQuery } from '../../shared/api/api'
 
 export function ShoppingListsPage() {
-  const { data, isLoading, error } = useListShoppingListsQuery()
+  const { data, isLoading, error } = useListShoppingListsQuery({})
 
   return (
     <section className="page page--shopping">
@@ -20,7 +20,7 @@ export function ShoppingListsPage() {
             <li key={list.id}>
               <strong>{list.name}</strong>
               <span>
-                {list.boughtCount} / {list.itemCount} bought
+                {list.boughtCount} / {list.totalCount} bought
               </span>
             </li>
           ))}

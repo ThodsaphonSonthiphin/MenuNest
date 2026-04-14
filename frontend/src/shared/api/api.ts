@@ -180,13 +180,29 @@ export interface CookBatchResult {
   cookedEntryIds: string[]
 }
 
-export interface ShoppingListSummaryDto {
+export interface ShoppingListDto {
   id: string
   name: string
   status: 'Active' | 'Completed' | 'Archived'
-  itemCount: number
+  totalCount: number
   boughtCount: number
   createdAt: string
+  completedAt: string | null
+}
+
+export interface ShoppingListItemDto {
+  id: string
+  ingredientId: string
+  ingredientName: string
+  unit: string
+  quantity: number
+  isBought: boolean
+  boughtAt: string | null
+  sourceMealPlanEntryIds: string[] | null
+}
+
+export interface ShoppingListDetailDto extends ShoppingListDto {
+  items: ShoppingListItemDto[]
 }
 
 // ----------------------------------------------------------------------
@@ -443,9 +459,88 @@ export const api = createApi({
     }),
 
     // -------------------- Shopping Lists --------------------
-    listShoppingLists: build.query<ShoppingListSummaryDto[], void>({
-      query: () => '/api/shopping-lists',
-      providesTags: ['ShoppingLists'],
+    listShoppingLists: build.query<ShoppingListDto[], { status?: string }>({
+      query: ({ status } = {}) =>
+        `/api/shopping-lists${status ? `?status=${status}` : ''}`,
+      providesTags: [{ type: 'ShoppingLists', id: 'LIST' }],
+    }),
+
+    getShoppingListDetail: build.query<ShoppingListDetailDto, string>({
+      query: (id) => `/api/shopping-lists/${id}`,
+      providesTags: (_res, _err, id) => [{ type: 'ShoppingListDetail', id }],
+    }),
+
+    createShoppingList: build.mutation<ShoppingListDto, { name: string; fromDate?: string; toDate?: string }>({
+      query: (body) => ({ url: '/api/shopping-lists', method: 'POST', body }),
+      invalidatesTags: [{ type: 'ShoppingLists', id: 'LIST' }],
+    }),
+
+    deleteShoppingList: build.mutation<void, string>({
+      query: (id) => ({ url: `/api/shopping-lists/${id}`, method: 'DELETE' }),
+      invalidatesTags: [{ type: 'ShoppingLists', id: 'LIST' }],
+    }),
+
+    completeShoppingList: build.mutation<ShoppingListDto, string>({
+      query: (id) => ({ url: `/api/shopping-lists/${id}/complete`, method: 'POST' }),
+      invalidatesTags: (_res, _err, id) => [
+        { type: 'ShoppingLists', id: 'LIST' },
+        { type: 'ShoppingListDetail', id },
+      ],
+    }),
+
+    addShoppingListItem: build.mutation<ShoppingListItemDto, { listId: string; ingredientId: string; quantity: number }>({
+      query: ({ listId, ...body }) => ({
+        url: `/api/shopping-lists/${listId}/items`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: (_res, _err, { listId }) => [
+        { type: 'ShoppingListDetail', id: listId },
+        { type: 'ShoppingLists', id: 'LIST' },
+      ],
+    }),
+
+    deleteShoppingListItem: build.mutation<void, { listId: string; itemId: string }>({
+      query: ({ listId, itemId }) => ({
+        url: `/api/shopping-lists/${listId}/items/${itemId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (_res, _err, { listId }) => [
+        { type: 'ShoppingListDetail', id: listId },
+        { type: 'ShoppingLists', id: 'LIST' },
+      ],
+    }),
+
+    buyShoppingListItem: build.mutation<ShoppingListItemDto, { listId: string; itemId: string }>({
+      query: ({ listId, itemId }) => ({
+        url: `/api/shopping-lists/${listId}/items/${itemId}/buy`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_res, _err, { listId }) => [
+        { type: 'ShoppingListDetail', id: listId },
+        { type: 'ShoppingLists', id: 'LIST' },
+        { type: 'Stock', id: 'LIST' },
+      ],
+    }),
+
+    unbuyShoppingListItem: build.mutation<ShoppingListItemDto, { listId: string; itemId: string }>({
+      query: ({ listId, itemId }) => ({
+        url: `/api/shopping-lists/${listId}/items/${itemId}/unbuy`,
+        method: 'POST',
+      }),
+      invalidatesTags: (_res, _err, { listId }) => [
+        { type: 'ShoppingListDetail', id: listId },
+        { type: 'ShoppingLists', id: 'LIST' },
+        { type: 'Stock', id: 'LIST' },
+      ],
+    }),
+
+    regenerateShoppingList: build.mutation<ShoppingListDetailDto, string>({
+      query: (id) => ({ url: `/api/shopping-lists/${id}/regenerate`, method: 'POST' }),
+      invalidatesTags: (_res, _err, id) => [
+        { type: 'ShoppingListDetail', id },
+        { type: 'ShoppingLists', id: 'LIST' },
+      ],
     }),
   }),
 })
@@ -473,4 +568,13 @@ export const {
   useStockCheckBatchQuery,
   useCookMealPlanBatchMutation,
   useListShoppingListsQuery,
+  useGetShoppingListDetailQuery,
+  useCreateShoppingListMutation,
+  useDeleteShoppingListMutation,
+  useCompleteShoppingListMutation,
+  useAddShoppingListItemMutation,
+  useDeleteShoppingListItemMutation,
+  useBuyShoppingListItemMutation,
+  useUnbuyShoppingListItemMutation,
+  useRegenerateShoppingListMutation,
 } = api
