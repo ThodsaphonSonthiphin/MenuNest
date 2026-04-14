@@ -102,7 +102,7 @@ export function AiAssistantPage() {
                       key={m.id}
                       className={`ai-chat-bubble ai-chat-bubble--${m.role.toLowerCase()}`}
                     >
-                      <div className="ai-chat-bubble__content">{m.content}</div>
+                      <div className="ai-chat-bubble__content">{stripJsonBlocks(m.content)}</div>
                       {m.structuredData && renderStructuredData(m)}
                     </div>
                   ))}
@@ -149,6 +149,10 @@ export function AiAssistantPage() {
       </div>
     </section>
   )
+
+  function stripJsonBlocks(text: string): string {
+    return text.replace(/```json[\s\S]*?```/g, '').trim()
+  }
 
   function renderStructuredData(msg: ChatMessageDto) {
     if (!msg.structuredData) return null
