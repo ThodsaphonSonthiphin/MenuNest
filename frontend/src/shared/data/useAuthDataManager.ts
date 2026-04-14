@@ -65,13 +65,19 @@ export class AuthAdaptor extends WebApiAdaptor {
     request?: object,
     changes?: object,
   ): object {
-    const base = super.processResponse(
-      data as never, ds as never, query as never, xhr, request as never, changes as never,
-    )
-    if (this._transformResponse && request && (request as { type?: string }).type?.toUpperCase() !== 'POST') {
-      return this._transformResponse(base) as object
+    // Our REST API returns plain arrays for list endpoints, not the
+    // { Items: [...], Count: N } format that WebApiAdaptor expects.
+    // Detect and wrap so the Grid receives the correct DataResult shape.
+    let normalized = data
+    if (this._transformResponse) {
+      normalized = this._transformResponse(data) as object
     }
-    return base as object
+    if (Array.isArray(normalized)) {
+      normalized = { result: normalized, count: normalized.length }
+    }
+    return super.processResponse(
+      normalized as never, ds as never, query as never, xhr, request as never, changes as never,
+    )
   }
 
   override update(
