@@ -1,19 +1,35 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import { Controller, useForm } from 'react-hook-form'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { TextBox } from '@syncfusion/react-inputs'
-import { useCreateFamilyMutation } from '../../shared/api/api'
+import { useCreateFamilyMutation, useJoinFamilyMutation } from '../../shared/api/api'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 
 interface CreateFamilyForm {
   name: string
 }
 
+interface JoinFamilyForm {
+  inviteCode: string
+}
+
+function getErrorMessage(err: unknown): string {
+  if (typeof err === 'object' && err !== null && 'data' in err) {
+    const data = (err as { data?: { detail?: string; title?: string } }).data
+    if (data?.detail) return data.detail
+    if (data?.title) return data.title
+  }
+  return 'เกิดข้อผิดพลาด กรุณาลองใหม่'
+}
+
 export function JoinFamilyPage() {
   const { displayName, familyId, isLoadingProfile } = useCurrentUser()
+  const [searchParams] = useSearchParams()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
+  const [joinFamily, { isLoading: isJoining }] = useJoinFamilyMutation()
+  const [joinError, setJoinError] = useState<string | null>(null)
 
   const {
     control,
@@ -21,6 +37,14 @@ export function JoinFamilyPage() {
     reset,
     formState: { errors },
   } = useForm<CreateFamilyForm>({ defaultValues: { name: '' } })
+
+  const {
+    control: joinControl,
+    handleSubmit: handleJoinSubmit,
+    formState: { errors: joinErrors },
+  } = useForm<JoinFamilyForm>({
+    defaultValues: { inviteCode: searchParams.get('code') ?? '' },
+  })
 
   if (!isLoadingProfile && familyId) {
     return <Navigate to="/" replace />
@@ -31,6 +55,15 @@ export function JoinFamilyPage() {
       await createFamily({ name: values.name.trim() }).unwrap()
     } catch {
       // surfaced below via createError
+    }
+  })
+
+  const onJoin = handleJoinSubmit(async (values) => {
+    try {
+      setJoinError(null)
+      await joinFamily({ inviteCode: values.inviteCode.trim() }).unwrap()
+    } catch (err) {
+      setJoinError(getErrorMessage(err))
     }
   })
 
@@ -45,13 +78,42 @@ export function JoinFamilyPage() {
         <h1>ยินดีต้อนรับ{displayName ? `, ${displayName}` : ''}</h1>
         <p>คุณยังไม่ได้เข้าร่วม family</p>
 
-        <div className="join-family__option">
-          <label>มี invite code แล้ว?</label>
-          <TextBox placeholder="XXXX-XXXX" disabled />
-          <Button variant={Variant.Filled} color={Color.Primary} disabled>
-            Join (coming soon)
+        <form className="join-family__option" onSubmit={onJoin} noValidate>
+          <label htmlFor="invite-code">มี invite code แล้ว?</label>
+          <Controller
+            control={joinControl}
+            name="inviteCode"
+            rules={{
+              required: 'กรุณากรอกรหัสเชิญ',
+              pattern: {
+                value: /^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/,
+                message: 'รูปแบบรหัสเชิญไม่ถูกต้อง (XXXX-XXXX)',
+              },
+            }}
+            render={({ field, fieldState }) => (
+              <TextBox
+                id="invite-code"
+                placeholder="XXXX-XXXX"
+                value={field.value}
+                onChange={(e) => field.onChange(e.value ?? '')}
+                disabled={isJoining}
+                color={fieldState.error ? ('Error' as never) : undefined}
+              />
+            )}
+          />
+          {joinErrors.inviteCode && (
+            <p className="field-error">{joinErrors.inviteCode.message}</p>
+          )}
+          {joinError && <p className="field-error">{joinError}</p>}
+          <Button
+            type="submit"
+            variant={Variant.Filled}
+            color={Color.Primary}
+            disabled={isJoining}
+          >
+            {isJoining ? 'กำลังเข้าร่วม…' : 'เข้าร่วม'}
           </Button>
-        </div>
+        </form>
 
         <div className="divider">or</div>
 

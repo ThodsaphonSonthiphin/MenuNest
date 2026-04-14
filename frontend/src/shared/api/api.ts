@@ -202,6 +202,36 @@ export interface ShoppingListDetailDto extends ShoppingListDto {
     items: ShoppingListItemDto[]
 }
 
+export interface FamilyMemberDto {
+    userId: string
+    displayName: string
+    email: string
+    joinedAt: string
+    isCreator: boolean
+    relationships: RelationshipLabelDto[]
+}
+
+export interface RelationshipLabelDto {
+    relationshipId: string
+    relationType: string
+    label: string
+}
+
+export interface RelationshipDto {
+    id: string
+    fromUserId: string
+    fromUserName: string
+    toUserId: string
+    toUserName: string
+    relationType: string
+}
+
+export interface AddRelationshipRequest {
+    fromUserId: string
+    toUserId: string
+    relationType: string
+}
+
 // ----------------------------------------------------------------------
 export const api = createApi({
     reducerPath: 'api',
@@ -221,6 +251,7 @@ export const api = createApi({
         'Recipes',
         'Stock',
         'MealPlan',
+        'Relationships',
         'ShoppingLists',
         'ShoppingListDetail',
     ],
@@ -239,6 +270,35 @@ export const api = createApi({
             // New family membership changes what /api/me returns, so evict
             // the cached Me entry and let the guard re-evaluate.
             invalidatesTags: ['Me', 'Family'],
+        }),
+        joinFamily: build.mutation<FamilyDto, { inviteCode: string }>({
+            query: (body) => ({url: '/api/families/join', method: 'POST', body}),
+            invalidatesTags: ['Me', 'Family'],
+        }),
+        listFamilyMembers: build.query<FamilyMemberDto[], void>({
+            query: () => '/api/families/me/members',
+            providesTags: ['FamilyMembers'],
+        }),
+        rotateInviteCode: build.mutation<{ inviteCode: string }, void>({
+            query: () => ({url: '/api/families/me/invite-codes/rotate', method: 'POST'}),
+            invalidatesTags: ['Me'],
+        }),
+        leaveFamily: build.mutation<void, void>({
+            query: () => ({url: '/api/families/leave', method: 'POST'}),
+            invalidatesTags: ['Me', 'Family', 'FamilyMembers'],
+        }),
+        // -------------------- Relationships --------------------
+        listRelationships: build.query<RelationshipDto[], void>({
+            query: () => '/api/families/me/relationships',
+            providesTags: ['Relationships'],
+        }),
+        addRelationship: build.mutation<RelationshipDto, AddRelationshipRequest>({
+            query: (body) => ({url: '/api/families/me/relationships', method: 'POST', body}),
+            invalidatesTags: ['Relationships', 'FamilyMembers'],
+        }),
+        deleteRelationship: build.mutation<void, string>({
+            query: (id) => ({url: `/api/families/me/relationships/${id}`, method: 'DELETE'}),
+            invalidatesTags: ['Relationships', 'FamilyMembers'],
         }),
         // -------------------- Ingredients --------------------
         listIngredients: build.query<IngredientDto[], void>({
@@ -517,6 +577,13 @@ export const api = createApi({
 export const {
     useGetMeQuery,
     useCreateFamilyMutation,
+    useJoinFamilyMutation,
+    useListFamilyMembersQuery,
+    useRotateInviteCodeMutation,
+    useLeaveFamilyMutation,
+    useListRelationshipsQuery,
+    useAddRelationshipMutation,
+    useDeleteRelationshipMutation,
     useListIngredientsQuery,
     useCreateIngredientMutation,
     useUpdateIngredientMutation,
