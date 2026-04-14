@@ -1,33 +1,58 @@
+import { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
-import type { ColumnTemplateProps } from '@syncfusion/react-grid'
-import { useGetShoppingListDetailQuery } from '../../shared/api/api'
+import type { ColumnTemplateProps, SaveEvent, DeleteEvent } from '@syncfusion/react-grid'
+import {
+  useGetShoppingListDetailQuery,
+  useListIngredientsQuery,
+  useAddShoppingListItemMutation,
+  useDeleteShoppingListItemMutation,
+} from '../../shared/api/api'
 import type { ShoppingListItemDto } from '../../shared/api/api'
 import { useShoppingListDetail } from './hooks/useShoppingListDetail'
-import { AddItemForm } from './components/AddItemForm'
 
 export function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>()
   const listId = id!
 
   const { data, isLoading, error } = useGetShoppingListDetailQuery(listId)
+  const { data: allIngredients } = useListIngredientsQuery()
+
+  const [addItem] = useAddShoppingListItemMutation()
+  const [deleteItem] = useDeleteShoppingListItemMutation()
 
   const {
     errorMessage,
     isBuying,
     isUnbuying,
-    isDeletingItem,
     isCompleting,
     isRegenerating,
-    isAddingItem,
     handleBuy,
     handleUnbuy,
-    handleDeleteItem,
     handleComplete,
     handleRegenerate,
-    handleAddItem,
   } = useShoppingListDetail(listId)
+
+  const handleUnboughtDataChangeStart = useCallback(
+    async (e: SaveEvent<ShoppingListItemDto> | DeleteEvent<ShoppingListItemDto>) => {
+      e.cancel = true
+      try {
+        if (e.action === 'Add') {
+          const row = (e as SaveEvent<ShoppingListItemDto>).data
+          const ingredientId = String(row.ingredientId)
+          const quantity = Number(row.quantity) || 1
+          await addItem({ listId, ingredientId, quantity }).unwrap()
+        } else if (e.action === 'Delete') {
+          const rows = (e as DeleteEvent<ShoppingListItemDto>).data
+          await deleteItem({ listId, itemId: rows[0].id }).unwrap()
+        }
+      } catch {
+        // errors surface via RTK Query cache; nothing extra to do here
+      }
+    },
+    [addItem, deleteItem, listId],
+  )
 
   if (isLoading) {
     return (
@@ -49,6 +74,11 @@ export function ShoppingListDetailPage() {
   const unboughtItems = data.items.filter((i) => !i.isBought)
   const boughtItems = data.items.filter((i) => i.isBought)
 
+  const existingIngredientIds = new Set(data.items.map((i) => i.ingredientId))
+  const availableIngredients = (allIngredients ?? []).filter(
+    (i) => !existingIngredientIds.has(i.id),
+  )
+
   const hasMealPlanSource = data.items.some(
     (i) => i.sourceMealPlanEntryIds != null && i.sourceMealPlanEntryIds.length > 0,
   )
@@ -60,7 +90,7 @@ export function ShoppingListDetailPage() {
       ? Math.round((data.boughtCount / data.totalCount) * 100)
       : 0
 
-  const isBusy = isBuying || isUnbuying || isDeletingItem || isCompleting || isRegenerating
+  const isBusy = isBuying || isUnbuying || isCompleting || isRegenerating
 
   /* ---------- Column templates for unbought items ---------- */
 
@@ -101,21 +131,6 @@ export function ShoppingListDetailPage() {
     <span style={{ fontSize: 13 }}>
       {item.quantity} {item.unit}
     </span>
-  )
-
-  const UnboughtActionTemplate = ({ data: item }: ColumnTemplateProps<ShoppingListItemDto>) => (
-    <div style={{ textAlign: 'right' }}>
-      <Button
-        type="button"
-        size={Size.Small}
-        variant={Variant.Outlined}
-        color={Color.Error}
-        onClick={() => handleDeleteItem(item.id, item.ingredientName)}
-        aria-label="ลบ"
-      >
-        🗑
-      </Button>
-    </div>
   )
 
   /* ---------- Column templates for bought items ---------- */
@@ -214,23 +229,71 @@ export function ShoppingListDetailPage() {
         </div>
       </div>
 
-      {/* Unbought section */}
-      {unboughtItems.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
+      {/* Unbought section — toolbar Add/Delete enabled for active lists */}
+      <div style={{ marginBottom: 24 }}>
+        {unboughtItems.length > 0 && (
           <h2 style={{ fontSize: 15, marginBottom: 8, color: 'var(--color-text-muted)' }}>
             ยังไม่ได้ซื้อ ({unboughtItems.length})
           </h2>
-          <Grid dataSource={unboughtItems as ShoppingListItemDto[]} height="auto">
+        )}
+        {isActive ? (
+          <Grid
+            dataSource={unboughtItems as ShoppingListItemDto[]}
+            toolbar={['Add', 'Delete', 'Update', 'Cancel']}
+            editSettings={{
+              allowAdd: true,
+              allowEdit: false,
+              allowDelete: true,
+              mode: 'Normal',
+              confirmOnDelete: true,
+            }}
+            onDataChangeStart={handleUnboughtDataChangeStart}
+            height="auto"
+          >
             <Columns>
-              <Column headerText="" width={36} template={UnboughtCheckboxTemplate} />
-              <Column field="ingredientName" headerText="วัตถุดิบ" template={UnboughtNameTemplate} />
-              <Column headerText="จำนวน" width={120} template={UnboughtQtyTemplate} />
-              <Column headerText="" width={100} />
-              <Column headerText="" width={60} template={UnboughtActionTemplate} />
+              <Column field="id" isPrimaryKey visible={false} />
+              <Column headerText="" width={36} template={UnboughtCheckboxTemplate} allowEditing={false} />
+              <Column
+                field="ingredientId"
+                headerText="วัตถุดิบ"
+                template={UnboughtNameTemplate}
+                edit={{
+                  type: 'DropDownEdit',
+                  params: {
+                    dataSource: availableIngredients,
+                    fields: { text: 'name', value: 'id' },
+                    placeholder: 'เลือกวัตถุดิบ',
+                  },
+                }}
+                validationRules={{ required: true }}
+              />
+              <Column
+                field="quantity"
+                headerText="จำนวน"
+                width={120}
+                template={UnboughtQtyTemplate}
+                edit={{
+                  type: 'NumericEdit',
+                  params: { min: 1, decimals: 2 },
+                }}
+                validationRules={{ required: true }}
+              />
+              <Column headerText="" width={100} allowEditing={false} />
             </Columns>
           </Grid>
-        </div>
-      )}
+        ) : (
+          unboughtItems.length > 0 && (
+            <Grid dataSource={unboughtItems as ShoppingListItemDto[]} height="auto">
+              <Columns>
+                <Column headerText="" width={36} template={UnboughtCheckboxTemplate} />
+                <Column field="ingredientName" headerText="วัตถุดิบ" template={UnboughtNameTemplate} />
+                <Column headerText="จำนวน" width={120} template={UnboughtQtyTemplate} />
+                <Column headerText="" width={100} />
+              </Columns>
+            </Grid>
+          )
+        )}
+      </div>
 
       {/* Bought section */}
       {boughtItems.length > 0 && (
@@ -252,17 +315,8 @@ export function ShoppingListDetailPage() {
 
       {unboughtItems.length === 0 && boughtItems.length === 0 && (
         <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>
-          ยังไม่มีรายการ — เพิ่มด้านล่างได้เลย
+          ยังไม่มีรายการ — คลิก + Add ในตารางด้านบนเพื่อเพิ่มรายการ
         </p>
-      )}
-
-      {/* Add item form — only for active lists */}
-      {isActive && (
-        <AddItemForm
-          existingItems={data.items}
-          onAdd={handleAddItem}
-          isAdding={isAddingItem}
-        />
       )}
     </section>
   )
