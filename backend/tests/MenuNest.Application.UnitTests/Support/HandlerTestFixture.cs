@@ -1,5 +1,6 @@
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 
@@ -25,10 +26,11 @@ public sealed class HandlerTestFixture : IDisposable
             .Options;
         Db = new InMemoryAppDbContext(options);
 
-        User = User.CreateFromEntraClaim(
+        User = User.CreateFromExternalLogin(
             externalId: "test-oid",
             email: "test@example.com",
-            displayName: "Test User");
+            displayName: "Test User",
+            authProvider: AuthProvider.Microsoft);
         Family = Family.CreateNew("Test Family", User.Id);
         User.JoinFamily(Family.Id);
 

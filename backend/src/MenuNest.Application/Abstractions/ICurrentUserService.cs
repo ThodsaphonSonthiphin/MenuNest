@@ -1,3 +1,5 @@
+using MenuNest.Domain.Enums;
+
 namespace MenuNest.Application.Abstractions;
 
 /// <summary>
@@ -30,6 +32,11 @@ public interface ICurrentUserService
     /// Human-readable display name from the token (<c>name</c> claim).
     /// </summary>
     string? DisplayName { get; }
+
+    /// <summary>
+    /// The authentication provider that issued the current token.
+    /// </summary>
+    AuthProvider? Provider { get; }
 
     /// <summary>
     /// Throws <see cref="UnauthorizedAccessException"/> if the caller

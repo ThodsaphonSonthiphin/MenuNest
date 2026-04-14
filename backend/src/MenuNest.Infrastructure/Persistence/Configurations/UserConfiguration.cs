@@ -28,6 +28,11 @@ internal sealed class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.Property(u => u.FamilyId);
         builder.Property(u => u.JoinedAt);
+
+        builder.Property(u => u.AuthProvider)
+            .IsRequired()
+            .HasDefaultValue(MenuNest.Domain.Enums.AuthProvider.Microsoft);
+
         builder.Property(u => u.CreatedAt).IsRequired();
         builder.Property(u => u.UpdatedAt);
     }

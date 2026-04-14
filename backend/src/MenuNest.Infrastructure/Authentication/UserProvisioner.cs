@@ -1,5 +1,6 @@
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
 using MenuNest.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +40,8 @@ internal sealed class UserProvisioner : IUserProvisioner
         var email = _currentUser.Email ?? $"{externalId}@unknown";
         var displayName = _currentUser.DisplayName ?? email;
 
-        var user = User.CreateFromEntraClaim(externalId, email, displayName);
+        var provider = _currentUser.Provider ?? AuthProvider.Microsoft;
+        var user = User.CreateFromExternalLogin(externalId, email, displayName, provider);
         _db.Users.Add(user);
         await _db.SaveChangesAsync(ct);
         return user;

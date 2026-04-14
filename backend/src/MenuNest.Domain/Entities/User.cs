@@ -1,4 +1,5 @@
 using MenuNest.Domain.Common;
+using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
 
 namespace MenuNest.Domain.Entities;
@@ -17,26 +18,25 @@ public sealed class User : Entity
     public Guid? FamilyId { get; private set; }
     public Family? Family { get; private set; }
     public DateTime? JoinedAt { get; private set; }
+    public AuthProvider AuthProvider { get; private set; }
 
     // EF Core
     private User() { }
 
-    public static User CreateFromEntraClaim(string externalId, string email, string displayName)
+    public static User CreateFromExternalLogin(
+        string externalId, string email, string displayName, AuthProvider authProvider)
     {
         if (string.IsNullOrWhiteSpace(externalId))
-        {
             throw new DomainException("ExternalId is required.");
-        }
         if (string.IsNullOrWhiteSpace(email))
-        {
             throw new DomainException("Email is required.");
-        }
 
         return new User
         {
             ExternalId = externalId,
             Email = email.Trim(),
-            DisplayName = string.IsNullOrWhiteSpace(displayName) ? email.Trim() : displayName.Trim()
+            DisplayName = string.IsNullOrWhiteSpace(displayName) ? email.Trim() : displayName.Trim(),
+            AuthProvider = authProvider,
         };
     }
 

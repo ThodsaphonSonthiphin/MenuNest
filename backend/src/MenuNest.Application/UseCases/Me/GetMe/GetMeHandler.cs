@@ -26,6 +26,7 @@ public sealed class GetMeHandler : IQueryHandler<GetMeQuery, MeDto>
             DisplayName: user.DisplayName,
             FamilyId: user.FamilyId,
             FamilyName: user.Family?.Name,
-            FamilyInviteCode: user.Family?.InviteCode.Value);
+            FamilyInviteCode: user.Family?.InviteCode.Value,
+            AuthProvider: user.AuthProvider.ToString());
     }
 }

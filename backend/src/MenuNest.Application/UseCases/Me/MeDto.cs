@@ -10,4 +10,5 @@ public sealed record MeDto(
     string DisplayName,
     Guid? FamilyId,
     string? FamilyName,
-    string? FamilyInviteCode);
+    string? FamilyInviteCode,
+    string AuthProvider);

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using MenuNest.Application.Abstractions;
+using MenuNest.Domain.Enums;
 using Microsoft.AspNetCore.Http;
 
 namespace MenuNest.Infrastructure.Authentication;
@@ -29,7 +30,8 @@ public sealed class CurrentUserService : ICurrentUserService
 
     public string? ExternalId =>
         Principal?.FindFirstValue(ObjectIdClaim)
-        ?? Principal?.FindFirstValue(ShortObjectIdClaim);
+        ?? Principal?.FindFirstValue(ShortObjectIdClaim)
+        ?? Principal?.FindFirstValue("sub");
 
     public string? Email =>
         Principal?.FindFirstValue(ClaimTypes.Email)
@@ -39,6 +41,20 @@ public sealed class CurrentUserService : ICurrentUserService
     public string? DisplayName =>
         Principal?.FindFirstValue("name")
         ?? Principal?.FindFirstValue(ClaimTypes.Name);
+
+    public AuthProvider? Provider
+    {
+        get
+        {
+            var issuer = Principal?.FindFirstValue("iss");
+            if (issuer == "https://accounts.google.com")
+                return AuthProvider.Google;
+            if (issuer?.Contains("login.microsoftonline.com") == true
+                || issuer?.Contains("sts.windows.net") == true)
+                return AuthProvider.Microsoft;
+            return null;
+        }
+    }
 
     public string RequireExternalId()
     {

@@ -2,11 +2,7 @@ using System.Text.Json.Serialization;
 using MenuNest.Application;
 using MenuNest.Infrastructure;
 using MenuNest.WebApi.Middleware;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc.Authorization;
-using Microsoft.Extensions.Options;
-using Microsoft.Identity.Web;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,22 +22,51 @@ builder.Services.AddMediator(options =>
 });
 
 // ----------------------------------------------------------------------
-// Authentication — Entra ID JWT bearer
-// Multi-tenant + personal Microsoft accounts: the issuer varies per
-// tenant, so we disable issuer validation here. A stricter per-tenant
-// allow-list can be layered on top in a follow-up.
+// Authentication — dual JWT bearer (Microsoft Entra ID + Google)
+// A policy scheme inspects the incoming token's issuer and forwards
+// to the matching JWT bearer handler.
 // ----------------------------------------------------------------------
 builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-
-builder.Services
-    .Configure<JwtBearerOptions>(
-        JwtBearerDefaults.AuthenticationScheme,
-        options =>
+    .AddAuthentication("MultiAuth")
+    .AddPolicyScheme("MultiAuth", "Microsoft + Google selector", options =>
+    {
+        options.ForwardDefaultSelector = context =>
         {
-            options.TokenValidationParameters.ValidateIssuer = false;
-        });
+            var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
+            if (authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                var token = authHeader["Bearer ".Length..];
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                if (handler.CanReadToken(token))
+                {
+                    var jwt = handler.ReadJwtToken(token);
+                    if (jwt.Issuer == "https://accounts.google.com")
+                        return "Google";
+                }
+            }
+            return "Microsoft";
+        };
+    })
+    .AddJwtBearer("Microsoft", options =>
+    {
+        var azureAd = builder.Configuration.GetSection("AzureAd");
+        options.Authority = $"{azureAd["Instance"]}common/v2.0";
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidAudience = azureAd["ClientId"],
+            ValidateIssuer = false,
+        };
+    })
+    .AddJwtBearer("Google", options =>
+    {
+        options.Authority = "https://accounts.google.com";
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidAudience = builder.Configuration["Google:ClientId"],
+            ValidateIssuer = true,
+            ValidIssuer = "https://accounts.google.com",
+        };
+    });
 
 // Every request requires auth by default; opt-out with [AllowAnonymous]
 // on individual endpoints (e.g. health checks).
