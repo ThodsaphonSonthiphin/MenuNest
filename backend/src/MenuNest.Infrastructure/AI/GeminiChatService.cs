@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using GenerativeAI;
+using GenerativeAI.Core;
 using GenerativeAI.Types;
 using MenuNest.Application.Abstractions;
 using MenuNest.Infrastructure.AI.Tools;
@@ -26,7 +27,14 @@ public sealed class GeminiChatService : IAiChatService
         ILogger<GeminiChatService> logger)
     {
         var opts = options.Value;
-        _model = new GenerativeModel(opts.ApiKey, opts.Model);
+        _model = new GenerativeModel(opts.ApiKey, opts.Model)
+        {
+            FunctionCallingBehaviour = new FunctionCallingBehaviour
+            {
+                AutoCallFunction = false,
+                AutoReplyFunction = false
+            }
+        };
         _tools = tools.ToList();
         _db = db;
         _logger = logger;
