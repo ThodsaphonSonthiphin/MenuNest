@@ -45,9 +45,9 @@ export function ShoppingListDetailPage() {
     onDelete: (rows) => deleteItem({ listId, itemId: rows[0].id as string }).unwrap(),
   })
 
-  // Read-only DataManager for the ingredients dropdown in the unbought grid editor.
-  // Returns null until allIngredients is loaded, so we can guard Grid mount.
-  const ingredientsDm = useRtkDataManager(allIngredients, { key: 'id' })
+  // DropDownEdit edit.params.dataSource needs a plain array (not
+  // DataManager) — the Grid mount is guarded with `allIngredients &&`
+  // so the dropdown is always configured with loaded data.
 
   if (isLoading) {
     return (
@@ -224,7 +224,7 @@ export function ShoppingListDetailPage() {
             ยังไม่ได้ซื้อ ({unboughtItems.length})
           </h2>
         )}
-        {isActive && dm && ingredientsDm ? (
+        {isActive && dm && allIngredients ? (
           <Grid
             dataSource={dm}
             toolbar={['Add', 'Delete', 'Update', 'Cancel']}
@@ -246,7 +246,7 @@ export function ShoppingListDetailPage() {
                 edit={{
                   type: 'DropDownEdit',
                   params: {
-                    dataSource: ingredientsDm,
+                    dataSource: allIngredients,
                     fields: { text: 'name', value: 'id' },
                     placeholder: 'เลือกวัตถุดิบ',
                   },
