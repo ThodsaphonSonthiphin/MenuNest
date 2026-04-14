@@ -41,7 +41,7 @@ accessibility, keyboard navigation, theming, and edit-in-place for free.
 
 | UI need | Pure React package |
 |---|---|
-| Editable tables / lists | `@syncfusion/react-grid` (singular!) |
+| **Tables (any tabular data)** | `@syncfusion/react-grid` — **always** use DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never use plain `<table>`. |
 | Calendar / weekly planner | `@syncfusion/react-scheduler` (`Scheduler`, `DayView`, `WeekView`, …) |
 | Modal dialogs / tooltips | `@syncfusion/react-popups` (`Dialog`, `Tooltip`) |
 | Autocomplete / dropdown | `@syncfusion/react-dropdowns` (`DropDownList`, `ComboBox`, `AutoComplete`) |
