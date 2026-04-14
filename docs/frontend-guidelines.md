@@ -26,29 +26,44 @@ project owner.
 - **React Router v7** with `createBrowserRouter`.
 - **MSAL.js** (`@azure/msal-react`) for Entra ID authentication.
 
-## 2. UI components — Syncfusion *Pure React* first
+## 2. UI components — Syncfusion first, never hand-roll
 
-For any control you'd otherwise hand-roll, **reach for the corresponding
-Syncfusion *Pure React* (`@syncfusion/react-*`) component first** and adapt
-it. The Community License is paid for and these components give us
-accessibility, keyboard navigation, theming, and edit-in-place for free.
+**Every UI control MUST come from Syncfusion.** Never hand-roll tables,
+dialogs, dropdowns, calendars, buttons, inputs, QR codes, or any other
+widget that Syncfusion provides. This rule applies to **all** components,
+all pages, all features — no exceptions.
 
-> **Pure React, not the legacy `ej2-react` wrappers.** Syncfusion ships two
-> parallel React libraries. We use the Pure React one (`@syncfusion/react-*`).
-> Do not pull in `@syncfusion/ej2-react-*` packages — they have a different
-> API surface (`<ScheduleComponent>` + `<ViewsDirective>` + `<Inject services={[...]}/>`)
-> and we explicitly opted out.
+### Lookup order (mandatory)
 
-| UI need | Pure React package |
-|---|---|
-| **Tables (any tabular data)** | `@syncfusion/react-grid` — **always** use DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never use plain `<table>`. Use `useRtkDataManager` hook (at `shared/data/useRtkDataManager.ts`) to wrap RTK Query data in a Syncfusion `DataManager` — Grid reads from RTK cache, CRUD calls RTK mutations, cache sync is automatic. See "DataManager + RTK Query pattern" below. |
-| Calendar / weekly planner | `@syncfusion/react-scheduler` (`Scheduler`, `DayView`, `WeekView`, …) |
-| Modal dialogs / tooltips | `@syncfusion/react-popups` (`Dialog`, `Tooltip`) |
-| Autocomplete / dropdown | `@syncfusion/react-dropdowns` (`DropDownList`, `ComboBox`, `AutoComplete`) |
-| Buttons / Switch / Chip | `@syncfusion/react-buttons` |
-| Inputs (Textbox, NumericTextbox, Form) | `@syncfusion/react-inputs` |
+1. **Check Syncfusion Pure React** (`@syncfusion/react-*`) first — this is
+   the preferred library. Check the docs at
+   <https://react.syncfusion.com/react-ui> and the `.d.ts` files under
+   `node_modules/@syncfusion/react-*`.
+2. **If Pure React doesn't have the component**, fall back to **Syncfusion
+   legacy** (`@syncfusion/ej2-react-*`). These use a different API surface
+   (`<XxxComponent>` + `<Inject services={[...]}/>`) but are still
+   Syncfusion, still covered by the same Community License, and easier to
+   migrate when the Pure React version ships.
+3. **Never skip to a third-party library or hand-rolled HTML** when
+   Syncfusion (either tier) covers the use case.
 
-**Pure React component conventions** (different from legacy):
+> Always check the docs or `.d.ts` before guessing prop names — Pure React's
+> API is **not** identical to `ej2-react-*`, and older Stack Overflow answers
+> almost certainly refer to the legacy one.
+
+### Component lookup table
+
+| UI need | Package (tier) | Notes |
+|---|---|---|
+| **Tables (any tabular data)** | `@syncfusion/react-grid` (Pure React) | **Always** DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never plain `<table>`. Use `useRtkDataManager` hook — see §4b. |
+| Calendar / weekly planner | `@syncfusion/react-scheduler` (Pure React) | `Scheduler`, `DayView`, `WeekView`, … |
+| Modal dialogs / tooltips | `@syncfusion/react-popups` (Pure React) | `Dialog`, `Tooltip` |
+| Autocomplete / dropdown | `@syncfusion/react-dropdowns` (Pure React) | `DropDownList`, `ComboBox`, `AutoComplete` |
+| Buttons / Switch / Chip | `@syncfusion/react-buttons` (Pure React) | |
+| Inputs (Textbox, Numeric, Form) | `@syncfusion/react-inputs` (Pure React) | |
+| **QR Code / Barcode** | `@syncfusion/ej2-react-barcode-generator` (**ej2 fallback** — Pure React not yet available) | `QRCodeGeneratorComponent` for QR codes. See [docs](https://ej2.syncfusion.com/react/documentation/barcode/qrcodegenerator). |
+
+### Pure React component conventions (different from legacy)
 
 - Views render as **plain children**, not directives:
   ```tsx
@@ -64,6 +79,17 @@ accessibility, keyboard navigation, theming, and edit-in-place for free.
 - CSS imports per package: `@syncfusion/react-{name}/styles/material.css`.
   Each package's stylesheet pulls in what it transitively needs.
 
+### ej2-react fallback conventions (when Pure React is unavailable)
+
+- Components use the `Component` suffix: `QRCodeGeneratorComponent`,
+  `BarcodeGeneratorComponent`.
+- Some ej2 components use `<Inject services={[...]} />` — follow the
+  package docs.
+- CSS imports: `@syncfusion/ej2-react-{name}/styles/material.css` or
+  `@syncfusion/ej2-base/styles/material.css`.
+- Mark ej2 usages with a `// TODO: migrate to Pure React when available`
+  comment so they're easy to find later.
+
 **Disable built-in editors when needed.** Pure React Scheduler ships with a
 default quick-info popup and an event editor. When our domain flow needs
 something custom (the cook confirm flow, the recipe picker), turn the
@@ -72,7 +98,7 @@ inside `onCellClick` / `onEventClick`. Then drive the mutation through your
 own `Dialog` + RTK Query.
 
 **Custom HTML stays for layout only.** `<section>`, `<header>`, the page CSS
-grid — fine. Never re-implement table/dialog/dropdown primitives.
+grid — fine. Never re-implement table/dialog/dropdown/QR code primitives.
 
 ## 3. Forms — react-hook-form, per-field validation
 

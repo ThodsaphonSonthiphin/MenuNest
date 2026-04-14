@@ -24,7 +24,7 @@ function getErrorMessage(err: unknown): string {
 }
 
 export function JoinFamilyPage() {
-  const { displayName, familyId, isLoadingProfile } = useCurrentUser()
+  const { displayName, familyId, isLoadingProfile, signOut } = useCurrentUser()
   const [searchParams] = useSearchParams()
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [createFamily, { isLoading: isCreating, error: createError }] = useCreateFamilyMutation()
@@ -180,6 +180,18 @@ export function JoinFamilyPage() {
             )}
           </form>
         )}
+
+        <div className="join-family__logout">
+          <span className="join-family__logout-hint">เข้าสู่ระบบผิดบัญชี?</span>
+          <Button
+            type="button"
+            variant={Variant.Outlined}
+            color={Color.Secondary}
+            onClick={signOut}
+          >
+            ออกจากระบบ
+          </Button>
+        </div>
       </div>
     </section>
   )

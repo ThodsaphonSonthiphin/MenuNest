@@ -40,15 +40,25 @@ builder.Services
                 if (handler.CanReadToken(token))
                 {
                     var jwt = handler.ReadJwtToken(token);
+                    Console.WriteLine($"[POLICY SCHEME] issuer={jwt.Issuer}, forwarding to={(jwt.Issuer == "https://accounts.google.com" ? "Google" : "Microsoft")}");
                     if (jwt.Issuer == "https://accounts.google.com")
                         return "Google";
                 }
+                else
+                {
+                    Console.WriteLine("[POLICY SCHEME] CanReadToken=false");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[POLICY SCHEME] No Bearer token found");
             }
             return "Microsoft";
         };
     })
     .AddJwtBearer("Microsoft", options =>
     {
+        options.MapInboundClaims = false;
         var azureAd = builder.Configuration.GetSection("AzureAd");
         options.Authority = $"{azureAd["Instance"]}common/v2.0";
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
@@ -59,12 +69,32 @@ builder.Services
     })
     .AddJwtBearer("Google", options =>
     {
+        options.MapInboundClaims = false;
         options.Authority = "https://accounts.google.com";
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidAudience = builder.Configuration["Google:ClientId"],
             ValidateIssuer = true,
             ValidIssuer = "https://accounts.google.com",
+        };
+        // TEMP DIAGNOSTIC — remove after debugging
+        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                Console.WriteLine($"[GOOGLE AUTH FAILED] {ctx.Exception.GetType().Name}: {ctx.Exception.Message}");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                Console.WriteLine($"[GOOGLE AUTH OK] sub={ctx.Principal?.FindFirst("sub")?.Value}");
+                return Task.CompletedTask;
+            },
+            OnMessageReceived = ctx =>
+            {
+                Console.WriteLine($"[GOOGLE AUTH] Token received, length={ctx.Token?.Length ?? 0}");
+                return Task.CompletedTask;
+            },
         };
     });
 
