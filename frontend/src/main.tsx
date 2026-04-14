@@ -29,6 +29,7 @@ import '@syncfusion/react-splitbuttons/styles/material.css'
 import '@syncfusion/react-popups/styles/material.css'
 import '@syncfusion/react-grid/styles/material.css'
 import '@syncfusion/react-scheduler/styles/material.css'
+import '@syncfusion/ej2-react-interactive-chat/styles/material.css'
 
 import './index.css'
 
