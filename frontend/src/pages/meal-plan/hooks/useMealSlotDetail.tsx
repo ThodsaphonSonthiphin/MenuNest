@@ -12,6 +12,9 @@ interface UseMealSlotDetailResult {
   selectedIds: Set<string>
   selectedArray: string[]
   toggle: (id: string, status: MealPlanEntryDto['status']) => void
+  /** Aggregate stock check for ALL planned entries in the slot — used to drive per-row badges. */
+  allPlannedStockCheck: StockCheckBatchDto | undefined
+  /** Aggregate stock check for the currently selected subset — used for the footer warning banner. */
   stockCheck: StockCheckBatchDto | undefined
   errorMessage: string | null
   isCooking: boolean
@@ -47,6 +50,28 @@ export function useMealSlotDetail(entries: MealPlanEntryDto[]): UseMealSlotDetai
 
   const selectedArray = useMemo(() => Array.from(selectedIds), [selectedIds])
 
+  // One batch request covering ALL planned entries drives the per-row stock badges.
+  // This replaces the previous pattern of one `useGetStockCheckQuery(entryId)` call
+  // per row (N requests) with a single POST to the batch endpoint.
+  // NOTE: The batch endpoint aggregates ingredient totals across all supplied entries.
+  // Per-row badges therefore reflect whether the whole slot's planned set is covered,
+  // not whether an individual recipe's ingredients are covered in isolation. The
+  // footer warning banner (which renders the ingredient shortfall list) uses the
+  // selected-subset query below so it stays accurate when the user deselects rows.
+  const allPlannedIds = useMemo(
+    () => entries.filter((e) => e.status === 'Planned').map((e) => e.id),
+    [entries],
+  )
+
+  const { data: allPlannedStockCheck } = useStockCheckBatchQuery(
+    { entryIds: allPlannedIds },
+    { skip: allPlannedIds.length === 0 },
+  )
+
+  // When all planned entries are selected (the default), the two queries above
+  // share the same sorted cache key — RTK Query returns the cached result and
+  // fires no extra request. A second request only occurs when the user deselects
+  // one or more rows, which is an intentional user action (not a hot path).
   const { data: stockCheck } = useStockCheckBatchQuery(
     { entryIds: selectedArray },
     { skip: selectedArray.length === 0 },
@@ -97,6 +122,7 @@ export function useMealSlotDetail(entries: MealPlanEntryDto[]): UseMealSlotDetai
     selectedIds,
     selectedArray,
     toggle,
+    allPlannedStockCheck,
     stockCheck,
     errorMessage,
     isCooking,

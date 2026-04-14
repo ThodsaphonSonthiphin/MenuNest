@@ -78,6 +78,48 @@ public class CookBatchHandlerTests
         await act.Should().ThrowAsync<DomainException>().WithMessage("*not found*");
     }
 
+    [Fact]
+    public async Task Zero_stock_row_records_full_shortfall_without_transaction()
+    {
+        using var fx = new HandlerTestFixture();
+
+        var egg = Ingredient.Create(fx.Family.Id, "ไข่ไก่", "ฟอง");
+        fx.Db.Ingredients.Add(egg);
+
+        var recipe = Recipe.Create(fx.Family.Id, "ไข่เจียว", fx.User.Id);
+        recipe.AddIngredient(egg.Id, 3m);
+        fx.Db.Recipes.Add(recipe);
+
+        // Intentionally NO StockItem row for egg
+
+        var entry = MealPlanEntry.Create(
+            fx.Family.Id, new DateOnly(2026, 4, 13), MealSlot.Breakfast, recipe.Id, fx.User.Id);
+        fx.Db.MealPlanEntries.Add(entry);
+        fx.Db.SaveChanges();
+
+        var sut = NewSut(fx);
+        var result = await sut.Handle(new CookBatchCommand(new[] { entry.Id }), CancellationToken.None);
+
+        // Entry still gets cooked — shortfall is recorded but doesn't block
+        result.CookedEntryIds.Should().ContainSingle().Which.Should().Be(entry.Id);
+
+        // Full amount is a shortfall (nothing was available)
+        result.Partial.Should().ContainSingle();
+        result.Partial[0].Missing.Should().Be(3m);
+        result.Partial[0].Deducted.Should().Be(0m);
+
+        // No deduction happened
+        result.Deducted.Should().BeEmpty();
+
+        // No StockTransaction written (nothing to record)
+        fx.Db.StockTransactions.Should().BeEmpty();
+
+        // CookNotes should mention the shortfall
+        var cooked = fx.Db.MealPlanEntries.Find(entry.Id)!;
+        cooked.Status.Should().Be(MealEntryStatus.Cooked);
+        cooked.CookNotes.Should().Contain("ขาด").And.Contain(egg.Name);
+    }
+
     private static CookBatchHandler NewSut(HandlerTestFixture fx)
         => new(fx.Db, fx.UserProvisioner.Object, new CookBatchValidator());
 

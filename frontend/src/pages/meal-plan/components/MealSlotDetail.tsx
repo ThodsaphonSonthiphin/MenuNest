@@ -14,6 +14,7 @@ export function MealSlotDetail({ entries, onAddRecipe, onClose }: MealSlotDetail
     selectedIds,
     selectedArray,
     toggle,
+    allPlannedStockCheck,
     stockCheck,
     errorMessage,
     isCooking,
@@ -56,7 +57,7 @@ export function MealSlotDetail({ entries, onAddRecipe, onClose }: MealSlotDetail
                   </td>
                   <td style={{ fontWeight: 500 }}>{entry.recipeName}</td>
                   <td>
-                    <RowStockBadge entryId={entry.id} status={entry.status} />
+                    <RowStockBadge status={entry.status} stockCheck={allPlannedStockCheck} />
                   </td>
                   <td>
                     {isPlanned ? (
