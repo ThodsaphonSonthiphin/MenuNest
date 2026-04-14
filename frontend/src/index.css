@@ -921,12 +921,17 @@ textarea[aria-invalid="true"] {
 .page--ai-assistant {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  height: calc(100vh - 130px);
   overflow: hidden;
 }
 
 .page--ai-assistant .page__header {
   flex-shrink: 0;
+}
+
+.page--ai-assistant .ai-assistant-layout {
+  flex: 1;
+  min-height: 0;
 }
 
 /* Mobile: hide sidebar */
