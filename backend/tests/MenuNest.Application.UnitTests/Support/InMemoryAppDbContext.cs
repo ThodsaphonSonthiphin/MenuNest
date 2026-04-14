@@ -55,5 +55,16 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
                 v => JsonSerializer.Serialize(v, jsonOptions),
                 v => (IReadOnlyList<Guid>)(JsonSerializer.Deserialize<List<Guid>>(v, jsonOptions) ?? new List<Guid>()),
                 sourceIdsComparer);
+
+        // Mirror the field-access navigation so EF tracks items added via AddOrIncreaseItem.
+        modelBuilder.Entity<Domain.Entities.ShoppingList>()
+            .HasMany(l => l.Items)
+            .WithOne()
+            .HasForeignKey(i => i.ShoppingListId);
+
+        modelBuilder.Entity<Domain.Entities.ShoppingList>()
+            .Metadata
+            .FindNavigation(nameof(Domain.Entities.ShoppingList.Items))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
     }
 }

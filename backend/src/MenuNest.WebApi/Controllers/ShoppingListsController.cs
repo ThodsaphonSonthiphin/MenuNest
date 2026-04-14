@@ -1,8 +1,10 @@
 using Mediator;
 using MenuNest.Application.UseCases.ShoppingList;
+using MenuNest.Application.UseCases.ShoppingList.BuyShoppingListItem;
 using MenuNest.Application.UseCases.ShoppingList.CreateShoppingList;
 using MenuNest.Application.UseCases.ShoppingList.GetShoppingListDetail;
 using MenuNest.Application.UseCases.ShoppingList.ListShoppingLists;
+using MenuNest.Application.UseCases.ShoppingList.UnbuyShoppingListItem;
 using MenuNest.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,7 +44,23 @@ public sealed class ShoppingListsController : ControllerBase
         return CreatedAtAction(nameof(GetDetail), new { id = result.Id }, result);
     }
 
-    // DELETE, /complete, /items, /items/{itemId}, /buy, /unbuy, /regenerate
+    [HttpPost("{listId:guid}/items/{itemId:guid}/buy")]
+    public async Task<ActionResult<ShoppingListItemDto>> Buy(
+        Guid listId, Guid itemId, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new BuyShoppingListItemCommand(listId, itemId), ct);
+        return Ok(result);
+    }
+
+    [HttpPost("{listId:guid}/items/{itemId:guid}/unbuy")]
+    public async Task<ActionResult<ShoppingListItemDto>> Unbuy(
+        Guid listId, Guid itemId, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new UnbuyShoppingListItemCommand(listId, itemId), ct);
+        return Ok(result);
+    }
+
+    // DELETE, /complete, /items, /items/{itemId}, /regenerate
     // are wired in subsequent tasks as the handlers are created.
 }
 
