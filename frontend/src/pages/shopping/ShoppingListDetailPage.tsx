@@ -252,7 +252,7 @@ export function ShoppingListDetailPage() {
           >
             <Columns>
               <Column field="id" isPrimaryKey visible={false} />
-              <Column headerText="" width={36} template={UnboughtCheckboxTemplate} allowEditing={false} />
+              <Column field="isBought" headerText=" " width={36} template={UnboughtCheckboxTemplate} allowEditing={false} />
               <Column
                 field="ingredientId"
                 headerText="วัตถุดิบ"
@@ -278,7 +278,7 @@ export function ShoppingListDetailPage() {
                 }}
                 validationRules={{ required: true }}
               />
-              <Column headerText="" width={100} allowEditing={false} />
+              <Column field="unit" headerText=" " width={100} allowEditing={false} />
             </Columns>
           </Grid>
         ) : (
