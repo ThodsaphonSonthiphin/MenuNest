@@ -1,5 +1,6 @@
 import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { useGetMeQuery } from '../api/api'
+import { isGoogleAuthenticated, getGoogleToken, decodeGoogleIdToken, clearGoogleToken } from '../auth/googleAuth'
 
 /**
  * Thin facade over MSAL account info + the backend `/api/me`
@@ -8,13 +9,16 @@ import { useGetMeQuery } from '../api/api'
  * is the single source of truth for "who am I, and do I have a
  * family?" across the app.
  *
- * The query is skipped when MSAL hasn't produced an account yet,
- * otherwise RTK Query would fire with no bearer token and 401.
+ * The query is skipped when neither MSAL nor Google has produced a
+ * session yet, otherwise RTK Query would fire with no bearer token
+ * and 401.
  */
 export function useCurrentUser() {
   const { instance, accounts } = useMsal()
-  const isAuthenticated = useIsAuthenticated()
+  const isMsalAuth = useIsAuthenticated()
   const account = accounts[0] ?? null
+
+  const isAuthenticated = isMsalAuth || isGoogleAuthenticated()
 
   const {
     data: me,
@@ -23,21 +27,31 @@ export function useCurrentUser() {
     error: profileError,
   } = useGetMeQuery(undefined, { skip: !isAuthenticated })
 
+  // Decode Google token for immediate display (before /api/me responds)
+  const googleToken = getGoogleToken()
+  const googleUser = googleToken ? decodeGoogleIdToken(googleToken) : null
+
+  const signOut = () => {
+    clearGoogleToken()
+    if (isMsalAuth) {
+      instance.logoutRedirect()
+    } else {
+      window.location.href = '/login'
+    }
+  }
+
   return {
     isAuthenticated,
     account,
-    // MSAL token claims are available immediately; /api/me reply
-    // (source of truth for backend-validated profile) lands a moment
-    // later. Prefer the backend value when available.
-    displayName: me?.displayName ?? account?.name ?? account?.username ?? '',
-    email: me?.email ?? account?.username ?? '',
+    displayName: me?.displayName ?? account?.name ?? googleUser?.name ?? '',
+    email: me?.email ?? account?.username ?? googleUser?.email ?? '',
     userId: me?.userId ?? null,
     familyId: me?.familyId ?? null,
     familyName: me?.familyName ?? null,
     familyInviteCode: me?.familyInviteCode ?? null,
-    // True until /api/me has replied at least once for this session.
-    isLoadingProfile: isAuthenticated && (isLoadingProfile || isFetchingProfile && !me),
+    authProvider: me?.authProvider ?? (isMsalAuth ? 'Microsoft' : googleUser ? 'Google' : null),
+    isLoadingProfile: isAuthenticated && (isLoadingProfile || (isFetchingProfile && !me)),
     profileError,
-    signOut: () => instance.logoutRedirect(),
+    signOut,
   }
 }

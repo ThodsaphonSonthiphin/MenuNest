@@ -1,6 +1,7 @@
 import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react'
 import {InteractionRequiredAuthError} from '@azure/msal-browser'
 import {apiScopes, msalInstance} from '../auth/msalConfig'
+import {getGoogleToken} from '../auth/googleAuth'
 
 /**
  * Single, app-wide RTK Query API. All endpoints for every feature
@@ -12,17 +13,24 @@ import {apiScopes, msalInstance} from '../auth/msalConfig'
  */
 
 async function acquireAccessToken(): Promise<string | null> {
+    // Try MSAL first (Microsoft)
     const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0]
-    if (!account || apiScopes.length === 0) return null
-    try {
-        const result = await msalInstance.acquireTokenSilent({scopes: apiScopes, account})
-        return result.accessToken
-    } catch (err) {
-        if (err instanceof InteractionRequiredAuthError) {
-            await msalInstance.acquireTokenRedirect({scopes: apiScopes, account})
+    if (account && apiScopes.length > 0) {
+        try {
+            const result = await msalInstance.acquireTokenSilent({scopes: apiScopes, account})
+            return result.accessToken
+        } catch (err) {
+            if (err instanceof InteractionRequiredAuthError) {
+                await msalInstance.acquireTokenRedirect({scopes: apiScopes, account})
+            }
         }
-        return null
     }
+
+    // Try Google token
+    const googleToken = getGoogleToken()
+    if (googleToken) return googleToken
+
+    return null
 }
 
 // ----------------------------------------------------------------------
@@ -35,6 +43,7 @@ export interface MeDto {
     familyId: string | null
     familyName: string | null
     familyInviteCode: string | null
+    authProvider: string
 }
 
 export interface FamilyDto {

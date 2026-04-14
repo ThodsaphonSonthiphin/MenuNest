@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider as ReduxProvider } from 'react-redux'
 import { MsalProvider } from '@azure/msal-react'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 import { registerLicense } from '@syncfusion/react-base'
 
 import { msalInstance } from './shared/auth/msalConfig'
@@ -62,11 +63,13 @@ async function bootstrap() {
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <MsalProvider instance={msalInstance}>
-        <ReduxProvider store={store}>
-          <App />
-        </ReduxProvider>
-      </MsalProvider>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''}>
+        <MsalProvider instance={msalInstance}>
+          <ReduxProvider store={store}>
+            <App />
+          </ReduxProvider>
+        </MsalProvider>
+      </GoogleOAuthProvider>
     </StrictMode>,
   )
 }

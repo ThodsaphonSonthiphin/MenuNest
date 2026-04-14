@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useIsAuthenticated, useMsal } from '@azure/msal-react'
 import { InteractionStatus } from '@azure/msal-browser'
+import { isGoogleAuthenticated } from '../auth/googleAuth'
 
 /**
  * Gate: requires a signed-in Microsoft account. Unauthenticated users
@@ -24,7 +25,7 @@ export function ProtectedRoute() {
     return <AuthLoadingFallback />
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isGoogleAuthenticated()) {
     return <Navigate to="/login" replace state={{ from: location }} />
   }
 
