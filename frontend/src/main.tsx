@@ -26,6 +26,7 @@ import '@syncfusion/react-navigations/styles/material.css'
 import '@syncfusion/react-dropdowns/styles/material.css'
 import '@syncfusion/react-splitbuttons/styles/material.css'
 import '@syncfusion/react-popups/styles/material.css'
+import '@syncfusion/react-grid/styles/material.css'
 import '@syncfusion/react-scheduler/styles/material.css'
 
 import './index.css'

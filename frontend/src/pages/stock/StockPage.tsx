@@ -3,6 +3,8 @@ import { Controller, useForm } from 'react-hook-form'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { NumericTextBox } from '@syncfusion/react-inputs'
 import { DropDownList } from '@syncfusion/react-dropdowns'
+import { Grid, Column, Columns } from '@syncfusion/react-grid'
+import type { ColumnTemplateProps } from '@syncfusion/react-grid'
 import {
   useDeleteStockMutation,
   useListIngredientsQuery,
@@ -120,6 +122,58 @@ export function StockPage() {
     }
   }
 
+  const QuantityTemplate = ({ data: row }: ColumnTemplateProps<StockItemDto>) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Button
+        size={Size.Small}
+        variant={Variant.Outlined}
+        color={Color.Secondary}
+        onClick={() => adjustQuantity(row, -1)}
+        disabled={row.quantity <= 0}
+        aria-label="decrease"
+      >
+        −
+      </Button>
+      <div style={{ width: 140 }}>
+        <NumericTextBox
+          min={0}
+          value={row.quantity}
+          onChange={(e) => setQuantity(row, e.value as number | null | undefined)}
+        />
+      </div>
+      <Button
+        size={Size.Small}
+        variant={Variant.Outlined}
+        color={Color.Secondary}
+        onClick={() => adjustQuantity(row, 1)}
+        aria-label="increase"
+      >
+        +
+      </Button>
+      <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
+        {row.unit}
+      </span>
+    </div>
+  )
+
+  const UpdatedAtTemplate = ({ data: row }: ColumnTemplateProps<StockItemDto>) => (
+    <span style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
+      {new Date(row.updatedAt).toLocaleString('th-TH')}
+    </span>
+  )
+
+  const ActionsTemplate = ({ data: row }: ColumnTemplateProps<StockItemDto>) => (
+    <Button
+      size={Size.Small}
+      variant={Variant.Outlined}
+      color={Color.Error}
+      onClick={() => handleDelete(row)}
+      aria-label="delete"
+    >
+      🗑️
+    </Button>
+  )
+
   return (
     <section className="page page--stock">
       <header className="page__header">
@@ -193,72 +247,14 @@ export function StockPage() {
       )}
 
       {stock && stock.length > 0 && (
-        <div className="table-scroll">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>วัตถุดิบ</th>
-                <th style={{ width: 340 }}>คงเหลือ</th>
-                <th>อัปเดตล่าสุด</th>
-                <th style={{ width: 80 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {stock.map((item) => (
-                <tr key={item.id} className={item.quantity === 0 ? 'row--empty' : undefined}>
-                  <td>{item.ingredientName}</td>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Button
-                        size={Size.Small}
-                        variant={Variant.Outlined}
-                        color={Color.Secondary}
-                        onClick={() => adjustQuantity(item, -1)}
-                        disabled={item.quantity <= 0}
-                        aria-label="decrease"
-                      >
-                        −
-                      </Button>
-                      <div style={{ width: 140 }}>
-                        <NumericTextBox
-                          min={0}
-                          value={item.quantity}
-                          onChange={(e) => setQuantity(item, e.value as number | null | undefined)}
-                        />
-                      </div>
-                      <Button
-                        size={Size.Small}
-                        variant={Variant.Outlined}
-                        color={Color.Secondary}
-                        onClick={() => adjustQuantity(item, 1)}
-                        aria-label="increase"
-                      >
-                        +
-                      </Button>
-                      <span style={{ color: 'var(--color-text-muted)', fontSize: 13 }}>
-                        {item.unit}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-                    {new Date(item.updatedAt).toLocaleString('th-TH')}
-                  </td>
-                  <td>
-                    <Button
-                      size={Size.Small}
-                      variant={Variant.Outlined}
-                      color={Color.Error}
-                      onClick={() => handleDelete(item)}
-                      aria-label="delete"
-                    >
-                      🗑️
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Grid dataSource={stock as StockItemDto[]} height="auto">
+          <Columns>
+            <Column field="ingredientName" headerText="วัตถุดิบ" />
+            <Column headerText="คงเหลือ" width={340} template={QuantityTemplate} />
+            <Column headerText="อัปเดตล่าสุด" template={UpdatedAtTemplate} />
+            <Column headerText="" width={80} template={ActionsTemplate} />
+          </Columns>
+        </Grid>
       )}
     </section>
   )

@@ -4,6 +4,8 @@ import { Controller, useFieldArray, useForm } from 'react-hook-form'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { NumericTextBox, TextArea, TextBox } from '@syncfusion/react-inputs'
 import { Autocomplete } from '@syncfusion/react-dropdowns'
+import { Grid, Column, Columns } from '@syncfusion/react-grid'
+import type { ColumnTemplateProps } from '@syncfusion/react-grid'
 import {
   useCreateIngredientMutation,
   useCreateRecipeMutation,
@@ -26,6 +28,8 @@ interface RecipeFormValues {
   description: string
   lines: RecipeFormLine[]
 }
+
+type RecipeFieldRow = RecipeFormLine & { id: string }
 
 export function RecipeDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -187,6 +191,48 @@ export function RecipeDetailPage() {
     }
   }
 
+  const QuantityTemplate = ({ data: row }: ColumnTemplateProps<RecipeFieldRow>) => {
+    const index = fields.findIndex((f) => f.id === row.id)
+    const lineErrors = errors.lines?.[index]
+    return (
+      <div>
+        <Controller
+          control={control}
+          name={`lines.${index}.quantity` as const}
+          rules={{
+            validate: (v) =>
+              (v != null && Number(v) > 0) || 'ต้องเป็นเลขบวก',
+          }}
+          render={({ field: qField }) => (
+            <NumericTextBox
+              min={0}
+              value={qField.value ?? null}
+              onChange={(e) => qField.onChange((e.value as number | null) ?? null)}
+            />
+          )}
+        />
+        {lineErrors?.quantity && (
+          <p className="field-error">{lineErrors.quantity.message}</p>
+        )}
+      </div>
+    )
+  }
+
+  const LineActionsTemplate = ({ data: row }: ColumnTemplateProps<RecipeFieldRow>) => {
+    const index = fields.findIndex((f) => f.id === row.id)
+    return (
+      <Button
+        type="button"
+        size={Size.Small}
+        variant={Variant.Outlined}
+        color={Color.Secondary}
+        onClick={() => remove(index)}
+      >
+        ✕
+      </Button>
+    )
+  }
+
   if (!isNew && isLoadingRecipe) return <p style={{ padding: 32 }}>Loading recipe…</p>
   if (!isNew && recipeError) return <p style={{ padding: 32 }}>Recipe not found.</p>
 
@@ -268,59 +314,15 @@ export function RecipeDetailPage() {
           </label>
 
           {fields.length > 0 && (
-            <div className="table-scroll" style={{ marginBottom: 12 }}>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th style={{ width: 180 }}>Quantity *</th>
-                    <th style={{ width: 80 }}>Unit</th>
-                    <th style={{ width: 60 }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {fields.map((field, index) => {
-                    const lineErrors = errors.lines?.[index]
-                    return (
-                      <tr key={field.id}>
-                        <td>{field.ingredientName}</td>
-                        <td>
-                          <Controller
-                            control={control}
-                            name={`lines.${index}.quantity` as const}
-                            rules={{
-                              validate: (v) =>
-                                (v != null && Number(v) > 0) || 'ต้องเป็นเลขบวก',
-                            }}
-                            render={({ field: qField }) => (
-                              <NumericTextBox
-                                min={0}
-                                value={qField.value ?? null}
-                                onChange={(e) => qField.onChange((e.value as number | null) ?? null)}
-                              />
-                            )}
-                          />
-                          {lineErrors?.quantity && (
-                            <p className="field-error">{lineErrors.quantity.message}</p>
-                          )}
-                        </td>
-                        <td>{field.unit}</td>
-                        <td>
-                          <Button
-                            type="button"
-                            size={Size.Small}
-                            variant={Variant.Outlined}
-                            color={Color.Secondary}
-                            onClick={() => remove(index)}
-                          >
-                            ✕
-                          </Button>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+            <div style={{ marginBottom: 12 }}>
+              <Grid dataSource={fields as RecipeFieldRow[]} height="auto">
+                <Columns>
+                  <Column field="ingredientName" headerText="Name" />
+                  <Column headerText="Quantity *" width={180} template={QuantityTemplate} />
+                  <Column field="unit" headerText="Unit" width={80} />
+                  <Column headerText="" width={60} template={LineActionsTemplate} />
+                </Columns>
+              </Grid>
             </div>
           )}
 
