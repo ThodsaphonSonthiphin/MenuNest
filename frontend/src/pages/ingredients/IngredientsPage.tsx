@@ -1,19 +1,25 @@
-import { useCallback } from 'react'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
-import { useAuthDataManager } from '../../shared/data/useAuthDataManager'
-import { api } from '../../shared/api/api'
-import { useAppDispatch } from '../../store'
+import {
+  useListIngredientsQuery,
+  useCreateIngredientMutation,
+  useUpdateIngredientMutation,
+  useDeleteIngredientMutation,
+} from '../../shared/api/api'
+import { useRtkDataManager } from '../../shared/data/useRtkDataManager'
 
 export function IngredientsPage() {
-  const dm = useAuthDataManager({ url: '/api/ingredients' })
-  const dispatch = useAppDispatch()
+  const { data } = useListIngredientsQuery()
+  const [create] = useCreateIngredientMutation()
+  const [update] = useUpdateIngredientMutation()
+  const [remove] = useDeleteIngredientMutation()
 
-  // After any CRUD operation completes, invalidate RTK Query cache so other
-  // pages (recipes, stock, etc.) that depend on the ingredients list stay
-  // in sync.
-  const handleDataChangeComplete = useCallback(() => {
-    dispatch(api.util.invalidateTags([{ type: 'Ingredients', id: 'LIST' }]))
-  }, [dispatch])
+  const dm = useRtkDataManager(data, {
+    key: 'id',
+    onAdd: (row) => create({ name: row.name as string, unit: row.unit as string }).unwrap(),
+    onUpdate: (row) =>
+      update({ id: row.id as string, name: row.name as string, unit: row.unit as string }).unwrap(),
+    onDelete: (rows) => remove(rows[0].id as string).unwrap(),
+  })
 
   return (
     <section className="page page--ingredients">
@@ -38,7 +44,6 @@ export function IngredientsPage() {
             mode: 'Normal',
             confirmOnDelete: true,
           }}
-          onDataChangeComplete={handleDataChangeComplete}
           height="auto"
         >
           <Columns>

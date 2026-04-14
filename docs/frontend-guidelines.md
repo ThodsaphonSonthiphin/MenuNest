@@ -41,7 +41,7 @@ accessibility, keyboard navigation, theming, and edit-in-place for free.
 
 | UI need | Pure React package |
 |---|---|
-| **Tables (any tabular data)** | `@syncfusion/react-grid` — **always** use DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never use plain `<table>`. Use `@syncfusion/react-data` DataManager + `useAuthDataManager` hook (at `shared/data/useAuthDataManager.ts`) for server-side CRUD — toolbar Add/Edit/Delete goes through DataManager → REST API directly. Call `dispatch(api.util.invalidateTags([...]))` after DataManager mutates to sync RTK Query cache. |
+| **Tables (any tabular data)** | `@syncfusion/react-grid` — **always** use DataGrid with inline editing ([docs](https://react.syncfusion.com/react-ui/data-grid/editing/inline-editing/)). Never use plain `<table>`. Use `useRtkDataManager` hook (at `shared/data/useRtkDataManager.ts`) to wrap RTK Query data in a Syncfusion `DataManager` — Grid reads from RTK cache, CRUD calls RTK mutations, cache sync is automatic. See "DataManager + RTK Query pattern" below. |
 | Calendar / weekly planner | `@syncfusion/react-scheduler` (`Scheduler`, `DayView`, `WeekView`, …) |
 | Modal dialogs / tooltips | `@syncfusion/react-popups` (`Dialog`, `Tooltip`) |
 | Autocomplete / dropdown | `@syncfusion/react-dropdowns` (`DropDownList`, `ComboBox`, `AutoComplete`) |
@@ -141,6 +141,55 @@ src/
 
 Each page **must** keep server state in `shared/api/api.ts`. The slice is
 only for UI state (filter strings, "is this dialog open", focused entry id).
+
+## 4b. DataManager + RTK Query pattern
+
+**Always use this pattern for Syncfusion DataGrid.** The hook
+`shared/data/useRtkDataManager.ts` bridges RTK Query and Syncfusion's
+`DataManager`:
+
+```
+Server ←→ RTK Query (fetch + cache + auth) ←→ useRtkDataManager ←→ Grid
+```
+
+**Read:** RTK Query hook fetches from server → cache → `useRtkDataManager`
+wraps data in a `DataManager` (JsonAdaptor) → Grid renders it.
+
+**Write:** Grid toolbar Add/Edit/Delete → custom adaptor calls the RTK Query
+mutation callbacks you provide → mutation hits server → RTK Query cache
+auto-invalidates → `data` changes → DataManager recreated → Grid refreshes.
+
+```tsx
+// Example usage
+const { data } = useListIngredientsQuery()
+const [create] = useCreateIngredientMutation()
+const [update] = useUpdateIngredientMutation()
+const [remove] = useDeleteIngredientMutation()
+
+const dm = useRtkDataManager(data, {
+  key: 'id',
+  onAdd: (row) => create({ name: row.name, unit: row.unit }).unwrap(),
+  onUpdate: (row) => update({ id: row.id, name: row.name, unit: row.unit }).unwrap(),
+  onDelete: (rows) => remove(rows[0].id).unwrap(),
+})
+
+if (!dm) return <p>Loading…</p>
+
+<Grid dataSource={dm} toolbar={['Add','Edit','Delete','Update','Cancel']}
+      editSettings={{ allowAdd: true, allowEdit: true, allowDelete: true }}>
+  ...
+</Grid>
+```
+
+**For DropDownEdit columns:** also use `useRtkDataManager` for the
+dropdown's `edit.params.dataSource` — this ensures ingredients (or other
+reference data) are loaded before the Grid mounts.
+
+**Why not DataManager + UrlAdaptor directly?**
+- Our REST API returns plain arrays, not `{ Items, Count }` format
+- Auth (MSAL Bearer token) is async — Syncfusion's `beforeSend` is sync
+- RTK Query already handles caching, dedup, and tag-based invalidation
+- Using RTK Query as the transport layer avoids duplicating all of that
 
 ## 5. Languages
 

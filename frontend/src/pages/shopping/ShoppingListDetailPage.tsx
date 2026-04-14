@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { Grid, Column, Columns } from '@syncfusion/react-grid'
@@ -6,21 +5,21 @@ import type { ColumnTemplateProps } from '@syncfusion/react-grid'
 import {
   useGetShoppingListDetailQuery,
   useListIngredientsQuery,
-  api,
+  useAddShoppingListItemMutation,
+  useDeleteShoppingListItemMutation,
 } from '../../shared/api/api'
-import type { ShoppingListItemDto, ShoppingListDetailDto } from '../../shared/api/api'
+import type { ShoppingListItemDto } from '../../shared/api/api'
 import { useShoppingListDetail } from './hooks/useShoppingListDetail'
-import { useAuthDataManager } from '../../shared/data/useAuthDataManager'
-import { useAppDispatch } from '../../store'
+import { useRtkDataManager } from '../../shared/data/useRtkDataManager'
 
 export function ShoppingListDetailPage() {
   const { id } = useParams<{ id: string }>()
   const listId = id!
-  const dispatch = useAppDispatch()
 
   const { data, isLoading, error } = useGetShoppingListDetailQuery(listId)
   const { data: allIngredients } = useListIngredientsQuery()
-
+  const [addItem] = useAddShoppingListItemMutation()
+  const [deleteItem] = useDeleteShoppingListItemMutation()
   const {
     errorMessage,
     isBuying,
@@ -33,36 +32,22 @@ export function ShoppingListDetailPage() {
     handleRegenerate,
   } = useShoppingListDetail(listId)
 
-  // DataManager for unbought-items grid CRUD (Add / Delete).
-  // GET  → /api/shopping-lists/{id}  (detail endpoint, then extract unbought items)
-  // POST → /api/shopping-lists/{id}/items
-  // DEL  → /api/shopping-lists/{id}/items/{itemId}
-  const transformResponse = useCallback(
-    (raw: unknown) => {
-      const detail = raw as ShoppingListDetailDto
-      if (detail?.items) {
-        return detail.items.filter((i) => !i.isBought)
-      }
-      // If the response is already an array (e.g. after insert/delete) pass through
-      return raw
-    },
-    [],
-  )
+  const unboughtItems = data?.items.filter((i) => !i.isBought)
 
-  const dm = useAuthDataManager({
-    url: `/api/shopping-lists/${listId}/items`,
-    readUrl: `/api/shopping-lists/${listId}`,
-    transformResponse,
+  const dm = useRtkDataManager(unboughtItems, {
+    key: 'id',
+    onAdd: (row) =>
+      addItem({
+        listId,
+        ingredientId: row.ingredientId as string,
+        quantity: Number(row.quantity) || 1,
+      }).unwrap(),
+    onDelete: (rows) => deleteItem({ listId, itemId: rows[0].id as string }).unwrap(),
   })
 
-  // After the Grid completes an Add/Delete via DataManager, invalidate RTK
-  // Query cache so counts, bought/unbought split, and other pages stay in sync.
-  const handleDataChangeComplete = useCallback(() => {
-    dispatch(api.util.invalidateTags([
-      { type: 'ShoppingListDetail', id: listId },
-      { type: 'ShoppingLists', id: 'LIST' },
-    ]))
-  }, [dispatch, listId])
+  // Read-only DataManager for the ingredients dropdown in the unbought grid editor.
+  // Returns null until allIngredients is loaded, so we can guard Grid mount.
+  const ingredientsDm = useRtkDataManager(allIngredients, { key: 'id' })
 
   if (isLoading) {
     return (
@@ -81,13 +66,7 @@ export function ShoppingListDetailPage() {
     )
   }
 
-  const unboughtItems = data.items.filter((i) => !i.isBought)
   const boughtItems = data.items.filter((i) => i.isBought)
-
-  const existingIngredientIds = new Set(data.items.map((i) => i.ingredientId))
-  const availableIngredients = (allIngredients ?? []).filter(
-    (i) => !existingIngredientIds.has(i.id),
-  )
 
   const hasMealPlanSource = data.items.some(
     (i) => i.sourceMealPlanEntryIds != null && i.sourceMealPlanEntryIds.length > 0,
@@ -238,14 +217,14 @@ export function ShoppingListDetailPage() {
         </div>
       </div>
 
-      {/* Unbought section — uses DataManager for Add/Delete when active */}
+      {/* Unbought section */}
       <div style={{ marginBottom: 24 }}>
-        {unboughtItems.length > 0 && (
+        {unboughtItems && unboughtItems.length > 0 && (
           <h2 style={{ fontSize: 15, marginBottom: 8, color: 'var(--color-text-muted)' }}>
             ยังไม่ได้ซื้อ ({unboughtItems.length})
           </h2>
         )}
-        {isActive && dm ? (
+        {isActive && dm && ingredientsDm ? (
           <Grid
             dataSource={dm}
             toolbar={['Add', 'Delete', 'Update', 'Cancel']}
@@ -256,7 +235,6 @@ export function ShoppingListDetailPage() {
               mode: 'Normal',
               confirmOnDelete: true,
             }}
-            onDataChangeComplete={handleDataChangeComplete}
             height="auto"
           >
             <Columns>
@@ -268,7 +246,7 @@ export function ShoppingListDetailPage() {
                 edit={{
                   type: 'DropDownEdit',
                   params: {
-                    dataSource: availableIngredients,
+                    dataSource: ingredientsDm,
                     fields: { text: 'name', value: 'id' },
                     placeholder: 'เลือกวัตถุดิบ',
                   },
@@ -288,10 +266,10 @@ export function ShoppingListDetailPage() {
               />
             </Columns>
           </Grid>
-        ) : isActive && !dm ? (
+        ) : isActive ? (
           <p style={{ color: 'var(--color-text-muted)' }}>Loading...</p>
         ) : (
-          unboughtItems.length > 0 && (
+          unboughtItems && unboughtItems.length > 0 && (
             <Grid dataSource={unboughtItems as ShoppingListItemDto[]} height="auto">
               <Columns>
                 <Column field="ingredientName" headerText="วัตถุดิบ" template={UnboughtNameTemplate} />
@@ -320,7 +298,7 @@ export function ShoppingListDetailPage() {
         </div>
       )}
 
-      {unboughtItems.length === 0 && boughtItems.length === 0 && (
+      {(!unboughtItems || unboughtItems.length === 0) && boughtItems.length === 0 && (
         <p style={{ textAlign: 'center', padding: 32, color: 'var(--color-text-muted)' }}>
           ยังไม่มีรายการ — คลิก + Add ในตารางด้านบนเพื่อเพิ่มรายการ
         </p>
