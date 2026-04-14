@@ -53,7 +53,26 @@ public sealed class GeminiChatService : IAiChatService
             .FirstAsync(ct);
 
         var request = BuildRequest(history, userMessage, familyInfo.Name, familyInfo.MemberCount);
-        return await RunToolLoopAsync(request, familyId, userId, ct);
+
+        try
+        {
+            return await RunToolLoopAsync(request, familyId, userId, ct);
+        }
+        catch (GenerativeAI.Exceptions.ApiException ex) when (ex.Message.Contains("503") || ex.Message.Contains("UNAVAILABLE"))
+        {
+            _logger.LogWarning(ex, "Gemini API unavailable (503)");
+            return new AiChatResponse("ขออภัยค่ะ AI กำลังมีผู้ใช้จำนวนมาก กรุณาลองใหม่อีกครั้งในอีกสักครู่นะคะ", null, null, false);
+        }
+        catch (GenerativeAI.Exceptions.ApiException ex) when (ex.Message.Contains("429") || ex.Message.Contains("RESOURCE_EXHAUSTED"))
+        {
+            _logger.LogWarning(ex, "Gemini API rate limited (429)");
+            return new AiChatResponse("ขออภัยค่ะ ใช้งานเกินโควต้าชั่วคราว กรุณารอสักครู่แล้วลองใหม่นะคะ", null, null, false);
+        }
+        catch (GenerativeAI.Exceptions.ApiException ex)
+        {
+            _logger.LogError(ex, "Gemini API error");
+            return new AiChatResponse("ขออภัยค่ะ เกิดข้อผิดพลาดกับ AI กรุณาลองใหม่อีกครั้งนะคะ", null, null, false);
+        }
     }
 
     public async Task<AiChatResponse> ExecutePendingActionsAsync(
@@ -113,10 +132,17 @@ public sealed class GeminiChatService : IAiChatService
             SystemInstruction = request.SystemInstruction
         };
 
-        var response = await _model.GenerateContentAsync(summaryRequest, ct);
-        var text = response.Text() ?? "";
-
-        return new AiChatResponse(text, null, null, false);
+        try
+        {
+            var response = await _model.GenerateContentAsync(summaryRequest, ct);
+            var text = response.Text() ?? "";
+            return new AiChatResponse(text, null, null, false);
+        }
+        catch (GenerativeAI.Exceptions.ApiException ex)
+        {
+            _logger.LogWarning(ex, "Gemini API error during pending action summary");
+            return new AiChatResponse("ดำเนินการเสร็จแล้วค่ะ แต่ไม่สามารถสรุปผลได้ชั่วคราว", null, null, false);
+        }
     }
 
     private async Task<AiChatResponse> RunToolLoopAsync(
