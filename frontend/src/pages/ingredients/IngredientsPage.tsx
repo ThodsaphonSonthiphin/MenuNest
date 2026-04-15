@@ -20,9 +20,8 @@ export function IngredientsPage() {
   const { dm, onDataChangeStart } = useRtkDataManager(data, {
     key: 'id',
     gridRef,
-    onAdd: (row) => create({ name: row.name as string, unit: row.unit as string }).unwrap(),
-    onUpdate: (row) =>
-      update({ id: row.ingredientId as string, name: row.name as string, unit: row.unit as string }).unwrap(),
+    onAdd: async (row) => { await create({ name: row.name as string, unit: row.unit as string }).unwrap() },
+    onUpdate: async (row) => { await update({ id: row.ingredientId as string, name: row.name as string, unit: row.unit as string }).unwrap() },
     onDelete: (rows) => remove(rows[0].ingredientId as string).unwrap(),
   })
 

@@ -90,8 +90,8 @@ export function MealSlotDetail({ entries, onAddRecipe, onClose }: MealSlotDetail
     )
   }
 
-  const rowClass = ({ data: entry }: { data?: MealPlanEntryDto }) => {
-    if (entry && entry.status !== 'Planned') return 'row--cooked'
+  const rowClass = (props?: { data?: MealPlanEntryDto }) => {
+    if (props?.data?.status === 'Cooked') return 'row--cooked'
     return ''
   }
 

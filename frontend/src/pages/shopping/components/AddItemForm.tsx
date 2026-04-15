@@ -28,7 +28,7 @@ export function AddItemForm({ existingItems, onAdd, isAdding }: AddItemFormProps
   const existingIngredientIds = new Set(existingItems.map((i) => i.ingredientId))
 
   const availableIngredients = (allIngredients ?? []).filter(
-    (i) => !existingIngredientIds.has(i.id),
+    (i) => !existingIngredientIds.has(i.ingredientId),
   )
 
   const onSubmit = handleSubmit(async ({ quantity }) => {
@@ -45,7 +45,7 @@ export function AddItemForm({ existingItems, onAdd, isAdding }: AddItemFormProps
       setPickerError(`ไม่พบ "${typed}" ในรายการวัตถุดิบ`)
       return
     }
-    if (existingIngredientIds.has(match.id)) {
+    if (existingIngredientIds.has(match.ingredientId)) {
       setPickerError(`"${match.name}" อยู่ในรายการนี้แล้ว`)
       return
     }
@@ -53,7 +53,7 @@ export function AddItemForm({ existingItems, onAdd, isAdding }: AddItemFormProps
       setPickerError('จำนวนต้องเป็นเลขบวก')
       return
     }
-    await onAdd(match.id, quantity)
+    await onAdd(match.ingredientId, quantity)
     setPickerValue('')
     reset({ quantity: 1 })
   })
@@ -66,7 +66,7 @@ export function AddItemForm({ existingItems, onAdd, isAdding }: AddItemFormProps
           <div style={{ flex: 1, minWidth: 180, display: 'flex', flexDirection: 'column', gap: 4 }}>
             <Autocomplete
               dataSource={availableIngredients.map((i) => ({
-                id: i.id,
+                id: i.ingredientId,
                 label: i.name,
               }))}
               fields={{ text: 'label', value: 'label' }}

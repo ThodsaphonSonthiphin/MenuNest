@@ -39,12 +39,11 @@ export function ShoppingListDetailPage() {
   const { dm, onDataChangeStart } = useRtkDataManager(unboughtItems, {
     key: 'id',
     gridRef,
-    onAdd: (row) =>
-      addItem({
+    onAdd: async (row) => { await addItem({
         listId,
         ingredientId: row.ingredientId as string,
         quantity: Number(row.quantity) || 1,
-      }).unwrap(),
+      }).unwrap() },
     onDelete: (rows) => deleteItem({ listId, itemId: rows[0].id as string }).unwrap(),
   })
 

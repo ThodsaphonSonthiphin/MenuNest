@@ -408,11 +408,11 @@ export function FamilyPage() {
       {/* ---- Add Relationship Dialog ---- */}
       {addRel.isOpen && (
         <Dialog
-          isModal
-          visible={addRel.isOpen}
+          modal={true}
+          open={addRel.isOpen}
           header="เพิ่มความสัมพันธ์"
-          close={addRel.close}
-          width="440px"
+          onClose={addRel.close}
+          style={{ width: '440px' }}
         >
           <form onSubmit={addRel.onSubmit} noValidate>
             <div
@@ -560,11 +560,11 @@ export function FamilyPage() {
       {/* ---- Rotate Confirm Dialog ---- */}
       {showRotateConfirm && (
         <Dialog
-          isModal
-          visible={showRotateConfirm}
+          modal={true}
+          open={showRotateConfirm}
           header="สร้างรหัสเชิญใหม่"
-          close={() => setShowRotateConfirm(false)}
-          width="380px"
+          onClose={() => setShowRotateConfirm(false)}
+          style={{ width: '380px' }}
         >
           <p style={{ margin: '16px 0' }}>
             รหัสเก่าจะใช้ไม่ได้อีกต่อไป — ต้องการสร้างรหัสใหม่?
@@ -597,11 +597,11 @@ export function FamilyPage() {
       {/* ---- Leave Confirm Dialog ---- */}
       {showLeaveConfirm && (
         <Dialog
-          isModal
-          visible={showLeaveConfirm}
+          modal={true}
+          open={showLeaveConfirm}
           header="ออกจากครอบครัว"
-          close={() => setShowLeaveConfirm(false)}
-          width="380px"
+          onClose={() => setShowLeaveConfirm(false)}
+          style={{ width: '380px' }}
         >
           <p style={{ margin: '16px 0' }}>
             คุณจะไม่เห็น recipe, stock, meal plan, และ shopping list

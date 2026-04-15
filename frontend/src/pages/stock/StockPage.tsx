@@ -45,7 +45,7 @@ export function StockPage() {
   })
 
   const stockedIds = new Set((stock ?? []).map((s) => s.ingredientId))
-  const availableIngredients = (ingredients ?? []).filter((i) => !stockedIds.has(i.id))
+  const availableIngredients = (ingredients ?? []).filter((i) => !stockedIds.has(i.ingredientId))
 
   const onAdd = addForm.handleSubmit(async (values) => {
     setErrorMessage(null)
@@ -189,7 +189,7 @@ export function StockPage() {
             render={({ field }) => (
               <DropDownList
                 dataSource={availableIngredients.map((i) => ({
-                  id: i.id,
+                  id: i.ingredientId,
                   label: `${i.name} (${i.unit})`,
                 }))}
                 fields={{ text: 'label', value: 'id' }}

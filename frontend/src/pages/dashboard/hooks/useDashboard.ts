@@ -91,7 +91,7 @@ export function useDashboard() {
   const stockCheckMap = useMemo<Record<string, { isSufficient: boolean; missingCount: number }>>(() => {
     if (!stockChecks || !meals) return {}
     const map: Record<string, { isSufficient: boolean; missingCount: number }> = {}
-    const checks = (stockChecks as Record<string, unknown>)?.checks
+    const checks = (stockChecks as unknown as Record<string, unknown>)?.checks
     if (Array.isArray(checks)) {
       for (const check of checks as Array<{ mealPlanEntryId: string; isSufficient: boolean; missingCount: number }>) {
         map[check.mealPlanEntryId] = {

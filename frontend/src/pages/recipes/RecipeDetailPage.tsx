@@ -80,7 +80,7 @@ export function RecipeDetailPage() {
     [fields],
   )
   const availableIngredients = (masterIngredients ?? []).filter(
-    (i) => !usedIngredientIds.has(i.id),
+    (i) => !usedIngredientIds.has(i.ingredientId),
   )
 
   const handleAddLine = async () => {
@@ -96,12 +96,12 @@ export function RecipeDetailPage() {
     )
 
     if (match) {
-      if (usedIngredientIds.has(match.id)) {
+      if (usedIngredientIds.has(match.ingredientId)) {
         setPickerError(`"${match.name}" อยู่ใน recipe นี้แล้ว`)
         return
       }
       append({
-        ingredientId: match.id,
+        ingredientId: match.ingredientId,
         ingredientName: match.name,
         unit: match.unit,
         quantity: 1,
@@ -120,7 +120,7 @@ export function RecipeDetailPage() {
     try {
       const created = await createIngredient({ name: typed, unit }).unwrap()
       append({
-        ingredientId: created.id,
+        ingredientId: created.ingredientId,
         ingredientName: created.name,
         unit: created.unit,
         quantity: 1,
@@ -330,7 +330,7 @@ export function RecipeDetailPage() {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4, minWidth: 180 }}>
               <Autocomplete
                 dataSource={availableIngredients.map((i) => ({
-                  id: i.id,
+                  id: i.ingredientId,
                   label: i.name,
                   unit: i.unit,
                 }))}
