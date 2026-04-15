@@ -80,9 +80,12 @@ jobs:
           action: "upload"                  # upload ไฟล์ขึ้น Static Web App
 
           ###### Build Configurations ######
-          app_location: "./frontend"        # path ที่ source code frontend อยู่
+          # สำคัญ: เมื่อ skip_app_build: true → Azure upload app_location ตรงๆ
+          # ถ้าชี้ไป ./frontend จะ upload ทั้งโฟลเดอร์ (รวม node_modules 425 MB) → เกิน 250 MB limit
+          # ต้องชี้ไปที่ built output (dist) ตรงๆ
+          app_location: "frontend/dist"     # path ของ built output (ไม่ใช่ source)
           api_location: ""                  # path สำหรับ Azure Functions (ไม่ใช้ — backend เราอยู่ App Service)
-          output_location: "dist"           # path ของ build output (Vite = dist, React CRA = build)
+          output_location: ""               # ว่างไว้ — app_location ชี้ไป dist แล้ว
           skip_app_build: true              # ✅ skip build ภายใน Azure — เราทำเองใน Step 4 แล้ว
                                             # ทำไมต้อง skip? เพื่อ inject env vars ได้
 
