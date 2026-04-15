@@ -1,0 +1,86 @@
+# =============================================================
+# CI Pipeline — ทดสอบว่า code ไม่พังทุกครั้งที่ push หรือสร้าง PR
+# =============================================================
+
+# ชื่อที่แสดงใน GitHub Actions tab
+name: CI
+
+# ===== TRIGGER: ทำงานเมื่อไหร่ =====
+on:
+  # ทุกครั้งที่ push ไป branch ใดก็ได้
+  push:
+    branches: [ main, feat/** ]
+
+  # ทุกครั้งที่สร้างหรืออัพเดต Pull Request ไป main
+  pull_request:
+    branches: [ main ]
+
+# ===== JOBS: งานที่ต้องทำ =====
+# แต่ละ job รันบนเครื่อง VM ฟรีของ GitHub
+# หลาย jobs สามารถรัน parallel ได้
+
+jobs:
+
+  # ----- Job 1: Backend (Build + Test) -----
+  backend:
+    name: Backend Build & Test
+    runs-on: ubuntu-latest    # เครื่อง Linux ฟรีจาก GitHub
+
+    steps:
+      # Step 1: ดึง code จาก repo มาที่เครื่อง runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: ติดตั้ง .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      # Step 3: Restore NuGet packages (dependencies)
+      - name: Restore dependencies
+        run: dotnet restore
+        working-directory: backend
+
+      # Step 4: Build — compile code ดูว่าไม่มี error
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+        working-directory: backend
+
+      # Step 5: Test — รัน unit tests (ถ้ามี)
+      - name: Test
+        run: dotnet test --no-build --configuration Release --verbosity normal
+        working-directory: backend
+
+  # ----- Job 2: Frontend (Build) -----
+  # รัน parallel กับ backend — ไม่ต้องรอกัน
+  frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: ติดตั้ง Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'                    # cache node_modules ให้เร็วขึ้นครั้งถัดไป
+          cache-dependency-path: frontend/package-lock.json
+
+      # Step 3: Install npm packages
+      - name: Install dependencies
+        run: npm ci                        # ci = clean install (เร็วกว่า npm install สำหรับ CI)
+        working-directory: frontend
+
+      # Step 4: Type check — เช็ค TypeScript errors
+      - name: Type check
+        run: npx tsc --noEmit
+        working-directory: frontend
+
+      # Step 5: Build production — ดูว่า build สำเร็จ
+      - name: Build
+        run: npm run build
+        working-directory: frontend
