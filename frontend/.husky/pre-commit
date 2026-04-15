@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+
+echo "=== Pre-commit: Backend build ==="
+cd backend
+dotnet build --no-restore --configuration Release
+
+echo "=== Pre-commit: Backend tests ==="
+dotnet test --no-build --configuration Release --verbosity minimal
+
+echo "=== Pre-commit: Frontend typecheck ==="
+cd ../frontend
+npx tsc --noEmit
+
+echo "=== Pre-commit: Frontend build ==="
+npm run build
+
+echo "=== All checks passed ==="
