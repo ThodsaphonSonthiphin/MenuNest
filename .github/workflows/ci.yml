@@ -19,6 +19,11 @@ on:
 # แต่ละ job รันบนเครื่อง VM ฟรีของ GitHub
 # หลาย jobs สามารถรัน parallel ได้
 
+env:
+  # บังคับใช้ Node.js 24 ใน actions (actions/checkout, setup-node ฯลฯ)
+  # ไม่ต้องรอ warning อีก
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
 
   # ----- Job 1: Backend (Build + Test) -----
