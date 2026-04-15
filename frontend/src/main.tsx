@@ -75,4 +75,5 @@ async function bootstrap() {
   )
 }
 
+// pre-commit hook test
 bootstrap()
