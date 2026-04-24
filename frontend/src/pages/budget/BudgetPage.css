@@ -1,0 +1,244 @@
+.budget-page {
+  --bg: #1c1f2e;
+  --panel: #151829;
+  --border: #2a2d45;
+  --text: #e8eaf0;
+  --text-dim: #888;
+  --text-muted: #666;
+  --green: #66bb6a;
+  --red: #ef5350;
+  --orange: #ffa726;
+  --blue: #7986cb;
+  --accent: #3949ab;
+
+  display: flex;
+  height: calc(100vh - 56px);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  overflow: hidden;
+}
+
+/* ----- 3-column base layout ----- */
+.budget-accounts-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+.budget-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+.budget-summary-panel {
+  width: 320px;
+  flex-shrink: 0;
+  background: var(--panel);
+  border-left: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+/* ----- Tablet: hide accounts sidebar, keep summary ----- */
+@media (max-width: 1279px) {
+  .budget-accounts-sidebar { display: none; }
+  .budget-summary-panel   { width: 280px; }
+}
+
+/* ----- Mobile: hide both side panels, open via drawers ----- */
+@media (max-width: 767px) {
+  .budget-summary-panel { display: none; }
+  .budget-page { height: calc(100vh - 56px); }
+}
+
+/* ----- Drawer (mobile + tablet) ----- */
+.budget-drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 300;
+}
+.budget-drawer {
+  position: fixed; top: 56px; bottom: 0; width: min(88vw, 340px);
+  background: var(--panel); z-index: 301;
+  display: flex; flex-direction: column; overflow-y: auto;
+  border: 1px solid var(--border);
+  animation: slideIn .18s ease-out;
+}
+.budget-drawer--left  { left: 0;  border-left: 0; }
+.budget-drawer--right { right: 0; border-right: 0; }
+@keyframes slideIn { from { transform: translateX(-8%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* ----- Mobile toolbar ----- */
+.budget-mobile-bar {
+  display: none; align-items: center; gap: 8px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+}
+.budget-mobile-bar button {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 10px; font-size: 16px; cursor: pointer;
+}
+@media (max-width: 1279px) { .budget-mobile-bar { display: flex; } }
+
+/* ----- Month strip ----- */
+.budget-month-strip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--bg);
+  flex-shrink: 0;
+}
+.budget-month-strip button {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 16px; padding: 4px 10px; border-radius: 6px;
+}
+.budget-month-strip button:hover { background: var(--border); color: var(--text); }
+.budget-month-strip .label { font-size: 15px; font-weight: 700; color: var(--text); }
+
+/* ----- Ready-to-assign header ----- */
+.budget-rta {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px; border-radius: 20px;
+  background: var(--panel); border: 1px solid var(--border);
+  margin-left: auto;
+}
+.budget-rta-amount { font-size: 16px; font-weight: 700; color: var(--green); }
+.budget-rta-amount.negative { color: var(--red); }
+.budget-rta-label { font-size: 11px; color: var(--text-dim); }
+
+/* ----- Filter chips ----- */
+.budget-filters {
+  display: flex; gap: 6px; padding: 8px 20px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); background: var(--bg); flex-shrink: 0;
+}
+.budget-chip {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1px solid transparent; color: var(--text-dim); cursor: pointer;
+  background: transparent; user-select: none;
+}
+.budget-chip:hover { background: var(--panel); color: var(--text); }
+.budget-chip.active { background: var(--panel); border-color: var(--border); color: var(--text); }
+.budget-chip.danger { background: #2a1515; border-color: #c62828; color: #ef9a9a; }
+
+/* ----- Envelope table ----- */
+.budget-envelopes { flex: 1; overflow-y: auto; }
+.budget-envelopes table { width: 100%; border-collapse: collapse; }
+.budget-envelopes thead th {
+  position: sticky; top: 0; background: var(--bg); z-index: 10;
+  padding: 8px 16px; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted);
+  text-align: left; border-bottom: 1px solid var(--border);
+}
+.budget-envelopes th.right, .budget-envelopes td.right { text-align: right; }
+
+.budget-group-row td {
+  padding: 8px 16px 4px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .6px;
+  color: var(--text-muted); background: #191c2d;
+  border-top: 1px solid var(--border);
+}
+.budget-cat-row { cursor: pointer; transition: background .1s; }
+.budget-cat-row:hover { background: #20243a; }
+.budget-cat-row td { padding: 8px 16px; border-bottom: 1px solid #1e2238; }
+.budget-cat-row.overspent { background: #1e1520; }
+
+.budget-cat-name { display: flex; align-items: center; gap: 8px; font-weight: 500; color: #d0d4e8; }
+.budget-cat-emoji { width: 18px; text-align: center; font-size: 14px; }
+.budget-cat-target { font-size: 11px; color: var(--text-dim); margin-top: 1px; }
+.budget-cat-target.urgent { color: var(--orange); }
+.budget-cat-target.overspent { color: var(--red); }
+.budget-cat-progress { height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; }
+.budget-cat-progress-fill { height: 100%; border-radius: 2px; }
+
+.budget-assigned-input {
+  width: 100px; text-align: right; border: 1px solid transparent; border-radius: 6px;
+  padding: 4px 8px; font-size: 13px; font-weight: 500; background: transparent; color: var(--text);
+}
+.budget-assigned-input:hover { border-color: var(--border); background: #20243a; }
+.budget-assigned-input:focus { border-color: var(--accent); background: #20243a; outline: none; }
+
+.budget-avail-pill {
+  display: inline-flex; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 700;
+}
+.budget-avail-pill.green  { background: #1b3a1c; color: var(--green); }
+.budget-avail-pill.orange { background: #3a2a10; color: var(--orange); border: 1px solid #5a3a10; }
+.budget-avail-pill.red    { background: #3a1010; color: var(--red); }
+.budget-avail-pill.zero   { background: #252845; color: var(--text-muted); }
+
+.budget-row-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+.budget-row-btn {
+  font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: transparent; color: #9fa8da; cursor: pointer;
+}
+.budget-row-btn.danger { background: #2a1515; color: var(--red); border-color: #c62828; }
+
+/* ----- Mobile: envelope rows re-stack ----- */
+@media (max-width: 767px) {
+  .budget-envelopes thead { display: none; }
+  .budget-envelopes tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .budget-envelopes td { padding: 0 !important; border: 0 !important; }
+  .budget-envelopes td[data-label]::before {
+    content: attr(data-label); display: block;
+    font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px;
+  }
+  .budget-assigned-input { width: 90px; }
+}
+
+/* ----- Accounts sidebar internals ----- */
+.budget-account-group-header {
+  padding: 14px 16px 4px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.budget-account-group-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--text-muted); }
+.budget-account-row {
+  display: flex; justify-content: space-between; padding: 6px 16px 6px 24px;
+  font-size: 12px; color: #bbb; cursor: pointer;
+}
+.budget-account-row:hover { background: #1e2238; }
+.budget-account-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+.budget-account-dot.credit { background: #ef9a9a; }
+.budget-account-dot.loan { background: var(--orange); }
+.budget-account-name { display: flex; align-items: center; gap: 6px; }
+.budget-sidebar-footer { padding: 12px 16px; display: flex; flex-direction: column; gap: 6px; }
+
+/* ----- Summary panel ----- */
+.budget-summary-section { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.budget-summary-title {
+  font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+  color: var(--text-muted); margin-bottom: 14px;
+}
+.budget-summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; }
+.budget-summary-row .label { color: var(--text-dim); }
+.budget-summary-row .val { font-weight: 600; color: #ccc; }
+.budget-summary-row .val.green { color: var(--green); }
+.budget-summary-row .val.red { color: var(--red); }
+.budget-summary-row .val.blue { color: var(--blue); }
+
+.budget-warning-banner {
+  background: #3a1010; border: 1px solid #c62828; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 10px;
+  font-size: 12px; color: #ef9a9a; line-height: 1.5;
+}
+.budget-panel-btn {
+  width: 100%; padding: 9px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: none; cursor: pointer; margin-bottom: 8px;
+}
+.budget-panel-btn.primary   { background: var(--accent); color: #fff; }
+.budget-panel-btn.secondary { background: #252845; color: #bbb; border: 1px solid var(--border); }
+.budget-panel-btn.danger    { background: #c62828; color: #fff; }
+
+/* ----- Modal shared ----- */
+.budget-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 400;
+  display: flex; align-items: center; justify-content: center; padding: 16px;
+}
+.budget-modal {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px 24px; width: min(440px, 92vw); color: var(--text);
+}
+.budget-modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+.budget-modal .subtitle { font-size: 12px; color: var(--text-dim); margin-bottom: 20px; }
+.budget-modal-field { margin-bottom: 14px; }
+.budget-modal-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); margin-bottom: 6px; }
+.budget-modal-row { display: flex; gap: 10px; }
+.budget-modal-row .budget-modal-field { flex: 1; }
+.budget-modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
