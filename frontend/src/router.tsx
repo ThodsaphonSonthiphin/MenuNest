@@ -12,6 +12,7 @@ import { MealPlanPage } from './pages/meal-plan'
 import { ShoppingListsPage, ShoppingListDetailPage } from './pages/shopping'
 import { IngredientsPage } from './pages/ingredients'
 import { AiAssistantPage } from './pages/ai-assistant'
+import { BudgetPage } from './pages/budget'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
               { path: '/shopping/:id', element: <ShoppingListDetailPage /> },
               { path: '/ingredients', element: <IngredientsPage /> },
               { path: '/family', element: <FamilyPage /> },
+              { path: '/budget', element: <BudgetPage /> },
               { path: '/ai-assistant', element: <AiAssistantPage /> },
               { path: '*', element: <Navigate to="/" replace /> },
             ],

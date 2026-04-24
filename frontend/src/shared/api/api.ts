@@ -270,6 +270,150 @@ export interface SpeechTokenDto {
     region: string
 }
 
+// ---------- Budget ----------
+export type BudgetAccountType = 'Cash' | 'Credit' | 'Loan' | 'Closed'
+export type BudgetTargetType = 'None' | 'MonthlyAmount' | 'ByDate' | 'MonthlySavingsBuilder'
+
+export interface BudgetAccountDto {
+    id: string
+    name: string
+    type: BudgetAccountType
+    balance: number
+    sortOrder: number
+    isClosed: boolean
+}
+
+export interface CategoryGroupDto {
+    id: string
+    name: string
+    sortOrder: number
+    isHidden: boolean
+}
+
+export interface BudgetCategoryDto {
+    id: string
+    groupId: string
+    name: string
+    emoji: string | null
+    sortOrder: number
+    isHidden: boolean
+    targetType: BudgetTargetType
+    targetAmount: number | null
+    targetDueDate: string | null
+    targetDayOfMonth: number | null
+}
+
+export interface EnvelopeDto {
+    categoryId: string
+    name: string
+    emoji: string | null
+    sortOrder: number
+    isHidden: boolean
+    assigned: number
+    activity: number
+    available: number
+    targetType: BudgetTargetType
+    targetAmount: number | null
+    targetDueDate: string | null
+    targetDayOfMonth: number | null
+    targetProgressFraction: number | null
+    targetHint: string | null
+}
+
+export interface EnvelopeGroupDto {
+    groupId: string
+    name: string
+    sortOrder: number
+    isHidden: boolean
+    totalAssigned: number
+    totalActivity: number
+    totalAvailable: number
+    categories: EnvelopeDto[]
+}
+
+export interface MonthlySummaryDto {
+    year: number
+    month: number
+    income: number
+    totalAssigned: number
+    totalActivity: number
+    readyToAssign: number
+    leftOverFromLastMonth: number
+    available: number
+    groups: EnvelopeGroupDto[]
+    accounts: BudgetAccountDto[]
+}
+
+export interface BudgetTransactionDto {
+    id: string
+    accountId: string
+    accountName: string
+    categoryId: string | null
+    categoryName: string | null
+    categoryEmoji: string | null
+    amount: number
+    date: string
+    notes: string | null
+    createdByUserId: string
+    createdByDisplayName: string
+}
+
+export interface CreateTransactionRequest {
+    accountId: string
+    categoryId: string | null
+    amount: number
+    date: string
+    notes: string | null
+}
+
+export interface UpdateTransactionRequest extends CreateTransactionRequest {}
+
+export interface UpsertCategoryRequest {
+    groupId: string
+    name: string
+    emoji: string | null
+    sortOrder: number
+    targetType: BudgetTargetType
+    targetAmount: number | null
+    targetDueDate: string | null
+    targetDayOfMonth: number | null
+}
+
+export interface UpsertGroupRequest {
+    name: string
+    sortOrder: number
+}
+
+export interface CreateAccountRequest {
+    name: string
+    type: BudgetAccountType
+    openingBalance: number
+    sortOrder: number
+}
+
+export interface UpdateAccountRequest {
+    name: string
+    sortOrder: number
+    isClosed: boolean
+    setBalance: number | null
+}
+
+export interface MoveMoneyRequest {
+    fromCategoryId: string
+    toCategoryId: string
+    year: number
+    month: number
+    amount: number
+}
+
+export interface CoverOverspendingRequest {
+    overspentCategoryId: string
+    fromCategoryId: string
+    year: number
+    month: number
+    amount: number
+}
+
 // ----------------------------------------------------------------------
 export const api = createApi({
     reducerPath: 'api',
@@ -294,6 +438,10 @@ export const api = createApi({
         'ShoppingListDetail',
         'ChatConversations',
         'ChatMessages',
+        'BudgetSummary',
+        'BudgetAccounts',
+        'BudgetGroups',
+        'BudgetTransactions',
     ],
     endpoints: (build) => ({
         // -------------------- Me / Family --------------------
@@ -645,6 +793,91 @@ export const api = createApi({
         getSpeechToken: build.query<SpeechTokenDto, void>({
             query: () => '/api/chat/speech-token',
         }),
+        // -------------------- Budget --------------------
+        getBudgetSummary: build.query<MonthlySummaryDto, {year: number; month: number}>({
+            query: ({year, month}) => `/api/budget/summary?year=${year}&month=${month}`,
+            providesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        listBudgetAccounts: build.query<BudgetAccountDto[], void>({
+            query: () => '/api/budget/accounts',
+            providesTags: ['BudgetAccounts'],
+        }),
+        createBudgetAccount: build.mutation<BudgetAccountDto, CreateAccountRequest>({
+            query: (b) => ({url: '/api/budget/accounts', method: 'POST', body: b}),
+            invalidatesTags: ['BudgetAccounts', {type: 'BudgetSummary', id: 'LIST'}],
+        }),
+        updateBudgetAccount: build.mutation<BudgetAccountDto, {id: string} & UpdateAccountRequest>({
+            query: ({id, ...b}) => ({url: `/api/budget/accounts/${id}`, method: 'PUT', body: b}),
+            invalidatesTags: ['BudgetAccounts'],
+        }),
+        deleteBudgetAccount: build.mutation<void, string>({
+            query: (id) => ({url: `/api/budget/accounts/${id}`, method: 'DELETE'}),
+            invalidatesTags: ['BudgetAccounts'],
+        }),
+        listBudgetGroups: build.query<CategoryGroupDto[], void>({
+            query: () => '/api/budget/groups',
+            providesTags: ['BudgetGroups'],
+        }),
+        createBudgetGroup: build.mutation<CategoryGroupDto, UpsertGroupRequest>({
+            query: (b) => ({url: '/api/budget/groups', method: 'POST', body: b}),
+            invalidatesTags: ['BudgetGroups'],
+        }),
+        updateBudgetGroup: build.mutation<CategoryGroupDto, {id: string} & UpsertGroupRequest>({
+            query: ({id, ...b}) => ({url: `/api/budget/groups/${id}`, method: 'PUT', body: b}),
+            invalidatesTags: ['BudgetGroups'],
+        }),
+        deleteBudgetGroup: build.mutation<void, string>({
+            query: (id) => ({url: `/api/budget/groups/${id}`, method: 'DELETE'}),
+            invalidatesTags: ['BudgetGroups'],
+        }),
+        createBudgetCategory: build.mutation<BudgetCategoryDto, UpsertCategoryRequest>({
+            query: (b) => ({url: '/api/budget/categories', method: 'POST', body: b}),
+            invalidatesTags: ['BudgetGroups'],
+        }),
+        updateBudgetCategory: build.mutation<BudgetCategoryDto, {id: string} & UpsertCategoryRequest>({
+            query: ({id, ...b}) => ({url: `/api/budget/categories/${id}`, method: 'PUT', body: b}),
+            invalidatesTags: ['BudgetGroups'],
+        }),
+        deleteBudgetCategory: build.mutation<void, string>({
+            query: (id) => ({url: `/api/budget/categories/${id}`, method: 'DELETE'}),
+            invalidatesTags: ['BudgetGroups'],
+        }),
+        setMonthlyIncome: build.mutation<void, {year: number; month: number; amount: number}>({
+            query: (b) => ({url: '/api/budget/monthly/income', method: 'PUT', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number}>({
+            query: (b) => ({url: '/api/budget/monthly/assigned', method: 'PUT', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        moveMoney: build.mutation<void, MoveMoneyRequest>({
+            query: (b) => ({url: '/api/budget/monthly/move', method: 'POST', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        coverOverspending: build.mutation<void, CoverOverspendingRequest>({
+            query: (b) => ({url: '/api/budget/monthly/cover', method: 'POST', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        listBudgetTransactions: build.query<BudgetTransactionDto[], {year: number; month: number; categoryId?: string}>({
+            query: ({year, month, categoryId}) =>
+                `/api/budget/transactions?year=${year}&month=${month}${categoryId ? `&categoryId=${categoryId}` : ''}`,
+            providesTags: ['BudgetTransactions'],
+        }),
+        createBudgetTransaction: build.mutation<BudgetTransactionDto, CreateTransactionRequest & {year: number; month: number}>({
+            query: ({year: _y, month: _m, ...b}) => ({url: '/api/budget/transactions', method: 'POST', body: b}),
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
+                {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        updateBudgetTransaction: build.mutation<BudgetTransactionDto, {id: string; year: number; month: number} & UpdateTransactionRequest>({
+            query: ({id, year: _y, month: _m, ...b}) => ({url: `/api/budget/transactions/${id}`, method: 'PUT', body: b}),
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
+                {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
+        deleteBudgetTransaction: build.mutation<void, {id: string; year: number; month: number}>({
+            query: ({id}) => ({url: `/api/budget/transactions/${id}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
+                {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+        }),
     }),
 })
 export const {
@@ -692,4 +925,24 @@ export const {
     useGetChatMessagesQuery,
     useSendChatMessageMutation,
     useGetSpeechTokenQuery,
+    useGetBudgetSummaryQuery,
+    useListBudgetAccountsQuery,
+    useCreateBudgetAccountMutation,
+    useUpdateBudgetAccountMutation,
+    useDeleteBudgetAccountMutation,
+    useListBudgetGroupsQuery,
+    useCreateBudgetGroupMutation,
+    useUpdateBudgetGroupMutation,
+    useDeleteBudgetGroupMutation,
+    useCreateBudgetCategoryMutation,
+    useUpdateBudgetCategoryMutation,
+    useDeleteBudgetCategoryMutation,
+    useSetMonthlyIncomeMutation,
+    useSetAssignedAmountMutation,
+    useMoveMoneyMutation,
+    useCoverOverspendingMutation,
+    useListBudgetTransactionsQuery,
+    useCreateBudgetTransactionMutation,
+    useUpdateBudgetTransactionMutation,
+    useDeleteBudgetTransactionMutation,
 } = api
