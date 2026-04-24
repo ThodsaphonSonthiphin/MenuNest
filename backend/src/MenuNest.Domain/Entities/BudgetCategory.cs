@@ -83,6 +83,20 @@ public sealed class BudgetCategory : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void SetMonthlySavingsBuilderTarget(decimal amount)
+    {
+        if (amount <= 0)
+        {
+            throw new DomainException("Target amount must be positive.");
+        }
+
+        TargetType = BudgetTargetType.MonthlySavingsBuilder;
+        TargetAmount = amount;
+        TargetDayOfMonth = null;
+        TargetDueDate = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void Hide()   { IsHidden = true;  UpdatedAt = DateTime.UtcNow; }
     public void Unhide() { IsHidden = false; UpdatedAt = DateTime.UtcNow; }
 }

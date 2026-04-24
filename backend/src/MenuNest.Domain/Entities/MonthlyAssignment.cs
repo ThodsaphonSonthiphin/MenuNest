@@ -7,6 +7,9 @@ namespace MenuNest.Domain.Entities;
 /// One row per (Family, Category, Year, Month). Only stores the user-set
 /// assigned amount; Activity and Available are computed from transactions
 /// and prior-month rollover.
+/// <c>AssignedAmount</c> may be negative — YNAB's "move money" and "cover
+/// overspending" flows decrement the source envelope below zero when the
+/// source has no available balance.
 /// </summary>
 public sealed class MonthlyAssignment : Entity
 {

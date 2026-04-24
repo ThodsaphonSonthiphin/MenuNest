@@ -6,7 +6,7 @@ namespace MenuNest.Domain.Entities;
 /// <summary>
 /// A spending/income event. <c>Amount</c> is stored as a signed decimal:
 /// outflow (expense) is negative; inflow (income) is positive.
-/// Always debits the account balance by <c>Amount</c>.
+/// Always adds <c>Amount</c> to the account's balance — positive values (inflow) increase it, negative values (outflow) reduce it.
 /// </summary>
 public sealed class BudgetTransaction : Entity
 {
