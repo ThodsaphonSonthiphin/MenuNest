@@ -23,6 +23,12 @@ public interface IApplicationDbContext
     DbSet<ShoppingListItem> ShoppingListItems { get; }
     DbSet<ChatConversation> ChatConversations { get; }
     DbSet<ChatMessage> ChatMessages { get; }
+    DbSet<BudgetAccount> BudgetAccounts { get; }
+    DbSet<BudgetCategoryGroup> BudgetCategoryGroups { get; }
+    DbSet<BudgetCategory> BudgetCategories { get; }
+    DbSet<MonthlyAssignment> MonthlyAssignments { get; }
+    DbSet<MonthlyIncome> MonthlyIncomes { get; }
+    DbSet<BudgetTransaction> BudgetTransactions { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
