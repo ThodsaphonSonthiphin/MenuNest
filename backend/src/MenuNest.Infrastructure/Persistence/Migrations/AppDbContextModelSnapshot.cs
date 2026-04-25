@@ -802,7 +802,7 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasOne("MenuNest.Domain.Entities.BudgetCategory", null)
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MenuNest.Domain.Entities.Family", null)
                         .WithMany()
@@ -864,7 +864,7 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasOne("MenuNest.Domain.Entities.BudgetCategory", null)
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("MenuNest.Domain.Entities.Family", null)

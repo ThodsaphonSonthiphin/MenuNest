@@ -477,7 +477,7 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         column: x => x.CategoryId,
                         principalTable: "BudgetCategories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_BudgetTransactions_Families_FamilyId",
                         column: x => x.FamilyId,
@@ -507,7 +507,7 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         column: x => x.CategoryId,
                         principalTable: "BudgetCategories",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_MonthlyAssignments_Families_FamilyId",
                         column: x => x.FamilyId,

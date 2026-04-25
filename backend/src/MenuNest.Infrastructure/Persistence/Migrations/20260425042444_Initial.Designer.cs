@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MenuNest.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260425035713_Initial")]
+    [Migration("20260425042444_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -805,7 +805,7 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasOne("MenuNest.Domain.Entities.BudgetCategory", null)
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("MenuNest.Domain.Entities.Family", null)
                         .WithMany()
@@ -867,7 +867,7 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasOne("MenuNest.Domain.Entities.BudgetCategory", null)
                         .WithMany()
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("MenuNest.Domain.Entities.Family", null)

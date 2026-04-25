@@ -21,6 +21,8 @@ public sealed class DeleteCategoryHandler : ICommandHandler<DeleteCategoryComman
         var hasTx = await _db.BudgetTransactions.AnyAsync(t => t.CategoryId == c.Id, ct);
         if (hasTx)
             throw new DomainException("Cannot delete category with transactions — hide it instead.");
+        var assignments = await _db.MonthlyAssignments.Where(a => a.CategoryId == c.Id).ToListAsync(ct);
+        _db.MonthlyAssignments.RemoveRange(assignments);
         _db.BudgetCategories.Remove(cat);
         await _db.SaveChangesAsync(ct);
         return Unit.Value;

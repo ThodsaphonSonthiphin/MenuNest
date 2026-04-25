@@ -16,6 +16,6 @@ internal sealed class MonthlyAssignmentConfiguration : IEntityTypeConfiguration<
         b.Property(x => x.AssignedAmount).HasColumnType("decimal(18,4)");
         b.HasIndex(x => new { x.FamilyId, x.CategoryId, x.Year, x.Month }).IsUnique();
         b.HasOne<Family>().WithMany().HasForeignKey(x => x.FamilyId).OnDelete(DeleteBehavior.Cascade);
-        b.HasOne<BudgetCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
+        b.HasOne<BudgetCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
     }
 }

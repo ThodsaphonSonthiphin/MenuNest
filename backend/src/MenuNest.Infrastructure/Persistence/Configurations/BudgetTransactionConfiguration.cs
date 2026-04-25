@@ -19,6 +19,6 @@ internal sealed class BudgetTransactionConfiguration : IEntityTypeConfiguration<
         b.HasIndex(x => new { x.FamilyId, x.CategoryId, x.Date });
         b.HasOne<Family>().WithMany().HasForeignKey(x => x.FamilyId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<BudgetAccount>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
-        b.HasOne<BudgetCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.SetNull);
+        b.HasOne<BudgetCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
     }
 }
