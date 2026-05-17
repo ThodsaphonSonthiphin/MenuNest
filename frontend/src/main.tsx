@@ -33,6 +33,25 @@ import '@syncfusion/ej2-react-interactive-chat/styles/material.css'
 
 import './index.css'
 
+// Service Worker registration — handles web-push notifications for the
+// migraine tracker module (Task 15). We delay until the `load` event
+// to avoid contending with the critical render. Failures are logged
+// but never thrown — push is a strict enhancement, the app must
+// continue to work without it (iOS Safari outside PWA mode, locked-
+// down enterprise browsers, etc).
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).then(
+      (reg) => {
+        console.log('[sw] registered', reg.scope)
+      },
+      (err) => {
+        console.warn('[sw] registration failed', err)
+      },
+    )
+  })
+}
+
 // Syncfusion Community License — registered once at app boot.
 const syncfusionLicense = import.meta.env.VITE_SYNCFUSION_LICENSE_KEY
 if (syncfusionLicense) {

@@ -2,7 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
 import { useDispatch, useSelector } from 'react-redux'
 import type { TypedUseSelectorHook } from 'react-redux'
-import { api } from '../shared/api/api'
+import { api, publicApi } from '../shared/api/api'
 
 // Per-page slices are imported here. Feature slices live in
 // `pages/{feature}/{feature}Slice.ts` and follow the naming convention.
@@ -17,6 +17,7 @@ import budgetSlice from '../pages/budget/budgetSlice'
 export const store = configureStore({
   reducer: {
     [api.reducerPath]: api.reducer,
+    [publicApi.reducerPath]: publicApi.reducer,
     recipes: recipesSlice,
     stock: stockSlice,
     mealPlan: mealPlanSlice,
@@ -25,7 +26,8 @@ export const store = configureStore({
     aiAssistant: aiAssistantSlice,
     budget: budgetSlice,
   },
-  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(api.middleware),
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware().concat(api.middleware, publicApi.middleware),
 })
 
 setupListeners(store.dispatch)

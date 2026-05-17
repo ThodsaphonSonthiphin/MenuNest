@@ -2,6 +2,40 @@ import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react'
 import {InteractionRequiredAuthError} from '@azure/msal-browser'
 import {apiScopes, msalInstance} from '../auth/msalConfig'
 import {getGoogleToken} from '../auth/googleAuth'
+import type {
+    AttachedPhotoInfo,
+    CreateCustomSymptomRequest,
+    CreateCustomTriggerRequest,
+    CreateDrugRequest,
+    CreateShareLinkRequest,
+    CreateShareLinkResultDto,
+    DoctorReportDto,
+    DrugDetailDto,
+    DrugDto,
+    EpisodeDetailDto,
+    EpisodeDto,
+    IntakeDto,
+    ListEpisodesQueryArgs,
+    LogIntakeRequest,
+    LogNoDrugRequest,
+    PhotoRefDto,
+    RecordPingResponseRequest,
+    RequestUploadSasRequest,
+    ResolveEpisodeRequest,
+    RetroCloseEpisodeRequest,
+    ShareLinkSummaryDto,
+    StartEpisodeRequest,
+    SubscribeWebPushRequest,
+    SubscribeWebPushResultDto,
+    SymptomDto,
+    TakeMedicationContextDto,
+    TriggerDto,
+    UnsubscribeWebPushRequest,
+    UpdateDrugRequest,
+    UpdateEpisodeRequest,
+    UploadSasResponse,
+    VapidPublicKeyDto,
+} from './healthTypes'
 
 /**
  * Single, app-wide RTK Query API. All endpoints for every feature
@@ -442,6 +476,13 @@ export const api = createApi({
         'BudgetAccounts',
         'BudgetGroups',
         'BudgetTransactions',
+        'Drug',
+        'Symptom',
+        'Trigger',
+        'Episode',
+        'ActiveEpisode',
+        'ShareLink',
+        'PushSubscription',
     ],
     endpoints: (build) => ({
         // -------------------- Me / Family --------------------
@@ -878,6 +919,267 @@ export const api = createApi({
             invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
                 {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
+        // -------------------- Health: Drugs --------------------
+        listDrugs: build.query<DrugDto[], {symptomId?: string} | void>({
+            query: (arg) => {
+                const symptomId = arg && 'symptomId' in arg ? arg.symptomId : undefined
+                return symptomId
+                    ? `/api/drugs?symptomId=${symptomId}`
+                    : '/api/drugs'
+            },
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map((d) => ({type: 'Drug' as const, id: d.id})),
+                        {type: 'Drug', id: 'LIST'},
+                    ]
+                    : [{type: 'Drug', id: 'LIST'}],
+        }),
+        getDrug: build.query<DrugDetailDto, string>({
+            query: (id) => `/api/drugs/${id}`,
+            providesTags: (_r, _e, id) => [{type: 'Drug', id}],
+        }),
+        createDrug: build.mutation<DrugDetailDto, CreateDrugRequest>({
+            query: (body) => ({url: '/api/drugs', method: 'POST', body}),
+            invalidatesTags: [{type: 'Drug', id: 'LIST'}],
+        }),
+        updateDrug: build.mutation<DrugDetailDto, {id: string} & UpdateDrugRequest>({
+            query: ({id, ...body}) => ({
+                url: `/api/drugs/${id}`,
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Drug', id: a.id},
+                {type: 'Drug', id: 'LIST'},
+            ],
+        }),
+        deleteDrug: build.mutation<void, string>({
+            query: (id) => ({url: `/api/drugs/${id}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, id) => [
+                {type: 'Drug', id},
+                {type: 'Drug', id: 'LIST'},
+            ],
+        }),
+        attachDrugPhotos: build.mutation<PhotoRefDto[], {drugId: string; photos: AttachedPhotoInfo[]}>({
+            query: ({drugId, photos}) => ({
+                url: `/api/drugs/${drugId}/photos`,
+                method: 'POST',
+                body: {photos},
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Drug', id: a.drugId},
+                {type: 'Drug', id: 'LIST'},
+            ],
+        }),
+        // -------------------- Health: Symptoms + Triggers --------------------
+        listSymptoms: build.query<SymptomDto[], void>({
+            query: () => '/api/symptoms',
+            providesTags: [{type: 'Symptom', id: 'LIST'}],
+        }),
+        createCustomSymptom: build.mutation<SymptomDto, CreateCustomSymptomRequest>({
+            query: (body) => ({url: '/api/symptoms', method: 'POST', body}),
+            invalidatesTags: [{type: 'Symptom', id: 'LIST'}],
+        }),
+        listTriggers: build.query<TriggerDto[], void>({
+            query: () => '/api/triggers',
+            providesTags: [{type: 'Trigger', id: 'LIST'}],
+        }),
+        createCustomTrigger: build.mutation<TriggerDto, CreateCustomTriggerRequest>({
+            query: (body) => ({url: '/api/triggers', method: 'POST', body}),
+            invalidatesTags: [{type: 'Trigger', id: 'LIST'}],
+        }),
+        // -------------------- Health: Episodes --------------------
+        listEpisodes: build.query<EpisodeDto[], ListEpisodesQueryArgs | void>({
+            query: (arg) => {
+                const a = arg ?? {}
+                const params = new URLSearchParams()
+                if (a.from) params.set('from', a.from)
+                if (a.to) params.set('to', a.to)
+                if (a.symptomId) params.set('symptomId', a.symptomId)
+                if (a.onlyResolved != null) params.set('onlyResolved', String(a.onlyResolved))
+                if (a.onlyFailed != null) params.set('onlyFailed', String(a.onlyFailed))
+                const qs = params.toString()
+                return qs ? `/api/episodes?${qs}` : '/api/episodes'
+            },
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map((e) => ({type: 'Episode' as const, id: e.id})),
+                        {type: 'Episode', id: 'LIST'},
+                    ]
+                    : [{type: 'Episode', id: 'LIST'}],
+        }),
+        getActiveEpisodes: build.query<EpisodeDto[], void>({
+            query: () => '/api/episodes/active',
+            providesTags: [{type: 'ActiveEpisode', id: 'LIST'}],
+        }),
+        getEpisode: build.query<EpisodeDetailDto, string>({
+            query: (id) => `/api/episodes/${id}`,
+            providesTags: (_r, _e, id) => [{type: 'Episode', id}],
+        }),
+        startEpisode: build.mutation<EpisodeDto, StartEpisodeRequest>({
+            query: (body) => ({url: '/api/episodes', method: 'POST', body}),
+            invalidatesTags: [
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        updateEpisode: build.mutation<EpisodeDetailDto, {id: string} & UpdateEpisodeRequest>({
+            query: ({id, ...body}) => ({
+                url: `/api/episodes/${id}`,
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Episode', id: a.id},
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        resolveEpisode: build.mutation<EpisodeDetailDto, {id: string} & ResolveEpisodeRequest>({
+            query: ({id, ...body}) => ({
+                url: `/api/episodes/${id}/resolve`,
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Episode', id: a.id},
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        deleteEpisode: build.mutation<void, string>({
+            query: (id) => ({url: `/api/episodes/${id}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, id) => [
+                {type: 'Episode', id},
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        attachEpisodePhotos: build.mutation<PhotoRefDto[], {episodeId: string; photos: AttachedPhotoInfo[]}>({
+            query: ({episodeId, photos}) => ({
+                url: `/api/episodes/${episodeId}/photos`,
+                method: 'POST',
+                body: {photos},
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Episode', id: a.episodeId},
+                {type: 'Episode', id: 'LIST'},
+            ],
+        }),
+        logNoDrug: build.mutation<void, {episodeId: string} & LogNoDrugRequest>({
+            query: ({episodeId, ...body}) => ({
+                url: `/api/episodes/${episodeId}/no-drug`,
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Episode', id: a.episodeId},
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        // -------------------- Health: Take Medication context --------------------
+        getTakeMedicationContext: build.query<TakeMedicationContextDto, string>({
+            query: (episodeId) => `/api/episodes/${episodeId}/take-medication-context`,
+            providesTags: (_r, _e, episodeId) => [
+                {type: 'Episode', id: `take-med-${episodeId}`},
+            ],
+        }),
+        // -------------------- Health: Intakes --------------------
+        logIntake: build.mutation<IntakeDto, LogIntakeRequest>({
+            query: (body) => ({url: '/api/intakes', method: 'POST', body}),
+            invalidatesTags: (_r, _e, a) => {
+                const tags: Array<{type: 'Episode' | 'ActiveEpisode' | 'Drug'; id: string}> = [
+                    {type: 'Drug', id: a.drugId},
+                    {type: 'Drug', id: 'LIST'},
+                ]
+                if (a.symptomEpisodeId) {
+                    tags.push({type: 'Episode', id: a.symptomEpisodeId})
+                    tags.push({type: 'Episode', id: `take-med-${a.symptomEpisodeId}`})
+                }
+                tags.push({type: 'Episode', id: 'LIST'})
+                tags.push({type: 'ActiveEpisode', id: 'LIST'})
+                return tags
+            },
+        }),
+        // -------------------- Health: Follow-ups --------------------
+        recordPingResponse: build.mutation<void, {pingId: string} & RecordPingResponseRequest>({
+            query: ({pingId, ...body}) => ({
+                url: `/api/followups/${pingId}/respond`,
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: [
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        retroCloseEpisode: build.mutation<void, {episodeId: string} & RetroCloseEpisodeRequest>({
+            query: ({episodeId, ...body}) => ({
+                url: `/api/episodes/${episodeId}/retro-close`,
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'Episode', id: a.episodeId},
+                {type: 'Episode', id: 'LIST'},
+                {type: 'ActiveEpisode', id: 'LIST'},
+            ],
+        }),
+        // -------------------- Health: Photos (SAS upload) --------------------
+        requestUploadSas: build.mutation<UploadSasResponse, RequestUploadSasRequest>({
+            query: (body) => ({url: '/api/photos/upload-sas', method: 'POST', body}),
+        }),
+        // -------------------- Health: Push Subscriptions --------------------
+        subscribeWebPush: build.mutation<SubscribeWebPushResultDto, SubscribeWebPushRequest>({
+            query: (body) => ({url: '/api/push-subscriptions', method: 'POST', body}),
+            invalidatesTags: [{type: 'PushSubscription', id: 'LIST'}],
+        }),
+        unsubscribeWebPush: build.mutation<void, UnsubscribeWebPushRequest>({
+            query: (body) => ({url: '/api/push-subscriptions', method: 'DELETE', body}),
+            invalidatesTags: [{type: 'PushSubscription', id: 'LIST'}],
+        }),
+        getVapidPublicKey: build.query<VapidPublicKeyDto, void>({
+            query: () => '/api/push-subscriptions/vapid-public-key',
+        }),
+        // -------------------- Health: Share Links --------------------
+        createShareLink: build.mutation<CreateShareLinkResultDto, CreateShareLinkRequest>({
+            query: (body) => ({url: '/api/share-links', method: 'POST', body}),
+            invalidatesTags: [{type: 'ShareLink', id: 'LIST'}],
+        }),
+        listMyShareLinks: build.query<ShareLinkSummaryDto[], void>({
+            query: () => '/api/share-links',
+            providesTags: [{type: 'ShareLink', id: 'LIST'}],
+        }),
+        revokeShareLink: build.mutation<void, string>({
+            query: (id) => ({url: `/api/share-links/${id}`, method: 'DELETE'}),
+            invalidatesTags: [{type: 'ShareLink', id: 'LIST'}],
+        }),
+    }),
+})
+
+/**
+ * Anonymous-only API slice for the public doctor-report endpoint. The
+ * main `api` slice attaches an MSAL/Google bearer to every request via
+ * `prepareHeaders`; the share-token endpoint must NOT carry that header
+ * (it's authenticated via the `?t=` query string instead and may be hit
+ * from a browser that has no signed-in user at all — e.g., a doctor on
+ * their own laptop). Splitting into a second slice with a clean
+ * `fetchBaseQuery` is the simplest way to opt out of the interceptor.
+ */
+export const publicApi = createApi({
+    reducerPath: 'publicApi',
+    baseQuery: fetchBaseQuery({
+        baseUrl: import.meta.env.VITE_API_BASE_URL || '/',
+    }),
+    tagTypes: ['PublicReport'],
+    endpoints: (build) => ({
+        getDoctorReport: build.query<DoctorReportDto, string>({
+            query: (token) => `/api/public/report?t=${encodeURIComponent(token)}`,
+            providesTags: (_r, _e, token) => [{type: 'PublicReport', id: token}],
+        }),
     }),
 })
 export const {
@@ -945,4 +1247,39 @@ export const {
     useCreateBudgetTransactionMutation,
     useUpdateBudgetTransactionMutation,
     useDeleteBudgetTransactionMutation,
+    // -------- Health --------
+    useListDrugsQuery,
+    useGetDrugQuery,
+    useCreateDrugMutation,
+    useUpdateDrugMutation,
+    useDeleteDrugMutation,
+    useAttachDrugPhotosMutation,
+    useListSymptomsQuery,
+    useCreateCustomSymptomMutation,
+    useListTriggersQuery,
+    useCreateCustomTriggerMutation,
+    useListEpisodesQuery,
+    useGetActiveEpisodesQuery,
+    useGetEpisodeQuery,
+    useStartEpisodeMutation,
+    useUpdateEpisodeMutation,
+    useResolveEpisodeMutation,
+    useDeleteEpisodeMutation,
+    useAttachEpisodePhotosMutation,
+    useLogNoDrugMutation,
+    useGetTakeMedicationContextQuery,
+    useLogIntakeMutation,
+    useRecordPingResponseMutation,
+    useRetroCloseEpisodeMutation,
+    useRequestUploadSasMutation,
+    useSubscribeWebPushMutation,
+    useUnsubscribeWebPushMutation,
+    useGetVapidPublicKeyQuery,
+    useCreateShareLinkMutation,
+    useListMyShareLinksQuery,
+    useRevokeShareLinkMutation,
 } = api
+
+export const {
+    useGetDoctorReportQuery,
+} = publicApi
