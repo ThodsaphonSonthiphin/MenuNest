@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — Follow-up Response</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.15);
+    --drug: #34d399;
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.15);
+    --danger: #ef4444;
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.1);
+    --drug: #10b981;
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.12);
+    --danger: #dc2626;
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Page header */
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toggle-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  /* ============= 1. Push notification banner ============= */
+  .push-section {
+    padding: 28px 16px 12px;
+    text-align: center;
+  }
+  .push-section h3 {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 16px;
+  }
+  .push-notification {
+    max-width: 420px;
+    margin: 0 auto;
+    background: #1c1c1e;
+    color: white;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-shadow: 0 8px 28px -8px rgba(0,0,0,0.5);
+    text-align: left;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  body.light .push-notification {
+    background: #ffffff;
+    color: #0f172a;
+    border-color: #e5e7eb;
+  }
+  .push-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+  }
+  .push-app-icon {
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .push-time {
+    margin-left: auto;
+  }
+  .push-title {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .push-body {
+    font-size: 13px;
+    color: #c1c1c1;
+    margin-bottom: 12px;
+  }
+  body.light .push-body { color: #475569; }
+  .push-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .push-action {
+    flex: 1;
+    min-width: 80px;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    border: none;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  body.light .push-action {
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  .push-action.resolved { background: rgba(52,211,153,0.2); color: #34d399; }
+  .push-action.improved { background: rgba(129,140,248,0.2); color: #a5b4fc; }
+  .push-action.same { background: rgba(251,191,36,0.2); color: #fbbf24; }
+  .push-action.worse { background: rgba(248,113,113,0.2); color: #f87171; }
+  body.light .push-action.resolved { background: #dcfce7; color: #047857; }
+  body.light .push-action.improved { background: #e0e7ff; color: #4338ca; }
+  body.light .push-action.same { background: #fef3c7; color: #92400e; }
+  body.light .push-action.worse { background: #fee2e2; color: #b91c1c; }
+
+  .push-caption {
+    max-width: 420px;
+    margin: 12px auto 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* Phones container */
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 12px 24px 24px;
+    flex-wrap: wrap;
+  }
+  .phone { width: 360px; }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 740px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+    filter: blur(2px) brightness(0.4);
+    pointer-events: none;
+  }
+  .phone-content::-webkit-scrollbar { width: 0px; }
+
+  /* App header (background) */
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .content { padding: 8px 16px; }
+
+  /* Status card for "behind" content (Active Episode) */
+  .status-card-mini {
+    background: var(--symptom-bg);
+    border: 1px solid var(--symptom);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .status-card-mini .label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .status-card-mini .severity-display {
+    text-align: center;
+    padding: 10px;
+    background: var(--bg-card-2);
+    border-radius: 10px;
+  }
+  .status-card-mini .severity-num {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--symptom);
+  }
+  .status-card-mini .severity-sub {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  /* Home card mini (for retro modal background) */
+  .home-active-banner-mini {
+    background: linear-gradient(135deg, var(--symptom) 0%, #c026d3 100%);
+    color: white;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .home-active-banner-mini .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+    margin-bottom: 3px;
+  }
+  .home-active-banner-mini .title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  /* ============= Modal overlay ============= */
+  .modal-overlay {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+    padding: 16px;
+  }
+  .modal {
+    background: var(--bg-card);
+    border-radius: 18px;
+    padding: 20px;
+    width: 100%;
+    max-height: 95%;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px -10px rgba(0,0,0,0.6);
+    border: 1px solid var(--border);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  .modal-icon {
+    font-size: 24px;
+  }
+  .modal-title {
+    font-size: 17px;
+    font-weight: 700;
+    flex: 1;
+  }
+  .modal-close {
+    color: var(--text-muted);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .modal-sub {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .modal-section {
+    margin-bottom: 14px;
+  }
+  .modal-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  /* Severity slider in modal */
+  .modal-severity-display {
+    text-align: center;
+    padding: 14px;
+    background: var(--bg-card-2);
+    border-radius: 12px;
+    margin-bottom: 12px;
+  }
+  .modal-severity-num {
+    font-size: 44px;
+    font-weight: 800;
+    color: var(--warning);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .modal-severity-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+  .change-marker {
+    font-size: 12px;
+    color: var(--drug);
+    margin-top: 4px;
+    font-weight: 600;
+  }
+  .slider-wrap { margin: 8px 4px; }
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(to right, #fbbf24 0%, #f87171 50%, #dc2626 100%);
+    border-radius: 3px;
+    outline: none;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--warning);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  }
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  /* Choice list (retro-close) */
+  .choice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .choice-option {
+    background: var(--bg-card-2);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.15s;
+  }
+  .choice-option:hover {
+    border-color: var(--accent);
+  }
+  .choice-option.active {
+    border-color: var(--drug);
+    background: rgba(52,211,153,0.1);
+  }
+  .choice-radio {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--text-muted);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .choice-option.active .choice-radio {
+    border-color: var(--drug);
+    background: var(--drug);
+  }
+  .choice-option.active .choice-radio::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+  }
+  .choice-content { flex: 1; }
+  .choice-label {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .choice-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .choice-time-picker {
+    margin-top: 6px;
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .choice-option.active.show-time .choice-time-picker { display: flex; }
+  .time-chip {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .time-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* Note input */
+  .note-input {
+    width: 100%;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    resize: none;
+    min-height: 50px;
+    font-family: inherit;
+  }
+  .note-input::placeholder { color: var(--text-muted); }
+
+  /* Modal actions */
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+  }
+  .modal-btn-primary {
+    background: var(--drug);
+    color: white;
+  }
+  .modal-btn-secondary {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  /* Warning callout */
+  .warning-callout {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--warning);
+    margin-bottom: 12px;
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+  }
+
+  @media (max-width: 800px) {
+    .phones { padding: 12px 8px 24px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX — Follow-up Response</div>
+  <div class="page-sub">3 stages: 🔔 Push → 📱 In-app modal → 📝 Retro-close (ถ้าหายไป &gt;24h)</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<!-- ============================= -->
+<!-- 1. Push notification -->
+<!-- ============================= -->
+<div class="push-section">
+  <h3>🔔 Stage 1: Web Push notification (browser-level)</h3>
+  <div class="push-notification">
+    <div class="push-header">
+      <div class="push-app-icon">M</div>
+      <span>MenuNest</span>
+      <span class="push-time">12:30 PM • now</span>
+    </div>
+    <div class="push-title">🤒 ปวดหัวเป็นยังไงบ้าง?</div>
+    <div class="push-body">~30 นาทีหลังกิน Paracetamol 500mg ×2</div>
+    <div class="push-actions">
+      <button class="push-action resolved">✓ หายแล้ว</button>
+      <button class="push-action improved">↓ ดีขึ้น</button>
+      <button class="push-action same">= เท่าเดิม</button>
+      <button class="push-action worse">↑ แย่ลง</button>
+    </div>
+  </div>
+  <div class="push-caption">
+    User กดปุ่ม notification ตรงๆ ก็บันทึกเสร็จ — <strong>0 tap into app</strong> สำหรับ "หาย" / "เท่าเดิม"<br>
+    กด "ดีขึ้น" / "แย่ลง" → เปิด app → severity update modal (ขวา)
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!-- PHONE 1: In-app modal (severity update) -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Stage 2: In-app modal (ตอบ "ดีขึ้น")</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+
+      <!-- Behind content: dimmed Active Episode -->
+      <div class="phone-content">
+        <div class="app-header">
+          <span style="color: var(--text-muted);">←</span>
+          <span>Active Attack</span>
+        </div>
+        <div class="content">
+          <div class="status-card-mini">
+            <div class="label">ตอนนี้ปวด</div>
+            <div class="severity-display">
+              <span class="severity-num">7</span>
+              <span class="severity-sub">/10</span>
+            </div>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; height: 200px;"></div>
+        </div>
+      </div>
+
+      <!-- Modal overlay -->
+      <div class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-icon">📊</span>
+            <span class="modal-title">Follow-up: 12:30</span>
+            <span class="modal-close">✕</span>
+          </div>
+          <div class="modal-sub">~1h หลังกิน Paracetamol — คุณตอบ "ดีขึ้น" ✓ ตอนนี้ปวดเท่าไหร่?</div>
+
+          <div class="modal-section">
+            <div class="modal-severity-display">
+              <div>
+                <span class="modal-severity-num" id="sev-num">4</span>
+                <span class="modal-severity-sub">/10</span>
+              </div>
+              <div class="change-marker">↓ ลดจาก 7 (-3)</div>
+            </div>
+            <div class="slider-wrap">
+              <input type="range" min="0" max="10" value="4" class="slider" oninput="document.getElementById('sev-num').textContent = this.value">
+              <div class="slider-labels">
+                <span>0 (หาย)</span>
+                <span>5 (กลาง)</span>
+                <span>10 (รุนแรง)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-section">
+            <div class="modal-label">📝 บันทึก (optional)</div>
+            <textarea class="note-input" placeholder="เช่น: ออกฤทธิ์เร็วกว่าครั้งก่อน"></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button class="modal-btn modal-btn-secondary">ยกเลิก</button>
+            <button class="modal-btn modal-btn-primary">💾 บันทึก</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- PHONE 2: Retro-close modal -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Stage 3: Retro-close (เปิด app วันถัดมา)</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+
+      <!-- Behind content: dimmed Home -->
+      <div class="phone-content">
+        <div class="app-header">
+          <span>👤 Pon</span>
+        </div>
+        <div class="content">
+          <div class="home-active-banner-mini">
+            <div class="label">⚡ Active Now</div>
+            <div class="title">Migraine attack</div>
+            <div style="font-size: 12px; opacity: 0.9;">⏱ 18h 30m • severity 7/10</div>
+          </div>
+          <div style="background: var(--bg-card); border-radius: 14px; padding: 14px; height: 100px;"></div>
+        </div>
+      </div>
+
+      <!-- Modal overlay -->
+      <div class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header">
+            <span class="modal-icon">📝</span>
+            <span class="modal-title">ขอข้อมูลย้อนหลัง</span>
+          </div>
+          <div class="modal-sub">
+            <strong style="color: var(--text);">เมื่อวาน 16 พ.ค.</strong> คุณ log "ปวดหัว 7/10" ตอน 11:30
+            แต่ไม่ได้ตอบ follow-up (3 ครั้ง)
+          </div>
+
+          <div class="warning-callout">
+            <span>⚠️</span>
+            <span>Episode ยังเปิดอยู่ตอนนี้ • ไม่ปิดเองอัตโนมัติเพื่อให้ data ถูกต้อง</span>
+          </div>
+
+          <div class="modal-section">
+            <div class="modal-label">อาการนั้นจบยังไง?</div>
+            <div class="choice-list">
+              <div class="choice-option active show-time" onclick="selectChoice(this)">
+                <div class="choice-radio"></div>
+                <div class="choice-content">
+                  <div class="choice-label">✅ หายแล้ว</div>
+                  <div class="choice-sub">ประมาณกี่ชั่วโมงหลังกินยา?</div>
+                  <div class="choice-time-picker">
+                    <span class="time-chip active">~30 นาที</span>
+                    <span class="time-chip">1 ชม.</span>
+                    <span class="time-chip">2-3 ชม.</span>
+                    <span class="time-chip">หลายชม.</span>
+                  </div>
+                </div>
+              </div>
+              <div class="choice-option" onclick="selectChoice(this)">
+                <div class="choice-radio"></div>
+                <div class="choice-content">
+                  <div class="choice-label">↓ ค่อยๆ ดีขึ้น</div>
+                  <div class="choice-sub">ไม่ใช่หายสนิท แต่ทุเลา</div>
+                </div>
+              </div>
+              <div class="choice-option" onclick="selectChoice(this)">
+                <div class="choice-radio"></div>
+                <div class="choice-content">
+                  <div class="choice-label">❓ ไม่แน่ใจ / จำไม่ได้</div>
+                  <div class="choice-sub">ระบบจะบันทึก outcome = unknown</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-actions">
+            <button class="modal-btn modal-btn-secondary">ข้าม (ถามอีกครั้ง)</button>
+            <button class="modal-btn modal-btn-primary">💾 บันทึก</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; padding: 16px 24px 32px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+  <strong>3 flows ของ follow-up:</strong><br>
+  🔔 <strong>Push notification</strong> = 0 tap into app (กด "หาย" หรือ "เท่าเดิม" จบเลย)<br>
+  📱 <strong>In-app modal</strong> = สำหรับ "ดีขึ้น/แย่ลง" — ใส่ severity ใหม่<br>
+  📝 <strong>Retro-close</strong> = ขอข้อมูลย้อนหลัง — ป้องกัน auto-close ที่ทำให้ data หาย<br>
+  <br>
+  💡 Key principle: <em>ไม่ auto-close = ไม่ generate "unknown" data ที่ไม่มีประโยชน์</em>
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+
+  function selectChoice(el) {
+    el.parentElement.querySelectorAll('.choice-option').forEach(c => c.classList.remove('active', 'show-time'));
+    el.classList.add('active');
+    if (el.querySelector('.choice-time-picker')) el.classList.add('show-time');
+  }
+
+  // Time-chip selection
+  document.querySelectorAll('.time-chip').forEach(chip => {
+    chip.addEventListener('click', e => {
+      e.stopPropagation();
+      chip.parentElement.querySelectorAll('.time-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

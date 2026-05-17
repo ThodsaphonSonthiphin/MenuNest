@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — Take Medication</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.12);
+    --drug: #34d399;
+    --drug-bg: rgba(52,211,153,0.12);
+    --drug-strong: #10b981;
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.12);
+    --danger: #ef4444;
+    --danger-bg: rgba(239,68,68,0.12);
+    --gray-bg: rgba(148,163,184,0.1);
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.08);
+    --drug: #10b981;
+    --drug-bg: rgba(16,185,129,0.08);
+    --drug-strong: #059669;
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.1);
+    --danger: #dc2626;
+    --danger-bg: rgba(220,38,38,0.08);
+    --gray-bg: rgba(100,116,139,0.08);
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Page header */
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toggle-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .phone { width: 360px; }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 820px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+    padding-bottom: 20px;
+  }
+  .phone-content::-webkit-scrollbar { width: 4px; }
+  .phone-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Header */
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .back-btn { color: var(--text-muted); cursor: pointer; font-size: 18px; }
+
+  .content { padding: 8px 16px; }
+
+  /* Episode context card */
+  .episode-context {
+    background: var(--symptom-bg);
+    border: 1px solid var(--symptom);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .episode-info {
+    font-size: 14px;
+  }
+  .episode-info-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+  }
+  .episode-info-value {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .episode-info-severity {
+    color: var(--symptom);
+    font-weight: 700;
+  }
+  .change-link {
+    background: none;
+    border: 1px solid var(--symptom);
+    color: var(--symptom);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+    margin: 16px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title.active-section { color: var(--warning); }
+  .section-title.takeable-section { color: var(--drug); }
+  .section-title.blocked-section { color: var(--text-muted); }
+
+  /* Drug card variants */
+  .drug-card {
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+  .drug-card-name {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .drug-card-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .drug-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-card-2);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .drug-tag.triptan {
+    background: rgba(168,85,247,0.2);
+    color: #c084fc;
+  }
+  body.light .drug-tag.triptan {
+    background: #f3e8ff;
+    color: #6d28d9;
+  }
+
+  /* Active drug (in effect) — yellow/warning */
+  .drug-card.active-drug {
+    background: var(--warning-bg);
+    border-color: var(--warning);
+  }
+  .progress-bar {
+    margin-top: 8px;
+    height: 6px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  body.light .progress-bar { background: rgba(0,0,0,0.08); }
+  .progress-fill {
+    height: 100%;
+    background: var(--warning);
+    border-radius: 3px;
+  }
+  .progress-text {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .progress-text .countdown {
+    color: var(--warning);
+    font-weight: 600;
+  }
+  .active-warn {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--warning);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Takeable drug — green */
+  .drug-card.takeable {
+    background: var(--drug-bg);
+    border-color: var(--drug);
+  }
+  .stock-info {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .stock-warn {
+    display: inline-block;
+    color: var(--warning);
+    font-size: 11px;
+    background: var(--warning-bg);
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 2px;
+  }
+  .dose-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .dose-btn {
+    flex: 1;
+    background: var(--drug);
+    border: none;
+    color: white;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dose-btn:hover { background: var(--drug-strong); }
+  .dose-btn.secondary {
+    background: transparent;
+    border: 1px solid var(--drug);
+    color: var(--drug);
+  }
+
+  /* Blocked drug — gray/disabled */
+  .drug-card.blocked {
+    background: var(--gray-bg);
+    border-color: var(--border);
+    opacity: 0.8;
+  }
+  .drug-card.blocked .drug-card-name {
+    color: var(--text-muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--text-muted);
+  }
+  .blocked-reason {
+    background: var(--danger-bg);
+    color: var(--danger);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .available-at {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Expand "other drugs" */
+  .expand-link {
+    width: 100%;
+    background: none;
+    border: 1px dashed var(--border);
+    color: var(--text-muted);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  /* Divider OR */
+  .divider-or {
+    display: flex;
+    align-items: center;
+    margin: 20px 0;
+    gap: 12px;
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .divider-or::before,
+  .divider-or::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* No-drug fallback */
+  .no-drug-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+  .no-drug-btn {
+    width: 100%;
+    background: var(--bg-card-2);
+    border: 1px solid var(--text-muted);
+    color: var(--text);
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 6px;
+  }
+  .no-drug-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* Add new drug */
+  .add-drug-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+
+  /* Confirm toast preview */
+  .toast {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    background: var(--drug-strong);
+    color: white;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px -4px rgba(0,0,0,0.4);
+    animation: slideUp 0.3s ease-out;
+    z-index: 20;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  @media (max-width: 800px) {
+    .phones { padding: 16px 8px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX — Take Medication</div>
+  <div class="page-sub">3 categories: ออกฤทธิ์อยู่ • กินได้ • กินไม่ได้ + fallback "ไม่กินยา"</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!-- Phone: Take Medication -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Take Medication</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>กินยา</span>
+        </div>
+
+        <div class="content">
+
+          <!-- Episode context -->
+          <div class="episode-context">
+            <div class="episode-info">
+              <div class="episode-info-label">อาการตอนนี้</div>
+              <div class="episode-info-value">
+                ปวดหัว <span class="episode-info-severity">7/10</span>
+              </div>
+            </div>
+            <button class="change-link">เปลี่ยน</button>
+          </div>
+
+          <!-- =========================== -->
+          <!-- 1. Active drugs (in effect) -->
+          <!-- =========================== -->
+          <div class="section-title active-section">⏳ ยาที่ยังออกฤทธิ์อยู่</div>
+
+          <div class="drug-card active-drug">
+            <div class="drug-card-name">
+              💊 Paracetamol 500mg ×2
+              <span class="drug-tag">NSAID</span>
+            </div>
+            <div class="drug-card-meta">กิน 09:30 (1h 23m ที่แล้ว) • หมดฤทธิ์ ~13:30</div>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 64%;"></div>
+            </div>
+            <div class="progress-text">
+              <span>64%</span>
+              <span>เหลืออีก <span class="countdown">2h 22m</span></span>
+            </div>
+            <div class="active-warn">⚠ อย่ากินซ้ำจนหมดฤทธิ์</div>
+          </div>
+
+          <!-- =========================== -->
+          <!-- 2. Takeable drugs -->
+          <!-- =========================== -->
+          <div class="section-title takeable-section">🎯 กินเพิ่มได้ (รักษาปวดหัว)</div>
+
+          <div class="drug-card takeable">
+            <div class="drug-card-name">
+              💊 Ibuprofen 200mg
+              <span class="drug-tag">NSAID</span>
+            </div>
+            <div class="stock-info">
+              Stock: <strong style="color: var(--text);">8 เม็ด</strong> • ออกฤทธิ์ 4-6 ชม.
+            </div>
+            <div class="dose-buttons">
+              <button class="dose-btn">กิน 1 เม็ด</button>
+              <button class="dose-btn">กิน 2 เม็ด</button>
+            </div>
+          </div>
+
+          <div class="drug-card takeable">
+            <div class="drug-card-name">
+              💊 Sumatriptan 50mg
+              <span class="drug-tag triptan">Triptan</span>
+            </div>
+            <div class="stock-info">
+              Stock: <strong style="color: var(--text);">2 เม็ด</strong> • ออกฤทธิ์ 4 ชม.
+              <div><span class="stock-warn">⚠ Stock น้อย — ลองซื้อเพิ่ม</span></div>
+            </div>
+            <div class="dose-buttons">
+              <button class="dose-btn">กิน 1 เม็ด</button>
+            </div>
+          </div>
+
+          <!-- =========================== -->
+          <!-- 3. Blocked drugs -->
+          <!-- =========================== -->
+          <div class="section-title blocked-section">⛔ กินไม่ได้ตอนนี้</div>
+
+          <div class="drug-card blocked">
+            <div class="drug-card-name">
+              💊 Naproxen 250mg
+              <span class="drug-tag">NSAID</span>
+            </div>
+            <div class="blocked-reason">
+              ⛔ เกิน max daily dose (4/4 เม็ดแล้ว)
+            </div>
+            <div class="available-at">
+              ⏰ กินได้อีกครั้ง: <strong>พรุ่งนี้ 08:00</strong> (15h 22m)
+            </div>
+          </div>
+
+          <!-- Other drugs collapsed -->
+          <button class="expand-link">+ ยาอื่นๆ ในระบบ (3 ตัว) ▾</button>
+
+          <!-- Divider -->
+          <div class="divider-or">หรือ</div>
+
+          <!-- =========================== -->
+          <!-- 4. No-drug fallback -->
+          <!-- =========================== -->
+          <div class="no-drug-card">
+            <button class="no-drug-btn">📝 ไม่กินยา — log แค่อาการ</button>
+            <div class="no-drug-sub">
+              ระบบจะบันทึก:<br>
+              <em>"ปวดหัว 7/10 — ไม่ได้กินยา"</em><br>
+              เพื่อให้หมอเห็นใน report
+            </div>
+          </div>
+
+          <!-- Add drug to system -->
+          <button class="add-drug-btn">➕ เพิ่มยาใหม่ในระบบ</button>
+
+        </div>
+      </div>
+
+      <!-- Confirmation toast (preview state) -->
+      <!-- Uncomment to see toast:
+      <div class="toast">
+        ✅ บันทึก Ibuprofen 200mg ×1 → return to Active Episode
+      </div>
+      -->
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; padding: 24px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+  <strong>3 categories ของยา:</strong><br>
+  🟡 <strong>ออกฤทธิ์อยู่</strong> (yellow tint) — กันกินซ้ำ, แสดง progress<br>
+  🟢 <strong>กินเพิ่มได้</strong> (green tint) — quick action 1/2 เม็ด<br>
+  ⚫ <strong>กินไม่ได้</strong> (gray + ⛔) — max dose ครบ, แสดง "available again"<br>
+  <br>
+  Fallback: <em>"ไม่กินยา — log แค่อาการ"</em> — ทำให้หมอเห็น event ใน report
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+
+  // Click "กิน" → show toast briefly
+  document.querySelectorAll('.dose-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const card = btn.closest('.drug-card');
+      const name = card.querySelector('.drug-card-name').firstChild.textContent.trim();
+      const dose = btn.textContent.trim();
+      showToast(`✅ บันทึก ${name} (${dose})`);
+    });
+  });
+
+  document.querySelector('.no-drug-btn').addEventListener('click', () => {
+    showToast('📝 บันทึก "ปวดหัว — ไม่ได้กินยา"');
+  });
+
+  function showToast(msg) {
+    let toast = document.querySelector('.toast');
+    if (toast) toast.remove();
+    toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.querySelector('.phone-frame').appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  }
+</script>
+</body>
+</html>

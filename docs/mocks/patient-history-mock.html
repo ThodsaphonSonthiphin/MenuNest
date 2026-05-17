@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — History + Detail</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.12);
+    --drug: #34d399;
+    --drug-bg: rgba(52,211,153,0.12);
+    --period: #f472b6;
+    --period-bg: rgba(244,114,182,0.12);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.12);
+    --danger: #ef4444;
+    --danger-bg: rgba(239,68,68,0.12);
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.08);
+    --drug: #10b981;
+    --drug-bg: rgba(16,185,129,0.08);
+    --period: #ec4899;
+    --period-bg: rgba(236,72,153,0.08);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.08);
+    --danger: #dc2626;
+    --danger-bg: rgba(220,38,38,0.08);
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Page header */
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toggle-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  /* Phones */
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .phone { width: 360px; }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 820px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+    padding-bottom: 20px;
+  }
+  .phone-content::-webkit-scrollbar { width: 4px; }
+  .phone-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .back-btn { color: var(--text-muted); cursor: pointer; font-size: 18px; }
+  .app-header-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+  }
+  .icon-btn-mini {
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .content { padding: 8px 16px; }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .filter-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .filter-chip.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Search */
+  .search-box {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px 10px 36px;
+    border-radius: 12px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='%2394a3b8' viewBox='0 0 24 24' width='16'><path d='M15.5 14h-.79l-.28-.27A6.5 6.5 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: 12px center;
+    background-size: 16px;
+  }
+
+  /* Date section */
+  .date-section-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin: 14px 4px 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .date-section-title .count {
+    background: var(--bg-card);
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+
+  /* Episode card */
+  .ep-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .ep-card:hover {
+    border-color: var(--accent);
+  }
+  .ep-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .ep-icon.resolved { background: var(--drug-bg); color: var(--drug); }
+  .ep-icon.failed { background: var(--warning-bg); color: var(--warning); }
+  .ep-icon.ongoing { background: var(--symptom-bg); color: var(--symptom); }
+  .ep-icon.unknown { background: rgba(148,163,184,0.15); color: var(--text-muted); }
+
+  .ep-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .ep-header-row {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+  }
+  .ep-time {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .ep-symptom {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .ep-severity {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--symptom);
+    font-variant-numeric: tabular-nums;
+  }
+  .ep-severity .arrow { color: var(--text-muted); }
+  .ep-severity .end { color: var(--drug); }
+  .ep-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .ep-meta-pill {
+    background: var(--bg-card-2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .ep-meta-pill.period {
+    background: var(--period-bg);
+    color: var(--period);
+  }
+  .ep-meta-pill.failed {
+    background: var(--warning-bg);
+    color: var(--warning);
+  }
+  .ep-meta-pill.drug {
+    background: var(--drug-bg);
+    color: var(--drug);
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+
+  /* ========== Episode Detail (right phone) ========== */
+
+  .detail-status {
+    background: linear-gradient(135deg, var(--drug-bg) 0%, transparent 100%);
+    border: 1px solid var(--drug);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .detail-status.failed {
+    background: linear-gradient(135deg, var(--warning-bg) 0%, transparent 100%);
+    border-color: var(--warning);
+  }
+  .detail-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--drug);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .detail-tag.failed { background: var(--warning); }
+  .detail-date {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    margin-bottom: 2px;
+  }
+  .detail-symptom {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .detail-severity-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .detail-sev {
+    text-align: center;
+    flex: 1;
+    background: var(--bg-card-2);
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .detail-sev .label {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .detail-sev .value {
+    font-size: 24px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .detail-sev.start .value { color: var(--symptom); }
+  .detail-sev.end .value { color: var(--drug); }
+  .detail-sev .arrow { color: var(--text-muted); font-size: 24px; }
+  .detail-meta-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .detail-meta-row span strong { color: var(--text); font-weight: 600; }
+
+  .section-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin: 14px 4px 8px;
+  }
+
+  .attr-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .attr-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-card-2);
+    color: var(--text);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .attr-pill.side    { background: rgba(99,102,241,0.15);  color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
+  .attr-pill.quality { background: rgba(251,191,36,0.15); color: #fcd34d; border-color: rgba(251,191,36,0.3); }
+  .attr-pill.period  { background: var(--period-bg);       color: var(--period); border-color: var(--period); }
+  .attr-pill.assoc   { background: var(--symptom-bg);      color: var(--symptom); border-color: rgba(248,113,113,0.3); }
+
+  /* Event timeline (drugs + follow-ups) */
+  .timeline {
+    position: relative;
+    padding-left: 20px;
+    margin-top: 8px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 6px;
+    width: 2px;
+    background: var(--border);
+    border-radius: 1px;
+  }
+  .timeline-item {
+    position: relative;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: -16px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 2px solid var(--accent);
+  }
+  .timeline-item.symptom::before { border-color: var(--symptom); }
+  .timeline-item.drug::before { border-color: var(--drug); background: var(--drug); }
+  .timeline-item.followup::before { border-color: var(--accent); }
+  .timeline-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .timeline-event {
+    margin-top: 2px;
+  }
+  .timeline-note {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Note */
+  .note-card {
+    background: var(--bg-card-2);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Actions */
+  .actions-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+  }
+  .action-btn {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .action-btn.primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .action-btn.danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+
+  @media (max-width: 800px) {
+    .phones { padding: 16px 8px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX — History + Episode Detail</div>
+  <div class="page-sub">List ของ episodes ทั้งหมด → tap → ดู timeline เต็ม + แก้ไข/ลบได้</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!--  PHONE 1: History List -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 History List</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>ประวัติ</span>
+          <div class="app-header-actions">
+            <div class="icon-btn-mini">⇅</div>
+            <div class="icon-btn-mini">📤</div>
+          </div>
+        </div>
+
+        <div class="content">
+          <input type="text" class="search-box" placeholder="ค้นหา (note, drug, trigger...)">
+
+          <div class="filter-bar">
+            <div class="filter-chip active">📅 30 วัน</div>
+            <div class="filter-chip">ทั้งหมด</div>
+            <div class="filter-chip">✅ resolved</div>
+            <div class="filter-chip">⚠️ failed</div>
+            <div class="filter-chip">⚭ period</div>
+            <div class="filter-chip">🌀 aura</div>
+          </div>
+
+          <!-- TODAY -->
+          <div class="date-section-title">
+            วันนี้ • 17 พ.ค. <span class="count">2 episodes</span>
+          </div>
+
+          <div class="ep-card">
+            <div class="ep-icon ongoing">⚡</div>
+            <div class="ep-body">
+              <div class="ep-header-row">
+                <span class="ep-time">11:30</span>
+                <span class="ep-symptom">ปวดหัว</span>
+                <span class="ep-severity">7 <span class="arrow">→</span> <span class="end">4</span></span>
+              </div>
+              <div class="ep-meta">
+                <span class="ep-meta-pill drug">💊 Para + Ibu</span>
+                <span class="ep-meta-pill period">⚭ period</span>
+                <span>⏱ 1h 23m (ongoing)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ep-card">
+            <div class="ep-icon failed">⚠</div>
+            <div class="ep-body">
+              <div class="ep-header-row">
+                <span class="ep-time">18:00</span>
+                <span class="ep-symptom">ปวดหัว</span>
+                <span class="ep-severity">8 <span class="arrow">→</span> 7</span>
+              </div>
+              <div class="ep-meta">
+                <span class="ep-meta-pill failed">⚠ no drug</span>
+                <span class="ep-meta-pill period">⚭ period</span>
+                <span>⏱ 2h+ (closed manual)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- YESTERDAY -->
+          <div class="date-section-title">
+            เมื่อวาน • 16 พ.ค. <span class="count">2 episodes</span>
+          </div>
+
+          <div class="ep-card">
+            <div class="ep-icon resolved">✓</div>
+            <div class="ep-body">
+              <div class="ep-header-row">
+                <span class="ep-time">12:00</span>
+                <span class="ep-symptom">ปวดท้อง</span>
+                <span class="ep-severity">7 <span class="arrow">→</span> <span class="end">0</span></span>
+              </div>
+              <div class="ep-meta">
+                <span class="ep-meta-pill drug">💊 Ponstan</span>
+                <span class="ep-meta-pill period">⚭ period</span>
+                <span>⏱ 1h</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="ep-card">
+            <div class="ep-icon resolved">✓</div>
+            <div class="ep-body">
+              <div class="ep-header-row">
+                <span class="ep-time">18:30</span>
+                <span class="ep-symptom">ปวดหัว</span>
+                <span class="ep-severity">4 <span class="arrow">→</span> <span class="end">0</span></span>
+              </div>
+              <div class="ep-meta">
+                <span class="ep-meta-pill drug">💊 Paracetamol</span>
+                <span>⏱ 1h 30m • trigger: นอนน้อย</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- EARLIER -->
+          <div class="date-section-title">
+            15 พ.ค. <span class="count">1 episode</span>
+          </div>
+
+          <div class="ep-card">
+            <div class="ep-icon resolved">✓</div>
+            <div class="ep-body">
+              <div class="ep-header-row">
+                <span class="ep-time">07:30</span>
+                <span class="ep-symptom">ปวดท้อง</span>
+                <span class="ep-severity">9 <span class="arrow">→</span> <span class="end">0</span></span>
+              </div>
+              <div class="ep-meta">
+                <span class="ep-meta-pill drug">💊 Ponstan</span>
+                <span>⏱ 1h 15m • trigger: ฮอร์โมน</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- EARLIER -->
+          <div class="date-section-title">
+            13 พ.ค. <span class="count">1 episode</span>
+          </div>
+
+          <div class="ep-card">
+            <div class="ep-icon resolved">✓</div>
+            <div class="ep-body">
+              <div class="ep-header-row">
+                <span class="ep-time">14:00</span>
+                <span class="ep-symptom">ปวดหัว</span>
+                <span class="ep-severity">5 <span class="arrow">→</span> <span class="end">0</span></span>
+              </div>
+              <div class="ep-meta">
+                <span class="ep-meta-pill drug">💊 Sumatriptan</span>
+                <span class="ep-meta-pill period">⚭ period start</span>
+                <span>⏱ 50m</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state">
+            ... และอีก 6 episodes ก่อนหน้า (sccroll ↓)
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!--  PHONE 2: Episode Detail -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Episode Detail (เมื่อ tap card)</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>Episode #14</span>
+          <div class="app-header-actions">
+            <div class="icon-btn-mini">⋮</div>
+          </div>
+        </div>
+
+        <div class="content">
+
+          <!-- Status -->
+          <div class="detail-status">
+            <span class="detail-tag">✓ Resolved</span>
+            <div class="detail-date">📅 16 พ.ค. 2569 • อังคาร</div>
+            <div class="detail-symptom">ปวดท้อง 🤰</div>
+
+            <div class="detail-severity-row">
+              <div class="detail-sev start">
+                <div class="label">เริ่ม</div>
+                <div class="value">7</div>
+              </div>
+              <span class="arrow">→</span>
+              <div class="detail-sev end">
+                <div class="label">จบ</div>
+                <div class="value">0</div>
+              </div>
+            </div>
+
+            <div class="detail-meta-row">
+              <span>⏱ <strong>1h 0m</strong></span>
+              <span>🎯 <strong>Ponstan</strong></span>
+              <span>12:00 — 13:00</span>
+            </div>
+          </div>
+
+          <!-- Attributes -->
+          <div class="section-title">attributes</div>
+          <div class="attr-list">
+            <span class="attr-pill quality">💢 บีบ</span>
+            <span class="attr-pill period">⚭ ประจำเดือน</span>
+            <span class="attr-pill assoc">🤢 คลื่นไส้</span>
+          </div>
+
+          <!-- Trigger -->
+          <div class="section-title">trigger</div>
+          <div class="attr-list">
+            <span class="attr-pill" style="background: rgba(168,85,247,0.15); color: #c084fc; border-color: rgba(168,85,247,0.3);">ฮอร์โมน</span>
+          </div>
+
+          <!-- Timeline -->
+          <div class="section-title">timeline</div>
+          <div class="timeline">
+            <div class="timeline-item symptom">
+              <div class="timeline-time">12:00</div>
+              <div class="timeline-event">🤒 ปวดท้อง 7/10</div>
+              <div class="timeline-note">trigger: ฮอร์โมน • ประจำเดือน</div>
+            </div>
+            <div class="timeline-item drug">
+              <div class="timeline-time">12:15</div>
+              <div class="timeline-event">💊 Ponstan 500mg ×1</div>
+              <div class="timeline-note">→ รักษาปวดท้อง</div>
+            </div>
+            <div class="timeline-item followup">
+              <div class="timeline-time">13:00</div>
+              <div class="timeline-event">📊 follow-up: หายแล้ว 0/10 ✓</div>
+              <div class="timeline-note">resolution time: 1h</div>
+            </div>
+          </div>
+
+          <!-- Note -->
+          <div class="section-title">note</div>
+          <div class="note-card">
+            "เริ่มปวดตอนกินข้าวเสร็จ Ponstan ได้ผลเร็วกว่าครั้งก่อน"
+          </div>
+
+          <!-- Actions -->
+          <div class="actions-row">
+            <button class="action-btn primary">✏️ แก้ไข</button>
+            <button class="action-btn">📤 แชร์</button>
+            <button class="action-btn danger">🗑</button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; padding: 16px 24px 32px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+  <strong>History List:</strong> group by date • icons แสดง outcome • severity arrow (start → end)<br>
+  <strong>Filter chips:</strong> 30 วัน / resolved / failed / period / aura — pick & combine<br>
+  <strong>Episode Detail:</strong> attributes pills • timeline view • note • edit / share / delete actions<br>
+  <br>
+  💡 Tap "✏️ แก้ไข" → เปิด form แบบเดียวกับ Quick Log แต่ pre-filled ทุก field (edit-then-save)
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+
+  document.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.classList.toggle('active');
+    });
+  });
+</script>
+</body>
+</html>

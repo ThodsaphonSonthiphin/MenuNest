@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — Gemini Confirm Drug</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --gemini: #4285f4;
+    --gemini-bg: rgba(66,133,244,0.15);
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.12);
+    --drug: #34d399;
+    --drug-bg: rgba(52,211,153,0.12);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.15);
+    --danger: #ef4444;
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --gemini: #1a73e8;
+    --gemini-bg: rgba(26,115,232,0.1);
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.08);
+    --drug: #10b981;
+    --drug-bg: rgba(16,185,129,0.08);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.12);
+    --danger: #dc2626;
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toggle-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .phone { width: 360px; }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 820px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+    padding-bottom: 80px;
+  }
+  .phone-content::-webkit-scrollbar { width: 4px; }
+  .phone-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .back-btn { color: var(--text-muted); cursor: pointer; font-size: 18px; }
+
+  .content { padding: 8px 16px; }
+
+  /* ============================ */
+  /* PHONE 1: Photo capture       */
+  /* ============================ */
+
+  .photo-uploader {
+    background: var(--bg-card);
+    border: 2px dashed var(--accent);
+    border-radius: 16px;
+    padding: 24px 16px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .photo-uploader-icon {
+    font-size: 48px;
+    margin-bottom: 8px;
+  }
+  .photo-uploader-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .photo-uploader-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    line-height: 1.5;
+  }
+  .photo-uploader-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  .uploader-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .uploader-btn.secondary {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  /* Photo grid */
+  .photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .photo-thumb {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 50%, #fbbf24 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .photo-thumb.back {
+    background: linear-gradient(135deg, #dbeafe 0%, #3b82f6 50%, #60a5fa 100%);
+  }
+  .photo-thumb.side {
+    background: linear-gradient(135deg, #fce7f3 0%, #ec4899 50%, #f472b6 100%);
+  }
+  .photo-thumb.add-more {
+    background: var(--bg-card);
+    border: 2px dashed var(--border);
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+  }
+  .photo-thumb .pill-emoji {
+    background: rgba(255,255,255,0.9);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .photo-remove {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 22px; height: 22px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .photo-label {
+    position: absolute;
+    bottom: 4px; left: 4px; right: 4px;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  /* Gemini analyzing state */
+  .gemini-loading {
+    background: var(--gemini-bg);
+    border: 1px solid var(--gemini);
+    border-radius: 16px;
+    padding: 20px 16px;
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .gemini-icon {
+    font-size: 40px;
+    margin-bottom: 8px;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.95); }
+  }
+  .gemini-loading-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gemini);
+    margin-bottom: 8px;
+  }
+  .gemini-loading-steps {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: left;
+    line-height: 1.8;
+  }
+  .gemini-loading-steps .step.done { color: var(--drug); }
+  .gemini-loading-steps .step.doing { color: var(--gemini); font-weight: 600; }
+
+  /* Big CTA */
+  .cta-btn {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .cta-btn.gemini-style {
+    background: linear-gradient(135deg, #4285f4 0%, #ea4335 35%, #fbbc04 65%, #34a853 100%);
+  }
+
+  /* ============================ */
+  /* PHONE 2: Confirmation        */
+  /* ============================ */
+
+  .gemini-header {
+    background: var(--gemini-bg);
+    border: 1px solid var(--gemini);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .gemini-header-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .gemini-header-text {
+    flex: 1;
+    font-size: 13px;
+  }
+  .gemini-header-text strong {
+    color: var(--gemini);
+    display: block;
+    margin-bottom: 2px;
+  }
+  .gemini-header-text small {
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+
+  /* Photo strip (compact) */
+  .photo-strip {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .photo-strip .photo-thumb-mini {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: white;
+  }
+  .photo-strip .photo-thumb-mini.front {
+    background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 50%, #fbbf24 100%);
+  }
+  .photo-strip .photo-thumb-mini.back {
+    background: linear-gradient(135deg, #dbeafe 0%, #3b82f6 50%, #60a5fa 100%);
+  }
+  .photo-strip .photo-thumb-mini.side {
+    background: linear-gradient(135deg, #fce7f3 0%, #ec4899 50%, #f472b6 100%);
+  }
+
+  /* Form field with confidence */
+  .form-field {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .form-field.low-conf {
+    border-color: var(--warning);
+    background: var(--warning-bg);
+  }
+  .form-field.empty {
+    border-color: var(--danger);
+    border-style: dashed;
+  }
+  .form-field-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 6px;
+  }
+  .confidence-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .confidence-badge.high {
+    background: var(--drug-bg);
+    color: var(--drug);
+  }
+  .confidence-badge.medium {
+    background: var(--warning-bg);
+    color: var(--warning);
+  }
+  .confidence-badge.low {
+    background: rgba(239,68,68,0.15);
+    color: var(--danger);
+  }
+  .confidence-badge.manual {
+    background: var(--bg-card-2);
+    color: var(--text-muted);
+  }
+
+  .form-field-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: inherit;
+  }
+  .form-field-input:focus {
+    outline: none;
+  }
+  .form-field-input::placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+  }
+
+  .form-field-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-style: italic;
+  }
+
+  /* Chip group for treats */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .chip {
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .chip.suggested {
+    background: var(--gemini-bg);
+    border-color: var(--gemini);
+    color: var(--gemini);
+    font-weight: 600;
+  }
+  .chip.suggested::before {
+    content: '✨ ';
+  }
+  .chip.add-new {
+    background: none;
+    border-style: dashed;
+    color: var(--text-muted);
+  }
+
+  /* Range row */
+  .range-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .range-row input { flex: 1; }
+  .range-sep { color: var(--text-muted); }
+  .range-unit { font-size: 12px; color: var(--text-muted); }
+
+  /* Sticky bottom */
+  .sticky-actions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: linear-gradient(to bottom, transparent 0%, var(--bg-card-2) 30%);
+    display: flex;
+    gap: 8px;
+    z-index: 5;
+  }
+  .action-btn-secondary {
+    background: var(--bg-card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  .action-btn-primary {
+    background: var(--drug);
+    color: white;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    flex: 1;
+  }
+
+  .section-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin: 14px 4px 6px;
+  }
+
+  /* Tool calls badge */
+  .tool-calls {
+    background: var(--bg-card-2);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .tool-calls code {
+    background: var(--bg-card);
+    padding: 1px 6px;
+    border-radius: 3px;
+    color: var(--gemini);
+    font-family: monospace;
+    font-size: 10px;
+  }
+
+  @media (max-width: 800px) {
+    .phones { padding: 16px 8px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX — Add Drug via Gemini AI</div>
+  <div class="page-sub">Photos → Gemini (multimodal + tools) → DRAFT → User confirms → Save</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!-- PHONE 1: Photo capture + Gemini analyzing -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Stage 1: Capture + Analyzing</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>เพิ่มยาด้วย AI</span>
+        </div>
+
+        <div class="content">
+
+          <!-- Photo uploader empty state -->
+          <div class="photo-uploader" style="padding: 16px;">
+            <div style="font-size: 24px; margin-bottom: 4px;">📷</div>
+            <div style="font-size: 13px; font-weight: 600; margin-bottom: 4px;">ถ่ายซองยา 1-5 รูป</div>
+            <div style="font-size: 11px; color: var(--text-muted);">
+              ด้านหน้า (ชื่อ) • ด้านหลัง (วิธีใช้) • ข้าง (วันหมดอายุ)
+            </div>
+          </div>
+
+          <!-- Uploaded photos preview -->
+          <div class="section-title">📦 อัพโหลดแล้ว 3/5</div>
+          <div class="photo-grid">
+            <div class="photo-thumb">
+              <div class="pill-emoji">💊</div>
+              <div class="photo-remove">×</div>
+              <div class="photo-label">หน้า</div>
+            </div>
+            <div class="photo-thumb back">
+              <div class="pill-emoji">💊</div>
+              <div class="photo-remove">×</div>
+              <div class="photo-label">หลัง</div>
+            </div>
+            <div class="photo-thumb side">
+              <div class="pill-emoji">💊</div>
+              <div class="photo-remove">×</div>
+              <div class="photo-label">วันหมดอายุ</div>
+            </div>
+            <div class="photo-thumb add-more">+</div>
+          </div>
+
+          <!-- Gemini analyzing state -->
+          <div class="gemini-loading">
+            <div class="gemini-icon">✨</div>
+            <div class="gemini-loading-text">Gemini กำลังอ่านซองยา...</div>
+            <div class="gemini-loading-steps">
+              <div class="step done">✓ Upload ภาพไป Azure Blob (3/3)</div>
+              <div class="step done">✓ ส่งให้ Gemini multimodal</div>
+              <div class="step done">✓ Gemini เรียก <code>search_existing_drugs</code></div>
+              <div class="step doing">⟳ Gemini เรียก <code>propose_drug_creation</code>...</div>
+              <div class="step" style="opacity: 0.5;">○ Return draft</div>
+            </div>
+          </div>
+
+          <!-- Manual fallback -->
+          <button class="cta-btn" style="background: var(--bg-card); color: var(--text); border: 1px solid var(--border); font-weight: 500;">
+            ✏️ ใส่ข้อมูลเองแทน
+          </button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- PHONE 2: Confirmation screen -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Stage 2: Confirm Gemini's draft</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>ตรวจสอบข้อมูล</span>
+        </div>
+
+        <div class="content">
+
+          <!-- Gemini summary -->
+          <div class="gemini-header">
+            <div class="gemini-header-icon">✨</div>
+            <div class="gemini-header-text">
+              <strong>Gemini อ่านซองยาแล้ว</strong>
+              <small>ตรวจค่าที่ AI กรอกให้ก่อนบันทึก — แก้ได้ทุก field</small>
+            </div>
+          </div>
+
+          <!-- Photos -->
+          <div class="photo-strip">
+            <div class="photo-thumb-mini front"><div style="background: rgba(255,255,255,0.9); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">💊</div></div>
+            <div class="photo-thumb-mini back"><div style="background: rgba(255,255,255,0.9); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">💊</div></div>
+            <div class="photo-thumb-mini side"><div style="background: rgba(255,255,255,0.9); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px;">💊</div></div>
+          </div>
+
+          <!-- Name -->
+          <div class="form-field">
+            <div class="form-field-label">
+              ชื่อยา *
+              <span class="confidence-badge high">✓ high 95%</span>
+            </div>
+            <input type="text" class="form-field-input" value="Sumatriptan">
+          </div>
+
+          <!-- Dose strength -->
+          <div class="form-field">
+            <div class="form-field-label">
+              Dose strength
+              <span class="confidence-badge high">✓ high 92%</span>
+            </div>
+            <input type="text" class="form-field-input" value="50mg">
+          </div>
+
+          <!-- Drug type -->
+          <div class="form-field">
+            <div class="form-field-label">
+              ประเภท
+              <span class="confidence-badge high">✓ high 98%</span>
+            </div>
+            <div class="form-field-input">Triptan</div>
+            <div class="form-field-sub">Gemini detected: "5-HT1 receptor agonist" → Triptan class</div>
+          </div>
+
+          <!-- Effect duration (medium) -->
+          <div class="form-field low-conf">
+            <div class="form-field-label">
+              ออกฤทธิ์ระยะเวลา
+              <span class="confidence-badge medium">⚠ medium 70%</span>
+            </div>
+            <div class="range-row">
+              <input type="number" class="form-field-input" value="4">
+              <span class="range-sep">–</span>
+              <input type="number" class="form-field-input" value="6">
+              <span class="range-unit">ชั่วโมง</span>
+            </div>
+            <div class="form-field-sub">⚠ Gemini อ่านได้ไม่ชัด — โปรดตรวจในซอง</div>
+          </div>
+
+          <!-- Max daily (high) -->
+          <div class="form-field">
+            <div class="form-field-label">
+              Max ต่อวัน
+              <span class="confidence-badge high">✓ high 90%</span>
+            </div>
+            <div class="range-row">
+              <input type="number" class="form-field-input" value="2">
+              <span class="range-unit">เม็ด / วัน</span>
+            </div>
+            <div class="form-field-sub">"ห้ามเกิน 2 เม็ดใน 24 ชม."</div>
+          </div>
+
+          <!-- Expiration (low) -->
+          <div class="form-field empty">
+            <div class="form-field-label">
+              วันหมดอายุ
+              <span class="confidence-badge low">✕ low 40%</span>
+            </div>
+            <input type="month" class="form-field-input" value="2028-03">
+            <div class="form-field-sub">⚠ ตัวเลขเบลอ — โปรดตรวจสอบเอง</div>
+          </div>
+
+          <!-- Stock count (manual — Gemini didn't detect) -->
+          <div class="form-field">
+            <div class="form-field-label">
+              Stock ปัจจุบัน
+              <span class="confidence-badge manual">✋ manual</span>
+            </div>
+            <input type="number" class="form-field-input" placeholder="กรอกจำนวนเม็ด" value="2">
+            <div class="form-field-sub">Gemini ไม่เห็นจำนวนเม็ด — กรุณากรอกเอง</div>
+          </div>
+
+          <!-- Treats (suggested) -->
+          <div class="form-field">
+            <div class="form-field-label">
+              🎯 รักษาอาการ
+              <span class="confidence-badge medium">⚠ suggested</span>
+            </div>
+            <div class="chip-group">
+              <div class="chip suggested">ปวดหัว</div>
+              <div class="chip suggested">ไมเกรน</div>
+              <div class="chip">ไข้</div>
+              <div class="chip">ปวดท้อง</div>
+              <div class="chip add-new">+ เพิ่ม</div>
+            </div>
+          </div>
+
+          <!-- Usage note (high) -->
+          <div class="form-field">
+            <div class="form-field-label">
+              📝 วิธีใช้
+              <span class="confidence-badge high">✓ extracted</span>
+            </div>
+            <textarea class="form-field-input" style="min-height: 50px; resize: none;">กินทันทีเมื่อเริ่มปวด ไม่ต้องรอ • หากไม่ดีขึ้นใน 2 ชม. ห้ามกินซ้ำ</textarea>
+          </div>
+
+          <!-- Tool calls preview (collapsible) -->
+          <div class="tool-calls">
+            🤖 Gemini ทำงาน 2 tool calls:<br>
+            • <code>search_existing_drugs(query="Sumatriptan")</code> → 0 results<br>
+            • <code>propose_drug_creation(...)</code> → returned draft
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Sticky actions -->
+      <div class="sticky-actions">
+        <button class="action-btn-secondary">↻ ลองใหม่</button>
+        <button class="action-btn-primary">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; padding: 16px 24px 32px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+  <strong>Stage 1:</strong> User ถ่ายซองยา 1-5 รูป → upload Azure Blob → Gemini multimodal + function calling<br>
+  <strong>Stage 2:</strong> Confirmation screen แสดง <em>draft</em> ของ Gemini ทุก field พร้อม confidence badge<br>
+  <br>
+  <strong>Confidence levels:</strong><br>
+  <span style="color: var(--drug);">✓ high</span> = AI มั่นใจ (อ่านได้ชัด, เห็นเลข ตรงๆ) •
+  <span style="color: var(--warning);">⚠ medium</span> = อาจถูก/อาจไม่ •
+  <span style="color: var(--danger);">✕ low</span> = ไม่ชัด ต้องเช็ค •
+  <span style="color: var(--text-muted);">✋ manual</span> = AI ไม่เห็น user ต้องกรอก<br>
+  <br>
+  💡 User อยากแก้ field ไหนก็ tap → edit ตรงๆ → save = drug entry สมบูรณ์
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+</script>
+</body>
+</html>
