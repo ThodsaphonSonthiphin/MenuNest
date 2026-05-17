@@ -30,5 +30,16 @@ public interface IApplicationDbContext
     DbSet<MonthlyIncome> MonthlyIncomes { get; }
     DbSet<BudgetTransaction> BudgetTransactions { get; }
 
+    // Health (migraine tracker) module
+    DbSet<Drug> Drugs { get; }
+    DbSet<Symptom> Symptoms { get; }
+    DbSet<Trigger> Triggers { get; }
+    DbSet<SymptomEpisode> SymptomEpisodes { get; }
+    DbSet<Intake> Intakes { get; }
+    DbSet<FollowUpPing> FollowUpPings { get; }
+    DbSet<WebPushSubscription> WebPushSubscriptions { get; }
+    DbSet<ShareLink> ShareLinks { get; }
+    DbSet<Photo> Photos { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
