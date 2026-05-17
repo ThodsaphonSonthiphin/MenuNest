@@ -1,0 +1,3197 @@
+/* ----------------------------------------------------------------------
+ * MenuNest — Health (Migraine Tracker) shared styles.
+ *
+ * Dark mode is the default (photophobia-friendly). Light mode activates
+ * when `body.light` is present. CSS variables mirror the mock files:
+ *   docs/mocks/patient-active-episode-mock.html
+ *   docs/mocks/patient-quick-log-mock.html
+ *
+ * Scope: this stylesheet is imported by each health page. Selectors are
+ * prefixed `.health-*` to avoid bleeding into other features that share
+ * the AppLayout shell.
+ * -------------------------------------------------------------------- */
+
+:root {
+  /* Dark mode (default) — photophobia-friendly. */
+  --hl-bg-page: #020617;
+  --hl-bg-card: #1e293b;
+  --hl-bg-card-2: #0f172a;
+  --hl-bg-muted: #334155;
+  --hl-border: #334155;
+  --hl-text: #f1f5f9;
+  --hl-text-muted: #94a3b8;
+  --hl-accent: #818cf8;
+  --hl-symptom: #f87171;
+  --hl-symptom-bg: rgba(248, 113, 113, 0.15);
+  --hl-drug: #34d399;
+  --hl-drug-bg: rgba(52, 211, 153, 0.12);
+  --hl-period: #f472b6;
+  --hl-period-bg: rgba(244, 114, 182, 0.15);
+  --hl-warning: #fbbf24;
+  --hl-warning-bg: rgba(251, 191, 36, 0.12);
+  --hl-danger: #ef4444;
+  --hl-danger-bg: rgba(239, 68, 68, 0.15);
+  --hl-aura: #c084fc;
+  --hl-aura-bg: rgba(192, 132, 252, 0.15);
+}
+
+body.light {
+  --hl-bg-page: #f8fafc;
+  --hl-bg-card: #ffffff;
+  --hl-bg-card-2: #f1f5f9;
+  --hl-bg-muted: #e2e8f0;
+  --hl-border: #e5e7eb;
+  --hl-text: #0f172a;
+  --hl-text-muted: #64748b;
+  --hl-accent: #4f46e5;
+  --hl-symptom: #ef4444;
+  --hl-symptom-bg: rgba(239, 68, 68, 0.1);
+  --hl-drug: #10b981;
+  --hl-drug-bg: rgba(16, 185, 129, 0.08);
+  --hl-period: #ec4899;
+  --hl-period-bg: rgba(236, 72, 153, 0.1);
+  --hl-warning: #f59e0b;
+  --hl-warning-bg: rgba(245, 158, 11, 0.08);
+  --hl-danger: #dc2626;
+  --hl-danger-bg: rgba(220, 38, 38, 0.1);
+  --hl-aura: #a855f7;
+  --hl-aura-bg: rgba(168, 85, 247, 0.1);
+}
+
+/* ----------------------------------------------------------------------
+ * Page shell — the health pages render inside AppLayout's <main>. We use
+ * a centered 480px column so the design stays phone-shaped on desktop
+ * while still working full-width on mobile.
+ * -------------------------------------------------------------------- */
+.health-page {
+  background: var(--hl-bg-page);
+  color: var(--hl-text);
+  min-height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Thai',
+    'IBM Plex Sans Thai', 'Sarabun', system-ui, sans-serif;
+  padding: 16px 0 80px;
+}
+
+.health-page__container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.health-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0 12px;
+}
+
+.health-header__user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--hl-text);
+}
+
+.health-header__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--hl-accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.health-header__icons {
+  display: flex;
+  gap: 4px;
+  color: var(--hl-text-muted);
+}
+
+.health-icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+}
+.health-icon-btn:hover {
+  background: var(--hl-bg-card);
+}
+
+.health-section-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--hl-text-muted);
+  font-weight: 600;
+  margin: 18px 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.health-smart-tag {
+  font-size: 10px;
+  background: var(--hl-accent);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: auto;
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 600;
+}
+
+.health-card {
+  background: var(--hl-bg-card);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+  border: 1px solid var(--hl-border);
+}
+
+/* ----------------------------------------------------------------------
+ * Pulsing active banner (Home).
+ * -------------------------------------------------------------------- */
+.health-active-banner {
+  background: linear-gradient(135deg, var(--hl-symptom) 0%, #c026d3 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+  overflow: hidden;
+  animation: health-banner-pulse 2.5s ease-in-out infinite;
+  border: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+@keyframes health-banner-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(248, 113, 113, 0);
+  }
+}
+
+.health-active-banner__label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.95;
+  margin-bottom: 4px;
+}
+
+.health-active-banner__title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.health-active-banner__meta {
+  font-size: 13px;
+  opacity: 0.95;
+  margin-bottom: 4px;
+}
+
+.health-active-banner__cta {
+  margin-top: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 10px 14px;
+  border-radius: 10px;
+  width: 100%;
+  font-weight: 600;
+  text-align: center;
+}
+
+.health-pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: health-pulse-dot 1.4s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+@keyframes health-pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * Primary / secondary CTA buttons (Home & Active Episode).
+ * -------------------------------------------------------------------- */
+.health-action-btn {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  padding: 14px;
+  border-radius: 12px;
+  width: 100%;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-family: inherit;
+}
+.health-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.health-action-btn--large {
+  padding: 18px;
+  font-size: 16px;
+}
+.health-action-btn--primary {
+  background: var(--hl-symptom);
+  border-color: var(--hl-symptom);
+  color: white;
+}
+.health-action-btn--green {
+  background: var(--hl-drug);
+  border-color: var(--hl-drug);
+  color: white;
+}
+.health-action-btn--danger {
+  background: var(--hl-danger-bg);
+  color: var(--hl-danger);
+  border-color: var(--hl-danger);
+}
+
+/* Status rows (Home) */
+.health-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--hl-text-muted);
+}
+.health-status-row__icon {
+  width: 18px;
+  text-align: center;
+}
+.health-status-row strong {
+  color: var(--hl-text);
+}
+
+/* 7-day mini bar chart */
+.health-mini-bars {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 50px;
+  padding: 8px 0;
+}
+.health-mini-bar {
+  flex: 1;
+  background: var(--hl-symptom);
+  border-radius: 3px 3px 0 0;
+  opacity: 0.85;
+  min-height: 1px;
+}
+.health-mini-bar--empty {
+  background: var(--hl-bg-muted);
+  opacity: 0.35;
+}
+.health-mini-bar-labels {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.health-mini-bar-label {
+  flex: 1;
+  font-size: 10px;
+  color: var(--hl-text-muted);
+  text-align: center;
+}
+
+/* Link button (low-priority navigation, e.g. "ดูประวัติทั้งหมด") */
+.health-link-btn {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text-muted);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  text-decoration: none;
+}
+.health-link-btn:hover {
+  border-color: var(--hl-accent);
+  color: var(--hl-accent);
+}
+
+/* ----------------------------------------------------------------------
+ * Severity slider (Quick Log + update modal).
+ * -------------------------------------------------------------------- */
+.health-severity-section {
+  background: var(--hl-symptom-bg);
+  border: 1px solid var(--hl-symptom);
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.health-severity-section__question {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-align: center;
+  color: var(--hl-text);
+}
+.health-severity-display {
+  text-align: center;
+  margin-bottom: 12px;
+}
+.health-severity-num {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--hl-symptom);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.health-severity-num--sub {
+  font-size: 18px;
+  color: var(--hl-text-muted);
+  font-weight: 500;
+}
+.health-slider-wrap {
+  margin: 16px 4px 8px;
+}
+.health-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  background: linear-gradient(to right, #fbbf24 0%, #f87171 50%, #dc2626 100%);
+  border-radius: 3px;
+  outline: none;
+}
+.health-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: white;
+  border: 4px solid var(--hl-symptom);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.health-slider::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: white;
+  border: 4px solid var(--hl-symptom);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.health-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--hl-text-muted);
+}
+
+/* Severity pill (inline 7/10) */
+.health-severity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  background: var(--hl-bg-card-2);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+}
+.health-severity-pill--mild {
+  color: var(--hl-warning);
+  border-color: var(--hl-warning);
+  background: var(--hl-warning-bg);
+}
+.health-severity-pill--moderate {
+  color: #fb923c;
+  border-color: #fb923c;
+  background: rgba(251, 146, 60, 0.12);
+}
+.health-severity-pill--severe {
+  color: var(--hl-symptom);
+  border-color: var(--hl-symptom);
+  background: var(--hl-symptom-bg);
+}
+
+/* ----------------------------------------------------------------------
+ * Chip group (single + multi-select).
+ * -------------------------------------------------------------------- */
+.health-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.health-chip {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+  line-height: 1.2;
+}
+.health-chip:hover {
+  border-color: var(--hl-accent);
+}
+.health-chip--active {
+  background: var(--hl-accent);
+  border-color: var(--hl-accent);
+  color: white;
+  font-weight: 600;
+}
+.health-chip--symptom.health-chip--active {
+  background: var(--hl-symptom);
+  border-color: var(--hl-symptom);
+}
+.health-chip--period.health-chip--active {
+  background: var(--hl-period);
+  border-color: var(--hl-period);
+}
+.health-chip--aura.health-chip--active {
+  background: var(--hl-aura);
+  border-color: var(--hl-aura);
+}
+
+/* Period checkbox-style row */
+.health-check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 10px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: var(--hl-text);
+}
+.health-check-row--checked {
+  background: var(--hl-period-bg);
+  border-color: var(--hl-period);
+}
+.health-check-row__box {
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--hl-text-muted);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.health-check-row--checked .health-check-row__box {
+  background: var(--hl-period);
+  border-color: var(--hl-period);
+}
+
+/* Note textarea */
+.health-note-input {
+  width: 100%;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  resize: none;
+  min-height: 60px;
+  font-family: inherit;
+}
+.health-note-input::placeholder {
+  color: var(--hl-text-muted);
+}
+
+/* Native dropdown (Phase 1 symptom picker) */
+.health-select {
+  width: 100%;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+/* Time row (Quick Log) */
+.health-time-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.health-time-row__info {
+  color: var(--hl-text-muted);
+  font-size: 12px;
+}
+.health-time-row__value {
+  color: var(--hl-text);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Sticky save bar (Quick Log) */
+.health-sticky-save {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 12px 0 16px;
+  margin-top: 20px;
+  background: linear-gradient(to bottom, transparent 0%, var(--hl-bg-page) 30%);
+  z-index: 5;
+}
+.health-save-btn {
+  width: 100%;
+  background: var(--hl-symptom);
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -4px rgba(248, 113, 113, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+}
+.health-save-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.health-save-btn-sub {
+  text-align: center;
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 6px;
+}
+
+/* ----------------------------------------------------------------------
+ * Active Episode page — status card, attr pills, follow-up.
+ * -------------------------------------------------------------------- */
+.health-status-card {
+  background: linear-gradient(135deg, var(--hl-symptom-bg) 0%, transparent 100%);
+  border: 1px solid var(--hl-symptom);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.health-status-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.health-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--hl-symptom);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.health-timer {
+  font-size: 13px;
+  color: var(--hl-text-muted);
+}
+.health-timer__value {
+  color: var(--hl-text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.health-severity-display--active {
+  margin-top: 14px;
+  text-align: center;
+  padding: 14px;
+  background: var(--hl-bg-card-2);
+  border-radius: 12px;
+}
+.health-severity-label {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.health-severity-value {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--hl-symptom);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.health-severity-value__sub {
+  font-size: 16px;
+  color: var(--hl-text-muted);
+  font-weight: 500;
+}
+.health-severity-update {
+  background: none;
+  border: 1px solid var(--hl-border);
+  color: var(--hl-accent);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Attribute pills */
+.health-attr-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.health-attr-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--hl-bg-card-2);
+  color: var(--hl-text);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--hl-border);
+}
+.health-attr-pill--side {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+.health-attr-pill--quality {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fcd34d;
+  border-color: rgba(251, 191, 36, 0.3);
+}
+.health-attr-pill--period {
+  background: var(--hl-period-bg);
+  color: var(--hl-period);
+  border-color: var(--hl-period);
+}
+.health-attr-pill--assoc {
+  background: var(--hl-symptom-bg);
+  color: var(--hl-symptom);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+body.light .health-attr-pill--side {
+  background: #eef2ff;
+  color: #4338ca;
+  border-color: #c7d2fe;
+}
+body.light .health-attr-pill--quality {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+/* Intake drug card */
+.health-drug-card {
+  background: var(--hl-drug-bg);
+  border: 1px solid var(--hl-drug);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.health-drug-card:last-child {
+  margin-bottom: 0;
+}
+.health-drug-card__name {
+  font-weight: 600;
+  color: var(--hl-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.health-drug-card__time {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.health-drug-card__sub {
+  font-size: 12px;
+  color: var(--hl-drug);
+  margin-top: 3px;
+}
+
+/* Follow-up card */
+.health-followup-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--hl-bg-card-2);
+  border: 1px solid var(--hl-border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.health-followup-info {
+  font-size: 13px;
+  color: var(--hl-text);
+}
+.health-followup-info strong {
+  color: var(--hl-accent);
+  font-variant-numeric: tabular-nums;
+}
+.health-followup-info__sub {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 2px;
+}
+
+/* Modal overlay (severity update) */
+.health-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.health-modal {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 16px;
+  padding: 20px;
+  max-width: 360px;
+  width: 100%;
+  color: var(--hl-text);
+}
+.health-modal__title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.health-modal__actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.health-modal__actions .health-action-btn {
+  margin-bottom: 0;
+}
+
+/* Edit link inside card */
+.health-edit-link {
+  color: var(--hl-accent);
+  font-size: 12px;
+  margin-top: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+
+/* Toast (resolve, update) — tiny inline notification */
+.health-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-drug);
+  color: var(--hl-text);
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 1100;
+  box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* ----------------------------------------------------------------------
+ * Task 14b — Take Medication: episode context, section titles, drug
+ * cards (active/takeable/blocked/master), fallback, expand link.
+ * Mock: docs/mocks/patient-take-medication-mock.html.
+ * -------------------------------------------------------------------- */
+.health-episode-context {
+  background: var(--hl-symptom-bg);
+  border: 1px solid var(--hl-symptom);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.health-episode-context__info {
+  font-size: 14px;
+}
+.health-episode-context__label {
+  color: var(--hl-text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 2px;
+}
+.health-episode-context__value {
+  color: var(--hl-text);
+  font-weight: 600;
+}
+.health-episode-context__severity {
+  color: var(--hl-symptom);
+  font-weight: 700;
+}
+.health-episode-context__change {
+  background: none;
+  border: 1px solid var(--hl-symptom);
+  color: var(--hl-symptom);
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-episode-context__change:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.health-section-title--active {
+  color: var(--hl-warning);
+}
+.health-section-title--takeable {
+  color: var(--hl-drug);
+}
+.health-section-title--blocked {
+  color: var(--hl-text-muted);
+}
+
+/* Drug card v2 (Take Medication + Drug Master) */
+.health-drug-card-v2 {
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid var(--hl-border);
+  background: var(--hl-bg-card);
+  font-family: inherit;
+  color: var(--hl-text);
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+.health-drug-card-v2__name {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.health-drug-card-v2__meta {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  margin-bottom: 8px;
+}
+.health-drug-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--hl-bg-card-2);
+  color: var(--hl-text-muted);
+  font-weight: 600;
+}
+.health-drug-tag--triptan {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+body.light .health-drug-tag--triptan {
+  background: #f3e8ff;
+  color: #6d28d9;
+}
+
+/* Active variant (still in effect) */
+.health-drug-card-v2--active {
+  background: var(--hl-warning-bg);
+  border-color: var(--hl-warning);
+}
+.health-progress-bar {
+  margin-top: 8px;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+}
+body.light .health-progress-bar {
+  background: rgba(0, 0, 0, 0.08);
+}
+.health-progress-bar__fill {
+  height: 100%;
+  background: var(--hl-warning);
+  border-radius: 3px;
+  transition: width 0.3s ease-out;
+}
+.health-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.health-progress-text__countdown {
+  color: var(--hl-warning);
+  font-weight: 600;
+}
+.health-active-warn {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--hl-warning);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Takeable variant */
+.health-drug-card-v2--takeable {
+  background: var(--hl-drug-bg);
+  border-color: var(--hl-drug);
+}
+.health-stock-info {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  margin-bottom: 8px;
+}
+.health-stock-info strong {
+  color: var(--hl-text);
+}
+.health-stock-warn {
+  display: inline-block;
+  color: var(--hl-warning);
+  font-size: 11px;
+  background: var(--hl-warning-bg);
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+.health-dose-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.health-dose-btn {
+  flex: 1;
+  background: var(--hl-drug);
+  border: none;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-dose-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.health-dose-btn:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+/* Blocked variant */
+.health-drug-card-v2--blocked {
+  background: rgba(148, 163, 184, 0.1);
+  border-color: var(--hl-border);
+  opacity: 0.85;
+}
+body.light .health-drug-card-v2--blocked {
+  background: rgba(100, 116, 139, 0.08);
+}
+.health-drug-card-v2--blocked .health-drug-card-v2__name {
+  color: var(--hl-text-muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--hl-text-muted);
+}
+.health-blocked-reason {
+  background: var(--hl-danger-bg);
+  color: var(--hl-danger);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.health-available-at {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 4px;
+}
+
+/* Master variant (Drug Master list, Task 14c) */
+.health-drug-card-v2--master {
+  cursor: pointer;
+}
+.health-drug-card-v2--master:disabled {
+  cursor: default;
+}
+.health-drug-card-v2--master:hover:not(:disabled) {
+  border-color: var(--hl-accent);
+}
+
+/* Other drugs expand link */
+.health-expand-link {
+  width: 100%;
+  background: none;
+  border: 1px dashed var(--hl-border);
+  color: var(--hl-text-muted);
+  padding: 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-family: inherit;
+  margin-bottom: 12px;
+}
+.health-expand-link:hover {
+  border-color: var(--hl-accent);
+  color: var(--hl-accent);
+}
+
+/* "หรือ" divider */
+.health-divider-or {
+  display: flex;
+  align-items: center;
+  margin: 20px 0;
+  gap: 12px;
+  color: var(--hl-text-muted);
+  font-size: 12px;
+}
+.health-divider-or::before,
+.health-divider-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--hl-border);
+}
+
+/* No-drug fallback card */
+.health-no-drug-card {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+.health-no-drug-btn {
+  width: 100%;
+  background: var(--hl-bg-card-2);
+  border: 1px solid var(--hl-text-muted);
+  color: var(--hl-text);
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-no-drug-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.health-no-drug-sub {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+/* Add drug button */
+.health-add-drug-btn {
+  width: 100%;
+  background: none;
+  border: 1px solid var(--hl-accent);
+  color: var(--hl-accent);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 12px;
+  font-family: inherit;
+}
+.health-add-drug-btn:hover {
+  background: rgba(129, 140, 248, 0.08);
+}
+
+/* ----------------------------------------------------------------------
+ * Task 14b — History list + Episode detail.
+ * Mock: docs/mocks/patient-history-mock.html.
+ * -------------------------------------------------------------------- */
+
+/* Filter bar */
+.health-filter-bar {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.health-filter-chip {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+}
+.health-filter-chip:hover {
+  border-color: var(--hl-accent);
+}
+.health-filter-chip--active {
+  background: var(--hl-accent);
+  color: white;
+  border-color: var(--hl-accent);
+}
+
+/* Search */
+.health-search-box {
+  width: 100%;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  padding: 10px 14px 10px 36px;
+  border-radius: 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='%2394a3b8' viewBox='0 0 24 24' width='16'><path d='M15.5 14h-.79l-.28-.27A6.5 6.5 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5z'/></svg>");
+  background-repeat: no-repeat;
+  background-position: 12px center;
+  background-size: 16px;
+  font-family: inherit;
+}
+.health-search-box::placeholder {
+  color: var(--hl-text-muted);
+}
+
+/* Date section heading */
+.health-date-section-title {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  margin: 14px 4px 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.health-date-section-count {
+  background: var(--hl-bg-card);
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--hl-text-muted);
+}
+
+/* Episode list card */
+.health-ep-card {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  color: var(--hl-text);
+}
+.health-ep-card:hover {
+  border-color: var(--hl-accent);
+}
+.health-ep-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.health-ep-icon--resolved {
+  background: var(--hl-drug-bg);
+  color: var(--hl-drug);
+}
+.health-ep-icon--failed {
+  background: var(--hl-warning-bg);
+  color: var(--hl-warning);
+}
+.health-ep-icon--ongoing {
+  background: var(--hl-symptom-bg);
+  color: var(--hl-symptom);
+}
+.health-ep-icon--unknown {
+  background: rgba(148, 163, 184, 0.15);
+  color: var(--hl-text-muted);
+}
+.health-ep-body {
+  flex: 1;
+  min-width: 0;
+}
+.health-ep-header-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.health-ep-time {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.health-ep-symptom {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hl-text);
+}
+.health-ep-severity {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--hl-symptom);
+  font-variant-numeric: tabular-nums;
+}
+.health-ep-severity__arrow {
+  color: var(--hl-text-muted);
+  font-weight: 500;
+}
+.health-ep-severity__end {
+  color: var(--hl-drug);
+}
+.health-ep-severity__pending {
+  color: var(--hl-text-muted);
+}
+.health-ep-meta {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.health-ep-meta-pill {
+  background: var(--hl-bg-card-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--hl-text-muted);
+}
+.health-ep-meta-pill--period {
+  background: var(--hl-period-bg);
+  color: var(--hl-period);
+}
+.health-ep-meta-pill--failed {
+  background: var(--hl-warning-bg);
+  color: var(--hl-warning);
+}
+.health-ep-meta-pill--drug {
+  background: var(--hl-drug-bg);
+  color: var(--hl-drug);
+}
+.health-ep-meta-duration {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+}
+
+/* Empty state */
+.health-empty-state {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--hl-text-muted);
+  font-size: 13px;
+}
+
+/* ----------------------------------------------------------------------
+ * Episode Detail status banner + severity arrow + timeline.
+ * -------------------------------------------------------------------- */
+.health-detail-status {
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  position: relative;
+  border: 1px solid var(--hl-border);
+}
+.health-detail-status--resolved {
+  background: linear-gradient(135deg, var(--hl-drug-bg) 0%, transparent 100%);
+  border-color: var(--hl-drug);
+}
+.health-detail-status--failed {
+  background: linear-gradient(135deg, var(--hl-warning-bg) 0%, transparent 100%);
+  border-color: var(--hl-warning);
+}
+.health-detail-status--ongoing {
+  background: linear-gradient(135deg, var(--hl-symptom-bg) 0%, transparent 100%);
+  border-color: var(--hl-symptom);
+}
+.health-detail-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: var(--hl-drug);
+}
+.health-detail-status--failed__tag {
+  background: var(--hl-warning);
+}
+.health-detail-status--ongoing__tag {
+  background: var(--hl-symptom);
+}
+.health-detail-date {
+  font-size: 13px;
+  color: var(--hl-text-muted);
+  margin-top: 8px;
+  margin-bottom: 2px;
+}
+.health-detail-symptom {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--hl-text);
+  margin-bottom: 6px;
+}
+.health-detail-severity-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+.health-detail-sev {
+  text-align: center;
+  flex: 1;
+  background: var(--hl-bg-card-2);
+  padding: 10px;
+  border-radius: 10px;
+}
+.health-detail-sev__label {
+  font-size: 10px;
+  color: var(--hl-text-muted);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.health-detail-sev__value {
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.health-detail-sev--start .health-detail-sev__value {
+  color: var(--hl-symptom);
+}
+.health-detail-sev--end .health-detail-sev__value {
+  color: var(--hl-drug);
+}
+.health-detail-sev__arrow {
+  color: var(--hl-text-muted);
+  font-size: 24px;
+}
+.health-detail-meta-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.health-detail-meta-row strong {
+  color: var(--hl-text);
+  font-weight: 600;
+}
+
+/* Trigger attr pill color */
+.health-attr-pill--trigger {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.3);
+}
+body.light .health-attr-pill--trigger {
+  background: #f3e8ff;
+  color: #6d28d9;
+  border-color: #d8b4fe;
+}
+
+/* Timeline */
+.health-timeline {
+  position: relative;
+  padding-left: 20px;
+  margin-top: 8px;
+}
+.health-timeline::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 6px;
+  width: 2px;
+  background: var(--hl-border);
+  border-radius: 1px;
+}
+.health-timeline-item {
+  position: relative;
+  padding: 8px 0;
+  font-size: 13px;
+}
+.health-timeline-item::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: -16px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--hl-bg-card);
+  border: 2px solid var(--hl-accent);
+}
+.health-timeline-item--symptom-start::before {
+  border-color: var(--hl-symptom);
+  background: var(--hl-symptom);
+}
+.health-timeline-item--intake::before {
+  border-color: var(--hl-drug);
+  background: var(--hl-drug);
+}
+.health-timeline-item--followup::before {
+  border-color: var(--hl-accent);
+  background: var(--hl-accent);
+}
+.health-timeline-time {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+.health-timeline-event {
+  margin-top: 2px;
+  color: var(--hl-text);
+}
+.health-timeline-note {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 2px;
+}
+
+/* Note card */
+.health-note-card {
+  background: var(--hl-bg-card-2);
+  border: 1px dashed var(--hl-border);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  color: var(--hl-text-muted);
+  font-style: italic;
+}
+
+/* Detail actions row (edit/share/delete) */
+.health-actions-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.health-action-btn-detail {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--hl-border);
+  background: var(--hl-bg-card);
+  color: var(--hl-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+}
+.health-action-btn-detail:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.health-action-btn-detail--primary {
+  background: var(--hl-accent);
+  color: white;
+  border-color: var(--hl-accent);
+}
+.health-action-btn-detail--danger {
+  background: var(--hl-danger-bg);
+  color: var(--hl-danger);
+  border-color: var(--hl-danger);
+  flex: 0 0 60px;
+}
+
+/* =====================================================================
+ * Task 14c — Drug Master / Drug Form / Share Links / Settings
+ *
+ * Mocks:
+ *   - docs/mocks/patient-drug-master-mock.html
+ *   - docs/mocks/patient-search-photo-mock.html
+ * ================================================================== */
+
+/* -------------- Drug Master — primary CTAs -------------- */
+
+.health-add-drug-btn--primary {
+  width: 100%;
+  background: var(--hl-accent);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+  font-family: inherit;
+}
+
+.health-photo-cta-card {
+  width: 100%;
+  background: var(--hl-bg-card);
+  border: 2px dashed var(--hl-accent);
+  border-radius: 16px;
+  padding: 14px;
+  text-align: center;
+  cursor: pointer;
+  margin-bottom: 12px;
+  color: var(--hl-text);
+  font-family: inherit;
+}
+.health-photo-cta-card__icon {
+  font-size: 32px;
+  margin-bottom: 2px;
+}
+.health-photo-cta-card__text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hl-accent);
+}
+.health-photo-cta-card__sub {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 4px;
+}
+
+/* -------------- Drug Master — photo-forward drug card -------------- */
+
+.health-drug-photo-card {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.health-drug-photo {
+  width: 90px;
+  height: 90px;
+  border-radius: 14px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid var(--hl-border);
+  background: linear-gradient(135deg, #f3e8ff 0%, #a855f7 50%, #c084fc 100%);
+  cursor: pointer;
+  padding: 0;
+}
+.health-drug-photo__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.health-drug-photo--placeholder {
+  background: var(--hl-bg-card-2);
+  color: var(--hl-text-muted);
+  font-size: 28px;
+  border: 2px dashed var(--hl-border);
+}
+
+.health-drug-info {
+  flex: 1;
+  min-width: 0;
+}
+.health-drug-name-big {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  line-height: 1.2;
+}
+.health-drug-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.health-drug-meta-row__dose {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+}
+
+.health-drug-type-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--hl-bg-card-2);
+  color: var(--hl-text-muted);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.health-drug-type-tag--nsaid {
+  background: var(--hl-symptom-bg);
+  color: var(--hl-symptom);
+}
+.health-drug-type-tag--triptan {
+  background: rgba(192, 132, 252, 0.15);
+  color: var(--hl-aura);
+}
+.health-drug-type-tag--analgesic {
+  background: var(--hl-drug-bg);
+  color: var(--hl-drug);
+}
+.health-drug-type-tag--other {
+  background: var(--hl-bg-card-2);
+  color: var(--hl-text-muted);
+}
+
+.health-drug-stock-line {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+}
+.health-drug-stock-line strong {
+  color: var(--hl-text);
+}
+.health-drug-stock-line--low {
+  color: var(--hl-warning);
+}
+.health-drug-stock-line--out {
+  color: var(--hl-symptom);
+}
+
+.health-drug-photo-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: stretch;
+  justify-content: center;
+}
+.health-icon-btn-sm {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--hl-text-muted);
+  cursor: pointer;
+  background: var(--hl-bg-card-2);
+  border: 1px solid var(--hl-border);
+  padding: 0;
+  font-size: 14px;
+  font-family: inherit;
+}
+.health-icon-btn-sm--danger {
+  color: var(--hl-danger);
+}
+
+.health-section-title__count {
+  background: var(--hl-bg-card);
+  padding: 1px 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  color: var(--hl-text-muted);
+  font-weight: 700;
+}
+
+/* -------------- Drug Form — inputs -------------- */
+
+.health-form-section {
+  margin-bottom: 14px;
+}
+.health-form-label {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  margin-bottom: 6px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.health-form-req {
+  color: var(--hl-symptom);
+}
+.health-form-input {
+  width: 100%;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.health-form-input:focus {
+  outline: none;
+  border-color: var(--hl-accent);
+}
+.health-form-input::placeholder {
+  color: var(--hl-text-muted);
+}
+.health-form-textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: inherit;
+}
+.health-form-error {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--hl-danger);
+}
+
+/* -------------- Range row (effect duration, max daily) -------------- */
+
+.health-range-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.health-range-row .health-form-input {
+  flex: 1;
+}
+.health-range-sep {
+  color: var(--hl-text-muted);
+  font-size: 14px;
+}
+.health-range-unit {
+  font-size: 12px;
+  color: var(--hl-text-muted);
+  margin-left: 4px;
+}
+
+/* -------------- Stock counter -------------- */
+
+.health-stock-counter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.health-stock-counter button {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  font-size: 18px;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+.health-stock-input {
+  flex: 1;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Form sticky save row: two buttons side-by-side */
+.health-sticky-save--row {
+  display: flex;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  padding: 12px 0 8px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--hl-bg-page) 30%
+  );
+}
+.health-cancel-btn {
+  background: var(--hl-bg-card);
+  color: var(--hl-text);
+  border: 1px solid var(--hl-border);
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* -------------- Photo uploader -------------- */
+
+.health-photo-uploader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.health-photo-upload-area {
+  background: var(--hl-bg-card);
+  border: 2px dashed var(--hl-border);
+  border-radius: 14px;
+  padding: 22px 16px;
+  text-align: center;
+  cursor: default;
+}
+.health-photo-upload-area:hover {
+  border-color: var(--hl-accent);
+}
+.health-photo-upload-icon {
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+.health-photo-upload-text {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.health-photo-upload-sub {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-bottom: 12px;
+}
+.health-photo-upload-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.health-photo-upload-btn {
+  background: var(--hl-accent);
+  color: white;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-photo-upload-btn--secondary {
+  background: var(--hl-bg-card-2);
+  color: var(--hl-text);
+  border: 1px solid var(--hl-border);
+}
+
+.health-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+  gap: 8px;
+}
+.health-photo-thumb-card {
+  position: relative;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--hl-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  font-family: inherit;
+}
+.health-photo-thumb-card--add {
+  border-style: dashed;
+  border-color: var(--hl-accent);
+  color: var(--hl-accent);
+}
+.health-photo-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.health-photo-thumb-actions {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+}
+.health-photo-thumb-action {
+  background: rgba(0, 0, 0, 0.65);
+  color: white;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-photo-thumb-action--danger {
+  color: var(--hl-symptom);
+}
+
+.health-uploaded-photo-card {
+  display: flex;
+  gap: 12px;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 12px;
+  padding: 10px;
+  align-items: center;
+}
+.health-uploaded-photo-thumb {
+  width: 70px;
+  height: 70px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f3e8ff 0%, #a855f7 50%, #c084fc 100%);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  overflow: hidden;
+}
+.health-uploaded-photo-emoji {
+  background: rgba(255, 255, 255, 0.9);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+}
+.health-uploaded-photo-info {
+  flex: 1;
+}
+.health-uploaded-photo-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+.health-uploaded-photo-meta {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 2px;
+}
+.health-upload-progress {
+  margin-top: 6px;
+  height: 4px;
+  background: var(--hl-bg-card-2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.health-upload-progress-fill {
+  height: 100%;
+  background: var(--hl-accent);
+  transition: width 0.25s ease;
+}
+
+/* -------------- QR code wrapper -------------- */
+
+.health-qr-wrapper {
+  background: white;
+  border-radius: 16px;
+  padding: 12px;
+  display: inline-flex;
+}
+
+/* -------------- Share links -------------- */
+
+.health-share-link-card {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+.health-share-link-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.health-share-link-card__range {
+  font-size: 14px;
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+.health-share-link-status {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.health-share-link-status--active {
+  background: var(--hl-drug-bg);
+  color: var(--hl-drug);
+}
+.health-share-link-status--expired {
+  background: var(--hl-warning-bg);
+  color: var(--hl-warning);
+}
+.health-share-link-status--revoked {
+  background: var(--hl-danger-bg);
+  color: var(--hl-danger);
+}
+.health-share-link-card__meta {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.health-share-url-box {
+  background: var(--hl-bg-card-2);
+  border: 1px solid var(--hl-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+  margin-bottom: 12px;
+}
+
+/* -------------- Settings -------------- */
+
+.health-settings-row {
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+.health-settings-row__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.health-settings-row__sub {
+  font-size: 11px;
+  color: var(--hl-text-muted);
+  margin-top: 2px;
+}
+
+.health-segmented {
+  display: inline-flex;
+  background: var(--hl-bg-card-2);
+  border: 1px solid var(--hl-border);
+  border-radius: 10px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.health-segmented__btn {
+  background: transparent;
+  border: none;
+  color: var(--hl-text-muted);
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-segmented__btn--active {
+  background: var(--hl-accent);
+  color: white;
+}
+
+/* =====================================================================
+ * Task 16 — Doctor Report (public /share/:token)
+ *
+ * Mock: docs/mocks/doctor-report-mock.html.
+ *
+ * The doctor report is a separate visual world: it renders outside
+ * AppLayout, gets its own light/dark scheme, and is optimised for print
+ * (PDF export via window.print). All selectors live under the
+ * `.health-report-page` root so they cannot leak into the patient
+ * screens.
+ *
+ * The scope owns its own palette so we can keep dark-mode-by-default
+ * across the rest of health while still letting clinicians toggle
+ * `body.light` if they prefer paper-like contrast on screen.
+ * ================================================================== */
+
+.health-report-page {
+  --hl-rpt-primary: #818cf8;
+  --hl-rpt-primary-soft: rgba(99, 102, 241, 0.18);
+  --hl-rpt-symptom: #f87171;
+  --hl-rpt-symptom-soft: rgba(248, 113, 113, 0.18);
+  --hl-rpt-drug: #34d399;
+  --hl-rpt-drug-soft: rgba(52, 211, 153, 0.15);
+  --hl-rpt-period: #f472b6;
+  --hl-rpt-period-soft: rgba(244, 114, 182, 0.18);
+  --hl-rpt-warning: #fbbf24;
+  --hl-rpt-warning-soft: rgba(251, 191, 36, 0.18);
+  --hl-rpt-danger: #ef4444;
+  --hl-rpt-danger-soft: rgba(239, 68, 68, 0.18);
+  --hl-rpt-aura: #c084fc;
+  --hl-rpt-aura-soft: rgba(192, 132, 252, 0.18);
+  --hl-rpt-bg: #020617;
+  --hl-rpt-card: #1e293b;
+  --hl-rpt-card-2: #0f172a;
+  --hl-rpt-border: #334155;
+  --hl-rpt-text: #f1f5f9;
+  --hl-rpt-muted: #94a3b8;
+  --hl-rpt-muted-soft: rgba(148, 163, 184, 0.15);
+
+  background: var(--hl-rpt-bg);
+  color: var(--hl-rpt-text);
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans Thai',
+    'IBM Plex Sans Thai', 'Sarabun', system-ui, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  padding: 16px 0 60px;
+}
+
+body.light .health-report-page {
+  --hl-rpt-primary: #4f46e5;
+  --hl-rpt-primary-soft: #eef2ff;
+  --hl-rpt-symptom: #ef4444;
+  --hl-rpt-symptom-soft: #fef2f2;
+  --hl-rpt-drug: #10b981;
+  --hl-rpt-drug-soft: #ecfdf5;
+  --hl-rpt-period: #ec4899;
+  --hl-rpt-period-soft: #fdf2f8;
+  --hl-rpt-warning: #f59e0b;
+  --hl-rpt-warning-soft: #fffbeb;
+  --hl-rpt-danger: #dc2626;
+  --hl-rpt-danger-soft: #fee2e2;
+  --hl-rpt-aura: #a855f7;
+  --hl-rpt-aura-soft: #f3e8ff;
+  --hl-rpt-bg: #f8fafc;
+  --hl-rpt-card: #ffffff;
+  --hl-rpt-card-2: #f8fafc;
+  --hl-rpt-border: #e5e7eb;
+  --hl-rpt-text: #0f172a;
+  --hl-rpt-muted: #64748b;
+  --hl-rpt-muted-soft: #f1f5f9;
+}
+
+.health-report-container {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.health-report-loading {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--hl-rpt-muted);
+  font-size: 14px;
+}
+
+.health-report-error {
+  margin-top: 60px;
+  padding: 32px 16px;
+  background: var(--hl-rpt-card);
+  border: 1px solid var(--hl-rpt-danger);
+  border-radius: 14px;
+  text-align: center;
+}
+.health-report-error-icon {
+  font-size: 36px;
+  margin-bottom: 8px;
+}
+.health-report-error-text {
+  font-size: 14px;
+  color: var(--hl-rpt-danger);
+  font-weight: 600;
+}
+
+.health-report-print-btn {
+  display: block;
+  margin: 0 0 12px auto;
+  background: var(--hl-rpt-card);
+  border: 1px solid var(--hl-rpt-border);
+  color: var(--hl-rpt-text);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.health-report-print-btn:hover {
+  border-color: var(--hl-rpt-primary);
+  color: var(--hl-rpt-primary);
+}
+
+.health-report-card {
+  background: var(--hl-rpt-card);
+  border: 1px solid var(--hl-rpt-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.health-report-h2 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hl-rpt-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 0 0 12px;
+}
+.health-report-h2--inverse {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.health-report-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--hl-rpt-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 24px 4px 10px;
+}
+
+.health-report-footer {
+  text-align: center;
+  color: var(--hl-rpt-muted);
+  font-size: 11px;
+  padding: 16px 0 8px;
+  line-height: 1.6;
+}
+
+/* -------------- Patient header (gradient card) -------------- */
+
+.health-report-card--header {
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #8b5cf6 100%);
+  color: white;
+  border: none;
+}
+.health-report-patient-name {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.health-report-patient-meta {
+  font-size: 12px;
+  opacity: 0.92;
+  margin-bottom: 12px;
+}
+.health-report-code {
+  background: rgba(255, 255, 255, 0.22);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.health-report-icd-tag {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 6px;
+}
+.health-report-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+.health-report-stat {
+  background: rgba(255, 255, 255, 0.17);
+  border-radius: 8px;
+  padding: 10px 6px;
+  text-align: center;
+}
+.health-report-stat--alert {
+  background: rgba(220, 38, 38, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+.health-report-stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+.health-report-stat-label {
+  font-size: 10px;
+  opacity: 0.92;
+  margin-top: 3px;
+  line-height: 1.2;
+}
+
+/* -------------- Flags (clinical + treatment failures) -------------- */
+
+.health-report-flags {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.health-report-flag {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.health-report-flag:last-child {
+  margin-bottom: 0;
+}
+.health-report-flag--danger {
+  background: var(--hl-rpt-danger-soft);
+  border-left: 3px solid var(--hl-rpt-danger);
+  color: var(--hl-rpt-danger);
+}
+.health-report-flag--warning {
+  background: var(--hl-rpt-warning-soft);
+  border-left: 3px solid var(--hl-rpt-warning);
+  color: var(--hl-rpt-warning);
+}
+body.light .health-report-flag--warning {
+  color: #92400e;
+}
+.health-report-flag-icon {
+  font-size: 16px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.health-report-flag-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.health-report-flag-content strong {
+  font-weight: 600;
+}
+.health-report-flag-content span {
+  color: var(--hl-rpt-muted);
+  font-size: 12px;
+}
+
+/* -------------- Metric rows (profile, menstrual, aura) -------------- */
+
+.health-report-metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--hl-rpt-border);
+  font-size: 13px;
+  gap: 8px;
+}
+.health-report-metric-row:last-child {
+  border-bottom: none;
+}
+.health-report-metric-label {
+  color: var(--hl-rpt-muted);
+}
+.health-report-metric-ref {
+  font-size: 10px;
+  color: var(--hl-rpt-muted);
+  margin-left: 4px;
+  opacity: 0.85;
+}
+.health-report-metric-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--hl-rpt-text);
+}
+.health-report-metric-value--ok {
+  color: var(--hl-rpt-drug);
+}
+.health-report-metric-value--warning {
+  color: var(--hl-rpt-warning);
+}
+.health-report-metric-value--danger {
+  color: var(--hl-rpt-danger);
+}
+.health-report-metric-sub {
+  color: var(--hl-rpt-muted);
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.health-report-ichd3-note {
+  font-size: 11px;
+  color: var(--hl-rpt-muted);
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--hl-rpt-border);
+  line-height: 1.5;
+}
+.health-report-card-footer {
+  font-size: 12px;
+  color: var(--hl-rpt-muted);
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--hl-rpt-border);
+}
+.health-report-empty {
+  font-size: 12px;
+  color: var(--hl-rpt-muted);
+  padding: 12px 0;
+  text-align: center;
+}
+
+/* -------------- Charts (frequency, severity) -------------- */
+
+.health-report-chart-row {
+  margin-bottom: 16px;
+}
+.health-report-chart-row:last-child {
+  margin-bottom: 0;
+}
+.health-report-chart-title {
+  font-size: 12px;
+  color: var(--hl-rpt-muted);
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+.health-report-chart-peak {
+  color: var(--hl-rpt-symptom);
+}
+.health-report-chart-sub {
+  color: var(--hl-rpt-muted);
+}
+.health-report-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--hl-rpt-muted);
+  margin-top: 4px;
+}
+.health-report-chart-legend {
+  font-size: 10px;
+  color: var(--hl-rpt-muted);
+  margin-top: 4px;
+}
+
+/* -------------- Distribution donuts (location + quality) -------------- */
+
+.health-report-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (max-width: 380px) {
+  .health-report-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+.health-report-two-col-title {
+  font-size: 11px;
+  color: var(--hl-rpt-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+.health-report-distribution {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.health-report-distribution svg {
+  flex-shrink: 0;
+}
+.health-report-distribution-legend {
+  flex: 1;
+  font-size: 12px;
+  min-width: 0;
+}
+.health-report-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.health-report-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.health-report-legend-label {
+  flex: 1;
+}
+.health-report-legend-value {
+  color: var(--hl-rpt-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------- Trigger correlation bars -------------- */
+
+.health-report-trigger-bar {
+  margin-bottom: 8px;
+}
+.health-report-trigger-bar:last-child {
+  margin-bottom: 0;
+}
+.health-report-trigger-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 3px;
+  gap: 6px;
+}
+.health-report-trigger-count {
+  color: var(--hl-rpt-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.health-report-trigger-bar-track {
+  height: 8px;
+  background: var(--hl-rpt-muted-soft);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.health-report-trigger-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.25s ease;
+}
+
+/* -------------- Treatment efficacy table -------------- */
+
+.health-report-efficacy-table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+}
+.health-report-efficacy-table th {
+  text-align: left;
+  color: var(--hl-rpt-muted);
+  font-weight: 600;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--hl-rpt-border);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.health-report-efficacy-table th:nth-child(n + 2) {
+  text-align: right;
+}
+.health-report-efficacy-table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--hl-rpt-border);
+  font-variant-numeric: tabular-nums;
+  color: var(--hl-rpt-text);
+}
+.health-report-efficacy-table td:nth-child(n + 2) {
+  text-align: right;
+}
+.health-report-efficacy-table tr:last-child td {
+  border-bottom: none;
+}
+.health-report-efficacy-drug {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--hl-rpt-text);
+}
+.health-report-efficacy-drug-type {
+  font-size: 11px;
+  color: var(--hl-rpt-muted);
+}
+.health-report-efficacy-pct--high {
+  color: var(--hl-rpt-drug);
+  font-weight: 600;
+}
+.health-report-efficacy-pct--mid {
+  color: var(--hl-rpt-warning);
+  font-weight: 600;
+}
+.health-report-efficacy-pct--low {
+  color: var(--hl-rpt-danger);
+  font-weight: 600;
+}
+
+/* -------------- Pattern analysis (onset / DOW / menstrual) -------------- */
+
+.health-report-sub-h {
+  font-size: 11px;
+  color: var(--hl-rpt-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin: 4px 0 8px;
+}
+.health-report-sub-h:not(:first-child) {
+  margin-top: 14px;
+}
+.health-report-onset-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.health-report-onset-cell {
+  text-align: center;
+  padding: 8px;
+  border-radius: 6px;
+}
+.health-report-onset-cell-value {
+  font-size: 18px;
+  font-weight: 700;
+}
+.health-report-onset-cell-label {
+  font-size: 10px;
+  color: var(--hl-rpt-muted);
+  margin-top: 2px;
+}
+.health-report-dow-chart {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 60px;
+}
+.health-report-dow-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+.health-report-dow-bar {
+  width: 100%;
+  background: var(--hl-rpt-symptom);
+  border-radius: 3px 3px 0 0;
+  min-height: 1px;
+  opacity: 0.85;
+}
+.health-report-dow-label {
+  font-size: 10px;
+  color: var(--hl-rpt-muted);
+  margin-top: 3px;
+}
+.health-report-dow-caption {
+  font-size: 11px;
+  color: var(--hl-rpt-muted);
+  margin-top: 4px;
+}
+.health-report-menstrual-callout {
+  font-size: 11px;
+  color: var(--hl-rpt-warning);
+  margin-top: 6px;
+  padding: 6px 8px;
+  background: var(--hl-rpt-warning-soft);
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+/* -------------- Daily timeline (day card) -------------- */
+
+.health-report-day-card {
+  background: var(--hl-rpt-card);
+  border: 1px solid var(--hl-rpt-border);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.health-report-day-card--quiet {
+  opacity: 0.6;
+}
+.health-report-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.health-report-day-date {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--hl-rpt-text);
+}
+.health-report-day-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.health-report-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+.health-report-badge--period {
+  background: var(--hl-rpt-period-soft);
+  color: var(--hl-rpt-period);
+}
+.health-report-badge--warning {
+  background: var(--hl-rpt-warning-soft);
+  color: var(--hl-rpt-warning);
+}
+.health-report-badge--aura {
+  background: var(--hl-rpt-aura-soft);
+  color: var(--hl-rpt-aura);
+}
+.health-report-badge--bedrest {
+  background: var(--hl-rpt-danger-soft);
+  color: var(--hl-rpt-danger);
+}
+.health-report-badge--quiet {
+  background: var(--hl-rpt-muted-soft);
+  color: var(--hl-rpt-muted);
+}
+.health-report-day-summary {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--hl-rpt-muted);
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.health-report-day-summary strong {
+  color: var(--hl-rpt-text);
+  font-weight: 600;
+}
+
+/* -------------- Episode block inside day card -------------- */
+
+.health-report-episode {
+  border: 1.5px solid var(--hl-rpt-symptom);
+  border-radius: 10px;
+  padding: 8px;
+  margin-bottom: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(239, 68, 68, 0.06) 0%,
+    rgba(239, 68, 68, 0.01) 100%
+  );
+}
+.health-report-episode:last-child {
+  margin-bottom: 0;
+}
+.health-report-episode--resolved {
+  border-color: var(--hl-rpt-drug);
+  background: linear-gradient(
+    180deg,
+    rgba(16, 185, 129, 0.06) 0%,
+    rgba(16, 185, 129, 0.01) 100%
+  );
+}
+.health-report-episode--no-drug-warning {
+  border-color: var(--hl-rpt-warning);
+  background: linear-gradient(
+    180deg,
+    rgba(245, 158, 11, 0.06) 0%,
+    rgba(245, 158, 11, 0.01) 100%
+  );
+}
+.health-report-episode--ongoing {
+  border-color: var(--hl-rpt-symptom);
+}
+.health-report-episode-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hl-rpt-symptom);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 6px 6px;
+  border-bottom: 1px dashed rgba(239, 68, 68, 0.25);
+  margin-bottom: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.health-report-episode--resolved .health-report-episode-header {
+  color: var(--hl-rpt-drug);
+  border-bottom-color: rgba(16, 185, 129, 0.25);
+}
+.health-report-episode--no-drug-warning .health-report-episode-header {
+  color: var(--hl-rpt-warning);
+  border-bottom-color: rgba(245, 158, 11, 0.25);
+}
+.health-report-episode-num {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.health-report-episode-pill {
+  background: currentColor;
+  color: var(--hl-rpt-card);
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-size: 10px;
+}
+body.light .health-report-episode-pill {
+  color: white;
+}
+.health-report-episode-status {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.health-report-attr-row {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 4px 8px;
+  font-size: 11px;
+}
+.health-report-attr {
+  background: var(--hl-rpt-muted-soft);
+  color: var(--hl-rpt-text);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 500;
+}
+.health-report-attr--aura {
+  background: var(--hl-rpt-aura-soft);
+  color: var(--hl-rpt-aura);
+}
+.health-report-attr--side {
+  background: var(--hl-rpt-primary-soft);
+  color: var(--hl-rpt-primary);
+}
+.health-report-attr--quality {
+  background: var(--hl-rpt-warning-soft);
+  color: var(--hl-rpt-warning);
+}
+body.light .health-report-attr--quality {
+  color: #92400e;
+}
+.health-report-attr--assoc {
+  background: var(--hl-rpt-symptom-soft);
+  color: var(--hl-rpt-symptom);
+}
+.health-report-attr--impact {
+  background: var(--hl-rpt-danger-soft);
+  color: var(--hl-rpt-danger);
+}
+.health-report-attr--period {
+  background: var(--hl-rpt-period-soft);
+  color: var(--hl-rpt-period);
+}
+
+.health-report-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.health-report-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.health-report-event-time {
+  color: var(--hl-rpt-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  flex-shrink: 0;
+  width: 44px;
+}
+.health-report-event-icon {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+.health-report-event-text {
+  flex: 1;
+  color: var(--hl-rpt-text);
+}
+.health-report-event-meta {
+  color: var(--hl-rpt-muted);
+  font-size: 12px;
+  margin-top: 1px;
+}
+.health-report-event--symptom {
+  background: var(--hl-rpt-symptom-soft);
+}
+.health-report-event--drug {
+  background: var(--hl-rpt-drug-soft);
+}
+.health-report-event--followup {
+  background: var(--hl-rpt-primary-soft);
+}
+.health-report-event--no-drug {
+  background: var(--hl-rpt-warning-soft);
+}
+.health-report-event--aura {
+  background: var(--hl-rpt-aura-soft);
+}
+
+.health-report-severity-pill {
+  display: inline-block;
+  background: var(--hl-rpt-symptom);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 4px;
+}
+.health-report-severity-pill--low {
+  background: #fbbf24;
+}
+.health-report-severity-pill--zero {
+  background: var(--hl-rpt-drug);
+}
+
+.health-report-episode-close {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--hl-rpt-drug);
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 6px;
+}
+.health-report-episode-check {
+  font-size: 16px;
+  margin-right: 4px;
+}
+.health-report-episode-duration {
+  font-variant-numeric: tabular-nums;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 600;
+}
+.health-report-episode-close--no-drug-warning {
+  background: var(--hl-rpt-warning);
+}
+.health-report-episode-close--ongoing {
+  background: var(--hl-rpt-symptom);
+}
+
+/* -------------- Clinical summary footer (navy gradient) -------------- */
+
+.health-report-card--summary {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: white;
+  border: none;
+}
+.health-report-summary-body {
+  font-size: 13px;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.health-report-summary-body strong {
+  font-weight: 600;
+}
+
+/* -------------- Print styles -------------- */
+
+@media print {
+  /* Force light palette on paper — dark mode would burn ink. */
+  .health-report-page {
+    --hl-rpt-primary: #4f46e5;
+    --hl-rpt-primary-soft: #eef2ff;
+    --hl-rpt-symptom: #ef4444;
+    --hl-rpt-symptom-soft: #fef2f2;
+    --hl-rpt-drug: #10b981;
+    --hl-rpt-drug-soft: #ecfdf5;
+    --hl-rpt-period: #ec4899;
+    --hl-rpt-period-soft: #fdf2f8;
+    --hl-rpt-warning: #f59e0b;
+    --hl-rpt-warning-soft: #fffbeb;
+    --hl-rpt-danger: #dc2626;
+    --hl-rpt-danger-soft: #fee2e2;
+    --hl-rpt-aura: #a855f7;
+    --hl-rpt-aura-soft: #f3e8ff;
+    --hl-rpt-bg: white;
+    --hl-rpt-card: white;
+    --hl-rpt-card-2: #f8fafc;
+    --hl-rpt-border: #e5e7eb;
+    --hl-rpt-text: #0f172a;
+    --hl-rpt-muted: #64748b;
+    --hl-rpt-muted-soft: #f1f5f9;
+    background: white;
+    color: #0f172a;
+    padding: 0;
+  }
+  .health-report-card,
+  .health-report-day-card {
+    box-shadow: none;
+    border: 1px solid #e5e7eb;
+    page-break-inside: avoid;
+  }
+  .health-report-print-btn {
+    display: none;
+  }
+  .health-report-card--header,
+  .health-report-card--summary {
+    /* Preserve gradient brand color when supported by the print driver. */
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* ----------------------------------------------------------------------
+ * Search / AutoComplete integration (Task 17)
+ *
+ * Two pieces here:
+ *  1. `.health-add-trigger-link` — small "✏️ เพิ่ม trigger ใหม่" affordance
+ *     under the trigger chip group on Quick Log; opens the SearchAutoComplete
+ *     modal.
+ *  2. `.health-search-row` — wrapper used on TakeMedication to host a
+ *     plain controlled `<input>` for client-side filtering of the drug
+ *     buckets; intentionally simple so we don't pay for Syncfusion when
+ *     the list is short.
+ * -------------------------------------------------------------------- */
+.health-add-trigger-link {
+  background: none;
+  border: none;
+  color: var(--hl-accent);
+  font-size: 12px;
+  padding: 6px 0 0;
+  cursor: pointer;
+  font-family: inherit;
+  align-self: flex-start;
+}
+.health-add-trigger-link:hover {
+  text-decoration: underline;
+}
+
+.health-search-row {
+  margin-top: 6px;
+}
+.health-search-input {
+  width: 100%;
+  background: var(--hl-bg-card);
+  border: 1px solid var(--hl-border);
+  color: var(--hl-text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
+}
+.health-search-input::placeholder {
+  color: var(--hl-text-muted);
+}
+
