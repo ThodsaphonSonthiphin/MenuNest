@@ -70,3 +70,21 @@ public sealed record EpisodeFollowUpDto(
     PingResponse? Response,
     int? SeverityAtCheck,
     PingStatus Status);
+
+/// <summary>
+/// A due follow-up ping ready to be sent by the dispatcher. Joins the
+/// ping with its episode (for user + symptom + severity), the symptom
+/// name, and the user's most-recent intake on that episode (for the
+/// push payload "~N min after taking X").
+/// </summary>
+public sealed record PendingPingDto(
+    Guid PingId,
+    Guid EpisodeId,
+    Guid UserId,
+    Guid SymptomId,
+    string SymptomName,
+    DateTime ScheduledAt,
+    int Severity,
+    DateTime? LastIntakeAt,
+    string? LastDrugName,
+    int MinutesSinceLastIntake);

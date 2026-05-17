@@ -6,9 +6,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Azure.Identity" Version="1.16.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
     <PackageReference Include="Google_GenerativeAI" Version="3.6.4" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <PackageReference Include="WebPush" Version="1.0.13" />
   </ItemGroup>
 
   <ItemGroup>
@@ -23,5 +25,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Tests need access to internal helpers like
+         FollowUpDispatcher.TickAsync so they can exercise one
+         dispatch pass without spinning up the PeriodicTimer loop. -->
+    <InternalsVisibleTo Include="MenuNest.Infrastructure.IntegrationTests" />
+  </ItemGroup>
 
 </Project>

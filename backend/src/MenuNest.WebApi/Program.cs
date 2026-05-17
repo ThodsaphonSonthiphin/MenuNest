@@ -21,6 +21,9 @@ builder.Services.AddMediator(options =>
     options.ServiceLifetime = ServiceLifetime.Scoped;
 });
 
+// Health module — polls FollowUpPings every minute to fire web pushes.
+builder.Services.AddHostedService<MenuNest.Infrastructure.BackgroundServices.FollowUpDispatcher>();
+
 // ----------------------------------------------------------------------
 // Authentication — dual JWT bearer (Microsoft Entra ID + Google)
 // A policy scheme inspects the incoming token's issuer and forwards

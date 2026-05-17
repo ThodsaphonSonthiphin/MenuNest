@@ -1,3 +1,5 @@
+using Azure.Identity;
+using Azure.Storage.Blobs;
 using MenuNest.Application.Abstractions;
 using MenuNest.Infrastructure.AI;
 using MenuNest.Infrastructure.AI.Tools;
@@ -58,6 +60,41 @@ public static class DependencyInjection
 
         services.AddScoped<IAiChatService, GeminiChatService>();
         services.AddScoped<ISpeechTokenProvider, SpeechTokenProvider>();
+
+        // Health module — real VAPID/WebPush sender. NullWebPushSender
+        // remains in the codebase for dev/test override but is no longer
+        // registered. Missing keys cause the sender to log a warning and
+        // return 0 instead of throwing, so dev environments without
+        // VAPID configured still work end-to-end.
+        services.Configure<WebPushOptions>(configuration.GetSection(WebPushOptions.SectionName));
+        services.AddScoped<IWebPushSender, WebPushSender>();
+
+        // Photo upload (SAS). Real implementation wired only when the
+        // Storage:BlobEndpoint setting is present (set by Bicep as
+        // Storage__BlobEndpoint in App Service config). Dev environments
+        // without storage configured fall back to a stub that throws a
+        // clear error when called — DI bootstrap still succeeds so the
+        // rest of the app stays usable.
+        var blobEndpoint = configuration["Storage:BlobEndpoint"];
+        if (!string.IsNullOrWhiteSpace(blobEndpoint))
+        {
+            services.AddSingleton(_ => new BlobServiceClient(
+                new Uri(blobEndpoint),
+                new DefaultAzureCredential()));
+            services.AddScoped<IBlobSasGenerator, AzureBlobSasGenerator>();
+        }
+        else
+        {
+            services.AddScoped<IBlobSasGenerator, MissingConfigBlobSasGenerator>();
+        }
+
+        // Health module — doctor-report share tokens. HmacShareTokenService
+        // throws at construction if Share:TokenSigningKey is missing/short
+        // (production config issue). Tests inject IOptions<ShareOptions>
+        // directly so they don't need global config.
+        services.Configure<ShareOptions>(configuration.GetSection(ShareOptions.SectionName));
+        services.AddScoped<IShareTokenService, HmacShareTokenService>();
+        services.AddScoped<IShareUrlBuilder, ShareUrlBuilder>();
 
         return services;
     }
