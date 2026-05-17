@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Migraine Report — คุณ Pon</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --primary: #4f46e5;
+    --primary-soft: #eef2ff;
+    --symptom: #ef4444;
+    --symptom-soft: #fef2f2;
+    --drug: #10b981;
+    --drug-soft: #ecfdf5;
+    --period: #ec4899;
+    --period-soft: #fdf2f8;
+    --warning: #f59e0b;
+    --warning-soft: #fffbeb;
+    --danger: #dc2626;
+    --danger-soft: #fee2e2;
+    --aura: #a855f7;
+    --aura-soft: #f3e8ff;
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --muted: #64748b;
+    --muted-soft: #f1f5f9;
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
+  }
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
+  h2.section-title {
+    margin: 24px 4px 10px;
+  }
+
+  /* Patient header */
+  .patient-header {
+    background: linear-gradient(135deg, var(--primary) 0%, #6366f1 50%, #8b5cf6 100%);
+    color: white;
+  }
+  .patient-name {
+    font-size: 22px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .patient-meta {
+    font-size: 12px;
+    opacity: 0.9;
+    margin-bottom: 12px;
+  }
+  .icd-tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    margin-top: 4px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .stat {
+    background: rgba(255,255,255,0.15);
+    border-radius: 8px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .stat.alert {
+    background: rgba(220,38,38,0.4);
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .stat-label {
+    font-size: 10px;
+    opacity: 0.9;
+    margin-top: 3px;
+    line-height: 1.2;
+  }
+
+  /* Clinical flags banner */
+  .flags {
+    margin-top: 12px;
+  }
+  .flag {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .flag:last-child { margin-bottom: 0; }
+  .flag.danger {
+    background: var(--danger-soft);
+    border-left: 3px solid var(--danger);
+    color: var(--danger);
+  }
+  .flag.warning {
+    background: var(--warning-soft);
+    border-left: 3px solid var(--warning);
+    color: #92400e;
+  }
+  .flag-icon { font-size: 16px; line-height: 1; flex-shrink: 0; }
+  .flag-content { flex: 1; }
+  .flag-content strong { display: block; margin-bottom: 2px; }
+  .flag-content small { color: var(--muted); font-size: 12px; }
+
+  /* Profile metric rows */
+  .metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-label { color: var(--muted); }
+  .metric-label .ref { font-size: 10px; color: var(--muted); margin-left: 4px; }
+  .metric-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .metric-value.danger { color: var(--danger); }
+  .metric-value.warning { color: var(--warning); }
+  .metric-value.ok { color: var(--drug); }
+
+  /* Charts */
+  .chart-row { margin-bottom: 16px; }
+  .chart-row:last-child { margin-bottom: 0; }
+  .chart-title {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .chart-axis {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* Trigger correlation list */
+  .trigger-bar {
+    margin-bottom: 8px;
+  }
+  .trigger-bar:last-child { margin-bottom: 0; }
+  .trigger-bar-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 3px;
+  }
+  .trigger-bar-label .count {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+  }
+  .trigger-bar-track {
+    height: 8px;
+    background: var(--muted-soft);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .trigger-bar-fill {
+    height: 100%;
+    background: var(--symptom);
+    border-radius: 4px;
+  }
+
+  /* Two-column grid for compact data */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Pie/donut for distribution (using SVG) */
+  .distribution {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .distribution svg {
+    flex-shrink: 0;
+  }
+  .distribution-legend {
+    flex: 1;
+    font-size: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .legend-label {
+    flex: 1;
+  }
+  .legend-value {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Treatment efficacy table */
+  .efficacy-table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: collapse;
+  }
+  .efficacy-table th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 600;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .efficacy-table th:nth-child(n+2) { text-align: right; }
+  .efficacy-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  .efficacy-table td:nth-child(n+2) { text-align: right; }
+  .efficacy-table tr:last-child td { border-bottom: none; }
+  .efficacy-drug {
+    font-weight: 600;
+    font-size: 13px;
+  }
+  .efficacy-pct.high { color: var(--drug); }
+  .efficacy-pct.mid { color: var(--warning); }
+  .efficacy-pct.low { color: var(--danger); }
+  .efficacy-bar-cell {
+    position: relative;
+  }
+  .mini-bar {
+    height: 6px;
+    background: var(--muted-soft);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 3px;
+  }
+  .mini-bar-fill {
+    height: 100%;
+    background: var(--drug);
+  }
+
+  /* Pattern blocks (time of day, day of week) */
+  .heatmap {
+    display: grid;
+    gap: 3px;
+    grid-template-columns: repeat(7, 1fr);
+  }
+  .heat-cell {
+    aspect-ratio: 1;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: white;
+    font-weight: 600;
+  }
+  .heat-cell.h0 { background: var(--muted-soft); color: var(--muted); }
+  .heat-cell.h1 { background: #fee2e2; color: var(--danger); }
+  .heat-cell.h2 { background: #fca5a5; }
+  .heat-cell.h3 { background: #f87171; }
+  .heat-cell.h4 { background: #ef4444; }
+  .heat-cell.h5 { background: #dc2626; }
+  .heat-day-label {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* Trigger chips legacy */
+  .trigger-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .trigger-chip {
+    background: var(--muted-soft);
+    border-radius: 16px;
+    padding: 4px 10px;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .trigger-chip .count {
+    color: var(--muted);
+    margin-left: 4px;
+    font-size: 11px;
+  }
+
+  /* Day cards (kept) */
+  .day-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  }
+  .day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .day-date {
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .day-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .badge-period { background: var(--period-soft); color: var(--period); }
+  .badge-warning { background: var(--warning-soft); color: var(--warning); }
+  .badge-aura { background: var(--aura-soft); color: var(--aura); }
+  .badge-quiet { background: var(--muted-soft); color: var(--muted); }
+  .badge-bedrest { background: var(--danger-soft); color: var(--danger); }
+
+  .day-summary {
+    display: flex;
+    gap: 14px;
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .day-summary span strong { color: var(--text); }
+
+  /* Hourly timeline */
+  .hourly-timeline {
+    position: relative;
+    height: 56px;
+    background: var(--muted-soft);
+    border-radius: 6px;
+    margin-bottom: 4px;
+    overflow: hidden;
+  }
+  .hour-grid {
+    position: absolute;
+    inset: 0;
+    display: flex;
+  }
+  .hour-grid .h-tick {
+    flex: 1;
+    border-right: 1px solid #fff;
+  }
+  .hour-grid .h-tick:last-child { border-right: none; }
+  .drug-bar {
+    position: absolute;
+    height: 12px;
+    border-radius: 3px;
+    top: 4px;
+    background: var(--drug);
+    opacity: 0.85;
+  }
+  .drug-bar.ibu { background: #06b6d4; top: 18px; }
+  .drug-bar.triptan { background: #8b5cf6; top: 32px; }
+  .symptom-dot {
+    position: absolute;
+    top: 40px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--symptom);
+    transform: translateX(-6px);
+    border: 2px solid white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+  }
+  .symptom-dot.resolved { background: var(--drug); }
+  .symptom-dot.no-drug { background: var(--warning); }
+  .symptom-dot.aura {
+    border: 2px solid var(--aura);
+    background: var(--aura-soft);
+  }
+  .hour-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    margin-bottom: 8px;
+  }
+
+  /* Episode wrapper */
+  .episode {
+    border: 1.5px solid var(--symptom);
+    border-radius: 10px;
+    padding: 8px;
+    margin-bottom: 8px;
+    background: linear-gradient(180deg, rgba(239,68,68,0.04) 0%, rgba(239,68,68,0.01) 100%);
+  }
+  .episode.resolved {
+    border-color: var(--drug);
+    background: linear-gradient(180deg, rgba(16,185,129,0.04) 0%, rgba(16,185,129,0.01) 100%);
+  }
+  .episode.no-drug-warning {
+    border-color: var(--warning);
+    background: linear-gradient(180deg, rgba(245,158,11,0.04) 0%, rgba(245,158,11,0.01) 100%);
+  }
+  .episode-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--symptom);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 2px 6px 6px;
+    border-bottom: 1px dashed rgba(239,68,68,0.2);
+    margin-bottom: 8px;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .episode.resolved .episode-header {
+    color: var(--drug);
+    border-bottom-color: rgba(16,185,129,0.2);
+  }
+  .episode.no-drug-warning .episode-header {
+    color: var(--warning);
+    border-bottom-color: rgba(245,158,11,0.2);
+  }
+  .episode-num {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .episode-num .pill {
+    background: currentColor;
+    color: white;
+    border-radius: 8px;
+    padding: 1px 6px;
+    font-size: 10px;
+  }
+  .episode-status { font-size: 11px; font-weight: 500; }
+  /* Migraine attributes pills inside episode */
+  .attr-row {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    padding: 0 4px 8px;
+    font-size: 11px;
+  }
+  .attr {
+    background: var(--muted-soft);
+    color: var(--text);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-weight: 500;
+  }
+  .attr.aura { background: var(--aura-soft); color: var(--aura); }
+  .attr.side { background: var(--primary-soft); color: var(--primary); }
+  .attr.quality { background: var(--warning-soft); color: #92400e; }
+  .attr.assoc { background: var(--symptom-soft); color: var(--symptom); }
+  .attr.impact { background: var(--danger-soft); color: var(--danger); }
+
+  .event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .event {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+  .event-time {
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    flex-shrink: 0;
+    width: 44px;
+  }
+  .event-icon { flex-shrink: 0; width: 18px; text-align: center; }
+  .event-text { flex: 1; }
+  .event-meta { color: var(--muted); font-size: 12px; margin-top: 1px; }
+  .event.symptom { background: var(--symptom-soft); }
+  .event.drug { background: var(--drug-soft); }
+  .event.followup { background: var(--primary-soft); }
+  .event.no-drug { background: var(--warning-soft); }
+  .event.aura { background: var(--aura-soft); }
+
+  .severity-pill {
+    display: inline-block;
+    background: var(--symptom);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 4px;
+  }
+  .severity-pill.low { background: #fbbf24; }
+  .severity-pill.zero { background: var(--drug); }
+
+  .episode-close {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 8px 10px;
+    background: var(--drug);
+    color: white;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .episode-close .check { font-size: 16px; margin-right: 4px; }
+  .episode-close .duration {
+    font-variant-numeric: tabular-nums;
+    background: rgba(255,255,255,0.2);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-weight: 600;
+  }
+  .episode-close.no-drug { background: var(--warning); }
+  .episode-close.ongoing { background: var(--symptom); }
+
+  .doc-footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    padding: 16px 0 32px;
+    line-height: 1.6;
+  }
+
+  @media print {
+    body { background: white; }
+    .card, .day-card { box-shadow: none; border: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Patient Header -->
+  <div class="card patient-header">
+    <div class="patient-name">👤 คุณ Pon</div>
+    <div class="patient-meta">
+      📅 17 เม.ย. — 17 พ.ค. 2569 (30 วัน)<br>
+      Generated 17 May 2026 14:30 • <code style="background:rgba(255,255,255,0.2);padding:1px 4px;border-radius:3px;font-size:11px;">RPT-Z82M</code>
+      <div class="icd-tag">🧠 Focused report: Migraine</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="stat-value">8</div>
+        <div class="stat-label">attacks<br>(30 วัน)</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">6</div>
+        <div class="stat-label">วันที่<br>มี attack</div>
+      </div>
+      <div class="stat alert">
+        <div class="stat-value">12</div>
+        <div class="stat-label">⚠ acute<br>med days</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">25%</div>
+        <div class="stat-label">with<br>aura</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clinical Flags -->
+  <div class="card" style="padding: 12px;">
+    <h2>⚠️ Clinical flags</h2>
+    <div class="flags">
+      <div class="flag danger">
+        <span class="flag-icon">🚨</span>
+        <div class="flag-content">
+          <strong>Medication Overuse Headache (MOH) risk</strong>
+          Acute med usage: <strong>12/30 วัน (40%)</strong> — เกินเกณฑ์ 10 วัน/เดือน
+          <br><small>พิจารณา preventive therapy หรือลด acute med</small>
+        </div>
+      </div>
+      <div class="flag warning">
+        <span class="flag-icon">📈</span>
+        <div class="flag-content">
+          <strong>Frequency ใกล้เกณฑ์ episodic→chronic</strong>
+          8 attacks/30 วัน — ถ้าเข้าใกล้ 15 ต่อเดือนจัดเป็น chronic migraine
+          <br><small>Episodic ≤14/เดือน • Chronic ≥15/เดือน × 3 เดือน</small>
+        </div>
+      </div>
+      <div class="flag warning">
+        <span class="flag-icon">🛏️</span>
+        <div class="flag-content">
+          <strong>Functional disability</strong>
+          <strong>4 วัน</strong> ที่ severe (bedrest) — MIDAS-like score เพิ่มขึ้นจาก baseline
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Migraine Profile -->
+  <div class="card">
+    <h2>📋 Migraine profile</h2>
+    <div class="metric-row">
+      <span class="metric-label">Attack frequency <span class="ref">ref: &lt;4 episodic</span></span>
+      <span class="metric-value warning">8 / 30 วัน</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Days with attack</span>
+      <span class="metric-value">6 / 30 วัน</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Avg duration / attack</span>
+      <span class="metric-value">4.5 ชม. <span style="color:var(--muted);font-size:11px;">(range 1.5-12h)</span></span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Avg peak severity</span>
+      <span class="metric-value">7.2 / 10</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Severe attacks (≥8/10)</span>
+      <span class="metric-value danger">5 (62%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Acute med days <span class="ref">ref: ≤10/mo</span></span>
+      <span class="metric-value danger">12 / 30 ⚠</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Days fully disabled (bedrest)</span>
+      <span class="metric-value danger">4 / 30</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">With aura</span>
+      <span class="metric-value">2 attacks (25%)</span>
+    </div>
+  </div>
+
+  <!-- Overview Charts -->
+  <div class="card">
+    <h2>📊 Attack frequency & severity (30 วัน)</h2>
+
+    <div class="chart-row">
+      <div class="chart-title">
+        <span>Attacks per day</span>
+        <span style="color:var(--symptom);">peak 2/วัน</span>
+      </div>
+      <svg viewBox="0 0 300 56" width="100%" height="56" preserveAspectRatio="none">
+        <rect x="0"   y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="10"  y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="20"  y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="30"  y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="40"  y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="50"  y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="60"  y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="70"  y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="80"  y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="90"  y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="100" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="110" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="120" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="130" y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="140" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="150" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="160" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="170" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="180" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="190" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="200" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="210" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="220" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="230" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <rect x="240" y="56" width="8" height="0"  rx="1" fill="#ef4444"/>
+        <!-- Last 5 days: period — 2 attacks/day peak -->
+        <rect x="250" y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="260" y="12" width="8" height="44" rx="1" fill="#dc2626"/>
+        <rect x="270" y="12" width="8" height="44" rx="1" fill="#dc2626"/>
+        <rect x="280" y="34" width="8" height="22" rx="1" fill="#ef4444"/>
+        <rect x="290" y="12" width="8" height="44" rx="1" fill="#dc2626"/>
+        <!-- period band -->
+        <rect x="248" y="54" width="50" height="2" fill="#ec4899"/>
+      </svg>
+      <div class="chart-axis">
+        <span>17 เม.ย.</span><span>2 พ.ค.</span><span>17 พ.ค.</span>
+      </div>
+    </div>
+
+    <div class="chart-row">
+      <div class="chart-title">
+        <span>Severity per attack</span>
+        <span style="color:var(--muted);">avg 7.2 • peak 9</span>
+      </div>
+      <svg viewBox="0 0 300 60" width="100%" height="60" preserveAspectRatio="none">
+        <line x1="20" y1="4"  x2="300" y2="4"  stroke="#e5e7eb" stroke-dasharray="2,3"/>
+        <line x1="20" y1="30" x2="300" y2="30" stroke="#e5e7eb" stroke-dasharray="2,3"/>
+        <line x1="20" y1="56" x2="300" y2="56" stroke="#e5e7eb" stroke-dasharray="2,3"/>
+        <text x="2" y="8"  font-size="7" fill="#64748b">10</text>
+        <text x="2" y="34" font-size="7" fill="#64748b">5</text>
+        <text x="2" y="60" font-size="7" fill="#64748b">0</text>
+        <!-- 8 attacks distributed -->
+        <circle cx="18"  cy="14" r="3" fill="#ef4444"/>
+        <circle cx="55"  cy="20" r="3" fill="#f59e0b"/>
+        <circle cx="90"  cy="14" r="3" fill="#ef4444"/>
+        <circle cx="135" cy="8"  r="3" fill="#dc2626" stroke="#a855f7" stroke-width="1.5"/>
+        <circle cx="260" cy="4"  r="3.5" fill="#dc2626" stroke="#ec4899" stroke-width="1.5"/>
+        <circle cx="270" cy="8"  r="3" fill="#dc2626" stroke="#ec4899" stroke-width="1"/>
+        <circle cx="285" cy="20" r="3" fill="#f59e0b" stroke="#ec4899" stroke-width="1"/>
+        <circle cx="292" cy="4"  r="3.5" fill="#dc2626" stroke="#a855f7" stroke-width="1.5"/>
+      </svg>
+      <div class="chart-axis">
+        <span>17 เม.ย.</span><span>2 พ.ค.</span><span>17 พ.ค.</span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px;">
+        ⚭ ring = period • <span style="color:var(--aura);">●</span> ring = with aura
+      </div>
+    </div>
+  </div>
+
+  <!-- Aura & Associated Symptoms -->
+  <div class="card">
+    <h2>🌀 Aura & associated symptoms</h2>
+    <div class="metric-row">
+      <span class="metric-label">With aura (visual)</span>
+      <span class="metric-value">2 / 8 (25%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Photophobia (กลัวแสง)</span>
+      <span class="metric-value">7 / 8 (88%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Phonophobia (กลัวเสียง)</span>
+      <span class="metric-value">6 / 8 (75%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Nausea</span>
+      <span class="metric-value">5 / 8 (62%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Vomiting</span>
+      <span class="metric-value">1 / 8 (12%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Osmophobia (กลัวกลิ่น)</span>
+      <span class="metric-value">2 / 8 (25%)</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Worsened by activity</span>
+      <span class="metric-value">6 / 8 (75%)</span>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);">
+      ✅ ICHD-3 migraine criteria: ครบเกณฑ์ (≥2/4 features: unilateral, throbbing, moderate-severe, aggravated by activity • + ≥1: nausea หรือ photo+phonophobia)
+    </div>
+  </div>
+
+  <!-- Location & Quality -->
+  <div class="card">
+    <h2>📍 Location & quality</h2>
+    <div class="two-col">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Location</div>
+        <div class="distribution">
+          <svg viewBox="0 0 60 60" width="60" height="60">
+            <!-- Donut: left 62%, right 25%, bilateral 13% -->
+            <circle cx="30" cy="30" r="24" fill="none" stroke="#4f46e5" stroke-width="12"
+                    stroke-dasharray="93.6 150.8" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+            <circle cx="30" cy="30" r="24" fill="none" stroke="#06b6d4" stroke-width="12"
+                    stroke-dasharray="37.7 150.8" stroke-dashoffset="-93.6" transform="rotate(-90 30 30)"/>
+            <circle cx="30" cy="30" r="24" fill="none" stroke="#64748b" stroke-width="12"
+                    stroke-dasharray="19.6 150.8" stroke-dashoffset="-131.3" transform="rotate(-90 30 30)"/>
+          </svg>
+          <div class="distribution-legend">
+            <div class="legend-item">
+              <span class="legend-dot" style="background:#4f46e5;"></span>
+              <span class="legend-label">Left</span>
+              <span class="legend-value">5 (62%)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background:#06b6d4;"></span>
+              <span class="legend-label">Right</span>
+              <span class="legend-value">2 (25%)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background:#64748b;"></span>
+              <span class="legend-label">Bilateral</span>
+              <span class="legend-value">1 (13%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;">Quality</div>
+        <div class="distribution">
+          <svg viewBox="0 0 60 60" width="60" height="60">
+            <!-- Throbbing 75%, Pressure 25% -->
+            <circle cx="30" cy="30" r="24" fill="none" stroke="#f59e0b" stroke-width="12"
+                    stroke-dasharray="113.1 150.8" stroke-dashoffset="0" transform="rotate(-90 30 30)"/>
+            <circle cx="30" cy="30" r="24" fill="none" stroke="#94a3b8" stroke-width="12"
+                    stroke-dasharray="37.7 150.8" stroke-dashoffset="-113.1" transform="rotate(-90 30 30)"/>
+          </svg>
+          <div class="distribution-legend">
+            <div class="legend-item">
+              <span class="legend-dot" style="background:#f59e0b;"></span>
+              <span class="legend-label">Throbbing</span>
+              <span class="legend-value">6 (75%)</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot" style="background:#94a3b8;"></span>
+              <span class="legend-label">Pressure</span>
+              <span class="legend-value">2 (25%)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Trigger correlation -->
+  <div class="card">
+    <h2>⚡ Trigger correlation (8 attacks)</h2>
+    <div class="trigger-bar">
+      <div class="trigger-bar-label">
+        <span>🧠 Stress</span>
+        <span class="count">5 attacks (62%)</span>
+      </div>
+      <div class="trigger-bar-track">
+        <div class="trigger-bar-fill" style="width: 62%; background: #ef4444;"></div>
+      </div>
+    </div>
+    <div class="trigger-bar">
+      <div class="trigger-bar-label">
+        <span>⚭ Hormonal (peri-menstrual)</span>
+        <span class="count">3 attacks (38%)</span>
+      </div>
+      <div class="trigger-bar-track">
+        <div class="trigger-bar-fill" style="width: 38%; background: #ec4899;"></div>
+      </div>
+    </div>
+    <div class="trigger-bar">
+      <div class="trigger-bar-label">
+        <span>😴 Sleep deprivation (&lt;6h)</span>
+        <span class="count">3 attacks (38%)</span>
+      </div>
+      <div class="trigger-bar-track">
+        <div class="trigger-bar-fill" style="width: 38%; background: #6366f1;"></div>
+      </div>
+    </div>
+    <div class="trigger-bar">
+      <div class="trigger-bar-label">
+        <span>☕ Caffeine withdrawal</span>
+        <span class="count">1 attack (12%)</span>
+      </div>
+      <div class="trigger-bar-track">
+        <div class="trigger-bar-fill" style="width: 12%; background: #a16207;"></div>
+      </div>
+    </div>
+    <div class="trigger-bar">
+      <div class="trigger-bar-label">
+        <span>🍷 Alcohol</span>
+        <span class="count">0 (not recorded)</span>
+      </div>
+      <div class="trigger-bar-track">
+        <div class="trigger-bar-fill" style="width: 0%;"></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">
+      Note: 2 attacks มี trigger ซ้อนกัน (stress + sleep dep)
+    </div>
+  </div>
+
+  <!-- Treatment Efficacy -->
+  <div class="card">
+    <h2>💊 Acute treatment efficacy</h2>
+    <table class="efficacy-table">
+      <thead>
+        <tr>
+          <th>Drug</th>
+          <th>Doses</th>
+          <th>Relief %</th>
+          <th>Avg onset</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="efficacy-drug">Sumatriptan 50mg</div>
+            <div style="font-size:11px;color:var(--muted);">triptan</div>
+          </td>
+          <td>2</td>
+          <td><span class="efficacy-pct high">100%</span></td>
+          <td>20 min</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="efficacy-drug">Ibuprofen 400mg</div>
+            <div style="font-size:11px;color:var(--muted);">NSAID</div>
+          </td>
+          <td>5</td>
+          <td><span class="efficacy-pct mid">60%</span></td>
+          <td>45 min</td>
+        </tr>
+        <tr>
+          <td>
+            <div class="efficacy-drug">Paracetamol 1000mg</div>
+            <div style="font-size:11px;color:var(--muted);">simple analgesic</div>
+          </td>
+          <td>5</td>
+          <td><span class="efficacy-pct low">40%</span></td>
+          <td>60 min</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="font-size:12px;color:var(--muted);margin-top:10px;padding-top:8px;border-top:1px dashed var(--border);">
+      💡 <strong>Failed treatments</strong>: 3 attacks (Paracetamol ไม่ได้ผล 2 ครั้ง, Ibuprofen 1 ครั้ง)
+    </div>
+  </div>
+
+  <!-- Pattern analysis -->
+  <div class="card">
+    <h2>🔍 Pattern analysis</h2>
+
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:8px;margin-top:4px;">
+      Onset time
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+      <div style="text-align:center;padding:8px;background:var(--symptom-soft);border-radius:6px;">
+        <div style="font-size:18px;font-weight:700;color:var(--symptom);">3</div>
+        <div style="font-size:10px;color:var(--muted);">เช้า 06-12</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--warning-soft);border-radius:6px;">
+        <div style="font-size:18px;font-weight:700;color:var(--warning);">2</div>
+        <div style="font-size:10px;color:var(--muted);">บ่าย 12-18</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--primary-soft);border-radius:6px;">
+        <div style="font-size:18px;font-weight:700;color:var(--primary);">2</div>
+        <div style="font-size:10px;color:var(--muted);">เย็น 18-24</div>
+      </div>
+      <div style="text-align:center;padding:8px;background:var(--muted-soft);border-radius:6px;">
+        <div style="font-size:18px;font-weight:700;color:var(--muted);">1</div>
+        <div style="font-size:10px;color:var(--muted);">กลางคืน 0-6</div>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 8px;">
+      Day of week
+    </div>
+    <div style="display:flex;gap:4px;align-items:flex-end;height:60px;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:80%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">จ</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:60%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">อ</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:100%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">พ</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:40%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">พฤ</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:20%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">ศ</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:0%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">ส</div>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+        <div style="width:100%;background:#ef4444;height:20%;border-radius:3px 3px 0 0;"></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px;">อา</div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">
+      Peak: วันพุธ (3 attacks) — สอดคล้องกับ stress workload
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.4px;margin:14px 0 8px;">
+      Menstrual correlation
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Attacks during period (5 วัน)</span>
+      <span class="metric-value danger">4 attacks</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Attacks outside period (25 วัน)</span>
+      <span class="metric-value">4 attacks</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Attack rate during period</span>
+      <span class="metric-value danger">0.8 / วัน</span>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">Attack rate outside period</span>
+      <span class="metric-value">0.16 / วัน</span>
+    </div>
+    <div style="font-size:11px;color:var(--warning);margin-top:6px;padding:6px 8px;background:var(--warning-soft);border-radius:4px;">
+      ⚠️ Menstrual attacks เพิ่มขึ้น <strong>5×</strong> ของช่วงปกติ — เข้าเกณฑ์ menstrual migraine
+    </div>
+  </div>
+
+  <!-- No-drug warnings -->
+  <div class="card">
+    <h2>⚠️ Treatment failures (3 events)</h2>
+    <div class="flag warning" style="margin-bottom:8px;">
+      <span class="flag-icon">⚠️</span>
+      <div class="flag-content">
+        <strong>17 พ.ค. 18:00 — Attack #8 (8/10) ⚭</strong>
+        <small>ไม่ได้รับการรักษา: เกิน max daily Paracetamol (8/8), Ibuprofen ยังออกฤทธิ์</small>
+      </div>
+    </div>
+    <div class="flag warning" style="margin-bottom:8px;">
+      <span class="flag-icon">⚠️</span>
+      <div class="flag-content">
+        <strong>14 พ.ค. 22:00 — Attack #5 (7/10)</strong>
+        <small>Failed Paracetamol: ครบ 2 ชม.หลังกินไม่ดีขึ้น</small>
+      </div>
+    </div>
+    <div class="flag warning">
+      <span class="flag-icon">⚠️</span>
+      <div class="flag-content">
+        <strong>9 พ.ค. 02:00 — Attack #3 (6/10)</strong>
+        <small>ยาหมด: Triptan, Ibuprofen → ใช้ Paracetamol แต่ไม่ได้ผล</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Detail -->
+  <h2 class="section-title">🗓️ Detailed timeline (latest first)</h2>
+
+  <!-- Day 1: May 17 (today) -->
+  <div class="day-card">
+    <div class="day-header">
+      <div class="day-date">📅 17 พ.ค. พุธ</div>
+      <div class="day-badges">
+        <span class="badge badge-period">⚭ รอบเดือน</span>
+        <span class="badge badge-bedrest">🛏️ bedrest</span>
+        <span class="badge badge-warning">⚠ failed Tx</span>
+      </div>
+    </div>
+    <div class="day-summary">
+      <span>🧠 <strong>2</strong> attacks</span>
+      <span>⚡ peak <strong>8/10</strong></span>
+      <span>💊 <strong>3</strong> doses</span>
+    </div>
+    <div class="hourly-timeline">
+      <div class="hour-grid">
+        <div class="h-tick"></div><div class="h-tick"></div><div class="h-tick"></div>
+        <div class="h-tick"></div><div class="h-tick"></div><div class="h-tick"></div>
+      </div>
+      <div class="drug-bar" style="left:22%; width:22%;" title="Paracetamol"></div>
+      <div class="drug-bar ibu" style="left:44%; width:17%;" title="Ibuprofen"></div>
+      <div class="symptom-dot" style="left:19%;"></div>
+      <div class="symptom-dot resolved" style="left:42%;"></div>
+      <div class="symptom-dot no-drug" style="left:67%;"></div>
+    </div>
+    <div class="hour-labels">
+      <span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span>
+    </div>
+
+    <!-- Attack #7 -->
+    <div class="episode resolved">
+      <div class="episode-header">
+        <span class="episode-num">
+          <span class="pill">#7</span>
+          Migraine attack
+        </span>
+        <span class="episode-status">✅ resolved (Para+Ibu)</span>
+      </div>
+      <div class="attr-row">
+        <span class="attr side">📍 left-sided</span>
+        <span class="attr quality">💢 throbbing</span>
+        <span class="attr assoc">🤢 nausea</span>
+        <span class="attr assoc">💡 photophobia</span>
+        <span class="attr impact">🛏 bedrest 3h</span>
+      </div>
+      <div class="event-list">
+        <div class="event symptom">
+          <span class="event-time">09:30</span>
+          <span class="event-icon">🤒</span>
+          <div class="event-text">
+            Migraine attack <span class="severity-pill">7/10</span>
+            <div class="event-meta">trigger: stress + ⚭ peri-menstrual</div>
+          </div>
+        </div>
+        <div class="event drug">
+          <span class="event-time">10:00</span>
+          <span class="event-icon">💊</span>
+          <div class="event-text">
+            Paracetamol 1000mg
+            <div class="event-meta">→ partial relief</div>
+          </div>
+        </div>
+        <div class="event drug">
+          <span class="event-time">13:00</span>
+          <span class="event-icon">💊</span>
+          <div class="event-text">
+            Ibuprofen 400mg (rescue)
+          </div>
+        </div>
+        <div class="event followup">
+          <span class="event-time">14:00</span>
+          <span class="event-icon">📊</span>
+          <div class="event-text">
+            หายแล้ว <span class="severity-pill zero">0/10</span>
+          </div>
+        </div>
+      </div>
+      <div class="episode-close">
+        <span><span class="check">✅</span> Attack #7 — combined therapy</span>
+        <span class="duration">4h 30m</span>
+      </div>
+    </div>
+
+    <!-- Attack #8: failed -->
+    <div class="episode no-drug-warning">
+      <div class="episode-header">
+        <span class="episode-num">
+          <span class="pill">#8</span>
+          Migraine attack
+        </span>
+        <span class="episode-status">⚠️ failed treatment</span>
+      </div>
+      <div class="attr-row">
+        <span class="attr side">📍 left-sided</span>
+        <span class="attr quality">💢 throbbing</span>
+        <span class="attr assoc">🤢 nausea</span>
+        <span class="attr assoc">💡 photophobia</span>
+        <span class="attr assoc">🔊 phonophobia</span>
+        <span class="attr impact">🛏 bedrest</span>
+      </div>
+      <div class="event-list">
+        <div class="event symptom">
+          <span class="event-time">18:00</span>
+          <span class="event-icon">🤒</span>
+          <div class="event-text">
+            Migraine attack <span class="severity-pill">8/10</span>
+            <div class="event-meta">trigger: sleep dep + ⚭</div>
+          </div>
+        </div>
+        <div class="event no-drug">
+          <span class="event-time">18:00</span>
+          <span class="event-icon">⚠️</span>
+          <div class="event-text">
+            <strong>ไม่มียาให้กิน</strong>
+            <div class="event-meta">เกิน max daily Paracetamol (8/8) • Ibuprofen ยังออกฤทธิ์</div>
+          </div>
+        </div>
+        <div class="event followup">
+          <span class="event-time">19:00</span>
+          <span class="event-icon">📊</span>
+          <div class="event-text">
+            ยังปวด <span class="severity-pill">8/10</span> ⚠️
+          </div>
+        </div>
+        <div class="event followup">
+          <span class="event-time">20:00</span>
+          <span class="event-icon">📊</span>
+          <div class="event-text">
+            ดีขึ้น <span class="severity-pill">7/10</span>
+            <div class="event-meta">ไปนอน</div>
+          </div>
+        </div>
+      </div>
+      <div class="episode-close no-drug">
+        <span><span class="check">⚠️</span> Attack #8 — no acute options</span>
+        <span class="duration">2h+ (ongoing)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 2: May 16 -->
+  <div class="day-card">
+    <div class="day-header">
+      <div class="day-date">📅 16 พ.ค. อังคาร</div>
+      <div class="day-badges">
+        <span class="badge badge-period">⚭ รอบเดือน</span>
+        <span class="badge badge-aura">🌀 with aura</span>
+      </div>
+    </div>
+    <div class="day-summary">
+      <span>🧠 <strong>1</strong> attack</span>
+      <span>⚡ peak <strong>9/10</strong></span>
+      <span>💊 <strong>1</strong> dose</span>
+    </div>
+    <div class="hourly-timeline">
+      <div class="hour-grid">
+        <div class="h-tick"></div><div class="h-tick"></div><div class="h-tick"></div>
+        <div class="h-tick"></div><div class="h-tick"></div><div class="h-tick"></div>
+      </div>
+      <div class="drug-bar triptan" style="left:35%; width:11%;"></div>
+      <div class="symptom-dot aura" style="left:30%; top:36px;"></div>
+      <div class="symptom-dot resolved" style="left:34%;"></div>
+    </div>
+    <div class="hour-labels">
+      <span>06</span><span>09</span><span>12</span><span>15</span><span>18</span><span>21</span><span>24</span>
+    </div>
+
+    <div class="episode resolved">
+      <div class="episode-header">
+        <span class="episode-num">
+          <span class="pill">#6</span>
+          Migraine with aura
+        </span>
+        <span class="episode-status">✅ resolved (Triptan)</span>
+      </div>
+      <div class="attr-row">
+        <span class="attr aura">🌀 visual aura (15min)</span>
+        <span class="attr side">📍 left-sided</span>
+        <span class="attr quality">💢 throbbing</span>
+        <span class="attr assoc">🤢 nausea + vomit</span>
+        <span class="attr assoc">💡 photophobia</span>
+      </div>
+      <div class="event-list">
+        <div class="event aura">
+          <span class="event-time">11:45</span>
+          <span class="event-icon">🌀</span>
+          <div class="event-text">
+            <strong>Visual aura</strong> (zigzag lines, left eye)
+            <div class="event-meta">15 min before headache</div>
+          </div>
+        </div>
+        <div class="event symptom">
+          <span class="event-time">12:00</span>
+          <span class="event-icon">🤒</span>
+          <div class="event-text">
+            Migraine attack <span class="severity-pill">9/10</span>
+            <div class="event-meta">trigger: ⚭ peri-menstrual</div>
+          </div>
+        </div>
+        <div class="event drug">
+          <span class="event-time">12:15</span>
+          <span class="event-icon">💊</span>
+          <div class="event-text">
+            <strong>Sumatriptan 50mg</strong>
+            <div class="event-meta">→ relief in 20 min</div>
+          </div>
+        </div>
+        <div class="event followup">
+          <span class="event-time">12:35</span>
+          <span class="event-icon">📊</span>
+          <div class="event-text">
+            หายแล้ว <span class="severity-pill zero">0/10</span>
+          </div>
+        </div>
+      </div>
+      <div class="episode-close">
+        <span><span class="check">✅</span> Attack #6 — Triptan effective</span>
+        <span class="duration">50m</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day 3: May 13 (start period) -->
+  <div class="day-card">
+    <div class="day-header">
+      <div class="day-date">📅 13 พ.ค. เสาร์</div>
+      <div class="day-badges">
+        <span class="badge badge-period">⚭ เริ่มรอบเดือน</span>
+      </div>
+    </div>
+    <div class="day-summary">
+      <span>🧠 <strong>1</strong> attack</span>
+      <span>⚡ peak <strong>5/10</strong></span>
+      <span>💊 <strong>1</strong> dose</span>
+    </div>
+  </div>
+
+  <!-- Quiet day -->
+  <div class="day-card" style="opacity:0.6;">
+    <div class="day-header">
+      <div class="day-date">📅 12 พ.ค. ศุกร์</div>
+      <div class="day-badges">
+        <span class="badge badge-quiet">ไม่มี attack</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Earlier sample day -->
+  <div class="day-card">
+    <div class="day-header">
+      <div class="day-date">📅 1 พ.ค. จันทร์</div>
+      <div class="day-badges">
+        <span class="badge badge-warning">⚠ failed Tx</span>
+      </div>
+    </div>
+    <div class="day-summary">
+      <span>🧠 <strong>1</strong> attack</span>
+      <span>⚡ peak <strong>7/10</strong></span>
+      <span>💊 <strong>2</strong> doses</span>
+    </div>
+    <div class="episode resolved">
+      <div class="episode-header">
+        <span class="episode-num">
+          <span class="pill">#2</span>
+          Migraine attack
+        </span>
+        <span class="episode-status">✅ resolved</span>
+      </div>
+      <div class="attr-row">
+        <span class="attr side">📍 right-sided</span>
+        <span class="attr quality">💢 throbbing</span>
+        <span class="attr assoc">💡 photophobia</span>
+      </div>
+      <div class="episode-close">
+        <span><span class="check">✅</span> Attack #2 — Para failed, Ibu effective</span>
+        <span class="duration">3h 15m</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center;color:var(--muted);font-size:13px;padding:8px;">
+    ... และอีก 19 วันก่อนหน้า (1 attack/วัน หรือ น้อยกว่า)
+  </div>
+
+  <!-- Clinical summary footer -->
+  <div class="card" style="background: linear-gradient(135deg, #1e293b 0%, #334155 100%); color: white;">
+    <h2 style="color: rgba(255,255,255,0.7);">🩺 Clinical summary</h2>
+    <div style="font-size:13px;line-height:1.7;">
+      <strong>Diagnosis fit:</strong> Migraine without aura (6) + with aura (2) — ICHD-3 criteria met<br>
+      <strong>Pattern:</strong> Episodic with menstrual exacerbation (5× rate during period)<br>
+      <strong>Treatment response:</strong> Triptan 100% • NSAID 60% • Paracetamol 40%<br>
+      <strong>Risk flags:</strong> MOH risk (12 acute days/mo) • frequency rising
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    Generated by MenuNest Health Tracker • Migraine Report v1.0<br>
+    Link expires 16 มิ.ย. 2569 • <a href="#" style="color:var(--primary);">เพิกถอน link</a>
+  </div>
+
+</div>
+</body>
+</html>

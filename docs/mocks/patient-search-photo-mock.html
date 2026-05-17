@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — Search + Photo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.12);
+    --drug: #34d399;
+    --drug-bg: rgba(52,211,153,0.12);
+    --warning: #fbbf24;
+    --period: #f472b6;
+    --triptan: #c084fc;
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.08);
+    --drug: #10b981;
+    --drug-bg: rgba(16,185,129,0.08);
+    --warning: #f59e0b;
+    --period: #ec4899;
+    --triptan: #a855f7;
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toggle-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .phone { width: 360px; }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 800px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+  }
+  .phone-content::-webkit-scrollbar { width: 4px; }
+  .phone-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .app-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .back-btn { color: var(--text-muted); cursor: pointer; font-size: 18px; }
+
+  .content { padding: 8px 16px; }
+
+  .section-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+    margin: 14px 4px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title .count {
+    background: var(--bg-card);
+    padding: 1px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+  }
+  .section-title .syncfusion-tag {
+    background: rgba(129,140,248,0.2);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  /* ========== Drug photo cards (elderly-friendly) ========== */
+
+  .drug-photo-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 12px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .drug-photo {
+    width: 90px;
+    height: 90px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--border);
+  }
+  .drug-photo.para {
+    background: linear-gradient(135deg, #fef3c7 0%, #f59e0b 50%, #fbbf24 100%);
+  }
+  .drug-photo.ibu {
+    background: linear-gradient(135deg, #dcfce7 0%, #10b981 50%, #34d399 100%);
+  }
+  .drug-photo.tri {
+    background: linear-gradient(135deg, #f3e8ff 0%, #a855f7 50%, #c084fc 100%);
+  }
+  .drug-photo.pon {
+    background: linear-gradient(135deg, #fee2e2 0%, #ef4444 50%, #f87171 100%);
+  }
+  .drug-photo.placeholder {
+    background: var(--bg-card-2);
+    color: var(--text-muted);
+    font-size: 28px;
+    border: 2px dashed var(--border);
+  }
+  .drug-photo .pill-emoji {
+    background: rgba(255,255,255,0.9);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .drug-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .drug-name-big {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .drug-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .drug-type-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--bg-card-2);
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  .drug-type-tag.nsaid { background: var(--symptom-bg); color: var(--symptom); }
+  .drug-type-tag.triptan { background: rgba(192,132,252,0.15); color: var(--triptan); }
+  .drug-type-tag.analgesic { background: var(--drug-bg); color: var(--drug); }
+  .drug-stock-line {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .drug-stock-line strong {
+    color: var(--text);
+  }
+  .drug-stock-line.low strong { color: var(--warning); }
+  .drug-stock-line.out strong { color: var(--symptom); }
+
+  /* Add new drug button — big and accessible */
+  .add-drug-card {
+    background: var(--bg-card);
+    border: 2px dashed var(--accent);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    margin-bottom: 12px;
+  }
+  .add-drug-card .icon {
+    font-size: 36px;
+    margin-bottom: 4px;
+  }
+  .add-drug-card .text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  /* ========== Search (right phone) ========== */
+
+  .search-input-wrap {
+    position: relative;
+    margin-bottom: 12px;
+  }
+  .search-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 2px solid var(--accent);
+    color: var(--text);
+    padding: 12px 14px 12px 40px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-icon {
+    position: absolute;
+    top: 50%; left: 14px;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 18px;
+  }
+
+  /* Search results dropdown (AutoComplete pattern) */
+  .search-results {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .search-result-group {
+    padding: 6px 8px 4px;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .search-result-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .search-result-item:hover {
+    background: var(--bg-card-2);
+  }
+  .search-result-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .search-result-icon.symptom { background: var(--symptom-bg); color: var(--symptom); }
+  .search-result-icon.drug { background: var(--drug-bg); color: var(--drug); }
+  .search-result-icon.episode { background: rgba(129,140,248,0.15); color: var(--accent); }
+  .search-result-icon.trigger { background: rgba(192,132,252,0.15); color: var(--triptan); }
+  .search-result-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .search-result-title {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .search-result-title mark {
+    background: rgba(251,191,36,0.4);
+    color: var(--text);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+  .search-result-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .search-result-meta {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ========== Photo upload (in form) ========== */
+
+  .form-section {
+    margin-bottom: 14px;
+  }
+  .form-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .photo-upload-area {
+    background: var(--bg-card);
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    padding: 24px 16px;
+    text-align: center;
+    cursor: pointer;
+  }
+  .photo-upload-area:hover {
+    border-color: var(--accent);
+  }
+  .photo-upload-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+  }
+  .photo-upload-text {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .photo-upload-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+  }
+  .photo-upload-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  .upload-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .upload-btn.secondary {
+    background: var(--bg-card-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  /* Uploaded photo */
+  .uploaded-photo-card {
+    display: flex;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px;
+    align-items: center;
+  }
+  .uploaded-photo-thumb {
+    width: 70px;
+    height: 70px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f3e8ff 0%, #a855f7 50%, #c084fc 100%);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    overflow: hidden;
+    position: relative;
+  }
+  .uploaded-photo-thumb .pill-emoji {
+    background: rgba(255,255,255,0.9);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .uploaded-photo-info { flex: 1; }
+  .uploaded-photo-name {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .uploaded-photo-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .uploaded-photo-actions {
+    display: flex;
+    gap: 4px;
+  }
+  .icon-btn-mini {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    background: var(--bg-card-2);
+    color: var(--text-muted);
+    cursor: pointer;
+  }
+  .icon-btn-mini.danger { color: var(--symptom); }
+
+  /* Upload progress */
+  .upload-progress {
+    margin-top: 8px;
+    height: 4px;
+    background: var(--bg-card-2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .upload-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    animation: indeterminate 1.4s ease-in-out infinite;
+    width: 30%;
+  }
+  @keyframes indeterminate {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(366%); }
+  }
+
+  /* Form input */
+  .form-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .form-input::placeholder { color: var(--text-muted); }
+
+  @media (max-width: 800px) {
+    .phones { padding: 16px 8px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX — Search + Photo (elderly-friendly)</div>
+  <div class="page-sub">Syncfusion AutoComplete + Azure Blob Storage</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!-- PHONE 1: Drug Master with prominent photos -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Drug Master (elderly-friendly photos)</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>ยาในระบบ</span>
+        </div>
+
+        <div class="content">
+
+          <div class="add-drug-card">
+            <div class="icon">📷</div>
+            <div class="text">➕ ถ่ายซองยาใหม่</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+              ระบบจะ scan ชื่อยา + dose อัตโนมัติ (OCR)
+            </div>
+          </div>
+
+          <div class="section-title">
+            🎯 ยาสำหรับ ปวดหัว <span class="count">3</span>
+          </div>
+
+          <!-- Drug 1: Paracetamol -->
+          <div class="drug-photo-card">
+            <div class="drug-photo para">
+              <div class="pill-emoji">💊</div>
+            </div>
+            <div class="drug-info">
+              <div class="drug-name-big">Paracetamol</div>
+              <div class="drug-meta-row">
+                <span class="drug-type-tag analgesic">Analgesic</span>
+                <span style="font-size: 12px; color: var(--text-muted);">500mg</span>
+              </div>
+              <div class="drug-stock-line">
+                เหลือ <strong>24 เม็ด</strong> • 4-6 ชม.
+              </div>
+            </div>
+          </div>
+
+          <!-- Drug 2: Ibuprofen -->
+          <div class="drug-photo-card">
+            <div class="drug-photo ibu">
+              <div class="pill-emoji">💊</div>
+            </div>
+            <div class="drug-info">
+              <div class="drug-name-big">Ibuprofen</div>
+              <div class="drug-meta-row">
+                <span class="drug-type-tag nsaid">NSAID</span>
+                <span style="font-size: 12px; color: var(--text-muted);">200mg</span>
+              </div>
+              <div class="drug-stock-line">
+                เหลือ <strong>8 เม็ด</strong> • 4-6 ชม.
+              </div>
+            </div>
+          </div>
+
+          <!-- Drug 3: Sumatriptan (low stock) -->
+          <div class="drug-photo-card">
+            <div class="drug-photo tri">
+              <div class="pill-emoji">💊</div>
+            </div>
+            <div class="drug-info">
+              <div class="drug-name-big">Sumatriptan</div>
+              <div class="drug-meta-row">
+                <span class="drug-type-tag triptan">Triptan</span>
+                <span style="font-size: 12px; color: var(--text-muted);">50mg</span>
+              </div>
+              <div class="drug-stock-line low">
+                ⚠ เหลือ <strong>2 เม็ด</strong> — ใกล้หมด
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            🎯 ยาสำหรับ ปวดท้อง <span class="count">1</span>
+          </div>
+
+          <!-- Drug 4: Ponstan -->
+          <div class="drug-photo-card">
+            <div class="drug-photo pon">
+              <div class="pill-emoji">💊</div>
+            </div>
+            <div class="drug-info">
+              <div class="drug-name-big">Ponstan</div>
+              <div class="drug-meta-row">
+                <span class="drug-type-tag nsaid">NSAID</span>
+                <span style="font-size: 12px; color: var(--text-muted);">500mg</span>
+              </div>
+              <div class="drug-stock-line">
+                เหลือ <strong>15 เม็ด</strong> • 6 ชม.
+              </div>
+            </div>
+          </div>
+
+          <div class="section-title">
+            ⚫ ยังไม่ใส่รูป <span class="count">1</span>
+          </div>
+
+          <!-- Drug 5: No photo -->
+          <div class="drug-photo-card">
+            <div class="drug-photo placeholder">📷</div>
+            <div class="drug-info">
+              <div class="drug-name-big">Naproxen</div>
+              <div class="drug-meta-row">
+                <span class="drug-type-tag nsaid">NSAID</span>
+                <span style="font-size: 12px; color: var(--text-muted);">250mg</span>
+              </div>
+              <div class="drug-stock-line out">
+                ❌ <strong>หมด</strong> — ซื้อใหม่
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- PHONE 2: Search (AutoComplete) + Photo upload -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Global Search + Photo upload</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <div class="app-header">
+          <span class="back-btn">←</span>
+          <span>ค้นหา</span>
+        </div>
+
+        <div class="content">
+
+          <!-- Search input -->
+          <div class="search-input-wrap">
+            <div class="search-icon">🔍</div>
+            <input type="text" class="search-input" value="พารา" placeholder="ค้นหา episode, ยา, trigger...">
+          </div>
+
+          <!-- Search results (AutoComplete pattern) -->
+          <div class="search-results">
+            <div class="search-result-group">💊 ยา (1)</div>
+            <div class="search-result-item">
+              <div class="search-result-icon drug">💊</div>
+              <div class="search-result-content">
+                <div class="search-result-title"><mark>Para</mark>cetamol 500mg</div>
+                <div class="search-result-sub">Stock: 24 เม็ด • 4-6 ชม.</div>
+              </div>
+              <div class="search-result-meta">→</div>
+            </div>
+
+            <div class="search-result-group" style="margin-top: 8px;">📜 Episodes (3)</div>
+            <div class="search-result-item">
+              <div class="search-result-icon symptom">🤒</div>
+              <div class="search-result-content">
+                <div class="search-result-title">ปวดหัว 7→0/10</div>
+                <div class="search-result-sub">15 พ.ค. 12:00 • <mark>Para</mark>cetamol</div>
+              </div>
+              <div class="search-result-meta">2 วันก่อน</div>
+            </div>
+            <div class="search-result-item">
+              <div class="search-result-icon symptom">🤒</div>
+              <div class="search-result-content">
+                <div class="search-result-title">ปวดหัว 6→0/10</div>
+                <div class="search-result-sub">14 พ.ค. 18:30 • <mark>Para</mark>cetamol + Ibu</div>
+              </div>
+              <div class="search-result-meta">3 วันก่อน</div>
+            </div>
+            <div class="search-result-item">
+              <div class="search-result-icon symptom">🤒</div>
+              <div class="search-result-content">
+                <div class="search-result-title">ปวดหัว 5→0/10</div>
+                <div class="search-result-sub">10 พ.ค. 09:00 • <mark>Para</mark>cetamol</div>
+              </div>
+              <div class="search-result-meta">7 วันก่อน</div>
+            </div>
+
+            <div class="search-result-group" style="margin-top: 8px;">📝 Notes (1)</div>
+            <div class="search-result-item">
+              <div class="search-result-icon episode">📝</div>
+              <div class="search-result-content">
+                <div class="search-result-title">"กิน <mark>พารา</mark>ตอนตื่นเช้า"</div>
+                <div class="search-result-sub">12 พ.ค. • Episode #8</div>
+              </div>
+              <div class="search-result-meta">→</div>
+            </div>
+          </div>
+
+          <!-- Photo upload demo -->
+          <div class="section-title">
+            📷 Add Photo — Drug Master Form
+            <span class="syncfusion-tag">Syncfusion</span>
+          </div>
+
+          <!-- Empty state -->
+          <div class="form-section">
+            <div class="form-label">รูปซองยา (optional แต่แนะนำ)</div>
+            <div class="photo-upload-area">
+              <div class="photo-upload-icon">📷</div>
+              <div class="photo-upload-text">เพิ่มรูปซองยา</div>
+              <div class="photo-upload-sub">ผู้สูงอายุดูภาพได้ ไม่ต้องจำชื่อ</div>
+              <div class="photo-upload-actions">
+                <button class="upload-btn">📷 ถ่ายเลย</button>
+                <button class="upload-btn secondary">🖼 จาก gallery</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Uploaded state (uploading...) -->
+          <div class="form-section">
+            <div class="form-label">📦 Uploading 1 photo...</div>
+            <div class="uploaded-photo-card">
+              <div class="uploaded-photo-thumb">
+                <div class="pill-emoji">💊</div>
+              </div>
+              <div class="uploaded-photo-info">
+                <div class="uploaded-photo-name">sumatriptan-50.jpg</div>
+                <div class="uploaded-photo-meta">487 KB • upload ไป Azure Blob</div>
+                <div class="upload-progress">
+                  <div class="upload-progress-fill"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Uploaded state (done) -->
+          <div class="form-section">
+            <div class="form-label">✅ Uploaded</div>
+            <div class="uploaded-photo-card">
+              <div class="uploaded-photo-thumb">
+                <div class="pill-emoji">💊</div>
+              </div>
+              <div class="uploaded-photo-info">
+                <div class="uploaded-photo-name">ponstan-500.jpg</div>
+                <div class="uploaded-photo-meta">562 KB • drug-images/menunest-pon-a4ef</div>
+              </div>
+              <div class="uploaded-photo-actions">
+                <div class="icon-btn-mini">👁</div>
+                <div class="icon-btn-mini danger">🗑</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; padding: 16px 24px 32px; font-size: 12px; color: var(--text-muted); line-height: 1.6;">
+  <strong>Drug Master (ซ้าย):</strong> 90×90 photo เด่น • group by symptom • placeholder สำหรับยาที่ยังไม่ใส่รูป<br>
+  <strong>Search (ขวา):</strong> Syncfusion <code>AutoComplete</code> ค้น drug + episode + note • group by type • highlight match<br>
+  <strong>Photo Upload:</strong> empty / uploading (progress bar) / uploaded (thumbnail + actions) — direct upload Azure Blob ด้วย SAS URL<br>
+  <br>
+  👵 <em>"ผู้สูงอายุจำชื่อยาไม่ได้ ดูภาพได้"</em> = elderly-friendly first-class feature
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+</script>
+</body>
+</html>

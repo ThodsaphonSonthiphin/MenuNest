@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — Quick Log Attack</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --bg-muted: #334155;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.15);
+    --drug: #34d399;
+    --period: #f472b6;
+    --period-bg: rgba(244,114,182,0.15);
+    --warning: #fbbf24;
+    --aura: #c084fc;
+    --aura-bg: rgba(192,132,252,0.15);
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --bg-muted: #e2e8f0;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.1);
+    --drug: #10b981;
+    --period: #ec4899;
+    --period-bg: rgba(236,72,153,0.1);
+    --warning: #f59e0b;
+    --aura: #a855f7;
+    --aura-bg: rgba(168,85,247,0.1);
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Page header */
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title { font-size: 18px; font-weight: 600; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .toggle-row { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent); color: white; border-color: var(--accent);
+  }
+
+  /* Phones container */
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .phone { width: 360px; flex-shrink: 0; }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 800px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px; height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+    padding-bottom: 80px; /* room for sticky bar */
+  }
+  .phone-content::-webkit-scrollbar { width: 4px; }
+  .phone-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* App header */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px 8px;
+  }
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .back-btn {
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+  }
+
+  /* Content */
+  .content { padding: 8px 16px; }
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 18px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-title .req {
+    color: var(--symptom);
+    font-size: 14px;
+  }
+  .smart-tag {
+    font-size: 10px;
+    background: var(--accent);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: auto;
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 600;
+  }
+
+  /* Time row */
+  .time-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .time-row .time-info {
+    color: var(--text-muted);
+  }
+  .time-row .time-value {
+    color: var(--text);
+    font-weight: 600;
+  }
+  .change-link {
+    color: var(--accent);
+    font-size: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* Severity slider */
+  .severity-section {
+    background: var(--symptom-bg);
+    border: 1px solid var(--symptom);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .severity-question {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .severity-display-mini {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .severity-num {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--symptom);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .severity-num-sub {
+    font-size: 18px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .slider-wrap {
+    margin: 16px 4px 8px;
+    position: relative;
+  }
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(to right, #fbbf24 0%, #f87171 50%, #dc2626 100%);
+    border-radius: 3px;
+    outline: none;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: white;
+    border: 4px solid var(--symptom);
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  /* Quick chip group */
+  .chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 600;
+  }
+  .chip.active.symptom-chip {
+    background: var(--symptom);
+    border-color: var(--symptom);
+  }
+  .chip.active.period-chip {
+    background: var(--period);
+    border-color: var(--period);
+  }
+  .chip.active.aura-chip {
+    background: var(--aura);
+    border-color: var(--aura);
+  }
+  .chip.add-new {
+    background: none;
+    color: var(--text-muted);
+    border-style: dashed;
+  }
+
+  /* Checkbox row */
+  .check-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .check-row.checked {
+    background: var(--period-bg);
+    border-color: var(--period);
+  }
+  .check-box {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--text-muted);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .check-row.checked .check-box {
+    background: var(--period);
+    border-color: var(--period);
+  }
+
+  /* Note textarea */
+  .note-input {
+    width: 100%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 13px;
+    resize: none;
+    min-height: 60px;
+    font-family: inherit;
+  }
+  .note-input::placeholder { color: var(--text-muted); }
+
+  /* Sticky save bar */
+  .sticky-save {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: linear-gradient(to bottom, transparent 0%, var(--bg-card-2) 30%);
+    z-index: 5;
+  }
+  .save-btn {
+    width: 100%;
+    background: var(--symptom);
+    color: white;
+    border: none;
+    padding: 16px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 8px 20px -4px rgba(248,113,113,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .save-btn-sub {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+
+  /* Caption */
+  .caption {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    line-height: 1.6;
+    padding: 12px 16px 0;
+  }
+  .caption code {
+    background: var(--bg-card);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--accent);
+  }
+
+  @media (max-width: 800px) {
+    .phones { padding: 16px 8px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX — Quick Log Attack</div>
+  <div class="page-sub">User เพิ่งเริ่มปวด → tap "🤒 มี Migraine Attack" จาก Home → หน้านี้</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark (default)</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!--  PHONE: Quick Log Attack -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Quick Log Attack (smart pre-fill)</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <!-- App header -->
+        <div class="app-header">
+          <div class="header-title">
+            <span class="back-btn">←</span>
+            <span>มี Migraine Attack</span>
+          </div>
+        </div>
+
+        <div class="content">
+
+          <!-- Time -->
+          <div class="time-row">
+            <div>
+              <div class="time-info">เริ่มปวด</div>
+              <div class="time-value">ตอนนี้ • 11:30</div>
+            </div>
+            <button class="change-link">เปลี่ยน</button>
+          </div>
+
+          <!-- Severity (REQUIRED) -->
+          <div class="severity-section">
+            <div class="severity-question">รุนแรงแค่ไหน?</div>
+            <div class="severity-display-mini">
+              <span class="severity-num">7</span>
+              <span class="severity-num-sub">/10</span>
+            </div>
+            <div class="slider-wrap">
+              <input type="range" min="1" max="10" value="7" class="slider" oninput="document.querySelector('.severity-num').textContent = this.value">
+              <div class="slider-labels">
+                <span>1<br>เบา</span>
+                <span style="position: relative; left: -10px;">5<br>กลาง</span>
+                <span>10<br>รุนแรง</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional sections (smart pre-filled) -->
+          <div class="section-title">
+            📍 ด้านไหน?
+            <span class="smart-tag">จากครั้งล่าสุด</span>
+          </div>
+          <div class="chip-group">
+            <div class="chip">ซ้าย</div>
+            <div class="chip active">ขวา</div>
+            <div class="chip">ทั้งสอง</div>
+          </div>
+
+          <div class="section-title">
+            💢 ลักษณะ
+            <span class="smart-tag">จากครั้งล่าสุด</span>
+          </div>
+          <div class="chip-group">
+            <div class="chip active">ตุบๆ</div>
+            <div class="chip">บีบ</div>
+            <div class="chip">แทง</div>
+            <div class="chip">ปวดทั่ว</div>
+          </div>
+
+          <div class="section-title">
+            ⚡ Trigger (เลือกได้หลาย)
+          </div>
+          <div class="chip-group">
+            <div class="chip active">เครียด</div>
+            <div class="chip active">นอนน้อย</div>
+            <div class="chip">ฮอร์โมน</div>
+            <div class="chip">อาหาร</div>
+            <div class="chip">อากาศ</div>
+            <div class="chip add-new">+ เพิ่ม</div>
+          </div>
+
+          <div class="section-title">
+            🌀 มี aura ก่อนหน้านี้?
+          </div>
+          <div class="chip-group">
+            <div class="chip active aura-chip">ไม่มี</div>
+            <div class="chip">เห็นภาพ (visual)</div>
+            <div class="chip">ชา (sensory)</div>
+          </div>
+
+          <!-- Period checkbox -->
+          <div class="section-title">⚭ รอบเดือน</div>
+          <div class="check-row checked" onclick="this.classList.toggle('checked')">
+            <div class="check-box">✓</div>
+            <div>
+              <div style="font-weight: 600; font-size: 14px;">กำลังมีประจำเดือนอยู่</div>
+              <div style="font-size: 11px; color: var(--text-muted);">วันที่ 3 (จาก period tracker)</div>
+            </div>
+          </div>
+
+          <!-- Associated symptoms -->
+          <div class="section-title">
+            🤢 อาการอื่นๆ (เลือกได้หลาย)
+            <span class="smart-tag">จากครั้งล่าสุด</span>
+          </div>
+          <div class="chip-group">
+            <div class="chip active symptom-chip">คลื่นไส้</div>
+            <div class="chip">อาเจียน</div>
+            <div class="chip active symptom-chip">กลัวแสง</div>
+            <div class="chip active symptom-chip">กลัวเสียง</div>
+            <div class="chip">กลัวกลิ่น</div>
+            <div class="chip">แย่ตอนเดิน</div>
+          </div>
+
+          <!-- Functional impact -->
+          <div class="section-title">📊 ผลกระทบ</div>
+          <div class="chip-group">
+            <div class="chip">ทำงานต่อได้</div>
+            <div class="chip active">ฝืน</div>
+            <div class="chip">ต้องนอน</div>
+          </div>
+
+          <!-- Note -->
+          <div class="section-title">📝 บันทึก (optional)</div>
+          <textarea class="note-input" placeholder="เช่น: นั่งหน้าจอนานเกินไป, ลืมกินข้าวเช้า"></textarea>
+
+        </div>
+      </div>
+
+      <!-- Sticky save bar -->
+      <div class="sticky-save">
+        <button class="save-btn">💾 บันทึก attack</button>
+        <div class="save-btn-sub">2 taps จาก home ก็บันทึกได้ (ที่เหลือ optional)</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="caption">
+  <strong>💡 Smart pre-fill</strong> = เห็น <code>จากครั้งล่าสุด</code> badge ที่ field ไหน — pre-filled จาก attack ล่าสุดภายใน 7 วัน<br>
+  User แค่ confirm หรือเปลี่ยน → ลด typing อย่างมากตอนปวดหัว<br>
+  <br>
+  ⚠️ Sticky save bar = save button ติดข้างล่าง ตลอดเวลา — กดได้ทันทีเมื่อ severity ถูก
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+
+  // Chip toggle behavior
+  document.querySelectorAll('.chip-group').forEach(group => {
+    group.querySelectorAll('.chip:not(.add-new)').forEach(chip => {
+      chip.addEventListener('click', () => {
+        // Single-select for: ด้านไหน, ลักษณะ, ผลกระทบ, aura, severity
+        const groupTitle = group.previousElementSibling.textContent;
+        const isMulti = /Trigger|อาการอื่นๆ/i.test(groupTitle);
+        if (!isMulti) {
+          group.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        }
+        chip.classList.toggle('active');
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient UX — Active Episode</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Dark mode (default) — photophobia-friendly */
+    --bg-page: #020617;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --bg-muted: #334155;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --accent: #818cf8;
+    --symptom: #f87171;
+    --symptom-bg: rgba(248,113,113,0.12);
+    --drug: #34d399;
+    --drug-bg: rgba(52,211,153,0.12);
+    --period: #f472b6;
+    --period-bg: rgba(244,114,182,0.12);
+    --warning: #fbbf24;
+    --warning-bg: rgba(251,191,36,0.12);
+    --danger: #ef4444;
+    --danger-bg: rgba(239,68,68,0.15);
+  }
+  body.light {
+    --bg-page: #f8fafc;
+    --bg-card: #ffffff;
+    --bg-card-2: #f1f5f9;
+    --bg-muted: #e2e8f0;
+    --border: #e5e7eb;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --symptom: #ef4444;
+    --symptom-bg: rgba(239,68,68,0.08);
+    --drug: #10b981;
+    --drug-bg: rgba(16,185,129,0.08);
+    --period: #ec4899;
+    --period-bg: rgba(236,72,153,0.08);
+    --warning: #f59e0b;
+    --warning-bg: rgba(245,158,11,0.08);
+    --danger: #dc2626;
+    --danger-bg: rgba(220,38,38,0.1);
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* Page header */
+  .page-header {
+    padding: 16px 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title {
+    font-size: 18px;
+    font-weight: 600;
+  }
+  .page-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .toggle-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .toggle-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+
+  /* Phones container */
+  .phones {
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 24px;
+    flex-wrap: wrap;
+  }
+  .phone {
+    width: 360px;
+    flex-shrink: 0;
+  }
+  .phone-label {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .phone-frame {
+    width: 360px;
+    height: 740px;
+    background: var(--bg-card-2);
+    border-radius: 36px;
+    border: 8px solid #1f2937;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 24px;
+    background: #000;
+    border-radius: 0 0 16px 16px;
+    z-index: 10;
+  }
+  .phone-content {
+    height: 100%;
+    overflow-y: auto;
+    padding-top: 32px;
+  }
+  .phone-content::-webkit-scrollbar { width: 4px; }
+  .phone-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* App header */
+  .app-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px 8px;
+  }
+  .app-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .app-icons {
+    display: flex;
+    gap: 4px;
+    color: var(--text-muted);
+  }
+  .icon-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* Content */
+  .content {
+    padding: 8px 16px 24px;
+  }
+  .section-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin: 16px 0 8px;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid var(--border);
+  }
+
+  /* Active attack banner (Home) */
+  .active-banner {
+    background: linear-gradient(135deg, var(--symptom) 0%, #c026d3 100%);
+    color: white;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+    position: relative;
+    overflow: hidden;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.6); }
+    50% { box-shadow: 0 0 0 16px rgba(248,113,113,0); }
+  }
+  .active-banner-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.9;
+    margin-bottom: 4px;
+  }
+  .active-banner-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .active-banner-meta {
+    font-size: 13px;
+    opacity: 0.95;
+    margin-bottom: 4px;
+  }
+  .active-banner-cta {
+    margin-top: 12px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    width: 100%;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  /* Secondary action button */
+  .action-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 14px;
+    border-radius: 12px;
+    width: 100%;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .action-btn.large {
+    padding: 18px;
+    font-size: 16px;
+  }
+  .action-btn.green {
+    background: var(--drug);
+    border-color: var(--drug);
+    color: white;
+  }
+  .action-btn.amber {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: white;
+  }
+  .action-btn.danger {
+    background: var(--danger-bg);
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+
+  /* Status rows (Home) */
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .status-row .icon { width: 18px; text-align: center; }
+  .status-row strong { color: var(--text); }
+
+  /* Mini bar chart (Home) */
+  .mini-bars {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    height: 50px;
+    padding: 8px 0;
+  }
+  .mini-bar {
+    flex: 1;
+    background: var(--symptom);
+    border-radius: 3px 3px 0 0;
+    opacity: 0.85;
+    position: relative;
+  }
+  .mini-bar-labels {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .mini-bar-label {
+    flex: 1;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  /* ========== Active Episode Screen ========== */
+
+  /* Status card */
+  .status-card {
+    background: linear-gradient(135deg, var(--symptom-bg) 0%, transparent 100%);
+    border: 1px solid var(--symptom);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--symptom);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .timer {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .timer-value {
+    color: var(--text);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .severity-display {
+    margin-top: 14px;
+    text-align: center;
+    padding: 14px;
+    background: var(--bg-card-2);
+    border-radius: 12px;
+  }
+  .severity-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .severity-value {
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--symptom);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .severity-value-sub {
+    font-size: 16px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .severity-update {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    margin-top: 8px;
+    cursor: pointer;
+  }
+
+  /* Attributes row */
+  .attr-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .attr-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-card-2);
+    color: var(--text);
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+  .attr-pill.side    { background: rgba(99,102,241,0.15);  color: #a5b4fc; border-color: rgba(99,102,241,0.3); }
+  .attr-pill.quality { background: rgba(251,191,36,0.15); color: #fcd34d; border-color: rgba(251,191,36,0.3); }
+  .attr-pill.period  { background: var(--period-bg);       color: var(--period); border-color: var(--period); }
+  .attr-pill.assoc   { background: var(--symptom-bg);      color: var(--symptom); border-color: rgba(248,113,113,0.3); }
+  body.light .attr-pill.side    { background: #eef2ff; color: #4338ca; border-color: #c7d2fe; }
+  body.light .attr-pill.quality { background: #fffbeb; color: #92400e; border-color: #fde68a; }
+
+  .edit-link {
+    color: var(--accent);
+    font-size: 12px;
+    margin-top: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  /* Drug card */
+  .drug-card {
+    background: var(--drug-bg);
+    border: 1px solid var(--drug);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .drug-card:last-child { margin-bottom: 0; }
+  .drug-card-name {
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .drug-card-name .time {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .drug-card-status {
+    font-size: 12px;
+    color: var(--drug);
+    margin-top: 3px;
+  }
+  .progress-bar {
+    margin-top: 8px;
+    height: 5px;
+    background: var(--bg-card-2);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--drug);
+    border-radius: 3px;
+  }
+  .progress-pct {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Follow-up */
+  .followup-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .followup-info {
+    font-size: 13px;
+  }
+  .followup-info strong {
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .followup-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* Note input */
+  .note-input {
+    width: 100%;
+    background: var(--bg-card-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 13px;
+    resize: none;
+    min-height: 50px;
+    font-family: inherit;
+  }
+  .note-input::placeholder { color: var(--text-muted); }
+
+  /* Link button */
+  .link-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  /* Active episode subtle pulse */
+  .pulse-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulseDot 1.4s ease-in-out infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  @media (max-width: 800px) {
+    .phones { padding: 16px 8px; }
+    .phone { width: 100%; max-width: 360px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-title">Patient UX Mock — Migraine Tracker</div>
+  <div class="page-sub">Home (with active banner) → tap "จัดการ" → Active Episode screen</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" id="dark-btn" onclick="document.body.classList.remove('light'); setActive('dark')">🌙 Dark (default)</button>
+    <button class="toggle-btn" id="light-btn" onclick="document.body.classList.add('light'); setActive('light')">☀️ Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============================================ -->
+  <!--  PHONE 1: Home (with active attack banner) -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Home (มี active attack)</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <!-- App header -->
+        <div class="app-header">
+          <div class="app-user">
+            <div class="avatar">P</div>
+            Pon
+          </div>
+          <div class="app-icons">
+            <div class="icon-btn">🌙</div>
+            <div class="icon-btn">⚙️</div>
+          </div>
+        </div>
+
+        <div class="content">
+
+          <!-- Active banner (pulsing) -->
+          <div class="active-banner">
+            <div class="active-banner-label">
+              <span class="pulse-dot"></span>Active Now
+            </div>
+            <div class="active-banner-title">⚡ Migraine attack</div>
+            <div class="active-banner-meta">⏱ 1h 23m • severity 7/10</div>
+            <div class="active-banner-meta">💊 Paracetamol + Ibuprofen ออกฤทธิ์อยู่</div>
+            <button class="active-banner-cta">จัดการ episode →</button>
+          </div>
+
+          <!-- Secondary: Take medication -->
+          <button class="action-btn">
+            💊 กินยา
+          </button>
+
+          <!-- Status -->
+          <div class="section-title">สถานะ</div>
+          <div class="card">
+            <div class="status-row">
+              <span class="icon">💊</span>
+              Paracetamol ยังออกฤทธิ์ อีก <strong>2h 15m</strong>
+            </div>
+            <div class="status-row">
+              <span class="icon">💊</span>
+              Ibuprofen ยังออกฤทธิ์ อีก <strong>2h 52m</strong>
+            </div>
+            <div class="status-row">
+              <span class="icon">⚭</span>
+              รอบเดือน <strong>วันที่ 3</strong>
+            </div>
+          </div>
+
+          <!-- 7-day overview -->
+          <div class="section-title">7 วันที่ผ่านมา</div>
+          <div class="card">
+            <div class="mini-bars">
+              <div class="mini-bar" style="height: 30%;"></div>
+              <div class="mini-bar" style="height: 0%;"></div>
+              <div class="mini-bar" style="height: 50%;"></div>
+              <div class="mini-bar" style="height: 0%;"></div>
+              <div class="mini-bar" style="height: 70%;"></div>
+              <div class="mini-bar" style="height: 80%;"></div>
+              <div class="mini-bar" style="height: 90%;"></div>
+            </div>
+            <div class="mini-bar-labels">
+              <div class="mini-bar-label">จ</div>
+              <div class="mini-bar-label">อ</div>
+              <div class="mini-bar-label">พ</div>
+              <div class="mini-bar-label">พฤ</div>
+              <div class="mini-bar-label">ศ</div>
+              <div class="mini-bar-label">ส</div>
+              <div class="mini-bar-label">อา</div>
+            </div>
+            <div style="margin-top: 10px; font-size: 13px; color: var(--text-muted);">
+              <strong style="color: var(--text);">5 attacks</strong> • peak 8/10
+            </div>
+          </div>
+
+          <button class="link-btn">📜 ดูประวัติทั้งหมด</button>
+          <button class="link-btn">🔗 แชร์ให้หมอดู</button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!--  PHONE 2: Active Episode (full screen) -->
+  <!-- ============================================ -->
+  <div class="phone">
+    <div class="phone-label">📱 Active Episode</div>
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-content">
+
+        <!-- App header -->
+        <div class="app-header">
+          <div class="app-user" style="font-size: 14px;">
+            <span style="cursor: pointer; color: var(--text-muted);">←</span>
+            <span>Active Attack</span>
+          </div>
+          <div class="app-icons">
+            <div class="icon-btn">🌙</div>
+          </div>
+        </div>
+
+        <div class="content">
+
+          <!-- Status card -->
+          <div class="status-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span class="status-tag"><span class="pulse-dot"></span>Ongoing</span>
+              <span style="font-size: 12px; color: var(--text-muted);">started 11:30</span>
+            </div>
+            <div class="timer">
+              ⏱ Episode duration: <span class="timer-value">1h 23m</span>
+            </div>
+
+            <div class="severity-display">
+              <div class="severity-label">ตอนนี้ปวด</div>
+              <div>
+                <span class="severity-value">7</span>
+                <span class="severity-value-sub">/10</span>
+              </div>
+              <button class="severity-update">▼ update severity</button>
+            </div>
+          </div>
+
+          <!-- Attributes -->
+          <div class="section-title">attributes</div>
+          <div class="card">
+            <div class="attr-list">
+              <span class="attr-pill side">📍 ซ้าย</span>
+              <span class="attr-pill quality">💢 ตุบๆ</span>
+              <span class="attr-pill period">⚭ ประจำเดือน</span>
+              <span class="attr-pill assoc">🤢 คลื่นไส้</span>
+              <span class="attr-pill assoc">💡 กลัวแสง</span>
+            </div>
+            <button class="edit-link">✏️ แก้ไข attributes</button>
+          </div>
+
+          <!-- Drugs taken -->
+          <div class="section-title">ยาที่กินใน episode นี้</div>
+          <div class="card">
+            <div class="drug-card">
+              <div class="drug-card-name">
+                💊 Paracetamol 500mg ×2
+                <span class="time">11:45</span>
+              </div>
+              <div class="drug-card-status">⏳ ออกฤทธิ์อยู่ • อีก 2h 22m</div>
+              <div class="progress-bar"><div class="progress-fill" style="width: 64%;"></div></div>
+              <div class="progress-pct">64%</div>
+            </div>
+            <div class="drug-card">
+              <div class="drug-card-name">
+                💊 Ibuprofen 200mg
+                <span class="time">12:15</span>
+              </div>
+              <div class="drug-card-status">⏳ ออกฤทธิ์อยู่ • อีก 2h 52m</div>
+              <div class="progress-bar"><div class="progress-fill" style="width: 42%;"></div></div>
+              <div class="progress-pct">42%</div>
+            </div>
+          </div>
+
+          <!-- Follow-up -->
+          <div class="followup-card">
+            <div class="followup-info">
+              ⏰ ถามอีกใน <strong>7 นาที</strong>
+              <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">12:30</div>
+            </div>
+            <button class="followup-btn">ถามตอนนี้</button>
+          </div>
+
+          <!-- Actions -->
+          <div class="section-title">Actions</div>
+          <button class="action-btn green large">✅ หายแล้ว</button>
+          <button class="action-btn">💊 กินยาเพิ่ม</button>
+          <button class="action-btn danger">📈 แย่ลง / update severity</button>
+
+          <!-- Note -->
+          <div class="section-title">📝 บันทึก (optional)</div>
+          <textarea class="note-input" placeholder="เช่น: อยู่ห้องประชุมตอนเริ่มปวด, กินกาแฟ 2 แก้ว, ฯลฯ"></textarea>
+
+          <button class="link-btn">📜 ดู timeline ของ episode</button>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="text-align: center; padding: 24px; font-size: 12px; color: var(--text-muted);">
+  Dark mode default = photophobia-friendly • Sticky-pulse banner ดึงดูดความสนใจ ทั้งหน้า Home
+</div>
+
+<script>
+  function setActive(mode) {
+    document.getElementById('dark-btn').classList.toggle('active', mode === 'dark');
+    document.getElementById('light-btn').classList.toggle('active', mode === 'light');
+  }
+</script>
+</body>
+</html>
