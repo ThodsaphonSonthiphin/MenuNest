@@ -36,6 +36,17 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<MonthlyIncome> MonthlyIncomes => Set<MonthlyIncome>();
     public DbSet<BudgetTransaction> BudgetTransactions => Set<BudgetTransaction>();
 
+    // Health (migraine tracker) module
+    public DbSet<Drug> Drugs => Set<Drug>();
+    public DbSet<Symptom> Symptoms => Set<Symptom>();
+    public DbSet<Trigger> Triggers => Set<Trigger>();
+    public DbSet<SymptomEpisode> SymptomEpisodes => Set<SymptomEpisode>();
+    public DbSet<Intake> Intakes => Set<Intake>();
+    public DbSet<FollowUpPing> FollowUpPings => Set<FollowUpPing>();
+    public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
+    public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
+    public DbSet<Photo> Photos => Set<Photo>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

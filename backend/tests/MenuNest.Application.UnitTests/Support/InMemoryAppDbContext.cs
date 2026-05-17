@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Enums;
 using MenuNest.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -36,6 +37,17 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<MonthlyAssignment> MonthlyAssignments => Set<MonthlyAssignment>();
     public DbSet<MonthlyIncome> MonthlyIncomes => Set<MonthlyIncome>();
     public DbSet<BudgetTransaction> BudgetTransactions => Set<BudgetTransaction>();
+
+    // Health (migraine tracker) module
+    public DbSet<Drug> Drugs => Set<Drug>();
+    public DbSet<Symptom> Symptoms => Set<Symptom>();
+    public DbSet<Trigger> Triggers => Set<Trigger>();
+    public DbSet<SymptomEpisode> SymptomEpisodes => Set<SymptomEpisode>();
+    public DbSet<Intake> Intakes => Set<Intake>();
+    public DbSet<FollowUpPing> FollowUpPings => Set<FollowUpPing>();
+    public DbSet<WebPushSubscription> WebPushSubscriptions => Set<WebPushSubscription>();
+    public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
+    public DbSet<Photo> Photos => Set<Photo>();
 
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
@@ -74,5 +86,49 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
             .Metadata
             .FindNavigation(nameof(Domain.Entities.ShoppingList.Items))!
             .SetPropertyAccessMode(PropertyAccessMode.Field);
+
+        // ---------- Health module JSON conversions ----------
+        var guidListComparer = new ValueComparer<IReadOnlyList<Guid>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            v => v.Aggregate(0, (hash, id) => HashCode.Combine(hash, id.GetHashCode())),
+            v => v.ToList());
+
+        modelBuilder.Entity<Drug>()
+            .Property(d => d.TreatsSymptomIds)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<Guid>)(JsonSerializer.Deserialize<List<Guid>>(v, jsonOptions) ?? new List<Guid>()),
+                guidListComparer);
+
+        modelBuilder.Entity<SymptomEpisode>()
+            .Property(e => e.TriggerIds)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<Guid>)(JsonSerializer.Deserialize<List<Guid>>(v, jsonOptions) ?? new List<Guid>()),
+                guidListComparer);
+
+        var auraComparer = new ValueComparer<IReadOnlyList<AuraType>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            v => v.Aggregate(0, (hash, x) => HashCode.Combine(hash, (int)x)),
+            v => v.ToList());
+
+        modelBuilder.Entity<SymptomEpisode>()
+            .Property(e => e.AuraTypes)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<AuraType>)(JsonSerializer.Deserialize<List<AuraType>>(v, jsonOptions) ?? new List<AuraType>()),
+                auraComparer);
+
+        var assocComparer = new ValueComparer<IReadOnlyList<AssociatedSymptom>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            v => v.Aggregate(0, (hash, x) => HashCode.Combine(hash, (int)x)),
+            v => v.ToList());
+
+        modelBuilder.Entity<SymptomEpisode>()
+            .Property(e => e.AssociatedSymptoms)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<AssociatedSymptom>)(JsonSerializer.Deserialize<List<AssociatedSymptom>>(v, jsonOptions) ?? new List<AssociatedSymptom>()),
+                assocComparer);
     }
 }

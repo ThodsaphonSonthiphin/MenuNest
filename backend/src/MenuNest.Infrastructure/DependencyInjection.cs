@@ -3,6 +3,7 @@ using MenuNest.Infrastructure.AI;
 using MenuNest.Infrastructure.AI.Tools;
 using MenuNest.Infrastructure.Authentication;
 using MenuNest.Infrastructure.Persistence;
+using MenuNest.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,6 +38,7 @@ public static class DependencyInjection
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IUserProvisioner, UserProvisioner>();
+        services.AddSingleton<IClock, SystemClock>();
 
         // AI services
         services.Configure<GeminiOptions>(configuration.GetSection(GeminiOptions.SectionName));
