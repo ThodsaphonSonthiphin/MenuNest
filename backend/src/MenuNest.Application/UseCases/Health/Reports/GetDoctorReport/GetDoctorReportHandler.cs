@@ -46,7 +46,22 @@ public sealed class GetDoctorReportHandler : IQueryHandler<GetDoctorReportQuery,
     public async ValueTask<DoctorReportDto> Handle(GetDoctorReportQuery query, CancellationToken ct)
     {
         // 1. Verify token signature, expiry, issuer/audience.
-        var claims = _shareTokens.Verify(query.Token);
+        //    Any failure from the verifier (Infrastructure JWT exceptions,
+        //    argument errors, missing claims, etc.) is mapped to
+        //    DomainException so the HTTP layer answers 400 "Request rejected"
+        //    instead of leaking a generic 500. We deliberately catch the
+        //    broad type — the Application layer does not depend on
+        //    Microsoft.IdentityModel.Tokens for its exception hierarchy.
+        ShareTokenClaims claims;
+        try
+        {
+            claims = _shareTokens.Verify(query.Token);
+        }
+        catch (Exception ex) when (ex is not DomainException)
+        {
+            throw new DomainException("Share link is invalid or expired.", ex);
+        }
+
         var hash = _shareTokens.Hash(query.Token);
         var now = _clock.UtcNow;
 
