@@ -60,7 +60,8 @@ menunest/
 └── infra/            # Bicep / ARM templates (optional)
 ```
 
-Full implementation plan: [docs/plan.md](docs/plan.md)
+- **Architecture & flows** (sequence diagrams for every major feature): [docs/architecture.md](docs/architecture.md)
+- **Implementation plan** (scope, data model): [docs/plan.md](docs/plan.md)
 
 ---
 
