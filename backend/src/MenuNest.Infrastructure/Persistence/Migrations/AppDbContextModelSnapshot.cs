@@ -1321,7 +1321,6 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasOne("MenuNest.Domain.Entities.User", null)
                         .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

@@ -25,10 +25,16 @@ internal sealed class IntakeConfiguration : IEntityTypeConfiguration<Intake>
         builder.HasIndex(i => new { i.UserId, i.TakenAt });
         builder.HasIndex(i => i.SymptomEpisodeId);
 
+        // User → Intake is NoAction (not Cascade) to break multi-cascade-path:
+        // User cascades to Drug AND to SymptomEpisode, both of which also point
+        // at Intake (Restrict / SetNull). SQL Server rejects the multi-path FK
+        // graph even though only one path actually cascades. Practical effect:
+        // a user cannot be hard-deleted while Intakes exist — purge or null
+        // them in app code first.
         builder.HasOne<User>()
             .WithMany()
             .HasForeignKey(i => i.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasOne<Drug>()
             .WithMany()
