@@ -145,3 +145,7 @@ azure-pipelines-generated.yml
 # ---------- Docs / Notes (local only) ----------
 /notes.local.md
 /scratch/
+
+# ---------- Local-only Azure dumps ----------
+# Ad-hoc cost/resource queries dumped via `az ... > temp/...`
+/temp/
