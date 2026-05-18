@@ -1,0 +1,12 @@
+[
+  {
+    "id": "symptom-migraine",
+    "name": "Migraine",
+    "isSeed": true
+  },
+  {
+    "id": "symptom-headache",
+    "name": "ปวดหัว",
+    "isSeed": true
+  }
+]
