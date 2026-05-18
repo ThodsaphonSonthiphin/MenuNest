@@ -26,8 +26,14 @@ param useKeyVault = false
 //   หรือถ้าใช้ group เป็น SQL admin:
 //     az ad group show --group "menunest-admins" --query "{id:id, displayName:displayName}"
 //
+// Real values supplied at deploy time via `--parameters`:
+//   az deployment group create ... \
+//     --parameters sqlAdminObjectId=$(az ad signed-in-user show --query id -o tsv) \
+//     --parameters sqlAdminLogin=$(az ad signed-in-user show --query userPrincipalName -o tsv)
+//
+// Do NOT commit personal Entra Object ID / UPN into this file.
 param sqlAdminObjectId = '<REPLACE-WITH-ENTRA-OBJECT-ID>'
-param sqlAdminLogin = 'thodsaphonSP@hotmail.co.th'
+param sqlAdminLogin = '<REPLACE-WITH-ENTRA-UPN>'
 
 // ----- Existing resources (มีอยู่แล้ว) -----
 // ค่า default ใน main.bicep ตรงกับของจริง ไม่ต้อง override
