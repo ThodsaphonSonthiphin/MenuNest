@@ -85,11 +85,25 @@ menunest/
 ## Local Development
 
 ### Prerequisites
+
+**Runtime / tooling**
 - .NET 10 SDK
-- Node.js 20+ and npm
-- Azure SQL, SQL Server LocalDB, or a Docker SQL container
-- Azurite (Blob Storage emulator) or an Azure Storage account
-- An Azure App Registration (for Entra ID)
+- Node.js 20.19+ (or 22 LTS) and npm — required by Vite 8 / React 19
+- Azure SQL, SQL Server LocalDB, or a Docker SQL container — schema is created by EF Core migrations
+
+**Cloud / external accounts** (you can stub out anything you don't plan to test)
+
+| What | Why | Required for |
+|---|---|---|
+| **Azure Entra ID app registration** | Microsoft sign-in (multi-tenant + personal accounts) | Sign-in via Microsoft |
+| **Google OAuth Client ID** (Google Cloud Console → APIs & Services → Credentials) | Google sign-in via GIS | Sign-in via Google (alternative to Entra) |
+| **Azurite** or an **Azure Storage account** | Drug / episode / recipe photo uploads (direct browser → Blob via user-delegation SAS) | Photo upload in Health + Recipes |
+| **Gemini API key** (Google AI Studio) | The `AiAssistant` chat agent (function-calling) | `/ai-assistant` page |
+| **VAPID key pair** (`web-push generate-vapid-keys`) | Encrypted web push for follow-up pings | 0-tap follow-up notifications in Health |
+| **Syncfusion Community License key** | Syncfusion components (Grid, Schedule, QR generator) | Suppresses the trial banner |
+| **Azure Speech key** *(optional)* | Voice input in the AI assistant | Speech-to-text in `/ai-assistant` |
+
+> Without VAPID, the follow-up dispatcher still runs but logs a warning and returns 0 — pings are still marked `Asked` and surface in the in-app modal. Without Gemini, the `/ai-assistant` page returns a friendly error. Without the Syncfusion key everything still works but you get a trial banner. So the minimum for "useful local dev" is: .NET + Node + SQL + Azurite + **one** of (Entra OR Google).
 
 ### Setup
 ```bash
