@@ -1,22 +1,39 @@
 # 🍽️ MenuNest
 
-Family meal-planning web app — build a recipe library, track pantry stock, plan daily meals, and see what you need to buy when stock runs low.
+Two-in-one personal web app: a **migraine / symptom tracker** that produces shareable doctor reports, and a **family meal planner** that turns recipes + pantry stock into meal plans and shopping lists.
 
 **Domain:** menunest.app
+**Default landing:** `/health` (the migraine tracker — meal-planning lives at `/dashboard` and the top nav)
 
 ---
 
-## Features (MVP)
+## Features
 
-- 🔐 Sign in with Microsoft Entra ID (work, school, or personal account)
-- 👪 Family management — create a family, invite members with a code, set relationships between members
-- 🧂 Ingredient master — per-family list with autocomplete and on-the-fly creation
-- 📖 Recipe library — store recipes with photos and ingredient quantities
-- 📦 Stock — manually track what you have on hand
-- 📅 Meal plan — plan meals by day × slot (breakfast / lunch / dinner)
-- ✅ Stock check — compare a recipe against current stock and report what's missing
-- 🍳 Cook action — one click on a planned meal deducts ingredients from stock automatically (clamped at zero; partial deductions allowed with a warning)
-- 🛒 Shopping list — persistent lists you can build manually or auto-generate from meal plans; checking an item as bought adds it to stock automatically
+### 🤒 Health — migraine & symptom tracker (personal, single-user)
+
+- 🔐 Sign in with **Microsoft Entra ID** (work / school / personal) or **Google** — works without joining a family
+- 📝 **Quick-log attack** — pick a symptom + severity 1–10; optional migraine attributes (aura, location, quality, associated symptoms, functional impact, triggers, on-period flag)
+- 💊 **Take medication** — drugs are bucketed into *active in effect* / *takeable* / *blocked* (daily-dose cap + still-active window enforced server-side); "ไม่กินยา" fallback records the reason
+- ⏰ **+30 min follow-up push** — VAPID web-push from a 1-min `BackgroundService`; lock-screen **0-tap response** for *Resolved* / *Same* (the SW POSTs without opening the app)
+- 📸 **Drug photos** — multi-photo per drug, uploaded direct browser → Blob via short-lived user-delegation SAS
+- 📊 **History & active episode** — timeline of all episodes + a dedicated screen for an in-progress attack
+- 👨‍⚕️ **Doctor report share link** — date-bounded, HMAC-signed token, rendered as a QR code; doctor scans → opens an **anonymous** report page with summary, MOH/chronic clinical flags, trigger correlations, per-drug treatment efficacy (relief rate, avg onset), and a per-day timeline. Only a SHA-256 hash is stored — a DB leak does not expose live tokens.
+- 📱 **PWA** — installable, service worker handles push + notification actions
+
+### 🍳 Meal planning (family-scoped, multi-user)
+
+- 👪 **Family management** — create a family, invite members with a code, set relationships between members
+- 🧂 **Ingredient master** — per-family list with autocomplete and on-the-fly creation
+- 📖 **Recipe library** — store recipes with photos (Blob SAS) and ingredient quantities
+- 📦 **Stock** — manually track what you have on hand; every change is audit-logged
+- 📅 **Meal plan** — plan meals by day × slot (breakfast / lunch / dinner)
+- ✅ **Stock check** — compare planned meals against current stock and report what's missing
+- 🍳 **Cook action** — one click deducts ingredients automatically (clamped at zero, partial deductions allowed with a warning)
+- 🛒 **Shopping list** — persistent lists you can build manually or auto-generate from a meal plan range; ticking an item as bought auto-restocks the pantry
+- 💸 **Budget** — track spend per shopping list
+- 🤖 **AI assistant (Gemini)** — function-calling agent that can search recipes, check stock, get the meal plan, and (with explicit Thai/English confirmation) create recipes, add to the meal plan, or create shopping lists
+
+> 📐 For end-to-end sequence diagrams of every flow above, see **[docs/architecture.md](docs/architecture.md)**.
 
 ---
 

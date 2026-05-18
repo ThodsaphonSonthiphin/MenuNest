@@ -304,7 +304,7 @@ sequenceDiagram
     H-->>API: ShoppingListItemDto
     API-->>SPA: 200
     SPA->>SPA: invalidateTags(["ShoppingList","Stock"])
-    SPA-->>U: Item ticked; stock badge increments
+    SPA-->>U: Item ticked, stock badge increments
 ```
 
 Source: [`BuyShoppingListItemHandler`](../backend/src/MenuNest.Application/UseCases/ShoppingList/BuyShoppingListItem/BuyShoppingListItemHandler.cs). The mirror operation `unbuy` reverses both effects.
