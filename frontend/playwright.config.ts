@@ -33,8 +33,12 @@ export default defineConfig({
   reporter: process.env.CI ? 'html' : 'list',
   use: {
     baseURL: 'http://localhost:5173',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
+    // Always capture trace/screenshot/video so CI artifacts always include
+    // a full record of each run — useful for diagnosing flaky tests and
+    // for visual regression review even when everything passes.
+    trace: 'on',
+    screenshot: 'on',
+    video: 'on',
     // Thai locale — the app's user-facing copy (including the public
     // share page error messages we assert on) is Thai.
     locale: 'th-TH',
