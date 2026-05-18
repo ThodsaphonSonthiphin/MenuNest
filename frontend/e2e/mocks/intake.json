@@ -1,0 +1,8 @@
+{
+  "id": "intake-1",
+  "drugId": "drug-ibuprofen",
+  "drugName": "Ibuprofen",
+  "symptomEpisodeId": "episode-1",
+  "takenAt": "2026-05-18T09:30:00Z",
+  "doseAmount": 1
+}
