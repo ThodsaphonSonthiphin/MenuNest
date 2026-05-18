@@ -5,6 +5,7 @@ import { useCurrentUser } from '../hooks/useCurrentUser'
 import { useBreakpoint } from '../hooks/useBreakpoint'
 
 const navItems = [
+  { to: '/health', label: '🤒 Health' },
   { to: '/recipes', label: 'Recipes' },
   { to: '/stock', label: 'Stock' },
   { to: '/meal-plan', label: 'Meal Plan' },
