@@ -139,3 +139,47 @@ self.addEventListener('pushsubscriptionchange', (event) => {
   // time the user opens the app. Log so it's visible in DevTools.
   console.warn('[sw] pushsubscriptionchange — page must re-subscribe')
 })
+
+// ===== Pomodoro =====================================================
+// The page schedules a notification via postMessage when the user
+// starts/resumes a Pomodoro cycle. We hold the timeout id in-memory in
+// the worker; if the worker is evicted before the timeout fires, the
+// notification is lost — that's the documented iOS caveat and the page
+// reconciles state from `startedAt` on next visit.
+const pomodoroTimers = new Map()
+
+const cancelPomodoroTimer = (id) => {
+  const handle = pomodoroTimers.get(id)
+  if (handle != null) {
+    clearTimeout(handle)
+    pomodoroTimers.delete(id)
+  }
+}
+
+self.addEventListener('message', (event) => {
+  const data = event.data
+  if (!data || typeof data !== 'object') return
+
+  if (data.type === 'POMODORO_SCHEDULE') {
+    const { id, fireAt, title, body } = data.payload || {}
+    if (!id || typeof fireAt !== 'number') return
+    cancelPomodoroTimer(id)
+    const delay = Math.max(0, fireAt - Date.now())
+    const handle = setTimeout(() => {
+      pomodoroTimers.delete(id)
+      self.registration.showNotification(title || 'Pomodoro', {
+        body: body || '',
+        tag: 'menunest-pomodoro',
+        icon: '/icons/icon-192.png',
+        badge: '/icons/badge-72.png',
+      })
+    }, delay)
+    pomodoroTimers.set(id, handle)
+    return
+  }
+
+  if (data.type === 'POMODORO_CANCEL') {
+    cancelPomodoroTimer(data.id)
+    return
+  }
+})
