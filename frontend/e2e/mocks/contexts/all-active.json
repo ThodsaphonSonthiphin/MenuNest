@@ -1,0 +1,19 @@
+{
+  "symptomEpisodeId": "episode-1",
+  "symptomId": "symptom-migraine",
+  "symptomName": "Migraine",
+  "currentSeverity": 7,
+  "activeDrugs": [
+    {
+      "drugId": "drug-ibuprofen",
+      "drugName": "Ibuprofen",
+      "doseStrength": "400mg",
+      "lastTakenAt": "2026-05-18T08:00:00.000Z",
+      "effectEndsAt": "2026-05-18T12:00:00.000Z",
+      "remainingMinutes": 180,
+      "progressPct": 25
+    }
+  ],
+  "takeableDrugs": [],
+  "blockedDrugs": []
+}
