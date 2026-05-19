@@ -1,0 +1,17 @@
+[
+  {
+    "id": "episode-1",
+    "symptomId": "symptom-migraine",
+    "symptomName": "Migraine",
+    "startedAt": "2026-05-18T08:00:00.000Z",
+    "endedAt": null,
+    "severity": 7,
+    "severityAfter": null,
+    "isOnPeriod": false,
+    "noDrugTaken": false,
+    "noDrugReasonCode": null,
+    "retroClosed": false,
+    "intakeCount": 0,
+    "firstDrugName": null
+  }
+]
