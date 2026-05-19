@@ -1,0 +1,40 @@
+{
+  "id": "episode-1",
+  "symptomId": "symptom-migraine",
+  "symptomName": "Migraine",
+  "startedAt": "2026-05-18T08:00:00.000Z",
+  "endedAt": null,
+  "severity": 7,
+  "severityAfter": null,
+  "isOnPeriod": false,
+  "noDrugTaken": false,
+  "noDrugReasonCode": null,
+  "retroClosed": false,
+  "intakeCount": 1,
+  "firstDrugName": "Ibuprofen",
+  "notes": "Started after lunch",
+  "retroEstimatedDuration": null,
+  "hasAura": false,
+  "auraDurationMin": null,
+  "auraTypes": [],
+  "location": "BothSides",
+  "quality": "Throbbing",
+  "associatedSymptoms": ["Nausea"],
+  "worsenedByActivity": true,
+  "functionalImpact": "Moderate",
+  "triggerIds": ["trigger-stress"],
+  "intakes": [
+    {
+      "id": "intake-1",
+      "drugId": "drug-ibuprofen",
+      "drugName": "Ibuprofen",
+      "doseStrength": "400mg",
+      "takenAt": "2026-05-18T08:30:00.000Z",
+      "doseAmount": 1
+    }
+  ],
+  "followUps": [],
+  "photos": [],
+  "createdAt": "2026-05-18T08:00:00.000Z",
+  "updatedAt": "2026-05-18T08:30:00.000Z"
+}
