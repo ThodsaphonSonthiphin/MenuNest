@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test'
 import type { RequestCapture } from './types'
+import { createEpisodeMocks } from './episodeRoutes'
 
-// Temporarily empty until Task 4 lands the episode mock builder
-export const createMockApi = (page: Page, capture: RequestCapture) => ({} as Record<string, never>)
+export const createMockApi = (page: Page, capture: RequestCapture) => ({
+  episodes: createEpisodeMocks(page, capture),
+})
 
 export type MockApi = ReturnType<typeof createMockApi>
 export { createCapture } from './types'
