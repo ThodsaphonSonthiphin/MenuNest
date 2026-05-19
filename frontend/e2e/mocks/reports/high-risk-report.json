@@ -1,0 +1,33 @@
+{
+  "patientName": "ทดสอบ ใจดี",
+  "dateFrom": "2026-04-18",
+  "dateTo": "2026-05-18",
+  "durationDays": 30,
+  "generatedAtUtc": "2026-05-18T10:00:00.000Z",
+  "summary": {
+    "totalAttacks": 22,
+    "daysAffected": 16,
+    "acuteMedDays": 15,
+    "averageDurationHours": 8.2,
+    "averagePeakSeverity": 8.5,
+    "severeAttacksCount": 12,
+    "daysFullyDisabled": 8,
+    "attacksWithAura": 9,
+    "auraPercentage": 40.9
+  },
+  "clinicalFlags": [
+    { "code": "MOH_RISK", "severity": "danger", "title": "Medication overuse risk: HIGH", "detail": "15 acute med days in 30 days exceeds the MOH threshold (ICHD-3 §8.2)" }
+  ],
+  "triggerCorrelations": [],
+  "treatmentEfficacy": [],
+  "patterns": {
+    "onsetTimeBuckets": { "morning": 5, "afternoon": 8, "evening": 6, "night": 3 },
+    "dayOfWeekCounts": { "0": 3, "1": 4, "2": 3, "3": 4, "4": 4, "5": 2, "6": 2 },
+    "attacksDuringPeriod": 4,
+    "attacksOutsidePeriod": 18,
+    "attackRateDuringPeriod": 0.8,
+    "attackRateOutsidePeriod": 0.69
+  },
+  "noDrugEvents": [],
+  "days": []
+}
