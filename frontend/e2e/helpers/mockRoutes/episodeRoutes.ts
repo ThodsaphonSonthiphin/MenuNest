@@ -79,7 +79,11 @@ export const createEpisodeMocks = (page: Page, capture: RequestCapture) => {
     apply: async () => {
       // Register least-specific first; Playwright uses last-registered-wins,
       // so specific routes registered later take priority over the catchall.
-      await page.route('**/api/episodes', async (route, request) => {
+      // Use `**/api/episodes**` so query-string variants like
+      // `/api/episodes?from=...&to=...` are also intercepted.
+      await page.route('**/api/episodes**', async (route, request) => {
+        const pathname = new URL(request.url()).pathname
+        if (pathname !== '/api/episodes') return route.fallback()
         await recordRequest(route, request, capture)
         const method = request.method()
         if (method === 'POST') {

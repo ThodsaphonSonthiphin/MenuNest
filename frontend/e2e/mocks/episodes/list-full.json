@@ -1,0 +1,47 @@
+[
+  {
+    "id": "episode-old-1",
+    "symptomId": "symptom-migraine",
+    "symptomName": "Migraine",
+    "startedAt": "2026-05-10T08:00:00.000Z",
+    "endedAt": "2026-05-10T14:00:00.000Z",
+    "severity": 8,
+    "severityAfter": 2,
+    "isOnPeriod": false,
+    "noDrugTaken": false,
+    "noDrugReasonCode": null,
+    "retroClosed": false,
+    "intakeCount": 2,
+    "firstDrugName": "Ibuprofen"
+  },
+  {
+    "id": "episode-old-2",
+    "symptomId": "symptom-migraine",
+    "symptomName": "Migraine",
+    "startedAt": "2026-05-05T10:00:00.000Z",
+    "endedAt": "2026-05-05T13:00:00.000Z",
+    "severity": 5,
+    "severityAfter": 1,
+    "isOnPeriod": true,
+    "noDrugTaken": false,
+    "noDrugReasonCode": null,
+    "retroClosed": false,
+    "intakeCount": 1,
+    "firstDrugName": "Paracetamol"
+  },
+  {
+    "id": "episode-old-3",
+    "symptomId": "symptom-migraine",
+    "symptomName": "Migraine",
+    "startedAt": "2026-04-28T16:00:00.000Z",
+    "endedAt": null,
+    "severity": 6,
+    "severityAfter": null,
+    "isOnPeriod": false,
+    "noDrugTaken": true,
+    "noDrugReasonCode": 3,
+    "retroClosed": true,
+    "intakeCount": 0,
+    "firstDrugName": null
+  }
+]
