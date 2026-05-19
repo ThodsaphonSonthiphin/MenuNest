@@ -4,6 +4,7 @@ import {
   durationMsFor,
   loadState,
   saveState,
+  todayKey,
   type PomodoroSettings,
   type PomodoroState,
 } from './pomodoroStorage'
@@ -37,6 +38,37 @@ export function usePomodoroTimer(): UsePomodoroTimer {
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [])
+
+  // When a running cycle reaches zero, flip the mode, reset startedAt to
+  // the boundary instant, and (focus only) increment dailyCount.
+  useEffect(() => {
+    if (state.status !== 'running' || state.startedAt == null) return
+    const duration = durationMsFor(state.settings, state.mode)
+    const elapsed = now - state.startedAt
+    if (elapsed < duration) return
+
+    setState((prev) => {
+      if (prev.status !== 'running' || prev.startedAt == null) return prev
+      const dur = durationMsFor(prev.settings, prev.mode)
+      const boundary = prev.startedAt + dur
+      const justCompletedFocus = prev.mode === 'focus'
+      const today = todayKey(boundary)
+      const dailyCount =
+        prev.dailyCount.date === today
+          ? {
+              date: today,
+              focusCompleted:
+                prev.dailyCount.focusCompleted + (justCompletedFocus ? 1 : 0),
+            }
+          : { date: today, focusCompleted: justCompletedFocus ? 1 : 0 }
+      return {
+        ...prev,
+        mode: prev.mode === 'focus' ? 'break' : 'focus',
+        startedAt: boundary,
+        dailyCount,
+      }
+    })
+  }, [now, state.status, state.startedAt, state.mode, state.settings])
 
   const start = useCallback(() => {
     setState((prev) => {
