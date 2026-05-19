@@ -1,0 +1,32 @@
+[
+  {
+    "id": "drug-ibuprofen",
+    "name": "Ibuprofen",
+    "activeIngredient": "Ibuprofen",
+    "drugType": 2,
+    "doseStrength": "400mg",
+    "effectDurationMinHours": 4,
+    "effectDurationMaxHours": 6,
+    "maxDailyDose": 6,
+    "stockCount": 20,
+    "expirationDate": "2027-12-31",
+    "treatsSymptomIds": ["symptom-migraine"],
+    "hasPhoto": false,
+    "firstPhotoUrl": null
+  },
+  {
+    "id": "drug-paracetamol",
+    "name": "Paracetamol",
+    "activeIngredient": "Paracetamol",
+    "drugType": 1,
+    "doseStrength": "500mg",
+    "effectDurationMinHours": 4,
+    "effectDurationMaxHours": 6,
+    "maxDailyDose": 8,
+    "stockCount": 15,
+    "expirationDate": "2027-06-30",
+    "treatsSymptomIds": ["symptom-migraine"],
+    "hasPhoto": false,
+    "firstPhotoUrl": null
+  }
+]
