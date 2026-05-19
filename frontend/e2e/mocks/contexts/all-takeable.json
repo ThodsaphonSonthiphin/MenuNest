@@ -9,7 +9,7 @@
       "drugId": "drug-ibuprofen",
       "drugName": "Ibuprofen",
       "doseStrength": "400mg",
-      "drugType": "Nsaid",
+      "drugType": 2,
       "stockCount": 20,
       "effectDurationMinHours": 4,
       "effectDurationMaxHours": 6
@@ -18,7 +18,7 @@
       "drugId": "drug-paracetamol",
       "drugName": "Paracetamol",
       "doseStrength": "500mg",
-      "drugType": "Analgesic",
+      "drugType": 1,
       "stockCount": 15,
       "effectDurationMinHours": 4,
       "effectDurationMaxHours": 6
