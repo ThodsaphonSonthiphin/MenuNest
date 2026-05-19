@@ -2,10 +2,12 @@ import type { Page } from '@playwright/test'
 import type { RequestCapture } from './types'
 import { createEpisodeMocks } from './episodeRoutes'
 import { createReportMocks } from './reportRoutes'
+import { createDrugMocks } from './drugRoutes'
 
 export const createMockApi = (page: Page, capture: RequestCapture) => ({
   episodes: createEpisodeMocks(page, capture),
   report: createReportMocks(page, capture),
+  drugs: createDrugMocks(page, capture),
 })
 
 export type MockApi = ReturnType<typeof createMockApi>

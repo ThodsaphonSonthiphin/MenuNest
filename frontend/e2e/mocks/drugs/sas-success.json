@@ -1,0 +1,5 @@
+{
+  "uploadUrl": "https://test-sas.example.com/container/blob?sig=fake",
+  "blobUrl": "https://test-sas.example.com/container/blob",
+  "expiresAt": "2026-05-18T11:00:00.000Z"
+}
