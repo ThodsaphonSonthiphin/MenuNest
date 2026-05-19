@@ -19,12 +19,21 @@ import { test, expect } from '@playwright/test'
  *      push notifications, so a broken registration is a real bug.
  *
  * What this does NOT verify (deliberately):
- *   - The full attack flow (Quick Log → Active Episode → Take
- *     Medication → resolved). That path requires a signed-in user
- *     and a live API. Stubbing MSAL + RTK Query for the entire
- *     handler graph is fragile; the unit + integration test suite
- *     covers the business logic, and a true end-to-end run will
- *     happen once we have a deployable env with test credentials.
+ *   - Phase 1 gap: The full attack flow (Quick Log → Active Episode →
+ *     Take Medication → resolved). This is NOW COVERED by the Phase 2
+ *     story-specific spec files (health.quick-log.spec.ts,
+ *     health.active-episode.spec.ts, health.take-medication.spec.ts).
+ *
+ *   - Phase 3 boundary — the following stories remain UNTESTED and
+ *     require a real backend, real push delivery, and real test
+ *     credentials. They will be implemented once the Pay-As-You-Go
+ *     subscription is reactivated:
+ *       1. Follow-up ping +30 min dispatcher (BackgroundService + VAPID).
+ *       2. Notification 0-tap response actions (real notificationclick
+ *          + push delivery flow).
+ *       3. Retro-close modal (state persisted across close-then-reopen
+ *          sessions, missed-3-pings trigger).
+ *     See docs/superpowers/specs/2026-05-18-phase2-playwright-coverage-design.md.
  */
 test.describe('Health module — smoke tests', () => {
   test('public share page handles invalid token gracefully', async ({ page }) => {
