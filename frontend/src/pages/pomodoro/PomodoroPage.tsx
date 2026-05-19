@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { usePomodoroTimer } from './usePomodoroTimer'
 import './PomodoroPage.css'
@@ -10,7 +11,9 @@ const formatMMSS = (ms: number): string => {
 }
 
 export function PomodoroPage() {
-  const { state, remainingMs, start, pause, resume, reset } = usePomodoroTimer()
+  const { state, remainingMs, start, pause, resume, reset, updateSettings } =
+    usePomodoroTimer()
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   return (
     <div className="pomo-page" data-testid="pomo-page">
@@ -70,6 +73,60 @@ export function PomodoroPage() {
           Reset
         </Button>
       </div>
+
+      <button
+        type="button"
+        className="pomo-settings-toggle"
+        onClick={() => setSettingsOpen((v) => !v)}
+        data-testid="pomo-settings-toggle"
+      >
+        {settingsOpen ? 'Hide settings' : 'Show settings'}
+      </button>
+
+      {settingsOpen && (
+        <div className="pomo-settings" data-testid="pomo-settings">
+          <label className="pomo-field">
+            <span>Focus ({state.settings.focusMin} min)</span>
+            <input
+              type="range"
+              min={1}
+              max={90}
+              value={state.settings.focusMin}
+              onChange={(e) => updateSettings({ focusMin: Number(e.target.value) })}
+              data-testid="pomo-focus-slider"
+            />
+          </label>
+          <label className="pomo-field">
+            <span>Break ({state.settings.breakMin} min)</span>
+            <input
+              type="range"
+              min={1}
+              max={30}
+              value={state.settings.breakMin}
+              onChange={(e) => updateSettings({ breakMin: Number(e.target.value) })}
+              data-testid="pomo-break-slider"
+            />
+          </label>
+          <label className="pomo-field pomo-field--row">
+            <input
+              type="checkbox"
+              checked={state.settings.soundOn}
+              onChange={(e) => updateSettings({ soundOn: e.target.checked })}
+              data-testid="pomo-sound-toggle"
+            />
+            <span>Sound on cycle end</span>
+          </label>
+          <label className="pomo-field pomo-field--row">
+            <input
+              type="checkbox"
+              checked={state.settings.notifOn}
+              onChange={(e) => updateSettings({ notifOn: e.target.checked })}
+              data-testid="pomo-notif-toggle"
+            />
+            <span>Browser notification</span>
+          </label>
+        </div>
+      )}
     </div>
   )
 }

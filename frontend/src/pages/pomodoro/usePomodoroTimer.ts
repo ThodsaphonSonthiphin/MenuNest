@@ -119,7 +119,25 @@ export function usePomodoroTimer(): UsePomodoroTimer {
   }, [])
 
   const updateSettings = useCallback((partial: Partial<PomodoroSettings>) => {
-    setState((prev) => ({ ...prev, settings: { ...prev.settings, ...partial } }))
+    setState((prev) => {
+      const nextSettings = { ...prev.settings, ...partial }
+      if (prev.status === 'running' && prev.startedAt != null) {
+        const oldDuration = durationMsFor(prev.settings, prev.mode)
+        const newDuration = durationMsFor(nextSettings, prev.mode)
+        const elapsed = oldDuration - computeRemainingMs(prev, Date.now())
+        // Anchor startedAt so the current remaining is preserved when
+        // duration changes mid-cycle.
+        const adjustedStartedAt = Date.now() - (elapsed + (newDuration - oldDuration))
+        return { ...prev, settings: nextSettings, startedAt: adjustedStartedAt }
+      }
+      if (prev.status === 'paused' && prev.pausedRemainingMs != null) {
+        const oldDuration = durationMsFor(prev.settings, prev.mode)
+        const newDuration = durationMsFor(nextSettings, prev.mode)
+        const newRemaining = Math.max(0, prev.pausedRemainingMs + (newDuration - oldDuration))
+        return { ...prev, settings: nextSettings, pausedRemainingMs: newRemaining }
+      }
+      return { ...prev, settings: nextSettings }
+    })
   }, [])
 
   return {
