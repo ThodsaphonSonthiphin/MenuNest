@@ -212,27 +212,150 @@ Components use Syncfusion Buttons to match the rest of MenuNest (see
 
 ## Testing
 
-- `pomodoroStorage.ts` — Vitest unit tests covering load with empty
-  storage, load with current version, load with unrecognised version
-  (falls back to defaults, does not throw), save round-trip, daily
-  count reset across date boundary.
-- `usePomodoroTimer.ts` — React Testing Library with
-  `vi.useFakeTimers()`. Cases: start → tick → reach zero auto-switch;
-  pause preserves remaining; resume continues from paused remaining;
-  reset clears state; settings change while running doesn't shrink
-  current cycle.
-- `notifications.ts` — unit tests for permission gating and message
-  shape; mock `navigator.serviceWorker`.
-- E2E (Playwright) — one smoke spec: visit `/pomodoro`, configure
-  short durations via the settings panel, click Start, wait for mode
-  transition, assert badge flipped to "Break". Notification and
-  Service Worker behaviour are NOT covered by E2E (treated as manual
-  test territory).
-- Manual test matrix to document in the implementation plan: desktop
-  Chrome foreground, desktop Chrome backgrounded tab, Android Chrome
-  foreground, Android Chrome with app swapped away, iOS Safari
-  foreground, iOS Safari swapped (expected: BG notif may not fire),
-  iOS PWA installed and swapped (expected: BG notif fires).
+Testing strategy: **Playwright covers every code-path that runs in
+the browser.** Unit tests (Vitest) are kept narrow — only for the
+pure modules where unit-level coverage is meaningfully cheaper than
+E2E. The few remaining gaps are OS-level concerns that no browser
+test framework can drive (true app-swap on mobile, iOS PWA push) and
+are listed under *Manual test matrix*.
+
+### Unit tests (Vitest)
+
+- `pomodoroStorage.ts` — pure functions. Load with empty storage,
+  load with current version, load with unrecognised version (falls
+  back to defaults, does not throw), save round-trip, daily-count
+  reset across date boundary. Schema migration path is unit-only
+  because constructing legacy states from the UI would be artificial.
+
+### E2E tests (Playwright)
+
+Determinism: every spec installs Playwright's mock clock via
+`await page.clock.install({ time: '2026-06-01T09:00:00Z' })` before
+navigating. Time is advanced explicitly with
+`page.clock.fastForward(ms)` or `page.clock.runFor(ms)` — no real
+waits. Storage is reset between tests via `page.context().clearCookies()`
+plus `localStorage.clear()` in a `beforeEach`. Tests use the project's
+existing `authedPage` fixture (`frontend/e2e/fixtures/healthFixture.ts`)
+because `/pomodoro` sits behind `ProtectedRoute`; family is not
+required so no family mock is needed.
+
+Notification permission is pre-granted via
+`browserContext.grantPermissions(['notifications'])`. Browser
+`Notification` calls are captured by installing a spy in
+`page.addInitScript` that pushes invocations onto `window.__notifs`,
+which assertions read back.
+
+Service-Worker messages are captured similarly: an init script
+replaces `navigator.serviceWorker.controller.postMessage` with a
+recording proxy onto `window.__swMessages` so tests can assert
+SCHEDULE / CANCEL traffic without driving a real worker.
+
+Specs (one file per concern, mirroring the `health.*.spec.ts` style):
+
+1. `pomodoro.access.spec.ts`
+   - anonymous visit to `/pomodoro` is bounced to `/login`
+   - authed user with NO family can reach `/pomodoro` (proves
+     personal-scope)
+   - NavBar shows "⏱️ Pomodoro" link on desktop viewport
+   - Mobile drawer (375px viewport) lists the link; clicking it
+     navigates to `/pomodoro` and closes the drawer
+
+2. `pomodoro.state-machine.spec.ts`
+   - idle → Start → status=running, badge="Focus", time counts down
+     when clock advances 1s
+   - running → Pause → status=paused, displayed time freezes after
+     `fastForward(5s)`
+   - paused → Resume → status=running, remaining picks up from the
+     paused value (not the full duration)
+   - running → Reset → status=idle, time restored to full focus
+     duration
+   - paused → Reset → same as above
+
+3. `pomodoro.cycle-transitions.spec.ts`
+   - Start focus, `fastForward(focusMin * 60_000)` → mode flips to
+     "Break", `dailyCount.focusCompleted` increments
+   - Continue: `fastForward(breakMin * 60_000)` → mode flips back to
+     "Focus", daily count unchanged on break completion
+   - Run three full focus cycles → daily count reads "3"
+
+4. `pomodoro.persistence.spec.ts`
+   - Start, `fastForward(3 min)`, `page.reload()` → timer shows the
+     correct remaining (focusMin*60 − 180s), still running
+   - Start, `fastForward(3 min)`, pause, reload → still paused with
+     same remaining
+   - Reset, reload → state is idle, time at full duration
+   - Daily count: advance clock past midnight via
+     `page.clock.setSystemTime(...)`, reload → count resets to 0,
+     stored `date` matches new day
+
+5. `pomodoro.cross-navigation.spec.ts`
+   - Start, navigate to `/recipes` (mock family so the route resolves),
+     wait, navigate back to `/pomodoro` → state restored, remaining
+     matches elapsed clock time
+   - Start, click NavBar brand to go to `/`, return → same assertion
+
+6. `pomodoro.settings.spec.ts`
+   - While idle: change focus slider from 25 → 5, displayed time
+     updates immediately to 05:00
+   - While running: change focus slider — current MM:SS does NOT
+     jump; press Reset, displayed time now reflects the new duration
+   - Sound toggle off: cycle completion does NOT trigger
+     `HTMLAudioElement.play` (spied)
+   - Notification toggle off: starting the timer does NOT call
+     `Notification.requestPermission`
+   - Settings round-trip via `page.reload()` → values preserved
+
+7. `pomodoro.notifications.spec.ts`
+   - First Start triggers `Notification.requestPermission` exactly
+     once; subsequent Start within the session does not re-prompt
+   - Foreground cycle completion: `window.__notifs` records one
+     `new Notification(...)` per transition with the expected title
+   - When the page is hidden (`page.evaluate` to dispatch a
+     `visibilitychange` event with `document.hidden = true`), Start
+     sends a `SCHEDULE` SW message; Pause sends `CANCEL`; returning
+     to visible sends another `CANCEL` so the foreground tick owns
+     the fire
+   - Audio element loads `pomodoro-ding.mp3` and `.play()` is
+     invoked at cycle end (spy via init script)
+
+8. `pomodoro.smoke.spec.ts` (kept short, mirrors
+   `health.smoke.spec.ts`)
+   - `/pomodoro` reachable, renders, no console errors
+   - PWA service worker (`/sw.js`) still registers — Pomodoro
+     shouldn't accidentally break the existing migraine SW
+
+Coverage status per case from brainstorming:
+
+| Case | Covered by | Spec |
+|---|---|---|
+| State transitions | Playwright | state-machine |
+| Cycle auto-switch + daily count | Playwright | cycle-transitions |
+| Reload / restore from startedAt | Playwright | persistence |
+| Cross-page navigation | Playwright | cross-navigation |
+| Settings while idle / running | Playwright | settings |
+| Sound + Notification API | Playwright (spied) | notifications |
+| SW SCHEDULE / CANCEL messages | Playwright (spied) | notifications |
+| Personal scope (no family needed) | Playwright | access |
+| NavBar link desktop + drawer | Playwright | access |
+| localStorage versioning + bad data | Vitest | unit |
+| Daily-count midnight rollover | Playwright (mock clock) | persistence |
+
+### Manual test matrix (not covered by Playwright)
+
+These cases involve OS-level behaviour outside the browser test
+harness's reach. They are checked once before release and after any
+change to `pomodoro-sw.js`:
+
+- Android Chrome foreground / backgrounded tab — BG notif expected
+  to fire.
+- iOS Safari foreground — foreground notif expected to fire.
+- iOS Safari with app swapped to another iOS app — BG notif may not
+  fire; state must still be correct on return.
+- iOS PWA (Add to Home Screen) swapped to another app — BG notif
+  expected to fire.
+- Desktop Chrome with the tab evicted (long idle) — verify that on
+  return, state derives correctly from `startedAt` even after the
+  SW was unloaded.
 
 ## Known limitations
 
