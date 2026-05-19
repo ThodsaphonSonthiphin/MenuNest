@@ -42,10 +42,6 @@ export const createEpisodeMocks = (page: Page, capture: RequestCapture) => {
       config.listResponse = data ?? readJson('episodes/empty-list.json')
       return self
     },
-    listFull: () => {
-      config.listResponse = readJson('episodes/empty-list.json')
-      return self
-    },
     active: (data?: unknown) => {
       config.activeResponse = data ?? readJson('episodes/active-single.json')
       return self
@@ -81,37 +77,8 @@ export const createEpisodeMocks = (page: Page, capture: RequestCapture) => {
       return self
     },
     apply: async () => {
-      await page.route('**/api/episodes/active', async (route, request) => {
-        await recordRequest(route, request, capture)
-        await route.fulfill({ json: config.activeResponse })
-      })
-      await page.route(
-        '**/api/episodes/*/take-medication-context',
-        async (route, request) => {
-          await recordRequest(route, request, capture)
-          if (config.takeMedContextResponse === null) {
-            return route.fulfill({ status: 404, body: 'no context configured' })
-          }
-          await route.fulfill({ json: config.takeMedContextResponse })
-        },
-      )
-      await page.route('**/api/episodes/*/resolve', async (route, request) => {
-        await recordRequest(route, request, capture)
-        await route.fulfill({ status: config.resolveResponseStatus, body: '' })
-      })
-      await page.route('**/api/episodes/*', async (route, request) => {
-        await recordRequest(route, request, capture)
-        const pathname = new URL(request.url()).pathname
-        const parts = pathname.split('/').filter(Boolean)
-        if (parts.length !== 3 || parts[2] === 'active') {
-          return route.fallback()
-        }
-        const method = request.method()
-        if (method === 'GET') return route.fulfill({ json: config.detailResponse })
-        if (method === 'PUT') return route.fulfill({ status: config.updateResponseStatus, body: '' })
-        if (method === 'DELETE') return route.fulfill({ status: config.deleteResponseStatus, body: '' })
-        return route.fallback()
-      })
+      // Register least-specific first; Playwright uses last-registered-wins,
+      // so specific routes registered later take priority over the catchall.
       await page.route('**/api/episodes', async (route, request) => {
         await recordRequest(route, request, capture)
         const method = request.method()
@@ -126,6 +93,37 @@ export const createEpisodeMocks = (page: Page, capture: RequestCapture) => {
           return route.fulfill({ json: config.startResponseBody })
         }
         return route.fulfill({ json: config.listResponse })
+      })
+      await page.route('**/api/episodes/*', async (route, request) => {
+        await recordRequest(route, request, capture)
+        const pathname = new URL(request.url()).pathname
+        const parts = pathname.split('/').filter(Boolean)
+        if (parts.length !== 3 || parts[2] === 'active') {
+          return route.fallback()
+        }
+        const method = request.method()
+        if (method === 'GET') return route.fulfill({ json: config.detailResponse })
+        if (method === 'PUT') return route.fulfill({ status: config.updateResponseStatus, body: '' })
+        if (method === 'DELETE') return route.fulfill({ status: config.deleteResponseStatus, body: '' })
+        return route.fallback()
+      })
+      await page.route('**/api/episodes/*/resolve', async (route, request) => {
+        await recordRequest(route, request, capture)
+        await route.fulfill({ status: config.resolveResponseStatus, body: '' })
+      })
+      await page.route(
+        '**/api/episodes/*/take-medication-context',
+        async (route, request) => {
+          await recordRequest(route, request, capture)
+          if (config.takeMedContextResponse === null) {
+            return route.fulfill({ status: 404, body: 'no context configured' })
+          }
+          await route.fulfill({ json: config.takeMedContextResponse })
+        },
+      )
+      await page.route('**/api/episodes/active', async (route, request) => {
+        await recordRequest(route, request, capture)
+        await route.fulfill({ json: config.activeResponse })
       })
       return self
     },
