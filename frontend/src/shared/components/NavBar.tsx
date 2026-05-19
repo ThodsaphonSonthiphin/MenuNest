@@ -6,6 +6,7 @@ import { useBreakpoint } from '../hooks/useBreakpoint'
 
 const navItems = [
   { to: '/health', label: '🤒 Health' },
+  { to: '/pomodoro', label: '⏱️ Pomodoro' },
   { to: '/recipes', label: 'Recipes' },
   { to: '/stock', label: 'Stock' },
   { to: '/meal-plan', label: 'Meal Plan' },
