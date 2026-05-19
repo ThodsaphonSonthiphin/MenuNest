@@ -68,7 +68,7 @@ export const loadState = (now: number = Date.now()): PomodoroState => {
       parsed.dailyCount && parsed.dailyCount.date === today
         ? parsed.dailyCount
         : { date: today, focusCompleted: 0 }
-    return {
+    const restored: PomodoroState = {
       status: parsed.status ?? 'idle',
       mode: parsed.mode ?? 'focus',
       startedAt: parsed.startedAt ?? null,
@@ -76,6 +76,26 @@ export const loadState = (now: number = Date.now()): PomodoroState => {
       settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
       dailyCount,
     }
+    // If the persisted state was running and the current cycle "should
+    // have" already ended while the tab/laptop was closed, normalize back
+    // to idle. Otherwise the auto-transition effect in the hook cascades
+    // one cycle per render (and `now` doesn't advance between synchronous
+    // renders), tripping React's update-depth guard. Catching up dozens of
+    // cycles silently would also misrepresent how many pomodoros the user
+    // actually completed.
+    if (
+      restored.status === 'running' &&
+      restored.startedAt != null &&
+      now - restored.startedAt >= durationMsFor(restored.settings, restored.mode)
+    ) {
+      return {
+        ...restored,
+        status: 'idle',
+        startedAt: null,
+        pausedRemainingMs: null,
+      }
+    }
+    return restored
   } catch {
     return defaultState(now)
   }
