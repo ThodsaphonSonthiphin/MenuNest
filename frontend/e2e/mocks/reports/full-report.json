@@ -1,0 +1,43 @@
+{
+  "patientName": "ทดสอบ ใจดี",
+  "dateFrom": "2026-04-18",
+  "dateTo": "2026-05-18",
+  "durationDays": 30,
+  "generatedAtUtc": "2026-05-18T10:00:00.000Z",
+  "summary": {
+    "totalAttacks": 8,
+    "daysAffected": 7,
+    "acuteMedDays": 6,
+    "averageDurationHours": 5.5,
+    "averagePeakSeverity": 6.8,
+    "severeAttacksCount": 2,
+    "daysFullyDisabled": 1,
+    "attacksWithAura": 3,
+    "auraPercentage": 37.5
+  },
+  "clinicalFlags": [],
+  "triggerCorrelations": [
+    { "triggerId": "trigger-stress", "triggerName": "Stress", "attackCount": 5, "percentage": 62 }
+  ],
+  "treatmentEfficacy": [
+    {
+      "drugId": "drug-ibuprofen",
+      "drugName": "Ibuprofen",
+      "drugType": "Nsaid",
+      "doseCount": 6,
+      "reliefCount": 4,
+      "reliefPercentage": 66,
+      "averageOnsetMinutes": 35
+    }
+  ],
+  "patterns": {
+    "onsetTimeBuckets": { "morning": 2, "afternoon": 3, "evening": 2, "night": 1 },
+    "dayOfWeekCounts": { "0": 1, "1": 2, "2": 1, "3": 1, "4": 2, "5": 0, "6": 1 },
+    "attacksDuringPeriod": 0,
+    "attacksOutsidePeriod": 8,
+    "attackRateDuringPeriod": 0,
+    "attackRateOutsidePeriod": 0.27
+  },
+  "noDrugEvents": [],
+  "days": []
+}
