@@ -18,3 +18,38 @@
   font-weight: 700;
   letter-spacing: 0.04em;
 }
+
+.pomo-header {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.pomo-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pomo-mode-badge--focus {
+  background: #fde68a;
+  color: #92400e;
+}
+
+.pomo-mode-badge--break {
+  background: #bbf7d0;
+  color: #166534;
+}
+
+.pomo-daily-count {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.pomo-controls {
+  display: flex;
+  gap: 12px;
+}
