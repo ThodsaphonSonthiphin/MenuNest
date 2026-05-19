@@ -95,8 +95,9 @@ export function usePomodoroTimer(): UsePomodoroTimer {
         startedAt: boundary,
         dailyCount,
       }
-      // Schedule the NEXT cycle's background notification immediately.
-      scheduleEndFor(next)
+      // Schedule the NEXT cycle's background notification immediately —
+      // only when the user has notifications enabled.
+      if (next.settings.notifOn) scheduleEndFor(next)
       return next
     })
   }, [now, state.status, state.startedAt, state.mode, state.settings])
