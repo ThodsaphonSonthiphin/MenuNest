@@ -1,0 +1,46 @@
+{
+  "symptomEpisodeId": "episode-1",
+  "symptomId": "symptom-migraine",
+  "symptomName": "Migraine",
+  "currentSeverity": 7,
+  "activeDrugs": [
+    {
+      "drugId": "drug-sumatriptan",
+      "drugName": "Sumatriptan",
+      "doseStrength": "50mg",
+      "lastTakenAt": "2026-05-18T08:30:00.000Z",
+      "effectEndsAt": "2026-05-18T14:30:00.000Z",
+      "remainingMinutes": 240,
+      "progressPct": 33
+    }
+  ],
+  "takeableDrugs": [
+    {
+      "drugId": "drug-ibuprofen",
+      "drugName": "Ibuprofen",
+      "doseStrength": "400mg",
+      "drugType": "Nsaid",
+      "stockCount": 20,
+      "effectDurationMinHours": 4,
+      "effectDurationMaxHours": 6
+    },
+    {
+      "drugId": "drug-paracetamol",
+      "drugName": "Paracetamol",
+      "doseStrength": "500mg",
+      "drugType": "Analgesic",
+      "stockCount": 15,
+      "effectDurationMinHours": 4,
+      "effectDurationMaxHours": 6
+    }
+  ],
+  "blockedDrugs": [
+    {
+      "drugId": "drug-naproxen",
+      "drugName": "Naproxen",
+      "doseStrength": "500mg",
+      "reason": "MaxDoseReached",
+      "availableAt": "2026-05-19T00:00:00.000Z"
+    }
+  ]
+}

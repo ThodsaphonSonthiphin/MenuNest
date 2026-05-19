@@ -1,0 +1,28 @@
+{
+  "symptomEpisodeId": "episode-1",
+  "symptomId": "symptom-migraine",
+  "symptomName": "Migraine",
+  "currentSeverity": 7,
+  "activeDrugs": [],
+  "takeableDrugs": [
+    {
+      "drugId": "drug-ibuprofen",
+      "drugName": "Ibuprofen",
+      "doseStrength": "400mg",
+      "drugType": "Nsaid",
+      "stockCount": 20,
+      "effectDurationMinHours": 4,
+      "effectDurationMaxHours": 6
+    },
+    {
+      "drugId": "drug-paracetamol",
+      "drugName": "Paracetamol",
+      "doseStrength": "500mg",
+      "drugType": "Analgesic",
+      "stockCount": 15,
+      "effectDurationMinHours": 4,
+      "effectDurationMaxHours": 6
+    }
+  ],
+  "blockedDrugs": []
+}

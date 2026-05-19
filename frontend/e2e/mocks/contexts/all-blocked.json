@@ -1,0 +1,24 @@
+{
+  "symptomEpisodeId": "episode-1",
+  "symptomId": "symptom-migraine",
+  "symptomName": "Migraine",
+  "currentSeverity": 7,
+  "activeDrugs": [],
+  "takeableDrugs": [],
+  "blockedDrugs": [
+    {
+      "drugId": "drug-ibuprofen",
+      "drugName": "Ibuprofen",
+      "doseStrength": "400mg",
+      "reason": "MaxDoseReached",
+      "availableAt": "2026-05-19T00:00:00.000Z"
+    },
+    {
+      "drugId": "drug-naproxen",
+      "drugName": "Naproxen",
+      "doseStrength": "500mg",
+      "reason": "MaxDoseReached",
+      "availableAt": "2026-05-19T00:00:00.000Z"
+    }
+  ]
+}
