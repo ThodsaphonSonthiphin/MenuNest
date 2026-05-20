@@ -37,7 +37,7 @@ export function setRememberMePreference(enabled: boolean): void {
     }
     return
   }
-  localStorage.setItem(REMEMBER_ME_KEY, '0')
+  localStorage.removeItem(REMEMBER_ME_KEY)
   const localToken = localStorage.getItem(GOOGLE_TOKEN_KEY)
   if (localToken) {
     sessionStorage.setItem(GOOGLE_TOKEN_KEY, localToken)
