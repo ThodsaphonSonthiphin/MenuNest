@@ -1,7 +1,7 @@
 const GOOGLE_TOKEN_KEY = 'google_id_token'
 const REMEMBER_ME_KEY = 'auth_remember_me'
 
-function isRememberMeEnabled(): boolean {
+export function getRememberMePreference(): boolean {
   return localStorage.getItem(REMEMBER_ME_KEY) === '1'
 }
 
@@ -9,7 +9,7 @@ export function getGoogleToken(): string | null {
   return localStorage.getItem(GOOGLE_TOKEN_KEY) ?? sessionStorage.getItem(GOOGLE_TOKEN_KEY)
 }
 
-export function setGoogleToken(token: string, rememberMe = isRememberMeEnabled()): void {
+export function setGoogleToken(token: string, rememberMe = getRememberMePreference()): void {
   clearGoogleToken()
   if (rememberMe) {
     localStorage.setItem(GOOGLE_TOKEN_KEY, token)
@@ -25,10 +25,6 @@ export function clearGoogleToken(): void {
 
 export function isGoogleAuthenticated(): boolean {
   return !!getGoogleToken()
-}
-
-export function getRememberMePreference(): boolean {
-  return isRememberMeEnabled()
 }
 
 export function setRememberMePreference(enabled: boolean): void {
