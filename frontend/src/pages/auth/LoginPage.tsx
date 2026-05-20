@@ -2,16 +2,22 @@ import { useState } from 'react'
 import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { InteractionStatus } from '@azure/msal-browser'
 import { Navigate, useNavigate } from 'react-router-dom'
-import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
+import { Button, Checkbox, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { GoogleLogin } from '@react-oauth/google'
 import { loginRequest } from '../../shared/auth/msalConfig'
-import { setGoogleToken, isGoogleAuthenticated } from '../../shared/auth/googleAuth'
+import {
+  setGoogleToken,
+  isGoogleAuthenticated,
+  getRememberMePreference,
+  setRememberMePreference,
+} from '../../shared/auth/googleAuth'
 
 export function LoginPage() {
   const { instance, inProgress } = useMsal()
   const isAuthenticated = useIsAuthenticated()
   const navigate = useNavigate()
   const [googleError, setGoogleError] = useState<string | null>(null)
+  const [rememberMe, setRememberMe] = useState(() => getRememberMePreference())
 
   // If the user lands on /login while already authenticated (e.g. via
   // a direct URL or after a stale redirect), send them back into the
@@ -48,6 +54,17 @@ export function LoginPage() {
           {pending ? 'Signing in…' : 'Sign in with Microsoft'}
         </Button>
 
+        <div className="login-card__remember">
+          <Checkbox
+            label="Remember me on this device"
+            checked={rememberMe}
+            onChange={({ value }) => {
+              setRememberMe(value)
+              setRememberMePreference(value)
+            }}
+          />
+        </div>
+
         <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', margin: '16px 0', fontSize: 14 }}>
           or
         </div>
@@ -56,7 +73,7 @@ export function LoginPage() {
           <GoogleLogin
             onSuccess={(credentialResponse) => {
               if (credentialResponse.credential) {
-                setGoogleToken(credentialResponse.credential)
+                setGoogleToken(credentialResponse.credential, rememberMe)
                 navigate('/', { replace: true })
               }
             }}

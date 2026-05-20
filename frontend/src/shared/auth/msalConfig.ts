@@ -1,5 +1,6 @@
 import { PublicClientApplication, LogLevel } from '@azure/msal-browser'
 import type { Configuration } from '@azure/msal-browser'
+import { getRememberMePreference } from './googleAuth'
 
 const clientId = import.meta.env.VITE_MSAL_CLIENT_ID
 const authority = import.meta.env.VITE_MSAL_AUTHORITY
@@ -18,7 +19,7 @@ export const msalConfig: Configuration = {
     postLogoutRedirectUri: window.location.origin,
   },
   cache: {
-    cacheLocation: 'sessionStorage',
+    cacheLocation: getRememberMePreference() ? 'localStorage' : 'sessionStorage',
   },
   system: {
     loggerOptions: {
