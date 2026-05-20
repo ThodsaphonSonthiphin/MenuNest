@@ -77,6 +77,12 @@ test.describe('Health module — smoke tests', () => {
     await expect(page.locator('body')).toContainText('MenuNest')
   })
 
+  test('login page includes remember-me checkbox', async ({ page }) => {
+    await page.goto('/login')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByLabel('Remember me on this device')).toBeVisible()
+  })
+
   test('service worker registers on first load', async ({ page }) => {
     // main.tsx registers `/sw.js` after the window `load` event. The
     // migraine tracker's follow-up push notifications rely on it.

@@ -299,6 +299,11 @@ a:hover { color: var(--color-primary-hover); }
 }
 .login-card__logo { font-size: 48px; }
 .login-card__tagline { color: var(--color-text-muted); margin-bottom: 24px; }
+.login-card__remember {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
 .login-card__footer { font-size: 12px; color: var(--color-text-muted); margin-top: 16px; }
 
 /* ---------- Join Family ---------- */
