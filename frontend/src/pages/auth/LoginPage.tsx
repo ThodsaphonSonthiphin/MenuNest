@@ -27,7 +27,6 @@ export function LoginPage() {
   }
 
   const handleSignIn = () => {
-    setRememberMePreference(rememberMe)
     instance.loginRedirect(loginRequest).catch((err) => {
       // eslint-disable-next-line no-console
       console.error('Sign-in failed', err)
@@ -74,7 +73,6 @@ export function LoginPage() {
           <GoogleLogin
             onSuccess={(credentialResponse) => {
               if (credentialResponse.credential) {
-                setRememberMePreference(rememberMe)
                 setGoogleToken(credentialResponse.credential, rememberMe)
                 navigate('/', { replace: true })
               }

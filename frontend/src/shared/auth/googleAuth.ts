@@ -30,9 +30,19 @@ export function isGoogleAuthenticated(): boolean {
 export function setRememberMePreference(enabled: boolean): void {
   if (enabled) {
     localStorage.setItem(REMEMBER_ME_KEY, '1')
+    const sessionToken = sessionStorage.getItem(GOOGLE_TOKEN_KEY)
+    if (sessionToken) {
+      localStorage.setItem(GOOGLE_TOKEN_KEY, sessionToken)
+      sessionStorage.removeItem(GOOGLE_TOKEN_KEY)
+    }
     return
   }
   localStorage.setItem(REMEMBER_ME_KEY, '0')
+  const localToken = localStorage.getItem(GOOGLE_TOKEN_KEY)
+  if (localToken) {
+    sessionStorage.setItem(GOOGLE_TOKEN_KEY, localToken)
+    localStorage.removeItem(GOOGLE_TOKEN_KEY)
+  }
 }
 
 /**
