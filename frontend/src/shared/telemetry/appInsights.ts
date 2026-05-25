@@ -5,23 +5,47 @@ const connectionString = import.meta.env.VITE_APPINSIGHTS_CONNECTION_STRING
 
 export const reactPlugin = new ReactPlugin()
 
-export const appInsights = new ApplicationInsights({
-  config: {
-    connectionString,
-    // If the env var is empty, init the SDK in a sink-less state — calls
-    // become no-ops instead of throwing.
-    disableTelemetry: !connectionString,
-    extensions: [reactPlugin],
-    enableAutoRouteTracking: true,
-    enableCorsCorrelation: true,
-    enableRequestHeaderTracking: true,
-    enableResponseHeaderTracking: true,
-    autoTrackPageVisitTime: false,
-    disableExceptionTracking: false,
-  },
-})
+/**
+ * No-op shim used when the connection string is missing (local dev,
+ * forgotten CI secret). `disableTelemetry: true` is NOT enough — the
+ * SDK's `loadAppInsights()` still throws "Please provide instrumentation
+ * key" before it ever consults the flag. So we just skip construction
+ * entirely and hand callers a stub.
+ */
+function createNoOpInsights(): ApplicationInsights {
+  const noop = () => {}
+  return {
+    trackException: noop,
+    trackTrace: noop,
+    trackEvent: noop,
+    trackPageView: noop,
+    trackMetric: noop,
+    trackDependencyData: noop,
+    flush: noop,
+    setAuthenticatedUserContext: noop,
+    clearAuthenticatedUserContext: noop,
+    loadAppInsights: noop,
+  } as unknown as ApplicationInsights
+}
 
-appInsights.loadAppInsights()
+export const appInsights: ApplicationInsights = connectionString
+  ? (() => {
+      const ai = new ApplicationInsights({
+        config: {
+          connectionString,
+          extensions: [reactPlugin],
+          enableAutoRouteTracking: true,
+          enableCorsCorrelation: true,
+          enableRequestHeaderTracking: true,
+          enableResponseHeaderTracking: true,
+          autoTrackPageVisitTime: false,
+          disableExceptionTracking: false,
+        },
+      })
+      ai.loadAppInsights()
+      return ai
+    })()
+  : createNoOpInsights()
 
 /**
  * Convenience for setting / clearing the signed-in user across the app.
