@@ -3,6 +3,7 @@ using MenuNest.Application.UseCases.Budget;
 using MenuNest.Application.UseCases.Budget.Accounts.CreateAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.DeleteAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.ListAccounts;
+using MenuNest.Application.UseCases.Budget.Accounts.ListAccountTransactions;
 using MenuNest.Application.UseCases.Budget.Accounts.UpdateAccount;
 using MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
 using MenuNest.Application.UseCases.Budget.Groups.DeleteGroup;
@@ -55,6 +56,12 @@ public sealed class BudgetController : ControllerBase
     [HttpDelete("accounts/{id:guid}")]
     public async Task<IActionResult> DeleteAccount(Guid id, CancellationToken ct)
     { await _m.Send(new DeleteAccountCommand(id), ct); return NoContent(); }
+
+    [HttpGet("accounts/{id:guid}/transactions")]
+    public async Task<ActionResult<AccountTransactionsPageDto>> ListAccountTransactions(
+        Guid id, [FromQuery] int year, [FromQuery] int month,
+        [FromQuery] int skip = 0, [FromQuery] int take = 50, CancellationToken ct = default) =>
+        Ok(await _m.Send(new ListAccountTransactionsQuery(id, year, month, skip, take), ct));
 
     // ----- groups -----
     [HttpGet("groups")]
