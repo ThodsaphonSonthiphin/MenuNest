@@ -69,4 +69,17 @@ public class CreateAccountHandlerTests
 
         await act.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task Rejects_name_longer_than_120_characters()
+    {
+        using var fx = new HandlerTestFixture();
+        var sut = Build(fx);
+
+        var act = async () => await sut.Handle(
+            new CreateAccountCommand(new string('a', 121), BudgetAccountType.Cash, 0m),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
 }
