@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget — Zero-Based RTA states</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #0f172a;
+    --bg-card: #1e293b;
+    --border:  #334155;
+    --text:        #f1f5f9;
+    --text-muted:  #94a3b8;
+    --text-dim:    #64748b;
+    --accent:       #6366f1;
+    --accent-soft:  rgba(99, 102, 241, 0.15);
+    --green:    #22c55e;
+    --green-bg: rgba(34,197,94,0.15);
+    --red:      #ef4444;
+    --red-bg:   rgba(239,68,68,0.15);
+    --orange:   #f59e0b;
+    --orange-bg:rgba(245,158,11,0.15);
+    --amber:    #fbbf24;
+  }
+  body.light {
+    --bg-page: #f1f5f9;
+    --bg-card: #ffffff;
+    --border:  #e2e8f0;
+    --text:        #0f172a;
+    --text-muted:  #64748b;
+    --text-dim:    #94a3b8;
+    --accent:       #4f46e5;
+    --accent-soft:  rgba(79,70,229,0.10);
+    --green:    #16a34a;
+    --green-bg: rgba(22,163,74,0.12);
+    --red:      #dc2626;
+    --red-bg:   rgba(220,38,38,0.10);
+    --orange:   #d97706;
+    --orange-bg: rgba(217,119,6,0.12);
+    --amber:    #d97706;
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .page-header { text-align: center; margin-bottom: 24px; }
+  .page-title  { font-size: 20px; font-weight: 700; }
+  .page-sub    { font-size: 13px; color: var(--text-muted); margin-top: 6px; max-width: 720px; margin: 6px auto 0; }
+  .toggle-row  { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+  .toggle-btn  {
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;
+  }
+  .toggle-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .phones {
+    display: flex; gap: 28px; justify-content: center; align-items: flex-start;
+    flex-wrap: wrap; max-width: 1400px; margin: 0 auto;
+  }
+  .variant { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .variant-label {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-align: center; max-width: 360px;
+  }
+  .variant-label strong { color: var(--text); font-size: 14px; display: block; margin-bottom: 4px; }
+
+  /* phone */
+  .phone {
+    width: 360px; background: var(--bg-card);
+    border: 8px solid #0a0a0f; border-radius: 36px; box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+    padding: 16px;
+  }
+  body.light .phone { border-color: #cbd5e1; box-shadow: 0 20px 60px rgba(15,23,42,0.18); }
+
+  /* Month strip mini */
+  .month-strip {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 12px;
+  }
+  .month-arrow { font-size: 18px; color: var(--text-muted); }
+  .month-label { font-size: 14px; font-weight: 700; }
+
+  /* RTA hero — REDESIGNED for zero-based budgeting */
+  .rta-hero {
+    border-radius: 18px; color: white; padding: 18px; position: relative;
+    overflow: hidden;
+  }
+  /* State A: money to assign — amber/orange gradient with action energy */
+  .rta-hero.has-money {
+    background: linear-gradient(135deg, #b45309 0%, #9a3412 100%);
+  }
+  /* State B: zero (goal!) — green calm gradient */
+  .rta-hero.zero {
+    background: linear-gradient(135deg, #16a34a 0%, #0d9488 100%);
+  }
+  /* State C: over-assigned — red alarm gradient */
+  .rta-hero.over {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  }
+  .rta-edit-icon {
+    position: absolute; top: 14px; right: 14px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .rta-state-icon {
+    font-size: 22px; margin-bottom: 6px; display: inline-block;
+    line-height: 1;
+  }
+  .rta-label {
+    font-size: 11px; font-weight: 700; opacity: .9;
+    text-transform: uppercase; letter-spacing: .6px;
+  }
+  .rta-amount {
+    font-size: 30px; font-weight: 800; margin-top: 2px; letter-spacing: -0.5px;
+  }
+  .rta-cta {
+    font-size: 12px; font-weight: 600; margin-top: 8px;
+    background: rgba(255,255,255,0.18); display: inline-block;
+    padding: 4px 10px; border-radius: 20px;
+  }
+  /* Progress bar — how close to 0 */
+  .rta-progress-wrap { margin-top: 14px; }
+  .rta-progress-labels {
+    display: flex; justify-content: space-between; font-size: 10px;
+    opacity: .85; margin-bottom: 4px;
+  }
+  .rta-progress-bar {
+    height: 6px; background: rgba(0,0,0,0.18); border-radius: 4px; overflow: hidden;
+  }
+  .rta-progress-fill {
+    height: 100%; background: white; border-radius: 4px;
+  }
+  .rta-progress-fill.over {
+    background: white; box-shadow: 0 0 0 1px rgba(255,255,255,0.5);
+  }
+
+  /* Quick-assign chips (only in has-money state) */
+  .rta-quick-chips {
+    display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap;
+  }
+  .rta-quick-chip {
+    background: rgba(255,255,255,0.20); color: white;
+    border: none; border-radius: 16px;
+    padding: 5px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+  }
+  .rta-quick-chip:hover { background: rgba(255,255,255,0.30); }
+
+  /* "Suggest where to put it" preview row (for has-money) */
+  .rta-suggest {
+    background: rgba(0,0,0,0.16); margin-top: 12px; padding: 10px 12px;
+    border-radius: 12px;
+  }
+  .rta-suggest-label { font-size: 10px; font-weight: 700; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
+  .rta-suggest-row {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 6px; font-size: 12px;
+  }
+  .rta-suggest-arrow { opacity: .65; font-weight: 700; }
+
+  /* Annotation card */
+  .annot {
+    border-left: 4px solid var(--accent);
+    background: var(--bg-card); border-radius: 8px;
+    padding: 10px 12px; margin: 0 auto;
+    max-width: 520px; font-size: 12px; line-height: 1.5;
+  }
+  .annot strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
+  .annot.amber  { border-left-color: var(--amber); }
+  .annot.green  { border-left-color: var(--green); }
+  .annot.red    { border-left-color: var(--red); }
+  .legend { display: flex; flex-direction: column; gap: 10px; margin-top: 28px; max-width: 760px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body class="">
+
+<div class="page-header">
+  <div class="page-title">Budget — Zero-based RTA states</div>
+  <div class="page-sub">3 states ของ Ready-to-Assign hero ที่ออกแบบให้ <strong>RTA = 0</strong> เป็น goal state ชัดเจน — สีต่างกัน, ไอคอน, copy, มี progress bar + quick-assign chips ตอนยังเหลือ</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" onclick="setTheme('dark', this)">Dark</button>
+    <button class="toggle-btn" onclick="setTheme('light', this)">Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- State A: Money still to assign (positive RTA) -->
+  <div class="variant">
+    <div class="variant-label">
+      <strong>A — Money to assign</strong>
+      ส้ม + ✱ + "Assign ฿X more" — ผู้ใช้รู้ทันทีว่ายังไม่จบ
+    </div>
+    <div class="phone">
+      <div class="month-strip">
+        <span class="month-arrow">‹</span>
+        <span class="month-label">May 2026</span>
+        <span class="month-arrow">›</span>
+      </div>
+      <div class="rta-hero has-money">
+        <div class="rta-edit-icon">✎</div>
+        <div class="rta-state-icon">⚡</div>
+        <div class="rta-label">Assign every baht</div>
+        <div class="rta-amount">฿2,450</div>
+        <div class="rta-cta">↑ Still to assign</div>
+
+        <div class="rta-progress-wrap">
+          <div class="rta-progress-labels">
+            <span>฿40,050 assigned</span>
+            <span>94% of ฿42,500</span>
+          </div>
+          <div class="rta-progress-bar">
+            <div class="rta-progress-fill" style="width:94%"></div>
+          </div>
+        </div>
+
+        <div class="rta-quick-chips">
+          <button class="rta-quick-chip">+ Fill targets first</button>
+          <button class="rta-quick-chip">+ Equally to envelopes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State B: Zero — goal achieved -->
+  <div class="variant">
+    <div class="variant-label">
+      <strong>B — Goal: ฿0 reached</strong>
+      เขียว + ✓ + "All assigned" — clear goal state, เห็นแล้วรู้ว่าวันนี้จัดเสร็จ
+    </div>
+    <div class="phone">
+      <div class="month-strip">
+        <span class="month-arrow">‹</span>
+        <span class="month-label">May 2026</span>
+        <span class="month-arrow">›</span>
+      </div>
+      <div class="rta-hero zero">
+        <div class="rta-edit-icon">✎</div>
+        <div class="rta-state-icon">✓</div>
+        <div class="rta-label">Every baht has a job</div>
+        <div class="rta-amount">฿0</div>
+        <div class="rta-cta" style="background: rgba(255,255,255,0.28)">Goal reached</div>
+
+        <div class="rta-progress-wrap">
+          <div class="rta-progress-labels">
+            <span>฿42,500 assigned</span>
+            <span>100% of ฿42,500</span>
+          </div>
+          <div class="rta-progress-bar">
+            <div class="rta-progress-fill" style="width:100%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State C: Over-assigned -->
+  <div class="variant">
+    <div class="variant-label">
+      <strong>C — Over-assigned</strong>
+      แดง + ⚠ + ตัวเลขติดลบ — ต้องไปลดที่ category หรือ move money
+    </div>
+    <div class="phone">
+      <div class="month-strip">
+        <span class="month-arrow">‹</span>
+        <span class="month-label">May 2026</span>
+        <span class="month-arrow">›</span>
+      </div>
+      <div class="rta-hero over">
+        <div class="rta-edit-icon">✎</div>
+        <div class="rta-state-icon">⚠</div>
+        <div class="rta-label">Too much assigned</div>
+        <div class="rta-amount">−฿320</div>
+        <div class="rta-cta" style="background: rgba(255,255,255,0.28)">Pull ฿320 back</div>
+
+        <div class="rta-progress-wrap">
+          <div class="rta-progress-labels">
+            <span>฿42,820 assigned</span>
+            <span>101% of ฿42,500</span>
+          </div>
+          <div class="rta-progress-bar">
+            <div class="rta-progress-fill over" style="width:100%"></div>
+          </div>
+        </div>
+
+        <div class="rta-suggest">
+          <div class="rta-suggest-label">Suggested fix</div>
+          <div class="rta-suggest-row">
+            <span>🎬 Entertainment (฿780 unspent)</span>
+            <span class="rta-suggest-arrow">→ pull ฿320</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="legend">
+  <div class="annot amber">
+    <strong>State A — ส้ม “Assign every baht” (เลิกเรียก "Ready to Assign")</strong>
+    Copy เปลี่ยนเป็น "Assign every baht" เน้น discipline ของ method. มี state icon ⚡ + เลข + cta pill "↑ Still to assign" + progress bar % ของรายรับ + quick chips 2 ตัว:
+    <br>• <strong>Fill targets first</strong> = จัดเงินใส่ category ที่มี target ก่อน (รัน priority ตาม TargetDueDate / MonthlyAmount) จนกว่าจะเต็มหรือเงินหมด
+    <br>• <strong>Equally to envelopes</strong> = หาร RTA / (จำนวน envelope ที่ยัง funded น้อยกว่า assigned ของเดือนก่อน) เท่า ๆ กัน
+    <br>กดแล้วเปิด dialog confirm + preview ว่าจะกระจายไปเท่าไหร่ (ใช้ existing SetAssignedAmount mutation วน loop)
+  </div>
+  <div class="annot green">
+    <strong>State B — เขียว ✓ "Every baht has a job"</strong>
+    Goal state. ไม่มี cta เพราะไม่ต้องทำอะไร. Progress 100%. ลบ quick-assign chips. ยังกด hero ได้เพื่อแก้รายรับเดือนนี้
+  </div>
+  <div class="annot red">
+    <strong>State C — แดง ⚠ Over-assigned + Suggested fix</strong>
+    ตัวเลขแดงติดลบ. cta pill บอกตรง ๆ ว่าต้อง "Pull ฿320 back". ใต้ hero มี <strong>Suggested fix card</strong> — แสดง envelope ที่มี available เหลือเยอะที่สุด + จำนวนที่ pull กลับ. แตะ → เปิด MoveMoneyDialog pre-fill from=ตัวที่ suggest, amount=ส่วนต่าง, to=Ready to Assign (no category)
+  </div>
+  <div class="annot">
+    <strong>ผลกระทบ backend</strong>
+    ไม่ต้องเพิ่ม endpoint ใหม่. Quick chips ทั้ง 2 ตัวใช้ <code>useSetAssignedAmountMutation</code> เดิม (เรียกซ้ำหลาย category ใน loop client-side). Suggested fix ใช้ <code>useMoveMoneyMutation</code> เดิม. เปลี่ยนแค่ <code>RtaHero.tsx</code> + CSS + เพิ่ม dialog เล็ก ๆ ที่ confirm distribution
+  </div>
+</div>
+
+<script>
+  function setTheme(mode, btn) {
+    document.body.classList.toggle('light', mode === 'light');
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

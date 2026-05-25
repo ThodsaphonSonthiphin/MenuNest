@@ -68,7 +68,7 @@
 
 /* Zero-based-budgeting state variants */
 .bdg-rta-hero.is-has-money {
-  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
+  background: linear-gradient(135deg, #b45309 0%, #9a3412 100%);
 }
 .bdg-rta-hero.is-zero {
   background: linear-gradient(135deg, #16a34a 0%, #0d9488 100%);
