@@ -920,7 +920,7 @@ export const api = createApi({
             {accountId: string; year: number; month: number; skip?: number; take?: number}
         >({
             query: ({accountId, year, month, skip = 0, take = 50}) =>
-                `/budget/accounts/${accountId}/transactions?year=${year}&month=${month}&skip=${skip}&take=${take}`,
+                `/api/budget/accounts/${accountId}/transactions?year=${year}&month=${month}&skip=${skip}&take=${take}`,
             providesTags: (_r, _e, a) => [{type: 'BudgetAccountDetail', id: a.accountId}],
         }),
         listBudgetTransactions: build.query<BudgetTransactionDto[], {year: number; month: number; categoryId?: string}>({
