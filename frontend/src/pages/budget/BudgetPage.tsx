@@ -1,66 +1,50 @@
 import {useAppDispatch, useAppSelector} from '../../store'
-import {AccountsSidebar} from './components/AccountsSidebar'
-import {EnvelopeTable} from './components/EnvelopeTable'
-import {MonthlySummaryPanel} from './components/MonthlySummaryPanel'
-import {useBudgetData, formatTHB} from './BudgetPage.hooks'
-import {goPrevMonth, goNextMonth, setFilter} from './budgetSlice'
+import {MonthStrip} from './components/MonthStrip'
+import {RtaHero} from './components/RtaHero'
+import {AccountsStrip} from './components/AccountsStrip'
+import {EnvelopeList} from './components/EnvelopeList'
+import {useBudgetData} from './BudgetPage.hooks'
+import {setFilter} from './budgetSlice'
 import type {BudgetFilter} from './budgetSlice'
 import './BudgetPage.css'
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-
 export function BudgetPage() {
   const dispatch = useAppDispatch()
-  const {year, month, summary, isLoading} = useBudgetData()
-  const {filter} = useAppSelector(s => s.budget)
+  const {summary, isLoading} = useBudgetData()
+  const filter = useAppSelector(s => s.budget.filter)
   const overspentCount = summary?.groups.flatMap(g => g.categories).filter(c => c.available < 0).length ?? 0
 
-  if (isLoading || !summary) return <div style={{padding: 40, color: '#888'}}>Loading budget…</div>
+  if (isLoading || !summary) {
+    return <div className="bdg-loading">Loading budget…</div>
+  }
+
+  const chips: [BudgetFilter, string, boolean][] = [
+    ['all',         'All',                              false],
+    ['overspent',   `⚠ ${overspentCount} Overspent`,    true],
+    ['underfunded', 'Underfunded',                      false],
+    ['overfunded',  'Overfunded',                       false],
+    ['available',   'Money Available',                  false],
+    ['snoozed',     'Snoozed',                          false],
+  ]
 
   return (
-    <div className="budget-page">
-      <AccountsSidebar accounts={summary.accounts} />
+    <div className="bdg-page" data-testid="bdg-page">
+      <MonthStrip />
+      <RtaHero summary={summary} />
+      <AccountsStrip accounts={summary.accounts} />
 
-      <div className="budget-main">
-        <div className="budget-month-strip">
-          <button onClick={() => dispatch(goPrevMonth())}>‹</button>
-          <span className="label">{MONTHS[month - 1]} {year}</span>
-          <button onClick={() => dispatch(goNextMonth())}>›</button>
-          <div className="budget-rta">
-            <div>
-              <div className={`budget-rta-amount ${summary.readyToAssign < 0 ? 'negative' : ''}`}>
-                {formatTHB(summary.readyToAssign)}
-              </div>
-              <div className="budget-rta-label">
-                {summary.readyToAssign === 0 ? 'All Money Assigned'
-                 : summary.readyToAssign > 0 ? 'Ready to Assign' : 'Over-Assigned'}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="budget-filters">
-          {([
-            ['all', 'All', false],
-            ['overspent', `⚠ ${overspentCount} Overspent`, true],
-            ['underfunded', 'Underfunded', false],
-            ['overfunded', 'Overfunded', false],
-            ['available', 'Money Available', false],
-            ['snoozed', 'Snoozed', false],
-          ] as [BudgetFilter, string, boolean][]).map(([k, label, danger]) => (
-            <div
-              key={k}
-              className={`budget-chip ${filter === k ? 'active' : ''} ${danger && overspentCount > 0 ? 'danger' : ''}`}
-              onClick={() => dispatch(setFilter(k))}
-            >{label}</div>
-          ))}
-        </div>
-
-        <EnvelopeTable summary={summary} />
+      <div className="bdg-filters">
+        {chips.map(([k, label, danger]) => (
+          <button
+            key={k}
+            type="button"
+            className={`bdg-chip ${filter === k ? 'is-active' : ''} ${danger && overspentCount > 0 ? 'is-danger' : ''}`}
+            onClick={() => dispatch(setFilter(k))}
+          >{label}</button>
+        ))}
       </div>
 
-      <MonthlySummaryPanel summary={summary} />
-
+      <EnvelopeList summary={summary} />
     </div>
   )
 }
