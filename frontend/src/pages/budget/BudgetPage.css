@@ -64,14 +64,37 @@
 /* -------- RTA hero -------- */
 .bdg-rta-hero {
   padding: 16px 18px; border-radius: 18px; color: white;
-  background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
 }
-.bdg-rta-hero.is-negative {
-  background: linear-gradient(135deg, var(--red) 0%, #b91c1c 100%);
+
+/* Zero-based-budgeting state variants */
+.bdg-rta-hero.is-has-money {
+  background: linear-gradient(135deg, #f59e0b 0%, #ea580c 100%);
 }
-.bdg-rta-label { font-size: 11px; font-weight: 600; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
-.bdg-rta-amount { font-size: 28px; font-weight: 800; margin-top: 4px; letter-spacing: -0.5px; }
-.bdg-rta-sub { font-size: 11px; opacity: .8; margin-top: 6px; }
+.bdg-rta-hero.is-zero {
+  background: linear-gradient(135deg, #16a34a 0%, #0d9488 100%);
+}
+.bdg-rta-hero.is-over {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
+.bdg-rta-state-icon { font-size: 22px; line-height: 1; display: inline-block; margin-bottom: 6px; }
+.bdg-rta-label { font-size: 11px; font-weight: 700; opacity: .9; text-transform: uppercase; letter-spacing: .6px; }
+.bdg-rta-amount { font-size: 30px; font-weight: 800; margin-top: 2px; letter-spacing: -0.5px; }
+.bdg-rta-cta {
+  display: inline-block; margin-top: 8px;
+  background: rgba(255,255,255,0.20);
+  padding: 4px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.bdg-rta-progress-wrap { margin-top: 14px; }
+.bdg-rta-progress-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; opacity: .85; margin-bottom: 4px;
+}
+.bdg-rta-progress-bar {
+  height: 6px; background: rgba(0,0,0,0.18); border-radius: 4px; overflow: hidden;
+}
+.bdg-rta-progress-fill { height: 100%; background: white; border-radius: 4px; }
 
 /* -------- Section titles -------- */
 .bdg-section-title {
