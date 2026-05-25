@@ -25,7 +25,11 @@ public sealed class CreateCategoryHandler : ICommandHandler<CreateCategoryComman
             .AnyAsync(g => g.Id == cmd.GroupId && g.FamilyId == familyId, ct);
         if (!groupBelongs) throw new DomainException("Group not found.");
 
-        var cat = BudgetCategory.Create(familyId, cmd.GroupId, cmd.Name, cmd.Emoji, cmd.SortOrder);
+        var nextSortOrder = (await _db.BudgetCategories
+            .Where(c => c.FamilyId == familyId && c.GroupId == cmd.GroupId)
+            .MaxAsync(c => (int?)c.SortOrder, ct) ?? -1) + 1;
+
+        var cat = BudgetCategory.Create(familyId, cmd.GroupId, cmd.Name, cmd.Emoji, nextSortOrder);
         ApplyTarget(cat, cmd.TargetType, cmd.TargetAmount, cmd.TargetDueDate, cmd.TargetDayOfMonth);
 
         _db.BudgetCategories.Add(cat);
