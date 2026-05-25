@@ -80,7 +80,7 @@ public sealed class BudgetController : ControllerBase
     public async Task<ActionResult<BudgetCategoryDto>> CreateCategory(
         [FromBody] UpsertCategoryRequest r, CancellationToken ct) =>
         Ok(await _m.Send(new CreateCategoryCommand(
-            r.GroupId, r.Name, r.Emoji, r.SortOrder,
+            r.GroupId, r.Name, r.Emoji,
             r.TargetType, r.TargetAmount, r.TargetDueDate, r.TargetDayOfMonth), ct));
 
     [HttpPut("categories/{id:guid}")]
