@@ -1,9 +1,8 @@
 import {useAppDispatch, useAppSelector} from '../../store'
-import {setAccountsOpen, setSummaryOpen} from './budgetSlice'
 import {AccountsSidebar} from './components/AccountsSidebar'
 import {EnvelopeTable} from './components/EnvelopeTable'
 import {MonthlySummaryPanel} from './components/MonthlySummaryPanel'
-import {useBudgetData, useBudgetLayout, formatTHB} from './BudgetPage.hooks'
+import {useBudgetData, formatTHB} from './BudgetPage.hooks'
 import {goPrevMonth, goNextMonth, setFilter} from './budgetSlice'
 import type {BudgetFilter} from './budgetSlice'
 import './BudgetPage.css'
@@ -11,10 +10,9 @@ import './BudgetPage.css'
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 export function BudgetPage() {
-  const layout = useBudgetLayout()
   const dispatch = useAppDispatch()
   const {year, month, summary, isLoading} = useBudgetData()
-  const {filter, accountsOpen, summaryOpen} = useAppSelector(s => s.budget)
+  const {filter} = useAppSelector(s => s.budget)
   const overspentCount = summary?.groups.flatMap(g => g.categories).filter(c => c.available < 0).length ?? 0
 
   if (isLoading || !summary) return <div style={{padding: 40, color: '#888'}}>Loading budget…</div>
@@ -24,14 +22,6 @@ export function BudgetPage() {
       <AccountsSidebar accounts={summary.accounts} />
 
       <div className="budget-main">
-        {layout !== 'desktop' && (
-          <div className="budget-mobile-bar">
-            <button onClick={() => dispatch(setAccountsOpen(true))} aria-label="Accounts">🏦</button>
-            <div style={{flex: 1}} />
-            <button onClick={() => dispatch(setSummaryOpen(true))} aria-label="Summary">📊</button>
-          </div>
-        )}
-
         <div className="budget-month-strip">
           <button onClick={() => dispatch(goPrevMonth())}>‹</button>
           <span className="label">{MONTHS[month - 1]} {year}</span>
@@ -71,22 +61,6 @@ export function BudgetPage() {
 
       <MonthlySummaryPanel summary={summary} />
 
-      {layout !== 'desktop' && accountsOpen && (
-        <>
-          <div className="budget-drawer-backdrop" onClick={() => dispatch(setAccountsOpen(false))} />
-          <aside className="budget-drawer budget-drawer--left">
-            <AccountsSidebar accounts={summary.accounts} inDrawer />
-          </aside>
-        </>
-      )}
-      {layout !== 'desktop' && summaryOpen && (
-        <>
-          <div className="budget-drawer-backdrop" onClick={() => dispatch(setSummaryOpen(false))} />
-          <aside className="budget-drawer budget-drawer--right">
-            <MonthlySummaryPanel summary={summary} inDrawer />
-          </aside>
-        </>
-      )}
     </div>
   )
 }

@@ -8,8 +8,7 @@ interface BudgetState {
   year: number
   month: number
   filter: BudgetFilter
-  accountsOpen: boolean     // for mobile drawer
-  summaryOpen: boolean      // for mobile drawer
+  expandedCategoryId: string | null
   selectedCategoryId: string | null
   search: string
 }
@@ -19,8 +18,7 @@ const initialState: BudgetState = {
   year: now.getFullYear(),
   month: now.getMonth() + 1,
   filter: 'all',
-  accountsOpen: false,
-  summaryOpen: false,
+  expandedCategoryId: null,
   selectedCategoryId: null,
   search: '',
 }
@@ -41,8 +39,7 @@ const budgetSlice = createSlice({
       s.year = d.getFullYear(); s.month = d.getMonth() + 1
     },
     setFilter(s, a: PayloadAction<BudgetFilter>) { s.filter = a.payload },
-    setAccountsOpen(s, a: PayloadAction<boolean>) { s.accountsOpen = a.payload },
-    setSummaryOpen(s, a: PayloadAction<boolean>)  { s.summaryOpen = a.payload },
+    setExpandedCategory(s, a: PayloadAction<string | null>) { s.expandedCategoryId = a.payload },
     setSelectedCategory(s, a: PayloadAction<string | null>) { s.selectedCategoryId = a.payload },
     setSearch(s, a: PayloadAction<string>) { s.search = a.payload },
   },
@@ -50,6 +47,6 @@ const budgetSlice = createSlice({
 
 export const {
   setMonth, goPrevMonth, goNextMonth, setFilter,
-  setAccountsOpen, setSummaryOpen, setSelectedCategory, setSearch,
+  setExpandedCategory, setSelectedCategory, setSearch,
 } = budgetSlice.actions
 export default budgetSlice.reducer
