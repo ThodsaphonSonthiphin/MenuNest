@@ -865,11 +865,11 @@ export const api = createApi({
         }),
         updateBudgetAccount: build.mutation<BudgetAccountDto, {id: string} & UpdateAccountRequest>({
             query: ({id, ...b}) => ({url: `/api/budget/accounts/${id}`, method: 'PUT', body: b}),
-            invalidatesTags: ['BudgetAccounts'],
+            invalidatesTags: ['BudgetAccounts', 'BudgetAccountDetail'],
         }),
         deleteBudgetAccount: build.mutation<void, string>({
             query: (id) => ({url: `/api/budget/accounts/${id}`, method: 'DELETE'}),
-            invalidatesTags: ['BudgetAccounts'],
+            invalidatesTags: ['BudgetAccounts', 'BudgetAccountDetail'],
         }),
         listBudgetGroups: build.query<CategoryGroupDto[], void>({
             query: () => '/api/budget/groups',
