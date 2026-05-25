@@ -64,7 +64,7 @@ public sealed class BudgetController : ControllerBase
     [HttpPost("groups")]
     public async Task<ActionResult<CategoryGroupDto>> CreateGroup(
         [FromBody] UpsertGroupRequest r, CancellationToken ct) =>
-        Ok(await _m.Send(new CreateGroupCommand(r.Name, r.SortOrder), ct));
+        Ok(await _m.Send(new CreateGroupCommand(r.Name), ct));
 
     [HttpPut("groups/{id:guid}")]
     public async Task<ActionResult<CategoryGroupDto>> UpdateGroup(
