@@ -378,6 +378,21 @@ export interface MonthlySummaryDto {
     accounts: BudgetAccountDto[]
 }
 
+export interface AccountSummaryDto {
+    id: string
+    name: string
+    type: BudgetAccountType
+    balance: number
+    monthInflow: number
+    monthOutflow: number
+}
+
+export interface AccountTransactionsPageDto {
+    account: AccountSummaryDto
+    items: BudgetTransactionDto[]
+    hasMore: boolean
+}
+
 export interface BudgetTransactionDto {
     id: string
     accountId: string
@@ -476,6 +491,7 @@ export const api = createApi({
         'BudgetAccounts',
         'BudgetGroups',
         'BudgetTransactions',
+        'BudgetAccountDetail',
         'Drug',
         'Symptom',
         'Trigger',
@@ -899,6 +915,14 @@ export const api = createApi({
             query: (b) => ({url: '/api/budget/monthly/cover', method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
+        listBudgetAccountTransactions: build.query<
+            AccountTransactionsPageDto,
+            {accountId: string; year: number; month: number; skip?: number; take?: number}
+        >({
+            query: ({accountId, year, month, skip = 0, take = 50}) =>
+                `/budget/accounts/${accountId}/transactions?year=${year}&month=${month}&skip=${skip}&take=${take}`,
+            providesTags: (_r, _e, a) => [{type: 'BudgetAccountDetail', id: a.accountId}],
+        }),
         listBudgetTransactions: build.query<BudgetTransactionDto[], {year: number; month: number; categoryId?: string}>({
             query: ({year, month, categoryId}) =>
                 `/api/budget/transactions?year=${year}&month=${month}${categoryId ? `&categoryId=${categoryId}` : ''}`,
@@ -906,17 +930,17 @@ export const api = createApi({
         }),
         createBudgetTransaction: build.mutation<BudgetTransactionDto, CreateTransactionRequest & {year: number; month: number}>({
             query: ({year: _y, month: _m, ...b}) => ({url: '/api/budget/transactions', method: 'POST', body: b}),
-            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts', 'BudgetAccountDetail',
                 {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
         updateBudgetTransaction: build.mutation<BudgetTransactionDto, {id: string; year: number; month: number} & UpdateTransactionRequest>({
             query: ({id, year: _y, month: _m, ...b}) => ({url: `/api/budget/transactions/${id}`, method: 'PUT', body: b}),
-            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts', 'BudgetAccountDetail',
                 {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
         deleteBudgetTransaction: build.mutation<void, {id: string; year: number; month: number}>({
             query: ({id}) => ({url: `/api/budget/transactions/${id}`, method: 'DELETE'}),
-            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts', 'BudgetAccountDetail',
                 {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
         // -------------------- Health: Drugs --------------------
@@ -1243,6 +1267,7 @@ export const {
     useSetAssignedAmountMutation,
     useMoveMoneyMutation,
     useCoverOverspendingMutation,
+    useListBudgetAccountTransactionsQuery,
     useListBudgetTransactionsQuery,
     useCreateBudgetTransactionMutation,
     useUpdateBudgetTransactionMutation,
