@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget — Add entry points (Category / Group / Income / Reconcile)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #0f172a;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border:  #334155;
+    --text:        #f1f5f9;
+    --text-muted:  #94a3b8;
+    --text-dim:    #64748b;
+    --accent:       #6366f1;
+    --accent-soft:  rgba(99, 102, 241, 0.15);
+    --green:    #22c55e;
+    --green-bg: rgba(34,197,94,0.15);
+    --red:      #ef4444;
+    --red-bg:   rgba(239,68,68,0.15);
+    --orange:   #f59e0b;
+    --orange-bg:rgba(245,158,11,0.15);
+  }
+  body.light {
+    --bg-page: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-2: #f8fafc;
+    --border:  #e2e8f0;
+    --text:        #0f172a;
+    --text-muted:  #64748b;
+    --text-dim:    #94a3b8;
+    --accent:       #4f46e5;
+    --accent-soft:  rgba(79,70,229,0.10);
+    --green:    #16a34a;
+    --green-bg: rgba(22,163,74,0.12);
+    --red:      #dc2626;
+    --red-bg:   rgba(220,38,38,0.10);
+    --orange:   #d97706;
+    --orange-bg: rgba(217,119,6,0.12);
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .page-header { text-align: center; margin-bottom: 24px; }
+  .page-title  { font-size: 20px; font-weight: 700; }
+  .page-sub    { font-size: 13px; color: var(--text-muted); margin-top: 6px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .toggle-row  { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+  .toggle-btn  {
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;
+  }
+  .toggle-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .phones {
+    display: flex; gap: 28px; justify-content: center; align-items: flex-start;
+    flex-wrap: wrap; max-width: 1400px; margin: 0 auto;
+  }
+  .variant { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .variant-label {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-align: center; max-width: 380px;
+  }
+  .variant-label strong { color: var(--text); font-size: 14px; display: block; margin-bottom: 4px; }
+
+  /* phone */
+  .phone {
+    width: 390px; height: 820px; background: var(--bg-card-2);
+    border: 8px solid #0a0a0f; border-radius: 44px; box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+  }
+  body.light .phone { border-color: #cbd5e1; box-shadow: 0 20px 60px rgba(15,23,42,0.18); }
+  .notch {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 26px; background: #0a0a0f; border-radius: 14px; z-index: 30;
+  }
+  body.light .notch { background: #1e293b; }
+  .status-bar {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+
+  .scroll-body { flex: 1; overflow-y: auto; padding: 0 16px 96px; display: flex; flex-direction: column; gap: 14px; }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  /* Month strip */
+  .month-strip {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    flex-shrink: 0; padding: 0 16px;
+  }
+  .month-arrow { font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 0 6px; }
+  .month-label { font-size: 15px; font-weight: 700; }
+
+  /* RTA hero — now tappable */
+  .rta-hero {
+    padding: 16px 18px;
+    background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+    border-radius: 18px; color: white; flex-shrink: 0;
+    position: relative; cursor: pointer;
+  }
+  .rta-hero .edit-icon {
+    position: absolute; top: 14px; right: 14px;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: rgba(255,255,255,0.18);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+  }
+  .rta-label { font-size: 11px; font-weight: 600; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
+  .rta-amount { font-size: 28px; font-weight: 800; margin-top: 4px; letter-spacing: -0.5px; }
+  .rta-sub { font-size: 11px; opacity: .8; margin-top: 6px; }
+  .rta-income-hint {
+    font-size: 10px; margin-top: 8px; opacity: .9;
+    display: flex; gap: 6px; align-items: center;
+  }
+
+  /* Accounts strip */
+  .section-title {
+    display: flex; justify-content: space-between; align-items: center;
+    flex-shrink: 0;
+  }
+  .section-title h3 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--text-muted);
+  }
+  .accounts-strip {
+    display: flex; gap: 10px; overflow-x: auto; flex-shrink: 0;
+    scrollbar-width: none; padding-bottom: 4px;
+  }
+  .accounts-strip::-webkit-scrollbar { display: none; }
+  .account-card {
+    flex-shrink: 0; min-width: 150px; padding: 12px 14px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 14px; position: relative;
+  }
+  .account-card.add {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); border: 1px dashed var(--accent); background: var(--accent-soft);
+    font-weight: 600; font-size: 13px; min-width: 100px;
+  }
+  .account-chevron {
+    position: absolute; right: 10px; top: 10px;
+    font-size: 14px; color: var(--text-dim);
+  }
+  .account-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    display: inline-block; margin-right: 6px;
+  }
+  .account-dot.credit { background: var(--red); }
+  .account-name { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; }
+  .account-balance { font-size: 17px; font-weight: 700; margin-top: 4px; }
+
+  /* Envelope groups — NEW: add-category trailing button + add-group trailing button */
+  .env-group-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 4px 0; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted);
+  }
+  .env-group-header .actions { display: flex; align-items: center; gap: 8px; }
+  .env-group-header .group-total { color: var(--text-muted); }
+  .add-cat-btn {
+    background: var(--accent-soft); color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 6px;
+    padding: 2px 8px; font-size: 10px; font-weight: 700; cursor: pointer;
+    text-transform: uppercase; letter-spacing: .4px;
+  }
+
+  .env-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .env-card.overspent { border-color: var(--red); background: var(--red-bg); }
+  .env-row1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .env-name { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; flex: 1; min-width: 0; }
+  .env-emoji { font-size: 16px; }
+  .env-pill {
+    padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    background: var(--green-bg); color: var(--green);
+  }
+  .env-pill.red { background: var(--red-bg); color: var(--red); }
+  .env-pill.orange { background: var(--orange-bg); color: var(--orange); }
+  .env-row2 { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-muted); }
+  .env-progress { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .env-progress-fill { height: 100%; background: var(--green); border-radius: 2px; }
+  .env-progress-fill.red { background: var(--red); }
+
+  /* Add-Group button at the bottom of envelope list */
+  .add-group-btn {
+    margin-top: 8px; padding: 12px;
+    background: transparent; border: 1px dashed var(--accent);
+    color: var(--accent); font-weight: 600; font-size: 13px;
+    border-radius: 12px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  /* Highlight rings (annotation) */
+  .highlight {
+    box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.6);
+    border-radius: 16px;
+    transition: box-shadow .12s;
+  }
+  .highlight.cat       { box-shadow: 0 0 0 3px rgba(244, 114, 182, 0.6); }
+  .highlight.group     { box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.6); }
+  .highlight.income    { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.7); }
+  .highlight.reconcile { box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.7); }
+
+  /* Account-detail mock styles */
+  .top-bar { display: flex; align-items: center; gap: 8px; padding: 0; flex-shrink: 0; }
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text);
+  }
+  .top-bar-title { font-size: 15px; font-weight: 700; flex: 1; }
+  .top-bar-menu {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 18px; color: var(--text); cursor: pointer; font-weight: 700;
+  }
+
+  .account-hero {
+    padding: 18px; border-radius: 18px; color: white; flex-shrink: 0;
+    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+  }
+  .ah-type { font-size: 11px; font-weight: 600; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
+  .ah-name { font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .ah-balance { font-size: 30px; font-weight: 800; margin-top: 8px; letter-spacing: -0.5px; }
+  .ah-meta { display: flex; gap: 18px; margin-top: 10px; font-size: 11px; opacity: .85; }
+
+  .tx-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tx-icon {
+    width: 38px; height: 38px; border-radius: 10px; background: var(--bg-card);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    flex-shrink: 0;
+  }
+  .tx-body { flex: 1; min-width: 0; }
+  .tx-title { font-size: 13px; font-weight: 600; }
+  .tx-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .tx-amount { font-size: 14px; font-weight: 700; }
+  .tx-amount.income { color: var(--green); }
+  .tx-amount.adj { color: var(--accent); }
+
+  .tx-date-header {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--text-muted); padding: 12px 0 4px;
+  }
+
+  /* Menu popover (anchored to ⋯) */
+  .menu-pop {
+    position: absolute; top: 60px; right: 20px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 6px; min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35); z-index: 20;
+  }
+  body.light .menu-pop { box-shadow: 0 8px 32px rgba(15,23,42,0.18); }
+  .menu-item {
+    padding: 9px 12px; border-radius: 8px; font-size: 13px;
+    color: var(--text); cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .menu-item:hover { background: var(--bg-card-2); }
+  .menu-item .icon { font-size: 14px; }
+  .menu-item.highlight {
+    background: var(--accent-soft); color: var(--accent); font-weight: 600;
+  }
+
+  /* Annotation card */
+  .annot {
+    border-left: 4px solid var(--accent);
+    background: var(--bg-card); border-radius: 8px;
+    padding: 10px 12px; margin: 0 auto;
+    max-width: 420px; font-size: 12px; line-height: 1.5;
+  }
+  .annot strong { color: var(--text); display: block; margin-bottom: 4px; font-size: 13px; }
+  .annot.pink   { border-left-color: #ec4899; }
+  .annot.green  { border-left-color: var(--green); }
+  .annot.amber  { border-left-color: #fbbf24; }
+
+  .legend { display: flex; flex-direction: column; gap: 10px; align-items: center; margin-top: 28px; max-width: 760px; margin-left: auto; margin-right: auto; }
+</style>
+</head>
+<body class="">
+
+<div class="page-header">
+  <div class="page-title">Budget — Add entry points</div>
+  <div class="page-sub">เพิ่ม 4 จุดที่หายไปจาก redesign: <strong>+ Add Category</strong> ต่อท้าย group header, <strong>+ Add Group</strong> ที่ท้าย list, แตะ RTA hero เพื่อ <strong>ตั้ง Monthly Income</strong>, และเมนู ⋯ บนหน้า account detail สำหรับ <strong>Reconcile balance</strong></div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" onclick="setTheme('dark', this)">Dark</button>
+    <button class="toggle-btn" onclick="setTheme('light', this)">Light</button>
+  </div>
+</div>
+
+<div class="phones">
+  <div class="variant">
+    <div class="variant-label"><strong>หน้า /budget</strong> ทั้งหน้า — เห็น 3 จุดเพิ่มในที่เดียว</div>
+
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status-bar"><span>9:41</span><span>● ●●</span></div>
+
+      <div class="scroll-body">
+        <div class="month-strip">
+          <span class="month-arrow">‹</span>
+          <span class="month-label">May 2026</span>
+          <span class="month-arrow">›</span>
+        </div>
+
+        <!-- (3) Tappable RTA hero — opens Set-Income dialog -->
+        <div class="rta-hero highlight income">
+          <div class="edit-icon">✎</div>
+          <div class="rta-label">Ready to Assign</div>
+          <div class="rta-amount">฿2,450</div>
+          <div class="rta-sub">฿42,500 income · ฿40,050 assigned</div>
+          <div class="rta-income-hint">💡 แตะที่นี่เพื่อตั้ง / แก้รายรับของเดือน</div>
+        </div>
+
+        <div class="section-title"><h3>Accounts · newest first</h3></div>
+        <div class="accounts-strip">
+          <div class="account-card">
+            <span class="account-chevron">›</span>
+            <div class="account-name"><span class="account-dot"></span>SCB Savings</div>
+            <div class="account-balance">฿28,400</div>
+          </div>
+          <div class="account-card">
+            <span class="account-chevron">›</span>
+            <div class="account-name"><span class="account-dot credit"></span>KBank Credit</div>
+            <div class="account-balance">−฿4,250</div>
+          </div>
+          <div class="account-card add">+ Add</div>
+        </div>
+
+        <!-- Envelope group 1: BILLS — header has + Add Category -->
+        <div>
+          <div class="env-group-header">
+            <span>Bills</span>
+            <div class="actions">
+              <span class="group-total">฿5,000 / ฿5,000</span>
+              <button class="add-cat-btn highlight cat" title="Add category to Bills">+ Cat</button>
+            </div>
+          </div>
+          <div class="env-card" style="margin-top: 6px">
+            <div class="env-row1">
+              <div class="env-name"><span class="env-emoji">🏠</span>Rent</div>
+              <div class="env-pill">฿5,000</div>
+            </div>
+            <div class="env-row2"><span>Target ฿5,000/mo</span><span>Funded</span></div>
+            <div class="env-progress"><div class="env-progress-fill" style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <!-- Envelope group 2: FUN — also has + Add Category -->
+        <div>
+          <div class="env-group-header">
+            <span>Fun</span>
+            <div class="actions">
+              <span class="group-total">฿1,580 / ฿2,000</span>
+              <button class="add-cat-btn">+ Cat</button>
+            </div>
+          </div>
+          <div class="env-card" style="margin-top: 6px">
+            <div class="env-row1">
+              <div class="env-name"><span class="env-emoji">🍜</span>Dining</div>
+              <div class="env-pill orange">฿420</div>
+            </div>
+            <div class="env-row2"><span>Spent ฿1,580 of ฿2,000</span><span>21% left</span></div>
+            <div class="env-progress"><div class="env-progress-fill" style="width:79%"></div></div>
+          </div>
+        </div>
+
+        <!-- (2) Add Group at the bottom -->
+        <button class="add-group-btn highlight group">＋ Add Group</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Second phone — Account detail with Reconcile menu open -->
+  <div class="variant">
+    <div class="variant-label"><strong>/budget/accounts/:id</strong> — แตะ ⋯ มุมขวาบน → เห็น Reconcile</div>
+
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status-bar"><span>9:41</span><span>● ●●</span></div>
+
+      <div class="scroll-body" style="padding: 0 16px 96px;">
+        <div class="top-bar">
+          <div class="back-btn">‹</div>
+          <div class="top-bar-title">SCB Savings</div>
+          <div class="top-bar-menu highlight reconcile">⋯</div>
+        </div>
+
+        <div class="account-hero">
+          <div class="ah-type">Cash account</div>
+          <div class="ah-name">SCB Savings</div>
+          <div class="ah-balance">฿28,400.00</div>
+          <div class="ah-meta">
+            <span>📈 ฿42,500 in</span>
+            <span>📉 −฿5,000 out</span>
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top: 6px">
+          <h3>Transactions · newest first</h3>
+        </div>
+
+        <div>
+          <div class="tx-date-header">Today · May 25</div>
+          <div class="tx-row">
+            <div class="tx-icon" style="background: var(--accent-soft); color: var(--accent)">⚖</div>
+            <div class="tx-body">
+              <div class="tx-title">Reconcile adjustment</div>
+              <div class="tx-sub">Manual balance fix · +฿42</div>
+            </div>
+            <div class="tx-amount adj">+฿42.00</div>
+          </div>
+          <div class="tx-row">
+            <div class="tx-icon">☕</div>
+            <div class="tx-body">
+              <div class="tx-title">Café Amazon</div>
+              <div class="tx-sub">Dining</div>
+            </div>
+            <div class="tx-amount">−฿85</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="tx-date-header">Yesterday · May 24</div>
+          <div class="tx-row">
+            <div class="tx-icon">💰</div>
+            <div class="tx-body">
+              <div class="tx-title">Salary</div>
+              <div class="tx-sub">Income · Ready to Assign</div>
+            </div>
+            <div class="tx-amount income">+฿42,500</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Menu popover anchored at top-right ⋯ -->
+      <div class="menu-pop">
+        <div class="menu-item highlight">
+          <span class="icon">⚖</span>
+          <span>Reconcile balance</span>
+        </div>
+        <div class="menu-item">
+          <span class="icon">✎</span>
+          <span>Edit account…</span>
+        </div>
+        <div class="menu-item">
+          <span class="icon">🗄</span>
+          <span>Close account</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="annot pink">
+    <strong>① ปุ่ม + Cat (สีชมพู) ที่ group header</strong>
+    แตะแล้วเปิด AddCategoryDialog เดิม — pre-fill group ของแถบที่กด ผู้ใช้แค่กรอกชื่อ + emoji + target (ถ้าอยาก) → กด Create. sortOrder ไม่ต้องกรอก (auto จาก backend T3)
+  </div>
+  <div class="annot green">
+    <strong>② ปุ่ม ＋ Add Group (สีเขียว) ท้าย list</strong>
+    เปิด AddGroupDialog ใหม่ที่ต้องสร้าง — มีแค่ field "Name" อย่างเดียว. หลังสร้าง group ใหม่จะมาอยู่ต่อท้าย (sortOrder auto จาก backend T1)
+  </div>
+  <div class="annot amber">
+    <strong>③ แตะที่ RTA hero (สีเหลือง)</strong>
+    เปิด SetIncomeDialog ใหม่ที่ต้องสร้าง — field "Monthly income for May 2026" + ค่าปัจจุบัน. กด Save → ใช้ <code>useSetMonthlyIncomeMutation</code> ที่มีอยู่แล้ว → RTA จะอัปเดตทันที. มี icon ✎ มุมขวาบนของ hero ให้เห็นว่ากดได้
+  </div>
+  <div class="annot" style="border-left-color: #38bdf8">
+    <strong>④ เมนู ⋯ บน /budget/accounts/:id → "Reconcile balance" (สีฟ้า)</strong>
+    เปิด ReconcileBalanceDialog ใหม่ — ให้ user กรอก "ยอดจริงจากธนาคาร" (real bank balance). ระบบคำนวณส่วนต่างจากยอดที่ track ไว้แล้วสร้าง <strong>transaction "Reconcile adjustment"</strong> (categoryId = null, amount = diff, notes = "Manual balance fix"). Backend ใช้ <code>useCreateBudgetTransactionMutation</code> ตัวเดิม — ไม่ต้องเพิ่ม backend ใหม่. transaction adjustment จะเห็นในรายการพร้อม icon ⚖ ให้รู้ที่มา. เมนูเดียวกันยังมี "Edit account" + "Close account" (สำหรับ UpdateAccount / Close ที่มีอยู่แล้วใน backend)
+  </div>
+</div>
+
+<script>
+  function setTheme(mode, btn) {
+    document.body.classList.toggle('light', mode === 'light');
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>
