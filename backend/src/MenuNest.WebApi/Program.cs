@@ -138,6 +138,7 @@ builder.Services.AddCors(options =>
 // ----------------------------------------------------------------------
 // Web
 // ----------------------------------------------------------------------
+builder.Services.AddApplicationInsightsTelemetry();
 builder.Services
     .AddControllers()
     .AddJsonOptions(options =>
