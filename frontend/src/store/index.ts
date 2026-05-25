@@ -3,6 +3,7 @@ import { setupListeners } from '@reduxjs/toolkit/query'
 import { useDispatch, useSelector } from 'react-redux'
 import type { TypedUseSelectorHook } from 'react-redux'
 import { api, publicApi } from '../shared/api/api'
+import {rtkErrorTelemetry} from '../shared/telemetry/rtkErrorTelemetry'
 
 // Per-page slices are imported here. Feature slices live in
 // `pages/{feature}/{feature}Slice.ts` and follow the naming convention.
@@ -27,7 +28,7 @@ export const store = configureStore({
     budget: budgetSlice,
   },
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(api.middleware, publicApi.middleware),
+    getDefaultMiddleware().concat(api.middleware, publicApi.middleware, rtkErrorTelemetry),
 })
 
 setupListeners(store.dispatch)
