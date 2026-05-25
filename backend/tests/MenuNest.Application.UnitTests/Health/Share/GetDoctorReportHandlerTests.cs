@@ -83,7 +83,8 @@ public class GetDoctorReportHandlerTests
             tokenHash: hash,
             dateFrom: from,
             dateTo: to,
-            expiresAt: clock.UtcNow.AddDays(30));
+            expiresAt: clock.UtcNow.AddDays(30),
+            nowUtc: clock.UtcNow);
         fx.Db.ShareLinks.Add(link);
 
         var symptom = Symptom.CreateSeed("ไมเกรน");

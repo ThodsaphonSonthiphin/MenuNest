@@ -50,7 +50,8 @@ public sealed class CreateShareLinkHandler : ICommandHandler<CreateShareLinkComm
             tokenHash: issuance.Hash,
             dateFrom: command.DateFrom,
             dateTo: command.DateTo,
-            expiresAt: expiresAt);
+            expiresAt: expiresAt,
+            nowUtc: _clock.UtcNow);
 
         _db.ShareLinks.Add(link);
         await _db.SaveChangesAsync(ct);
