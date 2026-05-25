@@ -149,3 +149,5 @@ azure-pipelines-generated.yml
 # ---------- Local-only Azure dumps ----------
 # Ad-hoc cost/resource queries dumped via `az ... > temp/...`
 /temp/
+.azure-migration-backup/
+infra/main.json
