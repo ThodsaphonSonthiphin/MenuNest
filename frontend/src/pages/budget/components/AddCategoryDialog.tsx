@@ -91,6 +91,7 @@ export function AddCategoryDialog({
       onClick={e => {
         if (e.target === e.currentTarget) onClose()
       }}
+      data-testid="bdg-add-cat-dialog"
     >
       <form className="budget-modal" onSubmit={onSubmit} noValidate>
         <h3>Add Category</h3>
