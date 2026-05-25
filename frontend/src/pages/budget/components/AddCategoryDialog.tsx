@@ -62,7 +62,6 @@ export function AddCategoryDialog({onClose}: {onClose: () => void}) {
         groupId: values.groupId,
         name: values.name.trim(),
         emoji: values.emoji.trim() || null,
-        sortOrder: 0,
         targetType: values.targetType,
         targetAmount: values.targetType === 'None'
           ? null
