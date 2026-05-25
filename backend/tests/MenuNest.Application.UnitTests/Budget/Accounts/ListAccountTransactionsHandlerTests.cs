@@ -111,18 +111,24 @@ public class ListAccountTransactionsHandlerTests
     {
         using var fx = new HandlerTestFixture();
         var acct = await SeedAccount(fx);
-        var sut = Build(fx);
 
-        // No transactions seeded — assert that the query simply does
-        // not throw or hang under a very large Take. We can't easily
-        // assert the actual SQL clamp without exposing it, so this
-        // verifies the wide value is accepted and returns sanely.
+        // Seed 150 transactions so the 100-row clamp is observable.
+        var startDate = new DateOnly(2026, 5, 1);
+        for (int i = 0; i < 150; i++)
+        {
+            fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+                fx.Family.Id, acct.Id, null, -1m,
+                startDate, $"tx-{i}", fx.User.Id));
+        }
+        await fx.Db.SaveChangesAsync();
+
+        var sut = Build(fx);
         var result = await sut.Handle(
             new ListAccountTransactionsQuery(acct.Id, 2026, 5, 0, Take: 10_000),
             CancellationToken.None);
 
-        result.Items.Should().BeEmpty();
-        result.HasMore.Should().BeFalse();
+        result.Items.Should().HaveCount(100);     // clamp applied
+        result.HasMore.Should().BeTrue();          // 50 rows beyond the clamp
     }
 
     [Fact]
