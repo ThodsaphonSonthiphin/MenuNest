@@ -454,3 +454,49 @@
 .bdg-fix-card-error {
   font-size: 11px; color: var(--red); margin: 0;
 }
+
+/* -------- Quick-assign chips (RTA > 0) -------- */
+.bdg-qa-chips {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.bdg-qa-chip {
+  background: var(--bg-card); color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 6px 14px; border-radius: 999px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: inherit;
+}
+.bdg-qa-chip:hover { background: var(--accent-soft); }
+
+/* QuickAssignDialog preview list */
+.bdg-qa-list {
+  display: flex; flex-direction: column;
+  margin: 12px 0 8px;
+  border-top: 1px solid var(--border);
+  max-height: 280px; overflow-y: auto;
+}
+.bdg-qa-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.bdg-qa-emoji { font-size: 16px; width: 22px; text-align: center; }
+.bdg-qa-name { flex: 1; min-width: 0; color: var(--text); }
+.bdg-qa-add {
+  color: var(--green); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.bdg-qa-total {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 0 4px;
+  font-size: 13px; color: var(--text-muted);
+}
+.bdg-qa-total strong {
+  color: var(--text); font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.bdg-qa-empty {
+  padding: 16px 0;
+  font-size: 13px; color: var(--text-muted); line-height: 1.5;
+}
