@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RTA hero — calm minimal preview</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #0f172a;
+    --bg-card: #1e293b;
+    --bg-card-2: #0f172a;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 48px 24px;
+  }
+  .page-title { color: var(--text); text-align: center; font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+  .page-sub { color: var(--text-muted); text-align: center; font-size: 12px; letter-spacing: 0.05em; margin-bottom: 40px; }
+  .phones {
+    display: flex; gap: 32px; justify-content: center; flex-wrap: wrap;
+    max-width: 1300px; margin: 0 auto;
+  }
+  .phone {
+    width: 360px; padding: 28px;
+    background: #0a0f1a; border-radius: 32px;
+    border: 1px solid #1e293b;
+  }
+  .phone-label {
+    font-size: 10px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.15em;
+    margin-bottom: 14px;
+  }
+
+  /* === Production rules — kept in sync with BudgetPage.css === */
+  .bdg-rta-hero {
+    width: 100%; text-align: left; cursor: pointer;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 18px 16px;
+    color: var(--text);
+    font-family: inherit;
+    transition: border-color .15s ease-out, background-color .15s ease-out;
+  }
+  .bdg-rta-hero:hover {
+    border-color: var(--rta-accent);
+    background: var(--bg-card-2);
+  }
+  .bdg-rta-hero.is-has-money { --rta-accent: #f59e0b; --rta-accent-bg: rgba(245,158,11,0.14); }
+  .bdg-rta-hero.is-zero      { --rta-accent: #10b981; --rta-accent-bg: rgba(16,185,129,0.14); }
+  .bdg-rta-hero.is-over      { --rta-accent: #ef4444; --rta-accent-bg: rgba(239,68,68,0.14); }
+
+  .bdg-rta-topline {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  }
+  .bdg-rta-month {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.10em;
+  }
+  .bdg-rta-state-pill {
+    font-size: 11px; font-weight: 600;
+    color: var(--rta-accent);
+    background: var(--rta-accent-bg);
+    padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  }
+  .bdg-rta-amount {
+    font-size: clamp(32px, 9vw, 40px);
+    font-weight: 700; line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-top: 14px;
+    font-variant-numeric: tabular-nums;
+  }
+  .bdg-rta-context {
+    font-size: 12px; line-height: 1.45;
+    color: var(--text-muted);
+    margin-top: 6px;
+  }
+  .bdg-rta-progress {
+    display: flex; align-items: center; gap: 10px; margin-top: 14px;
+  }
+  .bdg-rta-progress-track {
+    flex: 1; height: 3px; background: var(--border);
+    border-radius: 2px; overflow: hidden;
+  }
+  .bdg-rta-progress-fill {
+    height: 100%; background: var(--rta-accent);
+    border-radius: 2px; transition: width 320ms ease-out;
+  }
+  .bdg-rta-progress-pct {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 32px; text-align: right;
+  }
+</style>
+</head>
+<body>
+<div class="page-title">RTA hero — calm minimal</div>
+<div class="page-sub">single neutral panel · state in pill + bar accent only</div>
+
+<div class="phones">
+  <div class="phone">
+    <div class="phone-label">A — Still to place</div>
+    <button class="bdg-rta-hero is-has-money">
+      <div class="bdg-rta-topline">
+        <span class="bdg-rta-month">May 2026</span>
+        <span class="bdg-rta-state-pill">Still to place</span>
+      </div>
+      <div class="bdg-rta-amount">฿2,450.00</div>
+      <div class="bdg-rta-context">฿40,050.00 of ฿42,500.00 placed.</div>
+      <div class="bdg-rta-progress">
+        <div class="bdg-rta-progress-track">
+          <div class="bdg-rta-progress-fill" style="width: 94%"></div>
+        </div>
+        <span class="bdg-rta-progress-pct">94%</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="phone">
+    <div class="phone-label">B — Goal reached</div>
+    <button class="bdg-rta-hero is-zero">
+      <div class="bdg-rta-topline">
+        <span class="bdg-rta-month">May 2026</span>
+        <span class="bdg-rta-state-pill">Every baht has a job</span>
+      </div>
+      <div class="bdg-rta-amount">฿0.00</div>
+      <div class="bdg-rta-context">฿42,500.00 fully placed.</div>
+      <div class="bdg-rta-progress">
+        <div class="bdg-rta-progress-track">
+          <div class="bdg-rta-progress-fill" style="width: 100%"></div>
+        </div>
+        <span class="bdg-rta-progress-pct">100%</span>
+      </div>
+    </button>
+  </div>
+
+  <div class="phone">
+    <div class="phone-label">C — Over-assigned</div>
+    <button class="bdg-rta-hero is-over">
+      <div class="bdg-rta-topline">
+        <span class="bdg-rta-month">May 2026</span>
+        <span class="bdg-rta-state-pill">Too much assigned</span>
+      </div>
+      <div class="bdg-rta-amount">−฿320.00</div>
+      <div class="bdg-rta-context">Pull ฿320.00 back to rebalance.</div>
+      <div class="bdg-rta-progress">
+        <div class="bdg-rta-progress-track">
+          <div class="bdg-rta-progress-fill" style="width: 100%"></div>
+        </div>
+        <span class="bdg-rta-progress-pct">101%</span>
+      </div>
+    </button>
+  </div>
+</div>
+</body>
+</html>

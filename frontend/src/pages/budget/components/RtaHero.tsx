@@ -1,14 +1,24 @@
 import {formatTHB} from '../BudgetPage.hooks'
 import type {MonthlySummaryDto} from '../../../shared/api/api'
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
+
 /**
- * Ready-to-Assign hero. Renders three visually distinct states so a
- * zero-based-budgeting user can see at a glance whether they're done
- * for the month:
- *   - has-money (orange, ⚡): readyToAssign > 0 — still assigning
- *   - zero      (green,  ✓): readyToAssign === 0 — goal reached
- *   - over      (red,   ⚠): readyToAssign < 0 — pull money back
- * Tapping the hero invokes onClick (used to open SetIncomeDialog).
+ * Ready-to-Assign hero — calm, minimal card design.
+ *
+ * Single neutral slate panel across all three states. A small colored
+ * pill at the top names the state; a thin colored progress bar at the
+ * bottom shows assigned/income ratio. The amount stays neutral white
+ * across states so the eye reads value, not chrome.
+ *
+ *   has-money  amber accent  — "Still to place"
+ *   zero       emerald accent — "Every baht has a job"
+ *   over       red accent     — "Too much assigned"
+ *
+ * Tapping opens SetIncomeDialog via onClick.
  */
 export function RtaHero({
   summary,
@@ -21,23 +31,21 @@ export function RtaHero({
   const state: 'has-money' | 'zero' | 'over' =
     rta > 0 ? 'has-money' : rta === 0 ? 'zero' : 'over'
 
-  const stateIcon = state === 'zero' ? '✓' : state === 'over' ? '⚠' : '⚡'
   const stateLabel =
     state === 'zero' ? 'Every baht has a job' :
     state === 'over' ? 'Too much assigned' :
-    'Assign every baht'
+    'Still to place'
 
-  const ctaText =
-    state === 'zero' ? 'Goal reached' :
-    state === 'over' ? `Pull ${formatTHB(Math.abs(rta))} back` :
-    '↑ Still to assign'
+  const contextLine =
+    state === 'zero'
+      ? `${formatTHB(summary.income)} fully placed.`
+      : state === 'over'
+      ? `Pull ${formatTHB(Math.abs(rta))} back to rebalance.`
+      : `${formatTHB(summary.totalAssigned)} of ${formatTHB(summary.income)} placed.`
 
-  // Progress = how much of income is assigned. Special-cased: 0% when
-  // there's no income yet, 100% when over-assigned (bar visually full).
-  const pct =
-    summary.income <= 0 ? 0 :
-    state === 'over' ? 100 :
-    Math.min(100, Math.round((summary.totalAssigned / summary.income) * 100))
+  const pctRaw = summary.income <= 0 ? 0 : (summary.totalAssigned / summary.income) * 100
+  const pctClamped = state === 'over' ? 100 : Math.min(100, Math.max(0, pctRaw))
+  const pctLabel = Math.round(pctClamped)
 
   return (
     <button
@@ -46,22 +54,26 @@ export function RtaHero({
       data-testid="bdg-rta-hero"
       onClick={onClick}
     >
-      <span className="bdg-rta-edit-icon" aria-hidden>✎</span>
-      <span className="bdg-rta-state-icon" aria-hidden>{stateIcon}</span>
-      <div className="bdg-rta-label">{stateLabel}</div>
+      <div className="bdg-rta-topline">
+        <span className="bdg-rta-month">{MONTHS[summary.month - 1]} {summary.year}</span>
+        <span className="bdg-rta-state-pill">{stateLabel}</span>
+      </div>
+
       <div className="bdg-rta-amount" data-testid="bdg-rta-amount">
         {formatTHB(rta)}
       </div>
-      <div className="bdg-rta-cta">{ctaText}</div>
 
-      <div className="bdg-rta-progress-wrap" data-testid="bdg-rta-progress">
-        <div className="bdg-rta-progress-labels">
-          <span>{formatTHB(summary.totalAssigned)} assigned</span>
-          <span>{pct}% of {formatTHB(summary.income)}</span>
+      <div className="bdg-rta-context">{contextLine}</div>
+
+      <div
+        className="bdg-rta-progress"
+        data-testid="bdg-rta-progress"
+        aria-label={`${pctLabel} percent of income placed`}
+      >
+        <div className="bdg-rta-progress-track">
+          <div className="bdg-rta-progress-fill" style={{width: `${pctClamped}%`}} />
         </div>
-        <div className="bdg-rta-progress-bar">
-          <div className="bdg-rta-progress-fill" style={{width: `${pct}%`}} />
-        </div>
+        <span className="bdg-rta-progress-pct">{pctLabel}%</span>
       </div>
     </button>
   )
