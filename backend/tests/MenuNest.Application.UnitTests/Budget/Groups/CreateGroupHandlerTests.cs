@@ -46,4 +46,30 @@ public class CreateGroupHandlerTests
 
         await act.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task Max_is_scoped_to_calling_family_only()
+    {
+        using var fx = new HandlerTestFixture();
+        var otherFamilyId = Guid.NewGuid();
+        fx.Db.BudgetCategoryGroups.Add(BudgetCategoryGroup.Create(otherFamilyId, "Other", 99));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
+
+        var result = await sut.Handle(new CreateGroupCommand("Bills"), CancellationToken.None);
+
+        result.SortOrder.Should().Be(0); // starts from 0 — does NOT see the other family's row
+    }
+
+    [Fact]
+    public async Task Rejects_name_longer_than_120_characters()
+    {
+        using var fx = new HandlerTestFixture();
+        var sut = Build(fx);
+
+        var act = async () => await sut.Handle(
+            new CreateGroupCommand(new string('a', 121)), CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
 }
