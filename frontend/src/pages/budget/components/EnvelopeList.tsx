@@ -6,6 +6,7 @@ import {TransactionDialog} from './TransactionDialog'
 import {MoveMoneyDialog} from './MoveMoneyDialog'
 import {CoverOverspendingDialog} from './CoverOverspendingDialog'
 import {AddCategoryDialog} from './AddCategoryDialog'
+import {AddGroupDialog} from './AddGroupDialog'
 import {formatTHB} from '../BudgetPage.hooks'
 
 /**
@@ -19,6 +20,7 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
   const [moveFrom, setMoveFrom] = useState<EnvelopeDto | null>(null)
   const [coverFor, setCoverFor] = useState<EnvelopeDto | null>(null)
   const [addCatGroupId, setAddCatGroupId] = useState<string | null>(null)
+  const [addGroupOpen, setAddGroupOpen] = useState(false)
 
   const groups = summary.groups
     .map(g => ({
@@ -64,6 +66,13 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
         </Fragment>
       ))}
 
+      <button
+        type="button"
+        className="bdg-add-group-btn"
+        data-testid="bdg-add-group-btn"
+        onClick={() => setAddGroupOpen(true)}
+      >＋ Add Group</button>
+
       {txPreset && (
         <TransactionDialog
           accounts={summary.accounts}
@@ -84,6 +93,7 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
           onClose={() => setAddCatGroupId(null)}
         />
       )}
+      {addGroupOpen && <AddGroupDialog onClose={() => setAddGroupOpen(false)} />}
     </div>
   )
 }
