@@ -45,7 +45,7 @@ export function NavBar() {
       )}
 
       <NavLink to="/" className="app-navbar__brand">
-        🍽️ MenuNest
+        🪺 Nest
       </NavLink>
 
       {!isMobile && (

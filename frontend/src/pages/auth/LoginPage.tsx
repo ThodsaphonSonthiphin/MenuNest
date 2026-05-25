@@ -32,9 +32,9 @@ export function LoginPage() {
   return (
     <section className="page page--login">
       <div className="login-card">
-        <div className="login-card__logo">🍽️</div>
-        <h1>MenuNest</h1>
-        <p className="login-card__tagline">วางแผนมื้ออาหารกับครอบครัว</p>
+        <div className="login-card__logo">🪺</div>
+        <h1>Nest</h1>
+        <p className="login-card__tagline">ทุกเรื่องของครอบครัว รวมไว้ที่เดียว</p>
 
         <Button
           type="button"

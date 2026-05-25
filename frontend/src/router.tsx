@@ -38,11 +38,11 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      // Migraine tracker is now the default landing — '/' redirects into
-      // /health so a newly-signed-in user immediately sees the symptom-log
-      // entry point instead of the meal-planning dashboard. The original
-      // dashboard is still reachable at '/dashboard'.
-      { path: '/', element: <Navigate to="/health" replace /> },
+      // Budget is the default landing — '/' redirects into /budget so a
+      // newly-signed-in user lands on the envelope view directly. Note
+      // that /budget is family-scoped, so users without a family will
+      // bounce through FamilyRequiredRoute to /join-family.
+      { path: '/', element: <Navigate to="/budget" replace /> },
       { path: '/join-family', element: <JoinFamilyPage /> },
       // Health pages need auth but NOT a family — migraine tracking is a
       // personal-scope module. They still render inside AppLayout so the
