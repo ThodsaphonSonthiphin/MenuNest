@@ -73,8 +73,8 @@ test.describe('Health module — smoke tests', () => {
     await page.goto('/login')
     await page.waitForLoadState('networkidle')
     await expect(page.locator('body')).toBeVisible()
-    // The "MenuNest" brand text is always shown in the login card.
-    await expect(page.locator('body')).toContainText('MenuNest')
+    // The "Nest" brand text is always shown in the login card.
+    await expect(page.locator('body')).toContainText('Nest')
   })
 
   test('service worker registers on first load', async ({ page }) => {

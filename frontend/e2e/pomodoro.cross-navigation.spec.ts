@@ -33,16 +33,16 @@ test.describe('Pomodoro — cross-page navigation', () => {
     await expect(page.getByTestId('pomo-pause')).toBeVisible()
   })
 
-  test('clicking the MenuNest brand link does not lose timer state', async ({
+  test('clicking the Nest brand link does not lose timer state', async ({
     authedPage: page,
   }) => {
     await page.goto('/pomodoro')
     await page.getByTestId('pomo-start').click()
     await page.clock.fastForward(60_000)
 
-    await page.getByRole('link', { name: /MenuNest/i }).first().click()
-    // Brand goes to '/', which the protected redirect resolves to '/health'.
-    await expect(page).toHaveURL(/\/health$/)
+    await page.getByRole('link', { name: /Nest/i }).first().click()
+    // Brand goes to '/', which the protected redirect resolves to '/budget'.
+    await expect(page).toHaveURL(/\/budget$/)
 
     await page.clock.fastForward(60_000)
     await page.goto('/pomodoro')
