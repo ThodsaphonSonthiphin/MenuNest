@@ -5,6 +5,7 @@ import {RtaHero} from './components/RtaHero'
 import {AccountsStrip} from './components/AccountsStrip'
 import {EnvelopeList} from './components/EnvelopeList'
 import {SetIncomeDialog} from './components/SetIncomeDialog'
+import {SuggestedFixCard} from './components/SuggestedFixCard'
 import {useBudgetData} from './BudgetPage.hooks'
 import {setFilter} from './budgetSlice'
 import type {BudgetFilter} from './budgetSlice'
@@ -34,6 +35,7 @@ export function BudgetPage() {
     <div className="bdg-page" data-testid="bdg-page">
       <MonthStrip />
       <RtaHero summary={summary} onClick={() => setIncomeOpen(true)} />
+      <SuggestedFixCard summary={summary} />
       <AccountsStrip accounts={summary.accounts} />
 
       <div className="bdg-filters">

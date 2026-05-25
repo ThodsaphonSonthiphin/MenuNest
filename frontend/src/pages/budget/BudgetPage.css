@@ -411,3 +411,46 @@
 .bdg-menu-item:hover:not(.is-disabled) { background: var(--bg-card-2); }
 .bdg-menu-item.is-disabled { opacity: 0.5; cursor: not-allowed; }
 .bdg-menu-item .icon { font-size: 14px; }
+
+/* -------- Suggested fix card (RTA < 0) -------- */
+.bdg-fix-card {
+  background: var(--bg-card);
+  border: 1px solid var(--red);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.bdg-fix-card-label {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.10em;
+  color: var(--red);
+}
+.bdg-fix-card-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.bdg-fix-card-target {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+}
+.bdg-fix-card-emoji { font-size: 16px; }
+.bdg-fix-card-name { font-weight: 600; color: var(--text); }
+.bdg-fix-card-spare { color: var(--text-muted); font-size: 12px; }
+.bdg-fix-card-btn {
+  background: var(--red);
+  color: white;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.bdg-fix-card-btn:hover { filter: brightness(1.08); }
+.bdg-fix-card-btn:disabled { opacity: 0.6; cursor: default; }
+.bdg-fix-card--empty .bdg-fix-card-empty {
+  font-size: 12px; color: var(--text-muted); line-height: 1.4;
+}
+.bdg-fix-card-error {
+  font-size: 11px; color: var(--red); margin: 0;
+}
