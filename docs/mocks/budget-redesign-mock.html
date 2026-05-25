@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Redesign — Mobile-first · Tap account for transactions</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #020617;
+    --bg-card: #0f172a;
+    --bg-card-2: #1e293b;
+    --bg-elev: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-dim: #64748b;
+    --accent: #6366f1;
+    --accent-soft: rgba(99, 102, 241, 0.15);
+    --green: #22c55e;
+    --green-bg: rgba(34,197,94,0.15);
+    --red: #ef4444;
+    --red-bg: rgba(239,68,68,0.15);
+    --orange: #f59e0b;
+    --orange-bg: rgba(245,158,11,0.15);
+    --blue: #38bdf8;
+  }
+  body.light {
+    --bg-page: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-2: #f8fafc;
+    --bg-elev: #ffffff;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --accent: #4f46e5;
+    --accent-soft: rgba(79,70,229,0.10);
+    --green: #16a34a;
+    --green-bg: rgba(22,163,74,0.12);
+    --red: #dc2626;
+    --red-bg: rgba(220,38,38,0.10);
+    --orange: #d97706;
+    --orange-bg: rgba(217,119,6,0.12);
+    --blue: #0284c7;
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 48px;
+  }
+
+  .page-header { text-align: center; margin-bottom: 24px; }
+  .page-title  { font-size: 20px; font-weight: 700; }
+  .page-sub    { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+  .toggle-row  { display: flex; justify-content: center; gap: 8px; margin-top: 14px; }
+  .toggle-btn  {
+    background: var(--bg-card); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 14px; border-radius: 8px; font-size: 12px; cursor: pointer;
+  }
+  .toggle-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+  .phones {
+    display: flex; gap: 28px; justify-content: center; align-items: flex-start;
+    flex-wrap: wrap; max-width: 1400px; margin: 0 auto;
+  }
+  .variant { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .variant-label {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-align: center; max-width: 380px;
+  }
+  .variant-label strong { color: var(--text); font-size: 14px; display: block; margin-bottom: 4px; }
+  .flow-arrow {
+    font-size: 36px; color: var(--accent); align-self: center;
+    padding: 0 4px; opacity: 0.8;
+  }
+
+  /* iPhone frame */
+  .phone {
+    width: 390px; height: 780px; background: var(--bg-card);
+    border: 8px solid #0a0a0f; border-radius: 44px; box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+    overflow: hidden; position: relative; display: flex; flex-direction: column;
+  }
+  body.light .phone { border-color: #cbd5e1; box-shadow: 0 20px 60px rgba(15,23,42,0.18); }
+  .notch {
+    position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+    width: 110px; height: 26px; background: #0a0a0f; border-radius: 14px; z-index: 30;
+  }
+  body.light .notch { background: #1e293b; }
+  .status-bar {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+
+  /* Top bar */
+  .top-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 4px 16px 10px; flex-shrink: 0;
+  }
+  .back-btn {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg-card-2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; color: var(--text); cursor: pointer;
+  }
+  .top-bar-title { font-size: 15px; font-weight: 700; flex: 1; }
+  .top-bar-menu { font-size: 18px; color: var(--text-muted); padding: 4px 8px; }
+
+  /* Month strip */
+  .month-strip {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    padding: 4px 16px 10px; flex-shrink: 0;
+  }
+  .month-arrow { font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 0 6px; }
+  .month-label { font-size: 15px; font-weight: 700; }
+
+  /* Hero blocks */
+  .rta-hero {
+    margin: 0 16px 12px; padding: 16px;
+    background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+    border-radius: 18px; color: white; flex-shrink: 0;
+  }
+  .rta-label { font-size: 11px; font-weight: 600; opacity: .85; text-transform: uppercase; letter-spacing: .5px; }
+  .rta-amount { font-size: 28px; font-weight: 800; margin-top: 4px; letter-spacing: -0.5px; }
+  .rta-sub { font-size: 11px; opacity: .8; margin-top: 6px; }
+
+  .account-hero {
+    margin: 0 16px 12px; padding: 18px;
+    background: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+    border-radius: 18px; color: white; flex-shrink: 0;
+  }
+  .account-hero .type {
+    font-size: 11px; font-weight: 600; opacity: .85;
+    text-transform: uppercase; letter-spacing: .5px;
+  }
+  .account-hero .name { font-size: 18px; font-weight: 700; margin-top: 4px; }
+  .account-hero .balance { font-size: 32px; font-weight: 800; margin-top: 10px; letter-spacing: -0.5px; }
+  .account-hero .meta {
+    display: flex; gap: 18px; margin-top: 12px; font-size: 11px; opacity: .85;
+  }
+
+  /* Section title */
+  .section-title {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 16px; margin-bottom: 8px; flex-shrink: 0;
+  }
+  .section-title h3 {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .6px; color: var(--text-muted);
+  }
+  .section-title a { font-size: 12px; color: var(--accent); font-weight: 600; }
+
+  /* Accounts horizontal strip — tappable cards */
+  .accounts-strip {
+    display: flex; gap: 10px; padding: 0 16px 14px; overflow-x: auto;
+    flex-shrink: 0; scrollbar-width: none;
+  }
+  .accounts-strip::-webkit-scrollbar { display: none; }
+  .account-card {
+    flex-shrink: 0; min-width: 150px; padding: 12px 14px;
+    background: var(--bg-card-2); border: 1px solid var(--border);
+    border-radius: 14px; cursor: pointer; position: relative;
+  }
+  .account-card.tapped {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  .account-card.add {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); border: 1px dashed var(--accent); background: var(--accent-soft);
+    font-weight: 600; font-size: 13px;
+  }
+  .account-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green);
+    display: inline-block; margin-right: 6px;
+  }
+  .account-dot.credit { background: var(--red); }
+  .account-dot.loan   { background: var(--orange); }
+  .account-name { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; }
+  .account-balance { font-size: 17px; font-weight: 700; margin-top: 4px; }
+  .account-chevron {
+    position: absolute; right: 8px; top: 8px;
+    font-size: 14px; color: var(--text-dim);
+  }
+
+  /* Scroll body */
+  .scroll-body { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+  .scroll-body::-webkit-scrollbar { display: none; }
+
+  /* Envelopes */
+  .env-group { padding: 0 16px; margin-bottom: 14px; }
+  .env-group-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .6px; color: var(--text-muted);
+  }
+  .env-card {
+    background: var(--bg-card-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 8px;
+  }
+  .env-card.overspent { border-color: var(--red); background: var(--red-bg); }
+  .env-card.expanded { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .env-row1 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .env-name { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; flex: 1; min-width: 0; }
+  .env-emoji { font-size: 16px; }
+  .env-icon-btn {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; color: var(--text-muted); cursor: pointer;
+  }
+  .env-icon-btn.danger { color: var(--red); border-color: var(--red); background: var(--red-bg); }
+
+  /* Expanded inline edit */
+  .env-expanded-body {
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .env-assigned-row {
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .env-assigned-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .5px; }
+  .env-assigned-input {
+    width: 120px; padding: 6px 10px; text-align: right;
+    background: var(--bg-card); border: 1px solid var(--accent);
+    border-radius: 8px; color: var(--text); font-size: 14px; font-weight: 700;
+  }
+  .env-meta {
+    display: flex; gap: 14px; font-size: 11px; color: var(--text-muted);
+  }
+  .env-meta .val { color: var(--text); font-weight: 600; }
+  .env-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .env-action {
+    flex: 1; min-width: 0; padding: 8px 6px; border-radius: 8px;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--text); font-size: 11px; font-weight: 600;
+    text-align: center; cursor: pointer; white-space: nowrap;
+  }
+  .env-action.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .env-action.danger  { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+  .env-pill {
+    padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;
+    background: var(--green-bg); color: var(--green);
+  }
+  .env-pill.red { background: var(--red-bg); color: var(--red); }
+  .env-pill.orange { background: var(--orange-bg); color: var(--orange); }
+  .env-row2 { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-muted); }
+  .env-progress { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .env-progress-fill { height: 100%; background: var(--green); border-radius: 2px; }
+  .env-progress-fill.red { background: var(--red); }
+
+  /* Transaction feed */
+  .tx-feed { padding: 0 16px; }
+  .tx-date-header {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    color: var(--text-muted); padding: 14px 0 6px;
+  }
+  .tx-row {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .tx-row:last-child { border-bottom: none; }
+  .tx-icon {
+    width: 38px; height: 38px; border-radius: 10px; background: var(--bg-card-2);
+    display: flex; align-items: center; justify-content: center; font-size: 16px;
+    flex-shrink: 0;
+  }
+  .tx-body { flex: 1; min-width: 0; }
+  .tx-title { font-size: 13px; font-weight: 600; }
+  .tx-sub   { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .tx-amount { font-size: 14px; font-weight: 700; }
+  .tx-amount.expense { color: var(--text); }
+  .tx-amount.income  { color: var(--green); }
+
+  /* FAB */
+  .fab {
+    position: absolute; right: 18px; bottom: 22px; z-index: 25;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--accent); color: white;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.5);
+    font-size: 28px; font-weight: 300;
+  }
+  .fab-label {
+    position: absolute; right: 78px; bottom: 35px; z-index: 25;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    padding: 4px 10px; border-radius: 8px;
+    font-size: 11px; color: var(--text); white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  /* Annotation arrow between phones */
+  .flow {
+    display: flex; align-items: center; gap: 12px; margin-top: 380px;
+    flex-direction: column;
+  }
+  .flow-text {
+    background: var(--accent-soft); color: var(--accent);
+    padding: 6px 12px; border-radius: 16px; font-size: 11px; font-weight: 600;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body class="">
+
+<div class="page-header">
+  <div class="page-title">Budget Redesign — แตะ account เพื่อดู transactions</div>
+  <div class="page-sub">หน้าหลัก (envelopes + accounts) → แตะ account → หน้า detail พร้อม transactions ของบัญชีนั้น</div>
+  <div class="toggle-row">
+    <button class="toggle-btn active" onclick="setTheme('dark', this)">Dark</button>
+    <button class="toggle-btn" onclick="setTheme('light', this)">Light</button>
+  </div>
+</div>
+
+<div class="phones">
+
+  <!-- ============== PHONE 1: Budget main ============== -->
+  <div class="variant">
+    <div class="variant-label">
+      <strong>หน้าหลัก /budget</strong>
+      Envelopes + Accounts strip. ไม่มี transactions feed บนหน้านี้
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status-bar"><span>9:41</span><span>● ●●</span></div>
+
+      <div class="month-strip">
+        <span class="month-arrow">‹</span>
+        <span class="month-label">May 2026</span>
+        <span class="month-arrow">›</span>
+      </div>
+
+      <div class="rta-hero">
+        <div class="rta-label">Ready to Assign</div>
+        <div class="rta-amount">฿2,450</div>
+        <div class="rta-sub">฿42,500 income · ฿40,050 assigned</div>
+      </div>
+
+      <div class="section-title">
+        <h3>Accounts · newest first</h3>
+        <a>All</a>
+      </div>
+      <div class="accounts-strip">
+        <div class="account-card tapped">
+          <span class="account-chevron">›</span>
+          <div class="account-name"><span class="account-dot"></span>SCB Savings</div>
+          <div class="account-balance">฿28,400</div>
+        </div>
+        <div class="account-card">
+          <span class="account-chevron">›</span>
+          <div class="account-name"><span class="account-dot credit"></span>KBank Credit</div>
+          <div class="account-balance">−฿4,250</div>
+        </div>
+        <div class="account-card">
+          <span class="account-chevron">›</span>
+          <div class="account-name"><span class="account-dot"></span>Cash</div>
+          <div class="account-balance">฿1,180</div>
+        </div>
+        <div class="account-card add">+ Add</div>
+      </div>
+
+      <div class="scroll-body">
+        <div class="section-title"><h3>Envelopes</h3><a>Filter</a></div>
+
+        <div class="env-group">
+          <div class="env-group-header"><span>Bills</span><span>฿8,200 / ฿10,000</span></div>
+          <div class="env-card">
+            <div class="env-row1">
+              <div class="env-name"><span class="env-emoji">🏠</span>Rent</div>
+              <div class="env-pill">฿5,000</div>
+            </div>
+            <div class="env-row2"><span>Target ฿5,000/mo</span><span>Funded</span></div>
+            <div class="env-progress"><div class="env-progress-fill" style="width:100%"></div></div>
+          </div>
+          <div class="env-card overspent">
+            <div class="env-row1">
+              <div class="env-name"><span class="env-emoji">💡</span>Electric</div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <span class="env-icon-btn danger" title="Cover overspending">⚠</span>
+                <div class="env-pill red">−฿320</div>
+              </div>
+            </div>
+            <div class="env-row2"><span>Spent ฿2,320 of ฿2,000</span><span>Overspent</span></div>
+            <div class="env-progress"><div class="env-progress-fill red" style="width:100%"></div></div>
+          </div>
+        </div>
+
+        <div class="env-group">
+          <div class="env-group-header"><span>Fun</span><span>฿1,200 / ฿2,000</span></div>
+
+          <!-- EXPANDED card example -->
+          <div class="env-card expanded">
+            <div class="env-row1">
+              <div class="env-name"><span class="env-emoji">🍜</span>Dining</div>
+              <div class="env-pill orange">฿420</div>
+            </div>
+            <div class="env-row2"><span>Spent ฿1,580 of ฿2,000</span><span>21% left</span></div>
+            <div class="env-progress"><div class="env-progress-fill" style="width:79%"></div></div>
+
+            <div class="env-expanded-body">
+              <div class="env-assigned-row">
+                <span class="env-assigned-label">Assigned this month</span>
+                <input class="env-assigned-input" value="฿2,000" />
+              </div>
+              <div class="env-meta">
+                <span>Activity: <span class="val">−฿1,580</span></span>
+                <span>Available: <span class="val">฿420</span></span>
+              </div>
+              <div class="env-actions">
+                <div class="env-action primary">+ Transaction</div>
+                <div class="env-action">⇄ Move</div>
+                <div class="env-action">✎ Edit</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="env-card">
+            <div class="env-row1">
+              <div class="env-name"><span class="env-emoji">🎬</span>Entertainment</div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <span class="env-icon-btn" title="Move money">⇄</span>
+                <div class="env-pill">฿780</div>
+              </div>
+            </div>
+            <div class="env-row2"><span>Spent ฿220 of ฿1,000</span><span>78% left</span></div>
+            <div class="env-progress"><div class="env-progress-fill" style="width:22%"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Flow arrow -->
+  <div class="flow">
+    <div class="flow-arrow">→</div>
+    <div class="flow-text">แตะ Dining (expand)</div>
+    <div class="flow-text" style="margin-top:6px">หรือ Long-press → +Tx</div>
+    <div class="flow-arrow" style="margin-top:30px">→</div>
+    <div class="flow-text">แตะ SCB Savings</div>
+  </div>
+
+  <!-- ============== PHONE 2: Account detail ============== -->
+  <div class="variant">
+    <div class="variant-label">
+      <strong>/budget/accounts/:id</strong>
+      Transactions ของบัญชีนั้น · CreatedAt DESC · FAB เพิ่ม transaction
+    </div>
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="status-bar"><span>9:41</span><span>● ●●</span></div>
+
+      <div class="top-bar">
+        <div class="back-btn">‹</div>
+        <div class="top-bar-title">SCB Savings</div>
+        <div class="top-bar-menu">⋯</div>
+      </div>
+
+      <div class="account-hero">
+        <div class="type">Cash account</div>
+        <div class="name">SCB Savings</div>
+        <div class="balance">฿28,400.00</div>
+        <div class="meta">
+          <span>📈 +฿42,500 in</span>
+          <span>📉 −฿5,000 out</span>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <h3>Transactions · newest first</h3>
+        <a>Filter</a>
+      </div>
+
+      <div class="scroll-body">
+        <div class="tx-feed">
+          <div class="tx-date-header">Today · May 25</div>
+          <div class="tx-row">
+            <div class="tx-icon">🍜</div>
+            <div class="tx-body"><div class="tx-title">Khao Soi Lunch</div>
+              <div class="tx-sub">Dining</div></div>
+            <div class="tx-amount expense">−฿180</div>
+          </div>
+          <div class="tx-row">
+            <div class="tx-icon">☕</div>
+            <div class="tx-body"><div class="tx-title">Café Amazon</div>
+              <div class="tx-sub">Dining</div></div>
+            <div class="tx-amount expense">−฿85</div>
+          </div>
+
+          <div class="tx-date-header">Yesterday · May 24</div>
+          <div class="tx-row">
+            <div class="tx-icon">💰</div>
+            <div class="tx-body"><div class="tx-title">Salary</div>
+              <div class="tx-sub">Income · Ready to Assign</div></div>
+            <div class="tx-amount income">+฿42,500</div>
+          </div>
+
+          <div class="tx-date-header">May 23</div>
+          <div class="tx-row">
+            <div class="tx-icon">🏠</div>
+            <div class="tx-body"><div class="tx-title">Rent — May</div>
+              <div class="tx-sub">Rent</div></div>
+            <div class="tx-amount expense">−฿5,000</div>
+          </div>
+          <div class="tx-row">
+            <div class="tx-icon">🛒</div>
+            <div class="tx-body"><div class="tx-title">Tops Supermarket</div>
+              <div class="tx-sub">Groceries</div></div>
+            <div class="tx-amount expense">−฿620</div>
+          </div>
+
+          <div class="tx-date-header">May 20</div>
+          <div class="tx-row">
+            <div class="tx-icon">💧</div>
+            <div class="tx-body"><div class="tx-title">MWA Water</div>
+              <div class="tx-sub">Water bill</div></div>
+            <div class="tx-amount expense">−฿380</div>
+          </div>
+          <div class="tx-row">
+            <div class="tx-icon">📱</div>
+            <div class="tx-body"><div class="tx-title">AIS Mobile</div>
+              <div class="tx-sub">Phone</div></div>
+            <div class="tx-amount expense">−฿599</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fab-label">Add transaction</div>
+      <div class="fab">+</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function setTheme(mode, btn) {
+    document.body.classList.toggle('light', mode === 'light');
+    document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>
