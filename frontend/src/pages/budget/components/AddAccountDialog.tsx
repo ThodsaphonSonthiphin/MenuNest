@@ -40,7 +40,6 @@ export function AddAccountDialog({onClose}: {onClose: () => void}) {
         name: values.name.trim(),
         type: values.type,
         openingBalance: Number(values.openingBalance ?? 0),
-        sortOrder: 0,
       }).unwrap()
       onClose()
     } catch (e) {

@@ -421,7 +421,7 @@ export interface UpsertCategoryRequest {
     groupId: string
     name: string
     emoji: string | null
-    sortOrder: number
+    sortOrder?: number
     targetType: BudgetTargetType
     targetAmount: number | null
     targetDueDate: string | null
@@ -430,14 +430,14 @@ export interface UpsertCategoryRequest {
 
 export interface UpsertGroupRequest {
     name: string
-    sortOrder: number
+    sortOrder?: number
 }
 
 export interface CreateAccountRequest {
     name: string
     type: BudgetAccountType
     openingBalance: number
-    sortOrder: number
+    sortOrder?: number
 }
 
 export interface UpdateAccountRequest {
