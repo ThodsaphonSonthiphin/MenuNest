@@ -8,6 +8,7 @@ import { registerLicense } from '@syncfusion/react-base'
 import { msalInstance } from './shared/auth/msalConfig'
 import { store } from './store'
 import App from './App'
+import './shared/telemetry/appInsights'
 
 // Syncfusion *Pure React* (@syncfusion/react-*) theme — Material 3.
 //
