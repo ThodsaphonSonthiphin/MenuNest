@@ -1,7 +1,7 @@
 {
-  "name": "MenuNest",
-  "short_name": "MenuNest",
-  "description": "Family meal planning + migraine tracker",
+  "name": "Nest",
+  "short_name": "Nest",
+  "description": "ทุกเรื่องของครอบครัว รวมไว้ที่เดียว",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
