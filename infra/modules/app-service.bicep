@@ -18,7 +18,7 @@ param location string
 // ----- App Service Plan -----
 param appServicePlanName string
 
-@allowed([ 'B1', 'B2', 'S1', 'P0v3', 'P1v3' ])
+@allowed([ 'F1', 'B1', 'B2', 'S1', 'P0v3', 'P1v3' ])
 param appServicePlanSku string
 
 // ----- App Service -----
@@ -53,6 +53,42 @@ param useKeyVault bool = false
 @description('Key Vault URI (จำเป็นถ้า useKeyVault = true)')
 param keyVaultUri string = ''
 
+// ----- Auth (MSAL + Google) -----
+@description('Entra ID app registration Client ID (public)')
+param azureAdClientId string
+
+@description('Entra ID Audience (typically same as ClientId)')
+param azureAdAudience string
+
+@description('Entra ID instance URL — default to the current cloud\'s login endpoint')
+param azureAdInstance string = environment().authentication.loginEndpoint
+
+@description('Google OAuth Client ID (public)')
+param googleClientId string
+
+// ----- Web push (real values; the legacy VapidPrivateKey/PublicKey above are unused placeholders) -----
+@description('VAPID public key for web push (public)')
+param pushVapidPublicKey string
+
+@description('VAPID subject — mailto: or https: identifier (public)')
+param pushVapidSubject string
+
+@secure()
+@description('VAPID private key for web push (SECRET — pass via --parameters at deploy time)')
+param pushVapidPrivateKey string
+
+// ----- Share-link signing -----
+@secure()
+@description('Doctor-share token signing key (SECRET — pass via --parameters)')
+param shareTokenSigningKey string
+
+@description('Base URL of the SPA — used to build share links')
+param shareBaseUrl string
+
+// ----- CORS -----
+@description('Comma-separated allowed SPA origins for CORS')
+param corsAllowedOrigins string
+
 // =============================================================
 // Secret values — ใช้ KV reference หรือ placeholder
 // =============================================================
@@ -83,9 +119,9 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
   sku: {
     name: appServicePlanSku
   }
-  kind: 'app'  // Windows (เดิม kind = "app")
+  kind: 'linux'  // Linux — ราคา B1 ใน SEA ถูกกว่า Windows ~$40/mo
   properties: {
-    reserved: false  // false = Windows
+    reserved: true  // true = Linux (จำเป็น)
   }
 }
 
@@ -95,7 +131,7 @@ resource plan 'Microsoft.Web/serverfarms@2023-12-01' = {
 resource site 'Microsoft.Web/sites@2023-12-01' = {
   name: appServiceName
   location: location
-  kind: 'app'
+  kind: 'app,linux'
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
@@ -108,8 +144,9 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
     // keyVaultReferenceIdentity ใช้เมื่อมี KV เท่านั้น
     keyVaultReferenceIdentity: useKeyVault ? uamiResourceId : null
     siteConfig: {
-      alwaysOn: true                            // ต้อง B1+
-      netFrameworkVersion: 'v10.0'              // .NET 10 (Windows)
+      // alwaysOn ใช้ได้เฉพาะ B1+ (F1 Free ไม่รองรับ — deploy จะ fail)
+      alwaysOn: appServicePlanSku != 'F1'
+      linuxFxVersion: 'DOTNETCORE|10.0'         // .NET 10 (Linux)
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
@@ -146,7 +183,52 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
           name: 'Storage__EpisodeImagesContainer'
           value: episodeImagesContainer
         }
-        // ----- Secret placeholders (or KV references if useKeyVault=true) -----
+        // ----- Auth: Microsoft Entra ID (MSAL) -----
+        {
+          name: 'AzureAd__ClientId'
+          value: azureAdClientId
+        }
+        {
+          name: 'AzureAd__Audience'
+          value: azureAdAudience
+        }
+        {
+          name: 'AzureAd__Instance'
+          value: azureAdInstance
+        }
+        // ----- Auth: Google OAuth (client ID is public) -----
+        {
+          name: 'Google__ClientId'
+          value: googleClientId
+        }
+        // ----- CORS -----
+        {
+          name: 'Cors__AllowedOrigins'
+          value: corsAllowedOrigins
+        }
+        // ----- Web push (Push__* are the real keys; legacy Vapid* below are placeholders) -----
+        {
+          name: 'Push__VapidPublicKey'
+          value: pushVapidPublicKey
+        }
+        {
+          name: 'Push__VapidPrivateKey'
+          value: pushVapidPrivateKey
+        }
+        {
+          name: 'Push__VapidSubject'
+          value: pushVapidSubject
+        }
+        // ----- Doctor-share links -----
+        {
+          name: 'Share__TokenSigningKey'
+          value: shareTokenSigningKey
+        }
+        {
+          name: 'Share__BaseUrl'
+          value: shareBaseUrl
+        }
+        // ----- Legacy placeholders (kept for backward compat; values currently unused by code) -----
         {
           name: 'VapidPrivateKey'
           value: vapidPrivateKey

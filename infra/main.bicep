@@ -18,9 +18,9 @@ param location string = 'southeastasia'
 @description('Base name prefix — ใช้เป็น prefix ของ new resources')
 param baseName string = 'menunest'
 
-@description('App Service Plan tier — B1 = ต่ำสุดที่รองรับ Always On')
-@allowed([ 'B1', 'B2', 'S1', 'P0v3', 'P1v3' ])
-param appServicePlanSku string = 'B1'
+@description('App Service Plan tier — F1=Free (no Always On), B1+=paid (Always On supported)')
+@allowed([ 'F1', 'B1', 'B2', 'S1', 'P0v3', 'P1v3' ])
+param appServicePlanSku string = 'F1'
 
 @description('SQL Database SKU')
 @allowed([ 'Basic', 'S0', 'S1', 'S2' ])
@@ -34,6 +34,40 @@ param sqlAdminLogin string
 
 @description('สลับเป็น true เพื่อ deploy Key Vault + ใช้ KV references สำหรับ secrets')
 param useKeyVault bool = false
+
+// ----- App Service settings: public config (committable) -----
+@description('Entra ID Client ID — public')
+param azureAdClientId string
+
+@description('Entra ID Audience — typically same as ClientId')
+param azureAdAudience string
+
+@description('Entra ID instance URL — default to current cloud login endpoint')
+param azureAdInstance string = environment().authentication.loginEndpoint
+
+@description('Google OAuth Client ID — public')
+param googleClientId string
+
+@description('VAPID public key for web push (public)')
+param pushVapidPublicKey string
+
+@description('VAPID subject — mailto: or https: identifier')
+param pushVapidSubject string
+
+@description('Base URL of the SPA (used to build share links)')
+param shareBaseUrl string
+
+@description('Comma-separated allowed SPA origins for CORS')
+param corsAllowedOrigins string
+
+// ----- App Service settings: secrets (pass via --parameters at deploy time) -----
+@secure()
+@description('VAPID private key for web push (SECRET)')
+param pushVapidPrivateKey string
+
+@secure()
+@description('Doctor-share token signing key (SECRET)')
+param shareTokenSigningKey string
 
 // ----- Existing resource names (มีอยู่แล้วใน Azure) -----
 @description('ชื่อ App Service Plan เดิม (F1) ที่จะ upgrade')
@@ -113,6 +147,17 @@ module appService 'modules/app-service.bicep' = {
     episodeImagesContainer: storage.outputs.episodeImagesContainerName
     useKeyVault: useKeyVault
     keyVaultUri: useKeyVault ? keyVault!.outputs.vaultUri : ''
+    // Auth + push + share — wired so Bicep redeploy never loses these settings
+    azureAdClientId: azureAdClientId
+    azureAdAudience: azureAdAudience
+    azureAdInstance: azureAdInstance
+    googleClientId: googleClientId
+    pushVapidPublicKey: pushVapidPublicKey
+    pushVapidSubject: pushVapidSubject
+    pushVapidPrivateKey: pushVapidPrivateKey
+    shareTokenSigningKey: shareTokenSigningKey
+    shareBaseUrl: shareBaseUrl
+    corsAllowedOrigins: corsAllowedOrigins
   }
 }
 
