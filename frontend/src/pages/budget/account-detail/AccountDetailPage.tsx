@@ -1,5 +1,6 @@
 import {useState} from 'react'
 import {Link, useNavigate, useParams} from 'react-router-dom'
+import '../BudgetPage.css'
 import {AccountHero} from './AccountHero'
 import {AccountTransactionList} from './AccountTransactionList'
 import {TransactionDialog} from '../components/TransactionDialog'
