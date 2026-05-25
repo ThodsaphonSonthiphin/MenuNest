@@ -1,6 +1,11 @@
 import {isRejectedWithValue, type Middleware} from '@reduxjs/toolkit'
 import {appInsights} from './appInsights'
 
+// TODO: add Vitest test for this middleware once a Vitest setup lands.
+// The frontend currently relies on Playwright e2e — switching to Vitest
+// for unit-level shape contracts is tracked in the App Insights plan
+// (Task 8 was skipped because no Vitest config exists yet).
+
 interface RtkRejectedMeta {
   arg?: {
     endpointName?: string
