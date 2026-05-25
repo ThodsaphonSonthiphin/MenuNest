@@ -150,7 +150,9 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       http20Enabled: true
-      use32BitWorkerProcess: false              // 64-bit
+      // F1 (Free) requires 32-bit; Linux runtime ignores the flag (process is always 64-bit in container).
+      // For B1+ flip back to false if you want enforcement.
+      use32BitWorkerProcess: appServicePlanSku == 'F1'
       webSocketsEnabled: false
       // ⚠️ appSettings REPLACE ของเดิมทั้งหมด — review what-if ก่อน deploy
       appSettings: [
