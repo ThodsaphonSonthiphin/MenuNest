@@ -151,3 +151,7 @@ azure-pipelines-generated.yml
 /temp/
 .azure-migration-backup/
 infra/main.json
+
+.local-publish/
+
+webapi-package.zip
