@@ -77,3 +77,19 @@ public sealed record MoveMoneyRequest(
     Guid FromCategoryId, Guid ToCategoryId, int Year, int Month, decimal Amount);
 public sealed record CoverOverspendingRequest(
     Guid OverspentCategoryId, Guid FromCategoryId, int Year, int Month, decimal Amount);
+
+// ---------- Account detail (transactions feed) ----------
+public sealed record AccountSummaryDto(
+    Guid Id,
+    string Name,
+    BudgetAccountType Type,
+    decimal Balance,
+    decimal MonthInflow,    // sum of positive amounts where Date in given Year/Month
+    decimal MonthOutflow    // sum of negative amounts where Date in given Year/Month (stored negative)
+);
+
+public sealed record AccountTransactionsPageDto(
+    AccountSummaryDto Account,
+    IReadOnlyList<BudgetTransactionDto> Items,
+    bool HasMore
+);
