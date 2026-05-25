@@ -27,7 +27,7 @@ public sealed class ListTransactionsHandler
                && t.Date.Year == q.Year
                && t.Date.Month == q.Month
                && (q.CategoryId == null || t.CategoryId == q.CategoryId)
-            orderby t.Date descending, t.CreatedAt descending
+            orderby t.CreatedAt descending
             select new BudgetTransactionDto(
                 t.Id, t.AccountId, a.Name,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Emoji : null,
