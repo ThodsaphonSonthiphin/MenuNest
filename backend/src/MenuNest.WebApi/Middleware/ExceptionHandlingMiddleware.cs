@@ -1,5 +1,8 @@
+using System.Globalization;
 using FluentValidation;
 using MenuNest.Domain.Exceptions;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MenuNest.WebApi.Middleware;
@@ -13,11 +16,16 @@ public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly TelemetryClient _telemetry;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public ExceptionHandlingMiddleware(
+        RequestDelegate next,
+        ILogger<ExceptionHandlingMiddleware> logger,
+        TelemetryClient telemetry)
     {
         _next = next;
         _logger = logger;
+        _telemetry = telemetry;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -29,6 +37,17 @@ public sealed class ExceptionHandlingMiddleware
         catch (ValidationException ex)
         {
             _logger.LogWarning(ex, "Request validation failed: {Message}", ex.Message);
+            _telemetry.TrackException(new ExceptionTelemetry(ex)
+            {
+                SeverityLevel = SeverityLevel.Warning,
+                Properties =
+                {
+                    ["Path"]       = context.Request.Path,
+                    ["Method"]     = context.Request.Method,
+                    ["UserId"]     = context.User?.FindFirst("oid")?.Value ?? "anonymous",
+                    ["StatusCode"] = "400",
+                },
+            });
             await WriteProblemAsync(context, StatusCodes.Status400BadRequest, new ValidationProblemDetails(
                 ex.Errors
                     .GroupBy(e => e.PropertyName)
@@ -41,6 +60,17 @@ public sealed class ExceptionHandlingMiddleware
         catch (DomainException ex)
         {
             _logger.LogInformation(ex, "Domain rule rejected request: {Message}", ex.Message);
+            _telemetry.TrackException(new ExceptionTelemetry(ex)
+            {
+                SeverityLevel = SeverityLevel.Warning,
+                Properties =
+                {
+                    ["Path"]       = context.Request.Path,
+                    ["Method"]     = context.Request.Method,
+                    ["UserId"]     = context.User?.FindFirst("oid")?.Value ?? "anonymous",
+                    ["StatusCode"] = "400",
+                },
+            });
             await WriteProblemAsync(context, StatusCodes.Status400BadRequest, new ProblemDetails
             {
                 Title = "Request rejected",
@@ -51,6 +81,17 @@ public sealed class ExceptionHandlingMiddleware
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogInformation(ex, "Unauthorized access: {Message}", ex.Message);
+            _telemetry.TrackException(new ExceptionTelemetry(ex)
+            {
+                SeverityLevel = SeverityLevel.Error,
+                Properties =
+                {
+                    ["Path"]       = context.Request.Path,
+                    ["Method"]     = context.Request.Method,
+                    ["UserId"]     = context.User?.FindFirst("oid")?.Value ?? "anonymous",
+                    ["StatusCode"] = "401",
+                },
+            });
             await WriteProblemAsync(context, StatusCodes.Status401Unauthorized, new ProblemDetails
             {
                 Title = "Unauthorized",
@@ -60,6 +101,17 @@ public sealed class ExceptionHandlingMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception while processing {Path}", context.Request.Path);
+            _telemetry.TrackException(new ExceptionTelemetry(ex)
+            {
+                SeverityLevel = SeverityLevel.Critical,
+                Properties =
+                {
+                    ["Path"]       = context.Request.Path,
+                    ["Method"]     = context.Request.Method,
+                    ["UserId"]     = context.User?.FindFirst("oid")?.Value ?? "anonymous",
+                    ["StatusCode"] = "500",
+                },
+            });
             await WriteProblemAsync(context, StatusCodes.Status500InternalServerError, new ProblemDetails
             {
                 Title = "An unexpected error occurred.",
