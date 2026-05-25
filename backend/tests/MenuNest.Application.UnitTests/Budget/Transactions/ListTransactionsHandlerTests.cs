@@ -8,6 +8,9 @@ namespace MenuNest.Application.UnitTests.Budget.Transactions;
 
 public class ListTransactionsHandlerTests
 {
+    private static ListTransactionsHandler Build(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object);
+
     [Fact]
     public async Task Returns_transactions_for_family_in_year_month_ordered_by_date_desc()
     {
@@ -73,6 +76,47 @@ public class ListTransactionsHandlerTests
 
         var all = await sut.Handle(new ListTransactionsQuery(2026, 4, CategoryId: null), CancellationToken.None);
         all.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task Sorts_by_created_at_descending_ignoring_date()
+    {
+        using var fx = new HandlerTestFixture();
+        var account = BudgetAccount.Create(fx.Family.Id, "Cash", BudgetAccountType.Cash, 100m, 0);
+        fx.Db.BudgetAccounts.Add(account);
+        await fx.Db.SaveChangesAsync();
+
+        // Seed three transactions whose insertion order is the inverse
+        // of their Date — proves we sort by CreatedAt, not by Date.
+        var older = BudgetTransaction.Create(
+            fx.Family.Id, account.Id, null, -10m,
+            date: new DateOnly(2026, 05, 20), notes: "older-create",
+            createdByUserId: fx.User.Id);
+        fx.Db.BudgetTransactions.Add(older);
+        await fx.Db.SaveChangesAsync();
+        await Task.Delay(10);
+
+        var middle = BudgetTransaction.Create(
+            fx.Family.Id, account.Id, null, -20m,
+            date: new DateOnly(2026, 05, 10), notes: "middle-create",
+            createdByUserId: fx.User.Id);
+        fx.Db.BudgetTransactions.Add(middle);
+        await fx.Db.SaveChangesAsync();
+        await Task.Delay(10);
+
+        var newest = BudgetTransaction.Create(
+            fx.Family.Id, account.Id, null, -30m,
+            date: new DateOnly(2026, 05, 01), notes: "newest-create",
+            createdByUserId: fx.User.Id);
+        fx.Db.BudgetTransactions.Add(newest);
+        await fx.Db.SaveChangesAsync();
+
+        var result = await Build(fx).Handle(
+            new ListTransactionsQuery(2026, 5, CategoryId: null),
+            CancellationToken.None);
+
+        result.Select(t => t.Notes).Should()
+            .ContainInOrder("newest-create", "middle-create", "older-create");
     }
 
     [Fact]
