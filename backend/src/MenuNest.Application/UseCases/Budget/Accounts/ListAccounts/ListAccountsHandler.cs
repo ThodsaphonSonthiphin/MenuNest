@@ -15,8 +15,8 @@ public sealed class ListAccountsHandler : IQueryHandler<ListAccountsQuery, IRead
     {
         var (_, familyId) = await _users.RequireFamilyAsync(ct);
         return await _db.BudgetAccounts
-            .Where(a => a.FamilyId == familyId)
-            .OrderBy(a => a.IsClosed).ThenBy(a => a.Type).ThenBy(a => a.SortOrder).ThenBy(a => a.Name)
+            .Where(a => a.FamilyId == familyId && !a.IsClosed)
+            .OrderByDescending(a => a.CreatedAt)
             .Select(a => new BudgetAccountDto(a.Id, a.Name, a.Type, a.Balance, a.SortOrder, a.IsClosed))
             .ToListAsync(ct);
     }
