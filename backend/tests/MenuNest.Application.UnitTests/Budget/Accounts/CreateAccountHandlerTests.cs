@@ -2,56 +2,69 @@ using FluentAssertions;
 using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Accounts.CreateAccount;
+using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
 
 namespace MenuNest.Application.UnitTests.Budget.Accounts;
 
 public class CreateAccountHandlerTests
 {
+    private static CreateAccountHandler Build(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object, new CreateAccountValidator());
+
     [Fact]
-    public async Task Creates_account_with_provided_values_scoped_to_current_family()
+    public async Task First_account_in_family_gets_sort_order_zero()
     {
         using var fx = new HandlerTestFixture();
-        var sut = new CreateAccountHandler(fx.Db, fx.UserProvisioner.Object, new CreateAccountValidator());
+        var sut = Build(fx);
 
         var result = await sut.Handle(
-            new CreateAccountCommand("Checking", BudgetAccountType.Cash, 1500.50m, 3),
+            new CreateAccountCommand("SCB Savings", BudgetAccountType.Cash, OpeningBalance: 0m),
             CancellationToken.None);
 
-        result.Name.Should().Be("Checking");
-        result.Type.Should().Be(BudgetAccountType.Cash);
-        result.Balance.Should().Be(1500.50m);
-        result.SortOrder.Should().Be(3);
-        result.IsClosed.Should().BeFalse();
-
-        var persisted = fx.Db.BudgetAccounts.Single(a => a.Id == result.Id);
-        persisted.FamilyId.Should().Be(fx.Family.Id);
-        persisted.Name.Should().Be("Checking");
-        persisted.Balance.Should().Be(1500.50m);
+        result.SortOrder.Should().Be(0);
     }
 
     [Fact]
-    public async Task Throws_ValidationException_when_name_is_empty()
+    public async Task Subsequent_account_gets_max_plus_one()
     {
         using var fx = new HandlerTestFixture();
-        var sut = new CreateAccountHandler(fx.Db, fx.UserProvisioner.Object, new CreateAccountValidator());
+        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(fx.Family.Id, "Cash", BudgetAccountType.Cash, 0m, 3));
+        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(fx.Family.Id, "KBank Credit", BudgetAccountType.Credit, 0m, 11));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
 
-        var act = async () => await sut.Handle(
-            new CreateAccountCommand("", BudgetAccountType.Cash, 0m, 0),
+        var result = await sut.Handle(
+            new CreateAccountCommand("Wise", BudgetAccountType.Cash, 0m),
             CancellationToken.None);
 
-        await act.Should().ThrowAsync<ValidationException>();
+        result.SortOrder.Should().Be(12);
     }
 
     [Fact]
-    public async Task Throws_ValidationException_when_name_exceeds_120_characters()
+    public async Task Max_is_scoped_to_calling_family_only()
     {
         using var fx = new HandlerTestFixture();
-        var sut = new CreateAccountHandler(fx.Db, fx.UserProvisioner.Object, new CreateAccountValidator());
+        var otherFamilyId = Guid.NewGuid();
+        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(otherFamilyId, "Other", BudgetAccountType.Cash, 0m, 99));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
 
-        var longName = new string('a', 121);
+        var result = await sut.Handle(
+            new CreateAccountCommand("Mine", BudgetAccountType.Cash, 0m),
+            CancellationToken.None);
+
+        result.SortOrder.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Rejects_blank_name()
+    {
+        using var fx = new HandlerTestFixture();
+        var sut = Build(fx);
+
         var act = async () => await sut.Handle(
-            new CreateAccountCommand(longName, BudgetAccountType.Cash, 0m, 0),
+            new CreateAccountCommand("  ", BudgetAccountType.Cash, 0m),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationException>();

@@ -45,7 +45,7 @@ public sealed class BudgetController : ControllerBase
     [HttpPost("accounts")]
     public async Task<ActionResult<BudgetAccountDto>> CreateAccount(
         [FromBody] CreateAccountRequest r, CancellationToken ct) =>
-        Ok(await _m.Send(new CreateAccountCommand(r.Name, r.Type, r.OpeningBalance, r.SortOrder), ct));
+        Ok(await _m.Send(new CreateAccountCommand(r.Name, r.Type, r.OpeningBalance), ct));
 
     [HttpPut("accounts/{id:guid}")]
     public async Task<ActionResult<BudgetAccountDto>> UpdateAccount(
