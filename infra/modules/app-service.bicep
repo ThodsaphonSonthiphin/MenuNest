@@ -158,6 +158,14 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
       appSettings: [
         // ----- Managed by Bicep (safe to redeploy) -----
         {
+          // Linux F1 (and most Linux App Services) deploy via OneDeploy
+          // which uses parallel rsync; that path fails on F1's lightweight
+          // file system. WEBSITE_RUN_FROM_PACKAGE=1 makes Azure mount the
+          // uploaded zip directly (read-only) instead — much more reliable.
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
+        }
+        {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: appInsightsConnectionString
         }
