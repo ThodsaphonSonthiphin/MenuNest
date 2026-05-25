@@ -5,6 +5,7 @@ import {EnvelopeCard} from './EnvelopeCard'
 import {TransactionDialog} from './TransactionDialog'
 import {MoveMoneyDialog} from './MoveMoneyDialog'
 import {CoverOverspendingDialog} from './CoverOverspendingDialog'
+import {AddCategoryDialog} from './AddCategoryDialog'
 import {formatTHB} from '../BudgetPage.hooks'
 
 /**
@@ -17,6 +18,7 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
   const [txPreset, setTxPreset] = useState<{categoryId: string} | null>(null)
   const [moveFrom, setMoveFrom] = useState<EnvelopeDto | null>(null)
   const [coverFor, setCoverFor] = useState<EnvelopeDto | null>(null)
+  const [addCatGroupId, setAddCatGroupId] = useState<string | null>(null)
 
   const groups = summary.groups
     .map(g => ({
@@ -40,7 +42,15 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
         <Fragment key={g.groupId}>
           <div className="bdg-env-group-header">
             <span>{g.name}</span>
-            <span>{formatTHB(g.totalAssigned)} / {formatTHB(g.totalAvailable)}</span>
+            <span className="bdg-env-group-actions">
+              <span>{formatTHB(g.totalAssigned)} / {formatTHB(g.totalAvailable)}</span>
+              <button
+                type="button"
+                className="bdg-add-cat-btn"
+                data-testid="bdg-add-cat-btn"
+                onClick={() => setAddCatGroupId(g.groupId)}
+              >+ Cat</button>
+            </span>
           </div>
           {g.categories.map(c => (
             <EnvelopeCard
@@ -67,6 +77,12 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
       )}
       {coverFor && (
         <CoverOverspendingDialog overspent={coverFor} groups={summary.groups} onClose={() => setCoverFor(null)} />
+      )}
+      {addCatGroupId && (
+        <AddCategoryDialog
+          presetGroupId={addCatGroupId}
+          onClose={() => setAddCatGroupId(null)}
+        />
       )}
     </div>
   )

@@ -35,13 +35,19 @@ const TARGET_TYPE_OPTIONS: {id: BudgetTargetType; label: string}[] = [
  *
  * We submit empty strings as null to keep the backend DTO clean.
  */
-export function AddCategoryDialog({onClose}: {onClose: () => void}) {
+export function AddCategoryDialog({
+  onClose,
+  presetGroupId,
+}: {
+  onClose: () => void
+  presetGroupId?: string
+}) {
   const {data: groups, isLoading: groupsLoading} = useListBudgetGroupsQuery()
   const [createCategory, {isLoading}] = useCreateBudgetCategoryMutation()
   const [err, setErr] = useState<string | null>(null)
   const {control, handleSubmit, formState, watch} = useForm<FormValues>({
     defaultValues: {
-      groupId: '',
+      groupId: presetGroupId ?? '',
       name: '',
       emoji: '',
       targetType: 'None',
