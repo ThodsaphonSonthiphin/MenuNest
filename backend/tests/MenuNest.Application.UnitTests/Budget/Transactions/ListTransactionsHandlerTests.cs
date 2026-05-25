@@ -12,7 +12,7 @@ public class ListTransactionsHandlerTests
         new(fx.Db, fx.UserProvisioner.Object);
 
     [Fact]
-    public async Task Returns_transactions_for_family_in_year_month_ordered_by_date_desc()
+    public async Task Returns_transactions_for_family_in_year_month_excluding_other_months()
     {
         using var fx = new HandlerTestFixture();
 
@@ -38,10 +38,11 @@ public class ListTransactionsHandlerTests
         var result = await sut.Handle(new ListTransactionsQuery(2026, 4, CategoryId: null), CancellationToken.None);
 
         result.Should().HaveCount(3);
-        result.Select(t => t.Date).Should().ContainInOrder(
-            new DateOnly(2026, 4, 30),
+        result.Select(t => t.Date).Should().BeEquivalentTo(new[] {
+            new DateOnly(2026, 4, 1),
             new DateOnly(2026, 4, 15),
-            new DateOnly(2026, 4, 1));
+            new DateOnly(2026, 4, 30),
+        });
         result.Should().OnlyContain(t => t.AccountName == "Checking");
     }
 
