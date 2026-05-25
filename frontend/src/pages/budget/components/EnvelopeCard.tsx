@@ -101,8 +101,10 @@ export function EnvelopeCard(props: UseEnvelopeCardArgs) {
             <button
               type="button"
               className="bdg-env-action"
-              onClick={h.onEdit}
-            >✎ Edit</button>
+              disabled
+              title="Editing categories is a Phase-2 feature"
+              style={{opacity: 0.5, cursor: 'not-allowed'}}
+            >✎ Edit (soon)</button>
             {overspent && (
               <button
                 type="button"

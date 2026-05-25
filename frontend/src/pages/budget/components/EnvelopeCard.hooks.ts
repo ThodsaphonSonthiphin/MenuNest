@@ -11,10 +11,9 @@ export interface UseEnvelopeCardArgs {
   onAddTransaction: (categoryId: string) => void
   onMoveMoney: (cat: EnvelopeDto) => void
   onCoverOverspending: (cat: EnvelopeDto) => void
-  onEdit: (cat: EnvelopeDto) => void
 }
 
-export function useEnvelopeCard({cat, onAddTransaction, onMoveMoney, onCoverOverspending, onEdit}: UseEnvelopeCardArgs) {
+export function useEnvelopeCard({cat, onAddTransaction, onMoveMoney, onCoverOverspending}: UseEnvelopeCardArgs) {
   const dispatch = useAppDispatch()
   const {year, month, expandedCategoryId} = useAppSelector(s => s.budget)
   const expanded = expandedCategoryId === cat.categoryId
@@ -80,6 +79,5 @@ export function useEnvelopeCard({cat, onAddTransaction, onMoveMoney, onCoverOver
     onAddTransaction: () => onAddTransaction(cat.categoryId),
     onMoveMoney: () => onMoveMoney(cat),
     onCoverOverspending: () => onCoverOverspending(cat),
-    onEdit: () => onEdit(cat),
   }
 }

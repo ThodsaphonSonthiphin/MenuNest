@@ -5,7 +5,6 @@ import {EnvelopeCard} from './EnvelopeCard'
 import {TransactionDialog} from './TransactionDialog'
 import {MoveMoneyDialog} from './MoveMoneyDialog'
 import {CoverOverspendingDialog} from './CoverOverspendingDialog'
-import {AddCategoryDialog} from './AddCategoryDialog'
 import {formatTHB} from '../BudgetPage.hooks'
 
 /**
@@ -18,7 +17,6 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
   const [txPreset, setTxPreset] = useState<{categoryId: string} | null>(null)
   const [moveFrom, setMoveFrom] = useState<EnvelopeDto | null>(null)
   const [coverFor, setCoverFor] = useState<EnvelopeDto | null>(null)
-  const [editCat, setEditCat] = useState<EnvelopeDto | null>(null)
 
   const groups = summary.groups
     .map(g => ({
@@ -51,7 +49,6 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
               onAddTransaction={(categoryId) => setTxPreset({categoryId})}
               onMoveMoney={setMoveFrom}
               onCoverOverspending={setCoverFor}
-              onEdit={setEditCat}
             />
           ))}
         </Fragment>
@@ -70,9 +67,6 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
       )}
       {coverFor && (
         <CoverOverspendingDialog overspent={coverFor} groups={summary.groups} onClose={() => setCoverFor(null)} />
-      )}
-      {editCat && (
-        <AddCategoryDialog onClose={() => setEditCat(null)} />
       )}
     </div>
   )
