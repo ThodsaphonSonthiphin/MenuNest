@@ -4,15 +4,25 @@ import type {MonthlySummaryDto} from '../../../shared/api/api'
 /**
  * Hero card showing Ready-to-Assign at the top of /budget. The colour
  * shifts to a red gradient when readyToAssign < 0 (over-assigned).
+ * Tapping the hero invokes onClick (used to open SetIncomeDialog).
  */
-export function RtaHero({summary}: {summary: MonthlySummaryDto}) {
+export function RtaHero({
+  summary,
+  onClick,
+}: {
+  summary: MonthlySummaryDto
+  onClick?: () => void
+}) {
   const negative = summary.readyToAssign < 0
   const zero = summary.readyToAssign === 0
   return (
-    <div
+    <button
+      type="button"
       className={`bdg-rta-hero ${negative ? 'is-negative' : ''}`}
       data-testid="bdg-rta-hero"
+      onClick={onClick}
     >
+      <span className="bdg-rta-edit-icon" aria-hidden>✎</span>
       <div className="bdg-rta-label">
         {zero ? 'All Money Assigned' : negative ? 'Over-Assigned' : 'Ready to Assign'}
       </div>
@@ -22,6 +32,6 @@ export function RtaHero({summary}: {summary: MonthlySummaryDto}) {
       <div className="bdg-rta-sub">
         {formatTHB(summary.income)} income · {formatTHB(summary.totalAssigned)} assigned
       </div>
-    </div>
+    </button>
   )
 }
