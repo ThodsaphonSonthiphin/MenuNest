@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { InteractionStatus } from '@azure/msal-browser'
 import { Navigate, useNavigate } from 'react-router-dom'
@@ -6,12 +6,33 @@ import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { GoogleLogin } from '@react-oauth/google'
 import { loginRequest } from '../../shared/auth/msalConfig'
 import { setGoogleToken, isGoogleAuthenticated } from '../../shared/auth/googleAuth'
+import { setUser } from '../../shared/telemetry/appInsights'
+
+function decodeJwtSub(token: string): string | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof json.sub === 'string' ? json.sub : null
+  } catch { return null }
+}
 
 export function LoginPage() {
   const { instance, inProgress } = useMsal()
   const isAuthenticated = useIsAuthenticated()
   const navigate = useNavigate()
   const [googleError, setGoogleError] = useState<string | null>(null)
+
+  // Tag the Microsoft-authenticated user in telemetry once MSAL confirms
+  // the active account (covers both fresh redirect and returning sessions).
+  useEffect(() => {
+    if (isAuthenticated) {
+      const account = instance.getActiveAccount()
+      if (account?.localAccountId) {
+        setUser(account.localAccountId)
+      }
+    }
+  }, [isAuthenticated, instance])
 
   // If the user lands on /login while already authenticated (e.g. via
   // a direct URL or after a stale redirect), send them back into the
@@ -57,6 +78,8 @@ export function LoginPage() {
             onSuccess={(credentialResponse) => {
               if (credentialResponse.credential) {
                 setGoogleToken(credentialResponse.credential)
+                const sub = decodeJwtSub(credentialResponse.credential)
+                if (sub) setUser(sub)
                 navigate('/', { replace: true })
               }
             }}
