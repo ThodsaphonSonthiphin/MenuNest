@@ -877,7 +877,7 @@ export const api = createApi({
         }),
         createBudgetGroup: build.mutation<CategoryGroupDto, UpsertGroupRequest>({
             query: (b) => ({url: '/api/budget/groups', method: 'POST', body: b}),
-            invalidatesTags: ['BudgetGroups'],
+            invalidatesTags: ['BudgetGroups', 'BudgetSummary'],
         }),
         updateBudgetGroup: build.mutation<CategoryGroupDto, {id: string} & UpsertGroupRequest>({
             query: ({id, ...b}) => ({url: `/api/budget/groups/${id}`, method: 'PUT', body: b}),
@@ -889,7 +889,7 @@ export const api = createApi({
         }),
         createBudgetCategory: build.mutation<BudgetCategoryDto, UpsertCategoryRequest>({
             query: (b) => ({url: '/api/budget/categories', method: 'POST', body: b}),
-            invalidatesTags: ['BudgetGroups'],
+            invalidatesTags: ['BudgetGroups', 'BudgetSummary'],
         }),
         updateBudgetCategory: build.mutation<BudgetCategoryDto, {id: string} & UpsertCategoryRequest>({
             query: ({id, ...b}) => ({url: `/api/budget/categories/${id}`, method: 'PUT', body: b}),
