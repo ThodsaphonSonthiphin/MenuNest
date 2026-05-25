@@ -2,6 +2,7 @@ using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
 
@@ -17,7 +18,12 @@ public sealed class CreateGroupHandler : ICommandHandler<CreateGroupCommand, Cat
     {
         await _validator.ValidateAndThrowAsync(cmd, ct);
         var (_, familyId) = await _users.RequireFamilyAsync(ct);
-        var group = BudgetCategoryGroup.Create(familyId, cmd.Name, cmd.SortOrder);
+
+        var nextSortOrder = (await _db.BudgetCategoryGroups
+            .Where(g => g.FamilyId == familyId)
+            .MaxAsync(g => (int?)g.SortOrder, ct) ?? -1) + 1;
+
+        var group = BudgetCategoryGroup.Create(familyId, cmd.Name, nextSortOrder);
         _db.BudgetCategoryGroups.Add(group);
         await _db.SaveChangesAsync(ct);
         return new CategoryGroupDto(group.Id, group.Name, group.SortOrder, group.IsHidden);

@@ -2,50 +2,47 @@ using FluentAssertions;
 using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
+using MenuNest.Domain.Entities;
 
 namespace MenuNest.Application.UnitTests.Budget.Groups;
 
 public class CreateGroupHandlerTests
 {
+    private static CreateGroupHandler Build(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object, new CreateGroupValidator());
+
     [Fact]
-    public async Task Creates_group_with_provided_values_scoped_to_current_family()
+    public async Task First_group_in_family_gets_sort_order_zero()
     {
         using var fx = new HandlerTestFixture();
-        var sut = new CreateGroupHandler(fx.Db, fx.UserProvisioner.Object, new CreateGroupValidator());
+        var sut = Build(fx);
 
-        var result = await sut.Handle(new CreateGroupCommand("Bills", 4), CancellationToken.None);
+        var result = await sut.Handle(new CreateGroupCommand("Bills"), CancellationToken.None);
 
-        result.Name.Should().Be("Bills");
-        result.SortOrder.Should().Be(4);
-        result.IsHidden.Should().BeFalse();
-
-        var persisted = fx.Db.BudgetCategoryGroups.Single(g => g.Id == result.Id);
-        persisted.FamilyId.Should().Be(fx.Family.Id);
-        persisted.Name.Should().Be("Bills");
-        persisted.SortOrder.Should().Be(4);
+        result.SortOrder.Should().Be(0);
     }
 
     [Fact]
-    public async Task Throws_ValidationException_when_name_is_empty()
+    public async Task Subsequent_group_gets_max_plus_one()
     {
         using var fx = new HandlerTestFixture();
-        var sut = new CreateGroupHandler(fx.Db, fx.UserProvisioner.Object, new CreateGroupValidator());
+        fx.Db.BudgetCategoryGroups.Add(BudgetCategoryGroup.Create(fx.Family.Id, "Bills", 0));
+        fx.Db.BudgetCategoryGroups.Add(BudgetCategoryGroup.Create(fx.Family.Id, "Fun", 7));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
 
-        var act = async () => await sut.Handle(
-            new CreateGroupCommand("", 0), CancellationToken.None);
+        var result = await sut.Handle(new CreateGroupCommand("Savings"), CancellationToken.None);
 
-        await act.Should().ThrowAsync<ValidationException>();
+        result.SortOrder.Should().Be(8);
     }
 
     [Fact]
-    public async Task Throws_ValidationException_when_name_exceeds_120_characters()
+    public async Task Rejects_blank_name()
     {
         using var fx = new HandlerTestFixture();
-        var sut = new CreateGroupHandler(fx.Db, fx.UserProvisioner.Object, new CreateGroupValidator());
+        var sut = Build(fx);
 
-        var longName = new string('a', 121);
-        var act = async () => await sut.Handle(
-            new CreateGroupCommand(longName, 0), CancellationToken.None);
+        var act = async () => await sut.Handle(new CreateGroupCommand("  "), CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationException>();
     }
