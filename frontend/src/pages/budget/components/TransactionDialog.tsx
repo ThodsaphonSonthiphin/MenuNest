@@ -52,11 +52,13 @@ export function TransactionDialog({
   groups,
   existing,
   onClose,
+  preset,
 }: {
   accounts: BudgetAccountDto[]
   groups: EnvelopeGroupDto[]
   existing?: BudgetTransactionDto
   onClose: () => void
+  preset?: {accountId?: string; categoryId?: string}
 }) {
   // TODO(edit-mode): wire up useUpdateBudgetTransactionMutation when `existing` is set.
   const {year, month} = useAppSelector(s => s.budget)
@@ -65,8 +67,8 @@ export function TransactionDialog({
 
   const {control, handleSubmit, formState, watch} = useForm<FormValues>({
     defaultValues: {
-      accountId: existing?.accountId ?? '',
-      categoryId: existing?.categoryId ?? UNCATEGORIZED_ID,
+      accountId: existing?.accountId ?? preset?.accountId ?? '',
+      categoryId: existing?.categoryId ?? preset?.categoryId ?? UNCATEGORIZED_ID,
       amount: existing ? Math.abs(existing.amount) : null,
       direction: existing && existing.amount > 0 ? 'Income' : 'Expense',
       date: existing?.date?.slice(0, 10) ?? todayIso(),
