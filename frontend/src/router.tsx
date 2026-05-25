@@ -13,7 +13,7 @@ import { MealPlanPage } from './pages/meal-plan'
 import { ShoppingListsPage, ShoppingListDetailPage } from './pages/shopping'
 import { IngredientsPage } from './pages/ingredients'
 import { AiAssistantPage } from './pages/ai-assistant'
-import { BudgetPage } from './pages/budget'
+import { BudgetPage, AccountDetailPage } from './pages/budget'
 import {
   HealthHomePage,
   QuickLogAttackPage,
@@ -80,6 +80,7 @@ export const router = createBrowserRouter([
               { path: '/ingredients', element: <IngredientsPage /> },
               { path: '/family', element: <FamilyPage /> },
               { path: '/budget', element: <BudgetPage /> },
+              { path: '/budget/accounts/:accountId', element: <AccountDetailPage /> },
               { path: '/ai-assistant', element: <AiAssistantPage /> },
               { path: '*', element: <Navigate to="/" replace /> },
             ],
