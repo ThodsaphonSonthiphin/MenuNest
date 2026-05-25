@@ -28,7 +28,8 @@ public sealed class ShareLink : Entity
         string tokenHash,
         DateOnly dateFrom,
         DateOnly dateTo,
-        DateTime expiresAt)
+        DateTime expiresAt,
+        DateTime nowUtc)
     {
         if (userId == Guid.Empty)
             throw new DomainException("UserId is required.");
@@ -36,7 +37,7 @@ public sealed class ShareLink : Entity
             throw new DomainException("Token hash is required.");
         if (dateTo < dateFrom)
             throw new DomainException("DateTo must be on or after DateFrom.");
-        if (expiresAt <= DateTime.UtcNow)
+        if (expiresAt <= nowUtc)
             throw new DomainException("ExpiresAt must be in the future.");
 
         return new ShareLink

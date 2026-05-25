@@ -13,12 +13,14 @@ public class RevokeShareLinkHandlerTests
 
     private static async Task<ShareLink> SeedLink(HandlerTestFixture fx, Guid? userIdOverride = null)
     {
+        var nowUtc = DateTime.UtcNow;
         var link = ShareLink.Create(
             userId: userIdOverride ?? fx.User.Id,
             tokenHash: "a".PadRight(64, 'a'),
             dateFrom: new DateOnly(2026, 04, 17),
             dateTo: new DateOnly(2026, 05, 17),
-            expiresAt: DateTime.UtcNow.AddDays(30));
+            expiresAt: nowUtc.AddDays(30),
+            nowUtc: nowUtc);
 
         fx.Db.ShareLinks.Add(link);
         await fx.Db.SaveChangesAsync();
