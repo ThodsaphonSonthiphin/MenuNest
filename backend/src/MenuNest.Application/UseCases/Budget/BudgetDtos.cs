@@ -51,9 +51,8 @@ public sealed record MonthlySummaryDto(
     decimal Income,
     decimal TotalAssigned,
     decimal TotalActivity,
-    decimal ReadyToAssign,              // income + leftover carry-in − totalAssigned
-    decimal LeftOverFromLastMonth,
-    decimal Available,                  // leftOver + assigned + activity (money still in envelopes)
+    decimal ReadyToAssign,              // sum(accounts) − sum(envelope.available)
+    decimal Available,                  // sum of envelope Available amounts
     IReadOnlyList<EnvelopeGroupDto> Groups,
     IReadOnlyList<BudgetAccountDto> Accounts);
 
