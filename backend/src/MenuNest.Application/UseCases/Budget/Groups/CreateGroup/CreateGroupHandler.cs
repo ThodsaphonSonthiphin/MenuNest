@@ -2,6 +2,7 @@ using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
@@ -18,6 +19,13 @@ public sealed class CreateGroupHandler : ICommandHandler<CreateGroupCommand, Cat
     {
         await _validator.ValidateAndThrowAsync(cmd, ct);
         var (_, familyId) = await _users.RequireFamilyAsync(ct);
+
+        var trimmed = cmd.Name.Trim();
+        var nameTaken = await _db.BudgetCategoryGroups
+            .Where(g => g.FamilyId == familyId)
+            .AnyAsync(g => g.Name.ToLower() == trimmed.ToLower(), ct);
+        if (nameTaken)
+            throw new DomainException($"A group named \"{trimmed}\" already exists.");
 
         var nextSortOrder = (await _db.BudgetCategoryGroups
             .Where(g => g.FamilyId == familyId)
