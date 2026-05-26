@@ -36,7 +36,10 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
         }
       }),
     }))
-    .filter(g => g.categories.length > 0)
+    // Keep empty groups visible in the default view so a freshly-created
+    // group still renders (with its + Cat affordance). For deliberate
+    // filters (overspent/underfunded/etc.) collapse empties to avoid noise.
+    .filter(g => filter === 'all' ? true : g.categories.length > 0)
 
   return (
     <div className="bdg-envelopes" data-testid="bdg-envelopes">
