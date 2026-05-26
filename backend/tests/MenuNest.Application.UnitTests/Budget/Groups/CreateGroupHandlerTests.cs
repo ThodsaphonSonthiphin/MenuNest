@@ -3,6 +3,7 @@ using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Exceptions;
 
 namespace MenuNest.Application.UnitTests.Budget.Groups;
 
@@ -71,5 +72,45 @@ public class CreateGroupHandlerTests
             new CreateGroupCommand(new string('a', 121)), CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task Rejects_duplicate_name_in_same_family()
+    {
+        using var fx = new HandlerTestFixture();
+        fx.Db.BudgetCategoryGroups.Add(BudgetCategoryGroup.Create(fx.Family.Id, "Bills", 0));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
+
+        var act = async () => await sut.Handle(new CreateGroupCommand("Bills"), CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>()
+            .WithMessage("*already exists*");
+    }
+
+    [Fact]
+    public async Task Duplicate_check_is_case_insensitive_and_trims_whitespace()
+    {
+        using var fx = new HandlerTestFixture();
+        fx.Db.BudgetCategoryGroups.Add(BudgetCategoryGroup.Create(fx.Family.Id, "Bills", 0));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
+
+        var act = async () => await sut.Handle(new CreateGroupCommand("  BILLS  "), CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task Allows_same_name_in_a_different_family()
+    {
+        using var fx = new HandlerTestFixture();
+        fx.Db.BudgetCategoryGroups.Add(BudgetCategoryGroup.Create(Guid.NewGuid(), "Bills", 0));
+        await fx.Db.SaveChangesAsync();
+        var sut = Build(fx);
+
+        var result = await sut.Handle(new CreateGroupCommand("Bills"), CancellationToken.None);
+
+        result.Name.Should().Be("Bills");
     }
 }
