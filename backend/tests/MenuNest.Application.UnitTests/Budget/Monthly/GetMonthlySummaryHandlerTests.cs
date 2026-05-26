@@ -31,7 +31,6 @@ public class GetMonthlySummaryHandlerTests
         result.TotalAssigned.Should().Be(0m);
         result.TotalActivity.Should().Be(0m);
         result.Available.Should().Be(0m);
-        result.LeftOverFromLastMonth.Should().Be(0m);
         result.ReadyToAssign.Should().Be(0m);
         result.Groups.Should().BeEmpty();
         result.Accounts.Should().BeEmpty();
@@ -39,7 +38,7 @@ public class GetMonthlySummaryHandlerTests
 
     /// <summary>
     /// Assigning 500 to a brand-new category with no spending yields
-    /// Assigned=500, Activity=0, Available=500, LeftOver=0.
+    /// Assigned=500, Activity=0, Available=500.
     /// </summary>
     [Fact]
     public async Task Single_category_assigned_no_spending_fills_envelope()
@@ -68,7 +67,6 @@ public class GetMonthlySummaryHandlerTests
         result.TotalAssigned.Should().Be(500m);
         result.TotalActivity.Should().Be(0m);
         result.Available.Should().Be(500m);
-        result.LeftOverFromLastMonth.Should().Be(0m);
     }
 
     /// <summary>
@@ -187,17 +185,15 @@ public class GetMonthlySummaryHandlerTests
         envelope.Assigned.Should().Be(0m);
         envelope.Activity.Should().Be(-100m);
         envelope.Available.Should().Be(400m, "500 rollover + 0 assigned + (-100) activity");
-
-        // LeftOver = totalAvailable - totalAssigned - totalActivity
-        //         = 400 - 0 - (-100) = 500 (matches March's ending Available).
-        result.LeftOverFromLastMonth.Should().Be(500m);
     }
 
     /// <summary>
-    /// With income=1000 and 500 assigned, ReadyToAssign = 1000 + 0 − 500 = 500.
+    /// RTA = sum(accounts) − sum(envelope.available across all cats).
+    /// 1000 in an account + 500 assigned to a single category produces
+    /// envelope.available 500 → ReadyToAssign 1000 − 500 = 500.
     /// </summary>
     [Fact]
-    public async Task Income_and_assignments_produce_ready_to_assign()
+    public async Task Account_balance_minus_envelope_available_produces_ready_to_assign()
     {
         using var fx = new HandlerTestFixture();
 
@@ -206,10 +202,10 @@ public class GetMonthlySummaryHandlerTests
         var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Rent", null, 0);
         fx.Db.BudgetCategories.Add(cat);
 
+        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(
+            fx.Family.Id, "Checking", BudgetAccountType.Cash, 1000m, 0));
         fx.Db.MonthlyAssignments.Add(
             MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 500m));
-        fx.Db.MonthlyIncomes.Add(
-            MonthlyIncome.Create(fx.Family.Id, 2026, 4, 1000m));
         await fx.Db.SaveChangesAsync();
 
         var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
@@ -217,9 +213,7 @@ public class GetMonthlySummaryHandlerTests
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
 
-        result.Income.Should().Be(1000m);
         result.TotalAssigned.Should().Be(500m);
-        result.LeftOverFromLastMonth.Should().Be(0m);
         result.ReadyToAssign.Should().Be(500m);
     }
 
@@ -328,6 +322,74 @@ public class GetMonthlySummaryHandlerTests
     }
 
     /// <summary>
+    /// Hidden categories are hidden from the response, but their
+    /// envelope.available is still subtracted from RTA. Without this,
+    /// hiding a funded category would silently inflate the RTA.
+    /// </summary>
+    [Fact]
+    public async Task Hidden_category_is_subtracted_from_rta_even_though_hidden_from_response()
+    {
+        using var fx = new HandlerTestFixture();
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Bills", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var visible = BudgetCategory.Create(fx.Family.Id, group.Id, "Rent", null, 0);
+        var hidden  = BudgetCategory.Create(fx.Family.Id, group.Id, "Old Gym", null, 1);
+        hidden.Hide();
+        fx.Db.BudgetCategories.AddRange(visible, hidden);
+
+        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(
+            fx.Family.Id, "Checking", BudgetAccountType.Cash, 1000m, 0));
+        fx.Db.MonthlyAssignments.AddRange(
+            MonthlyAssignment.Create(fx.Family.Id, visible.Id, 2026, 4, 300m),
+            MonthlyAssignment.Create(fx.Family.Id, hidden.Id,  2026, 4, 300m));
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
+
+        // Response excludes the hidden cat (existing behavior).
+        result.Groups.Single().Categories.Should().HaveCount(1);
+        result.TotalAssigned.Should().Be(300m, "visible-only sum drives the UI total");
+
+        // But hidden cat IS subtracted from RTA.
+        result.ReadyToAssign.Should().Be(400m, "1000 − (300 visible + 300 hidden) = 400");
+    }
+
+    /// <summary>
+    /// Income now means "sum of positive inflow transactions this month".
+    /// Seed two positive inflows and one negative uncategorized outflow;
+    /// assert only the positive ones contribute.
+    /// </summary>
+    [Fact]
+    public async Task Income_field_is_sum_of_positive_inflows_this_month()
+    {
+        using var fx = new HandlerTestFixture();
+
+        var account = BudgetAccount.Create(
+            fx.Family.Id, "Checking", BudgetAccountType.Cash, 0m, 0);
+        fx.Db.BudgetAccounts.Add(account);
+
+        fx.Db.BudgetTransactions.AddRange(
+            BudgetTransaction.Create(fx.Family.Id, account.Id, null,  200m,
+                new DateOnly(2026, 4, 1), null, fx.User.Id),
+            BudgetTransaction.Create(fx.Family.Id, account.Id, null,  300m,
+                new DateOnly(2026, 4, 15), null, fx.User.Id),
+            BudgetTransaction.Create(fx.Family.Id, account.Id, null, -50m,
+                new DateOnly(2026, 4, 20), null, fx.User.Id));
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
+
+        result.Income.Should().Be(500m, "only positive uncategorized inflows count toward Income");
+    }
+
+    /// <summary>
     /// A second family's data must never leak into the caller's
     /// summary — the handler is filtered by the current user's
     /// familyId throughout.
@@ -344,9 +406,8 @@ public class GetMonthlySummaryHandlerTests
         fx.Db.BudgetCategories.Add(myCat);
         fx.Db.MonthlyAssignments.Add(
             MonthlyAssignment.Create(fx.Family.Id, myCat.Id, 2026, 4, 100m));
-        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(
-            fx.Family.Id, "My Checking", BudgetAccountType.Cash, 1000m, 0));
-        fx.Db.MonthlyIncomes.Add(MonthlyIncome.Create(fx.Family.Id, 2026, 4, 500m));
+        var myAccount = BudgetAccount.Create(fx.Family.Id, "My Checking", BudgetAccountType.Cash, 1000m, 0);
+        fx.Db.BudgetAccounts.Add(myAccount);
 
         // Foreign-family data
         var other = Family.CreateNew("Other Family", fx.User.Id);
@@ -357,9 +418,15 @@ public class GetMonthlySummaryHandlerTests
         fx.Db.BudgetCategories.Add(otherCat);
         fx.Db.MonthlyAssignments.Add(
             MonthlyAssignment.Create(other.Id, otherCat.Id, 2026, 4, 9999m));
-        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(
-            other.Id, "Foreign Checking", BudgetAccountType.Cash, 9999m, 0));
-        fx.Db.MonthlyIncomes.Add(MonthlyIncome.Create(other.Id, 2026, 4, 9999m));
+        var otherAccount = BudgetAccount.Create(other.Id, "Foreign Checking", BudgetAccountType.Cash, 9999m, 0);
+        fx.Db.BudgetAccounts.Add(otherAccount);
+
+        // One positive inflow per family
+        fx.Db.BudgetTransactions.AddRange(
+            BudgetTransaction.Create(fx.Family.Id, myAccount.Id, null, 500m,
+                new DateOnly(2026, 4, 1), null, fx.User.Id),
+            BudgetTransaction.Create(other.Id, otherAccount.Id, null, 9999m,
+                new DateOnly(2026, 4, 1), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
         var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);

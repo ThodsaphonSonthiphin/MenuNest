@@ -91,19 +91,44 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
             totalAvailable += gAvailable;
         }
 
-        // 4. Income & leftover
-        var income = await _db.MonthlyIncomes
-            .Where(i => i.FamilyId == familyId && i.Year == q.Year && i.Month == q.Month)
-            .Select(i => i.Amount).FirstOrDefaultAsync(ct);
+        // 4. All-cats envelope available (including hidden) for RTA calculation.
+        decimal totalEnvelopeAvailableAllCats = 0;
+        foreach (var cat in categories)
+        {
+            var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
+            var catTx          = allTx.Where(t => t.CategoryId == cat.Id).ToList();
+            decimal available = 0;
+            for (int y = 2000; y <= q.Year; y++)
+            {
+                int mStart = 1, mEnd = 12;
+                if (y == q.Year) mEnd = q.Month;
+                for (int m = mStart; m <= mEnd; m++)
+                {
+                    var a   = catAssignments.FirstOrDefault(r => r.Year == y && r.Month == m)?.AssignedAmount ?? 0m;
+                    var act = catTx.Where(t => t.Date.Year == y && t.Date.Month == m).Sum(t => t.Amount);
+                    available += a + act;
+                }
+            }
+            totalEnvelopeAvailableAllCats += available;
+        }
 
-        // LeftOverFromLastMonth = sum of every category's Available *as of end of previous month*
-        // = totalAvailable − (assignedThis + activityThis)
-        decimal leftOverFromLastMonth = totalAvailable - totalAssignedThisMonth - totalActivityThisMonth;
+        // 5. Total account balance.
+        var totalAccountBalance = await _db.BudgetAccounts
+            .Where(a => a.FamilyId == familyId)
+            .SumAsync(a => (decimal?)a.Balance, ct) ?? 0m;
 
-        // Ready to Assign = income + leftover − totalAssigned
-        decimal readyToAssign = income + leftOverFromLastMonth - totalAssignedThisMonth;
+        // 6. Income = positive uncategorized inflows for the selected month.
+        var income = await _db.BudgetTransactions
+            .Where(t => t.FamilyId == familyId
+                     && t.CategoryId == null
+                     && t.Amount > 0m
+                     && t.Date >= selected && t.Date < nextMonth)
+            .SumAsync(t => (decimal?)t.Amount, ct) ?? 0m;
 
-        // 5. Accounts
+        // RTA = sum(accounts) − sum(envelope.available across ALL categories)
+        decimal readyToAssign = totalAccountBalance - totalEnvelopeAvailableAllCats;
+
+        // 7. Accounts list for the UI.
         var accounts = await _db.BudgetAccounts
             .Where(a => a.FamilyId == familyId)
             .OrderBy(a => a.IsClosed).ThenBy(a => a.Type).ThenBy(a => a.SortOrder).ThenBy(a => a.Name)
@@ -113,7 +138,7 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         return new MonthlySummaryDto(
             q.Year, q.Month,
             income, totalAssignedThisMonth, totalActivityThisMonth,
-            readyToAssign, leftOverFromLastMonth, totalAvailable,
+            readyToAssign, totalAvailable,
             groupsDto, accounts);
     }
 
