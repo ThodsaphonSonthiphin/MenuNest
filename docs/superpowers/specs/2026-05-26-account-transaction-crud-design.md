@@ -6,7 +6,7 @@
 
 ## Problem
 
-The Account Detail page (`/budget/account/:id`) currently lets users **create** and **list** transactions but offers no way to **edit** or **delete** them. The backend (`UpdateTransaction`, `DeleteTransaction` use cases) and the RTK Query mutations (`useUpdateBudgetTransactionMutation`, `useDeleteBudgetTransactionMutation`) are already in place; `TransactionDialog` even accepts an `existing` prop but its edit path is a stub that returns `"Editing transactions is not yet supported."`
+The Account Detail page (`/budget/accounts/:accountId`) currently lets users **create** and **list** transactions but offers no way to **edit** or **delete** them. The backend (`UpdateTransaction`, `DeleteTransaction` use cases) and the RTK Query mutations (`useUpdateBudgetTransactionMutation`, `useDeleteBudgetTransactionMutation`) are already in place; `TransactionDialog` even accepts an `existing` prop but its edit path is a stub that returns `"Editing transactions is not yet supported."`
 
 This spec wires up the missing UI so the account page supports full CRUD on the transactions it shows.
 
@@ -107,14 +107,12 @@ Implementations:
 - `applyRestore`: insert at the first index where the existing row is older (date DESC, then createdAt DESC); fall back to end of list
 
 ### Mutation invalidation
-Modify the `updateBudgetTransaction` and `deleteBudgetTransaction` mutation definitions in `api.ts` so they **do not** invalidate the `BudgetTransactions` tag. The page owns list state through `applyEdit` / `applyDelete` / `applyRestore`.
-
-After every successful edit and after every successful delete commit, the page dispatches `api.util.invalidateTags([{type: 'BudgetSummary', id: 'LIST'}])` manually so the hero card and envelope figures pick up new balances.
+The `listBudgetAccountTransactions` query (which drives the account detail page) provides the **`BudgetAccountDetail`** tag, not `BudgetTransactions`. Modify the `updateBudgetTransaction` and `deleteBudgetTransaction` mutation definitions in `api.ts` so they **do not** invalidate `BudgetAccountDetail`. The page owns list state through `applyEdit` / `applyDelete` / `applyRestore`. Keep `BudgetTransactions`, `BudgetAccounts`, and `BudgetSummary` invalidations as-is — `BudgetSummary` refreshes the hero and envelope figures.
 
 This split makes responsibilities explicit: the list is page-owned, the summary is cache-owned.
 
 ### Account balance refresh
-After every successful edit and delete commit, dispatch `api.util.invalidateTags([{type: 'BudgetSummary', id: 'LIST'}])`. The hero card (`AccountHero`) reads from `getBudgetSummary`, so the balance updates without a full list refetch.
+Because we keep `BudgetSummary` and `BudgetAccounts` in the mutations' `invalidatesTags`, the hero card (`AccountHero`) — which reads from `getBudgetSummary` — refreshes automatically after each edit and after each delete commit. No manual `invalidateTags` call is required.
 
 ## Component contracts
 
