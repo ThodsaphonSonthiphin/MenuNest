@@ -490,3 +490,98 @@
   padding: 16px 0;
   font-size: 13px; color: var(--text-muted); line-height: 1.5;
 }
+
+/* ─── Per-row menu on account transaction list ─────────────────── */
+.bdg-tx-row { position: relative; }
+.bdg-tx-menu-anchor { position: relative; display: inline-flex; align-items: center; margin-left: 8px; }
+.bdg-tx-menu-btn {
+  background: transparent;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--bdg-muted, #888);
+  border-radius: 6px;
+}
+.bdg-tx-menu-btn:hover { background: rgba(0,0,0,0.05); }
+.bdg-tx-menu-pop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--bdg-surface, #fff);
+  border: 1px solid var(--bdg-border, #e0e0e0);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+  min-width: 140px;
+  z-index: 30;
+  padding: 4px;
+}
+.bdg-tx-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  border-radius: 6px;
+}
+.bdg-tx-menu-item:hover { background: rgba(0,0,0,0.05); }
+.bdg-tx-menu-item.is-destructive { color: #c0392b; }
+.bdg-tx-menu-item.is-destructive:hover { background: rgba(192,57,43,0.08); }
+.bdg-tx-menu-item .icon { font-size: 14px; width: 16px; text-align: center; }
+
+/* ─── Undo toast ────────────────────────────────────────────────── */
+.bdg-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  background: #232f3e;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 260px;
+  max-width: calc(100% - 32px);
+  z-index: 50;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+.bdg-undo-toast-msg { flex: 1; font-size: 14px; }
+.bdg-undo-toast-btn {
+  background: transparent;
+  border: none;
+  color: #ffd166;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.bdg-undo-toast-btn:hover { background: rgba(255,255,255,0.08); }
+.bdg-undo-toast-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: #ffd166;
+  animation-name: bdg-undo-shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+  width: 100%;
+}
+.bdg-undo-toast.is-error { background: #8e2a25; }
+.bdg-undo-toast.is-error .bdg-undo-toast-bar { display: none; }
+
+@keyframes bdg-undo-shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
