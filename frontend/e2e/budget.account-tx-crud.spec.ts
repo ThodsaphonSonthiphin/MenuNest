@@ -53,8 +53,9 @@ test.describe('Budget — account transaction CRUD', () => {
     const firstId = await firstRow.getAttribute('data-tx-id')
     await firstRow.getByTestId('bdg-tx-menu-btn').click()
     await page.getByTestId('bdg-tx-menu-delete').click()
-    // Wait past the 5s undo window plus a small buffer for the API commit.
-    await page.waitForTimeout(5500)
+    // Wait deterministically for the undo toast to disappear (5s timer fires
+    // + commit dispatched). 8s ceiling guards against a stuck animation.
+    await expect(page.getByTestId('bdg-undo-toast')).toBeHidden({timeout: 8000})
     await page.reload()
     // Wait for the page to settle.
     await expect(page.getByTestId('bdg-account-page')).toBeVisible()
