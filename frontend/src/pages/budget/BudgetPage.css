@@ -371,19 +371,9 @@
 }
 .bdg-add-group-btn:hover { background: var(--accent-soft); }
 
-/* RTA hero is a <button> — neutralise defaults */
+/* RTA hero is a <section> — display-only panel */
 .bdg-rta-hero {
-  width: 100%; text-align: left; cursor: pointer;
-  font-family: inherit;
-  transition: border-color .15s ease-out, background-color .15s ease-out;
-}
-.bdg-rta-hero:hover {
-  border-color: var(--rta-accent);
-  background: var(--bg-card-2);
-}
-.bdg-rta-hero:focus-visible {
-  outline: 2px solid var(--rta-accent);
-  outline-offset: 2px;
+  width: 100%; text-align: left;
 }
 
 /* -------- Account ⋯ menu -------- */

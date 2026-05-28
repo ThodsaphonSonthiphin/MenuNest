@@ -18,15 +18,9 @@ const MONTHS = [
  *   zero       emerald accent — "Every baht has a job"
  *   over       red accent     — "Too much assigned"
  *
- * Tapping opens SetIncomeDialog via onClick.
+ * Display-only; the assign / spend flows live elsewhere.
  */
-export function RtaHero({
-  summary,
-  onClick,
-}: {
-  summary: MonthlySummaryDto
-  onClick?: () => void
-}) {
+export function RtaHero({summary}: {summary: MonthlySummaryDto}) {
   const rta = summary.readyToAssign
   const state: 'has-money' | 'zero' | 'over' =
     rta > 0 ? 'has-money' : rta === 0 ? 'zero' : 'over'
@@ -48,12 +42,7 @@ export function RtaHero({
   const pctLabel = Math.round(pctClamped)
 
   return (
-    <button
-      type="button"
-      className={`bdg-rta-hero is-${state}`}
-      data-testid="bdg-rta-hero"
-      onClick={onClick}
-    >
+    <section className={`bdg-rta-hero is-${state}`} data-testid="bdg-rta-hero">
       <div className="bdg-rta-topline">
         <span className="bdg-rta-month">{MONTHS[summary.month - 1]} {summary.year}</span>
         <span className="bdg-rta-state-pill">{stateLabel}</span>
@@ -75,6 +64,6 @@ export function RtaHero({
         </div>
         <span className="bdg-rta-progress-pct">{pctLabel}%</span>
       </div>
-    </button>
+    </section>
   )
 }
