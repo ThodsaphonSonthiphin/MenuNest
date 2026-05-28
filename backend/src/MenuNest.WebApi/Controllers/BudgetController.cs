@@ -16,7 +16,6 @@ using MenuNest.Application.UseCases.Budget.Monthly.CoverOverspending;
 using MenuNest.Application.UseCases.Budget.Monthly.GetMonthlySummary;
 using MenuNest.Application.UseCases.Budget.Monthly.MoveMoney;
 using MenuNest.Application.UseCases.Budget.Monthly.SetAssignedAmount;
-using MenuNest.Application.UseCases.Budget.Monthly.SetMonthlyIncome;
 using MenuNest.Application.UseCases.Budget.Transactions.CreateTransaction;
 using MenuNest.Application.UseCases.Budget.Transactions.DeleteTransaction;
 using MenuNest.Application.UseCases.Budget.Transactions.ListTransactions;
@@ -102,10 +101,6 @@ public sealed class BudgetController : ControllerBase
     { await _m.Send(new DeleteCategoryCommand(id), ct); return NoContent(); }
 
     // ----- monthly ops -----
-    [HttpPut("monthly/income")]
-    public async Task<IActionResult> SetIncome([FromBody] SetMonthlyIncomeRequest r, CancellationToken ct)
-    { await _m.Send(new SetMonthlyIncomeCommand(r.Year, r.Month, r.Amount), ct); return NoContent(); }
-
     [HttpPut("monthly/assigned")]
     public async Task<IActionResult> SetAssigned([FromBody] SetAssignedRequest r, CancellationToken ct)
     { await _m.Send(new SetAssignedAmountCommand(r.CategoryId, r.Year, r.Month, r.Amount), ct); return NoContent(); }

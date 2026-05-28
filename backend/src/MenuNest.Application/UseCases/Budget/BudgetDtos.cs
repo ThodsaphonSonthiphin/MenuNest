@@ -71,7 +71,6 @@ public sealed record UpdateTransactionRequest(
 
 // ---------- Monthly ops ----------
 public sealed record SetAssignedRequest(Guid CategoryId, int Year, int Month, decimal Amount);
-public sealed record SetMonthlyIncomeRequest(int Year, int Month, decimal Amount);
 public sealed record MoveMoneyRequest(
     Guid FromCategoryId, Guid ToCategoryId, int Year, int Month, decimal Amount);
 public sealed record CoverOverspendingRequest(
