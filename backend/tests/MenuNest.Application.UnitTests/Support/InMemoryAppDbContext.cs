@@ -35,7 +35,6 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<BudgetCategoryGroup> BudgetCategoryGroups => Set<BudgetCategoryGroup>();
     public DbSet<BudgetCategory> BudgetCategories => Set<BudgetCategory>();
     public DbSet<MonthlyAssignment> MonthlyAssignments => Set<MonthlyAssignment>();
-    public DbSet<MonthlyIncome> MonthlyIncomes => Set<MonthlyIncome>();
     public DbSet<BudgetTransaction> BudgetTransactions => Set<BudgetTransaction>();
 
     // Health (migraine tracker) module

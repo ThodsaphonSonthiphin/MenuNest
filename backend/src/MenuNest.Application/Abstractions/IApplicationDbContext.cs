@@ -27,7 +27,6 @@ public interface IApplicationDbContext
     DbSet<BudgetCategoryGroup> BudgetCategoryGroups { get; }
     DbSet<BudgetCategory> BudgetCategories { get; }
     DbSet<MonthlyAssignment> MonthlyAssignments { get; }
-    DbSet<MonthlyIncome> MonthlyIncomes { get; }
     DbSet<BudgetTransaction> BudgetTransactions { get; }
 
     // Health (migraine tracker) module
