@@ -62,6 +62,7 @@ export function AccountDetailPage() {
   const commitPending = useCallback((p: PendingDelete) => {
     window.clearTimeout(p.timerId)
     void deleteTx({id: p.tx.id, year, month}).unwrap().catch(() => {
+      // TODO: 404 means the row was already deleted elsewhere — skip restore in that case.
       applyRestore(p.tx)
       setErrorToast('Could not delete. Restored.')
     })
@@ -226,7 +227,7 @@ export function AccountDetailPage() {
       )}
 
       {errorToast && (
-        <div className="bdg-undo-toast is-error" data-testid="bdg-error-toast" role="status">
+        <div className="bdg-undo-toast is-error" data-testid="bdg-error-toast" role="status" aria-live="polite">
           <span className="bdg-undo-toast-msg">{errorToast}</span>
         </div>
       )}
