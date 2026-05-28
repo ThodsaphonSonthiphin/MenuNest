@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { Provider as ReduxProvider } from 'react-redux'
 import { MsalProvider } from '@azure/msal-react'
+import { EventType, type AccountInfo } from '@azure/msal-browser'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { registerLicense } from '@syncfusion/react-base'
 
@@ -59,23 +60,19 @@ if (syncfusionLicense) {
   registerLicense(syncfusionLicense)
 }
 
-// Ensure MSAL has picked up any redirect response before rendering.
-// `initialize()` bootstraps the client; `handleRedirectPromise()`
-// actually consumes the auth response in `window.location.hash`
-// after Microsoft redirects the user back here. Without this call,
-// tokens are never parsed and the app treats the user as anonymous.
+// msal-react's MsalProvider calls handleRedirectPromise internally;
+// doing it ourselves as well throws no_token_request_cache_error in
+// MSAL v5. We listen for LOGIN_SUCCESS to pick the redirect-returned
+// account, and fall back to any cached account on cold loads. In v5
+// the LOGIN_SUCCESS payload is AccountInfo (not AuthenticationResult).
 async function bootstrap() {
   await msalInstance.initialize()
 
-  try {
-    const redirectResult = await msalInstance.handleRedirectPromise()
-    if (redirectResult?.account) {
-      msalInstance.setActiveAccount(redirectResult.account)
+  msalInstance.addEventCallback((event) => {
+    if (event.eventType === EventType.LOGIN_SUCCESS && event.payload) {
+      msalInstance.setActiveAccount(event.payload as AccountInfo)
     }
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.error('[MSAL] handleRedirectPromise failed', err)
-  }
+  })
 
   const accounts = msalInstance.getAllAccounts()
   if (accounts.length > 0 && !msalInstance.getActiveAccount()) {
