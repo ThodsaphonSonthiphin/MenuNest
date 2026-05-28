@@ -10,6 +10,9 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
 
+    // Named projection for in-memory transaction rows (allows passing to static helpers).
+    private readonly record struct TxRow(Guid? CategoryId, decimal Amount, DateOnly Date);
+
     public GetMonthlySummaryHandler(IApplicationDbContext db, IUserProvisioner users)
     { _db = db; _users = users; }
 
@@ -38,7 +41,7 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         var allTx = await _db.BudgetTransactions
             .Where(t => t.FamilyId == familyId && t.CategoryId != null
                      && t.Date < nextMonth)
-            .Select(t => new { t.CategoryId, t.Amount, t.Date })
+            .Select(t => new TxRow(t.CategoryId, t.Amount, t.Date))
             .ToListAsync(ct);
 
         // 3. Per-category: walk months and compute Available as of end of selected month,
@@ -58,20 +61,8 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
                 var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
                 var catTx = allTx.Where(t => t.CategoryId == cat.Id).ToList();
 
-                // Activity per month
-                decimal available = 0, assignedThis = 0, activityThis = 0;
-                for (int y = 2000; y <= q.Year; y++)
-                {
-                    int mStart = 1, mEnd = 12;
-                    if (y == q.Year) mEnd = q.Month;
-                    for (int m = mStart; m <= mEnd; m++)
-                    {
-                        var a = catAssignments.FirstOrDefault(r => r.Year == y && r.Month == m)?.AssignedAmount ?? 0m;
-                        var act = catTx.Where(t => t.Date.Year == y && t.Date.Month == m).Sum(t => t.Amount);
-                        available += a + act; // act is negative for spending
-                        if (y == q.Year && m == q.Month) { assignedThis = a; activityThis = act; }
-                    }
-                }
+                var (available, assignedThis, activityThis) =
+                    ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
 
                 var progress = ComputeProgress(cat, assignedThis, available, selected);
                 envelopes.Add(new EnvelopeDto(
@@ -92,23 +83,15 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         }
 
         // 4. All-cats envelope available (including hidden) for RTA calculation.
+        // allTx already excludes uncategorized rows (CategoryId != null filter above),
+        // so this sums only money that landed in envelopes. Uncategorized inflows are
+        // reflected in totalAccountBalance instead.
         decimal totalEnvelopeAvailableAllCats = 0;
         foreach (var cat in categories)
         {
             var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
             var catTx          = allTx.Where(t => t.CategoryId == cat.Id).ToList();
-            decimal available = 0;
-            for (int y = 2000; y <= q.Year; y++)
-            {
-                int mStart = 1, mEnd = 12;
-                if (y == q.Year) mEnd = q.Month;
-                for (int m = mStart; m <= mEnd; m++)
-                {
-                    var a   = catAssignments.FirstOrDefault(r => r.Year == y && r.Month == m)?.AssignedAmount ?? 0m;
-                    var act = catTx.Where(t => t.Date.Year == y && t.Date.Month == m).Sum(t => t.Amount);
-                    available += a + act;
-                }
-            }
+            var (available, _, _) = ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
             totalEnvelopeAvailableAllCats += available;
         }
 
@@ -140,6 +123,33 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
             income, totalAssignedThisMonth, totalActivityThisMonth,
             readyToAssign, totalAvailable,
             groupsDto, accounts);
+    }
+
+    /// <summary>
+    /// Walks every month from Jan 2000 through (<paramref name="year"/>, <paramref name="month"/>) and
+    /// accumulates the running envelope balance (assignments + activity).  Returns the cumulative
+    /// <c>Available</c> together with the <c>AssignedThisMonth</c> and <c>ActivityThisMonth</c> values
+    /// for the selected month, so callers that only need a subset can discard the rest.
+    /// </summary>
+    private static (decimal Available, decimal AssignedThisMonth, decimal ActivityThisMonth)
+        ComputeEnvelopeAvailable(
+            IReadOnlyList<Domain.Entities.MonthlyAssignment> catAssignments,
+            IReadOnlyList<TxRow> catTx,
+            int year, int month)
+    {
+        decimal available = 0, assignedThis = 0, activityThis = 0;
+        for (int y = 2000; y <= year; y++)
+        {
+            int mEnd = (y == year) ? month : 12;
+            for (int m = 1; m <= mEnd; m++)
+            {
+                var a   = catAssignments.FirstOrDefault(r => r.Year == y && r.Month == m)?.AssignedAmount ?? 0m;
+                var act = catTx.Where(t => t.Date.Year == y && t.Date.Month == m).Sum(t => t.Amount);
+                available += a + act; // act is negative for spending
+                if (y == year && m == month) { assignedThis = a; activityThis = act; }
+            }
+        }
+        return (available, assignedThis, activityThis);
     }
 
     private static (decimal? Fraction, string? Hint) ComputeProgress(
