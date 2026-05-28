@@ -19,11 +19,10 @@ test.describe('Budget — add entry points', () => {
     await expect(page.locator('.budget-modal h3')).toContainText(/group/i)
   })
 
-  test('tap RTA hero opens SetIncomeDialog', async ({authedPage: page}) => {
+  test('RTA hero is display-only and does not open a dialog', async ({authedPage: page}) => {
     await page.goto('/budget')
     await page.getByTestId('bdg-rta-hero').click()
-    await expect(page.getByTestId('bdg-set-income-dialog')).toBeVisible()
-    await expect(page.locator('.budget-modal h3')).toContainText(/income/i)
+    await expect(page.getByTestId('bdg-set-income-dialog')).not.toBeAttached()
   })
 
   test('Reconcile menu item on account detail opens ReconcileBalanceDialog', async ({authedPage: page}) => {
