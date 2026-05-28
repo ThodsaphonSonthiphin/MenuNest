@@ -35,7 +35,9 @@ export function RtaHero({summary}: {summary: MonthlySummaryDto}) {
       ? `${formatTHB(summary.income)} fully placed.`
       : state === 'over'
       ? `Pull ${formatTHB(Math.abs(rta))} back to rebalance.`
-      : `${formatTHB(summary.totalAssigned)} of ${formatTHB(summary.income)} placed.`
+      : summary.income > 0
+      ? `${formatTHB(summary.totalAssigned)} of ${formatTHB(summary.income)} placed.`
+      : `${formatTHB(rta)} available to assign.`
 
   const pctRaw = summary.income <= 0 ? 0 : (summary.totalAssigned / summary.income) * 100
   const pctClamped = state === 'over' ? 100 : Math.min(100, Math.max(0, pctRaw))
