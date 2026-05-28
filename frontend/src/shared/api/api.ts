@@ -372,7 +372,6 @@ export interface MonthlySummaryDto {
     totalAssigned: number
     totalActivity: number
     readyToAssign: number
-    leftOverFromLastMonth: number
     available: number
     groups: EnvelopeGroupDto[]
     accounts: BudgetAccountDto[]
@@ -899,10 +898,6 @@ export const api = createApi({
             query: (id) => ({url: `/api/budget/categories/${id}`, method: 'DELETE'}),
             invalidatesTags: ['BudgetGroups'],
         }),
-        setMonthlyIncome: build.mutation<void, {year: number; month: number; amount: number}>({
-            query: (b) => ({url: '/api/budget/monthly/income', method: 'PUT', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
-        }),
         setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number}>({
             query: (b) => ({url: '/api/budget/monthly/assigned', method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
@@ -1263,7 +1258,6 @@ export const {
     useCreateBudgetCategoryMutation,
     useUpdateBudgetCategoryMutation,
     useDeleteBudgetCategoryMutation,
-    useSetMonthlyIncomeMutation,
     useSetAssignedAmountMutation,
     useMoveMoneyMutation,
     useCoverOverspendingMutation,
