@@ -930,12 +930,12 @@ export const api = createApi({
         }),
         updateBudgetTransaction: build.mutation<BudgetTransactionDto, {id: string; year: number; month: number} & UpdateTransactionRequest>({
             query: ({id, year: _y, month: _m, ...b}) => ({url: `/api/budget/transactions/${id}`, method: 'PUT', body: b}),
-            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts', 'BudgetAccountDetail',
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
                 {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
         deleteBudgetTransaction: build.mutation<void, {id: string; year: number; month: number}>({
             query: ({id}) => ({url: `/api/budget/transactions/${id}`, method: 'DELETE'}),
-            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts', 'BudgetAccountDetail',
+            invalidatesTags: (_r, _e, a) => ['BudgetTransactions', 'BudgetAccounts',
                 {type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
         // -------------------- Health: Drugs --------------------
