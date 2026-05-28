@@ -82,7 +82,9 @@ export function AccountTransactionList({items, endSentinelRef, onEdit, onDelete}
                   <button
                     type="button"
                     className="bdg-tx-menu-btn"
-                    aria-label="Row menu"
+                    aria-label={`Menu for ${tx.notes ?? tx.categoryName ?? 'transaction'}`}
+                    aria-haspopup="menu"
+                    aria-expanded={isOpen}
                     data-testid="bdg-tx-menu-btn"
                     onClick={() => setOpenMenuId(isOpen ? null : tx.id)}
                   >
