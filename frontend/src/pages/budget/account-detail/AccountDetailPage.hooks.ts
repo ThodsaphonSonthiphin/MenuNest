@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {useAppSelector} from '../../../store'
 import {
   useListBudgetAccountTransactionsQuery,
@@ -6,6 +6,11 @@ import {
 } from '../../../shared/api/api'
 
 const PAGE_SIZE = 50
+
+function byDateDesc(a: BudgetTransactionDto, b: BudgetTransactionDto): number {
+  if (a.date !== b.date) return a.date < b.date ? 1 : -1
+  return 0
+}
 
 /**
  * Drive the AccountDetailPage. Loads one page from the server; an
@@ -59,6 +64,27 @@ export function useAccountDetail(accountId: string) {
     return () => io.disconnect()
   }, [hasMore, isFetching])
 
+  const applyEdit = useCallback((updated: BudgetTransactionDto) => {
+    setAllItems(prev => {
+      const next = prev.map(t => t.id === updated.id ? updated : t)
+      next.sort(byDateDesc)
+      return next
+    })
+  }, [])
+
+  const applyDelete = useCallback((id: string) => {
+    setAllItems(prev => prev.filter(t => t.id !== id))
+  }, [])
+
+  const applyRestore = useCallback((tx: BudgetTransactionDto) => {
+    setAllItems(prev => {
+      if (prev.some(t => t.id === tx.id)) return prev   // idempotent: already restored
+      const next = [...prev, tx]
+      next.sort(byDateDesc)
+      return next
+    })
+  }, [])
+
   return {
     account: data?.account ?? null,
     items: allItems,
@@ -67,5 +93,8 @@ export function useAccountDetail(accountId: string) {
     error,
     endSentinelRef,
     hasMore,
+    applyEdit,
+    applyDelete,
+    applyRestore,
   }
 }
