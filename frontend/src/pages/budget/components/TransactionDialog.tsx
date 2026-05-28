@@ -6,6 +6,7 @@ import {NumericTextBox, TextArea} from '@syncfusion/react-inputs'
 import {useAppSelector} from '../../../store'
 import {
   useCreateBudgetTransactionMutation,
+  useUpdateBudgetTransactionMutation,
   type BudgetAccountDto,
   type BudgetTransactionDto,
   type EnvelopeGroupDto,
@@ -39,30 +40,32 @@ function todayIso(): string {
 }
 
 /**
- * Transaction dialog — creates (and, TODO, eventually edits) a
- * `BudgetTransaction`. The user enters a positive `amount` together with
- * an Expense/Income toggle; we flip the sign before submission so the
- * backend always receives the canonical signed amount (negative = expense).
- *
- * For MVP this is create-only; `existing` is accepted for signature
- * stability but the edit path is not wired up yet.
+ * Transaction dialog — creates or edits a `BudgetTransaction`. The user
+ * enters a positive `amount` together with an Expense/Income toggle; we
+ * flip the sign before submission so the backend always receives the
+ * canonical signed amount (negative = expense). When `existing` is set,
+ * the dialog opens in edit mode and the parent receives the updated DTO
+ * via `onSaved`.
  */
 export function TransactionDialog({
   accounts,
   groups,
   existing,
   onClose,
+  onSaved,
   preset,
 }: {
   accounts: BudgetAccountDto[]
   groups: EnvelopeGroupDto[]
   existing?: BudgetTransactionDto
   onClose: () => void
+  onSaved?: (updated: BudgetTransactionDto) => void
   preset?: {accountId?: string; categoryId?: string}
 }) {
-  // TODO(edit-mode): wire up useUpdateBudgetTransactionMutation when `existing` is set.
   const {year, month} = useAppSelector(s => s.budget)
-  const [createTx, {isLoading}] = useCreateBudgetTransactionMutation()
+  const [createTx, {isLoading: isCreating}] = useCreateBudgetTransactionMutation()
+  const [updateTx, {isLoading: isUpdating}] = useUpdateBudgetTransactionMutation()
+  const isLoading = isCreating || isUpdating
   const [err, setErr] = useState<string | null>(null)
 
   const {control, handleSubmit, formState, watch} = useForm<FormValues>({
@@ -94,14 +97,24 @@ export function TransactionDialog({
 
   const onSubmit = handleSubmit(async values => {
     setErr(null)
-    if (existing) {
-      // Reserved for edit-mode work; see TODO above.
-      setErr('Editing transactions is not yet supported.')
-      return
-    }
     const magnitude = Number(values.amount ?? 0)
     const signed = values.direction === 'Expense' ? -magnitude : magnitude
     try {
+      if (existing) {
+        const updated = await updateTx({
+          id: existing.id,
+          year,
+          month,
+          accountId: values.accountId,
+          categoryId: values.categoryId === UNCATEGORIZED_ID ? null : values.categoryId,
+          amount: signed,
+          date: values.date,
+          notes: values.notes.trim() || null,
+        }).unwrap()
+        onSaved?.(updated)
+        onClose()
+        return
+      }
       await createTx({
         accountId: values.accountId,
         categoryId: values.categoryId === UNCATEGORIZED_ID ? null : values.categoryId,
