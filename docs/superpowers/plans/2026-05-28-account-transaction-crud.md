@@ -34,14 +34,19 @@ No other files are touched. The plan does not change backend code, schema, or ro
 interface BudgetTransactionDto {
   id: string
   accountId: string
+  accountName: string
   categoryId: string | null
   categoryName: string | null
   categoryEmoji: string | null
   amount: number
-  date: string         // ISO yyyy-mm-dd
+  date: string                 // ISO yyyy-mm-dd
   notes: string | null
-  createdAt: string    // ISO datetime
+  createdByUserId: string
+  createdByDisplayName: string
 }
+// Note: no `createdAt` field. The server returns rows in CreatedAt DESC
+// order and V8's Array.sort is stable, so sorting only by `date` preserves
+// the existing order within each date bucket.
 
 useUpdateBudgetTransactionMutation()  // input: {id, year, month, accountId, categoryId, amount, date, notes} → BudgetTransactionDto
 useDeleteBudgetTransactionMutation()  // input: {id, year, month} → void
@@ -145,12 +150,13 @@ The page-level pending-delete state and the dialog's edit submit handler both ne
 Edit `AccountDetailPage.hooks.ts`. Add a file-local helper above the `useAccountDetail` function:
 
 ```ts
-function byDateDescThenCreatedAtDesc(a: BudgetTransactionDto, b: BudgetTransactionDto): number {
+function byDateDesc(a: BudgetTransactionDto, b: BudgetTransactionDto): number {
   if (a.date !== b.date) return a.date < b.date ? 1 : -1
-  if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? 1 : -1
   return 0
 }
 ```
+
+`BudgetTransactionDto` exposes no `createdAt` field, so we sort only by `date`. The server returns rows in `CreatedAt DESC` order and V8's `Array.sort` is stable, so equal-date rows preserve their incoming order through the helpers.
 
 - [ ] **Step 2: Wire the helpers and expose them from the hook**
 
@@ -160,7 +166,7 @@ Inside `useAccountDetail`, just before the `return { ... }`, add:
 const applyEdit = useCallback((updated: BudgetTransactionDto) => {
   setAllItems(prev => {
     const next = prev.map(t => t.id === updated.id ? updated : t)
-    next.sort(byDateDescThenCreatedAtDesc)
+    next.sort(byDateDesc)
     return next
   })
 }, [])
@@ -173,7 +179,7 @@ const applyRestore = useCallback((tx: BudgetTransactionDto) => {
   setAllItems(prev => {
     if (prev.some(t => t.id === tx.id)) return prev   // idempotent: already restored
     const next = [...prev, tx]
-    next.sort(byDateDescThenCreatedAtDesc)
+    next.sort(byDateDesc)
     return next
   })
 }, [])
