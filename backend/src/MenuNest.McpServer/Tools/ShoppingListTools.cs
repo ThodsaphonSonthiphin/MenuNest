@@ -28,11 +28,11 @@ public sealed class ShoppingListTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new GetShoppingListDetailQuery(id), ct);
 
-    [McpServerTool, Description("Create a new shopping list, optionally linked to a date range")]
+    [McpServerTool, Description("Create a new shopping list, optionally generated from a meal plan date range. Dates must be supplied as a pair or omitted entirely.")]
     public async Task<ShoppingListDto> create_shopping_list(
         [Description("Name for the shopping list")] string name,
-        [Description("Optional start date of the meal plan range, e.g. 2026-06-01")] DateOnly? fromDate,
-        [Description("Optional end date of the meal plan range, e.g. 2026-06-07")] DateOnly? toDate,
+        [Description("Optional start date for meal plan generation — must be paired with toDate")] DateOnly? fromDate,
+        [Description("Optional end date for meal plan generation — must be paired with fromDate")] DateOnly? toDate,
         CancellationToken ct)
         => await mediator.Send(new CreateShoppingListCommand(name, fromDate, toDate), ct);
 
@@ -48,7 +48,7 @@ public sealed class ShoppingListTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new CompleteShoppingListCommand(id), ct);
 
-    [McpServerTool, Description("Add an ingredient item to a shopping list")]
+    [McpServerTool, Description("Add an ingredient to the shopping list. If the ingredient already exists, its quantity is increased by the given amount (not replaced).")]
     public async Task<ShoppingListItemDto> add_shopping_list_item(
         [Description("Shopping list ID")] Guid listId,
         [Description("Ingredient ID")] Guid ingredientId,
@@ -77,7 +77,7 @@ public sealed class ShoppingListTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new UnbuyShoppingListItemCommand(listId, itemId), ct);
 
-    [McpServerTool, Description("Regenerate a shopping list from its linked meal plan entries")]
+    [McpServerTool, Description("Regenerate a shopping list from its linked meal plan entries. All unbought items are removed and replaced — manually added unbought items will be lost.")]
     public async Task<ShoppingListDetailDto> regenerate_shopping_list(
         [Description("Shopping list ID")] Guid id,
         CancellationToken ct)
