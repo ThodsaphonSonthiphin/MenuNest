@@ -20,12 +20,17 @@
     <PackageReference Include="Microsoft.Identity.Web" Version="4.7.0" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.13.22" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="0.3.*" />
     <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\MenuNest.Application\MenuNest.Application.csproj" />
     <ProjectReference Include="..\MenuNest.Infrastructure\MenuNest.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MenuNest.McpServer\MenuNest.McpServer.csproj" />
   </ItemGroup>
 
 </Project>

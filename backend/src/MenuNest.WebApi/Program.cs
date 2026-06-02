@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using MenuNest.Application;
 using MenuNest.Infrastructure;
+using MenuNest.McpServer;
 using MenuNest.WebApi.Middleware;
 using Microsoft.AspNetCore.Authorization;
 using Scalar.AspNetCore;
@@ -20,6 +21,9 @@ builder.Services.AddMediator(options =>
 {
     options.ServiceLifetime = ServiceLifetime.Scoped;
 });
+
+// MCP Server — tools call IMediator; no new handlers or business logic
+builder.Services.AddMenuNestMcpServer();
 
 // Health module — polls FollowUpPings every minute to fire web pushes.
 builder.Services.AddHostedService<MenuNest.Infrastructure.BackgroundServices.FollowUpDispatcher>();
@@ -172,5 +176,19 @@ app.UseCors(CorsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// MCP — Streamable HTTP; authentication is handled by the existing JwtBearer middleware
+app.MapMcp("/mcp").RequireAuthorization();
+
+// OAuth 2.0 discovery: Claude fetches this on first connect to learn where to authenticate
+app.MapGet("/.well-known/oauth-authorization-server", () => Results.Ok(new
+{
+    issuer = "https://login.microsoftonline.com/common/v2.0",
+    authorization_endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+    token_endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+    response_types_supported = new[] { "code" },
+    grant_types_supported = new[] { "authorization_code", "refresh_token" },
+    code_challenge_methods_supported = new[] { "S256" }
+})).AllowAnonymous();
 
 app.Run();
