@@ -12,6 +12,6 @@ public static class McpServerRegistration
             .WithTools<Tools.IngredientTools>()
             .WithTools<Tools.MealPlanTools>()
             .WithTools<Tools.StockTools>()
-            .WithTools<Tools.ShoppingListTools>();
-    // Tool registrations (.WithTools<T>()) are added incrementally in Tasks 3–8.
+            .WithTools<Tools.ShoppingListTools>()
+        .WithTools<Tools.BudgetTools>();
 }
