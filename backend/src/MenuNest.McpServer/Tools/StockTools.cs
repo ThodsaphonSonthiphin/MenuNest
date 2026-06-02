@@ -21,7 +21,7 @@ public sealed class StockTools(IMediator mediator)
 
     [McpServerTool, Description("Remove a stock entry by ID")]
     public async Task delete_stock(
-        [Description("Stock entry ID")] Guid id,
+        [Description("Stock entry ID (the id field from upsert_stock or list_stock — not the ingredient ID)")] Guid id,
         CancellationToken ct)
         => await mediator.Send(new DeleteStockCommand(id), ct);
 }
