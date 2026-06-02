@@ -20,7 +20,7 @@ public sealed class IngredientTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new CreateIngredientCommand(name, unit), ct);
 
-    [McpServerTool, Description("Update an ingredient's name or unit")]
+    [McpServerTool, Description("Update an ingredient's name and unit")]
     public async Task<IngredientDto> update_ingredient(
         [Description("Ingredient ID")] Guid id,
         [Description("New name")] string name,
