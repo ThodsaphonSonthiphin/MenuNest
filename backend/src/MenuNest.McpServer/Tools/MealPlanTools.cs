@@ -29,7 +29,7 @@ public sealed class MealPlanTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new CreateMealPlanEntryCommand(date, mealSlot, recipeId, notes), ct);
 
-    [McpServerTool, Description("Update a meal plan entry's recipe or notes")]
+    [McpServerTool, Description("Update a meal plan entry's recipe and/or notes (recipe ID is always required)")]
     public async Task<MealPlanEntryDto> update_meal_plan_entry(
         [Description("Meal plan entry ID")] Guid id,
         [Description("New recipe ID")] Guid recipeId,
@@ -51,13 +51,13 @@ public sealed class MealPlanTools(IMediator mediator)
 
     [McpServerTool, Description("Check stock for multiple meal plan entries at once")]
     public async Task<StockCheckBatchDto> stock_check_batch(
-        [Description("Array of meal plan entry IDs")] Guid[] entryIds,
+        [Description("Array of meal plan entry IDs")] IReadOnlyList<Guid> entryIds,
         CancellationToken ct)
         => await mediator.Send(new StockCheckBatchQuery(entryIds), ct);
 
     [McpServerTool, Description("Mark meal plan entries as cooked and deduct stock")]
     public async Task<CookBatchResult> cook_batch(
-        [Description("Array of meal plan entry IDs to cook")] Guid[] entryIds,
+        [Description("Array of meal plan entry IDs to cook")] IReadOnlyList<Guid> entryIds,
         CancellationToken ct)
         => await mediator.Send(new CookBatchCommand(entryIds), ct);
 }
