@@ -180,7 +180,8 @@ app.MapControllers();
 // MCP — Streamable HTTP; authentication is handled by the existing JwtBearer middleware
 app.MapMcp("/mcp").RequireAuthorization();
 
-// OAuth 2.0 discovery: Claude fetches this on first connect to learn where to authenticate
+// OAuth 2.0 discovery: Claude fetches this on first connect to learn where to authenticate.
+// Intentionally Entra ID only — Google OAuth is not supported for MCP clients.
 app.MapGet("/.well-known/oauth-authorization-server", () => Results.Ok(new
 {
     issuer = "https://login.microsoftonline.com/common/v2.0",
