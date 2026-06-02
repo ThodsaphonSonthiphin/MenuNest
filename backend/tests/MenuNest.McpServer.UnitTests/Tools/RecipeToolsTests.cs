@@ -4,6 +4,7 @@ using MenuNest.Application.UseCases.Recipes;
 using MenuNest.Application.UseCases.Recipes.ListRecipes;
 using MenuNest.Application.UseCases.Recipes.GetRecipe;
 using MenuNest.Application.UseCases.Recipes.CreateRecipe;
+using MenuNest.Application.UseCases.Recipes.UpdateRecipe;
 using MenuNest.Application.UseCases.Recipes.DeleteRecipe;
 using MenuNest.McpServer.Tools;
 using Moq;
@@ -53,6 +54,20 @@ public class RecipeToolsTests
         await _sut.create_recipe(name, null, Array.Empty<RecipeIngredientInput>(), CancellationToken.None);
 
         _mediator.Verify(m => m.Send(It.Is<CreateRecipeCommand>(c => c.Name == name), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task update_recipe_sends_UpdateRecipeCommand_with_correct_id_and_name()
+    {
+        var id = Guid.NewGuid();
+        const string name = "New Name";
+        _mediator
+            .Setup(m => m.Send(It.Is<UpdateRecipeCommand>(c => c.Id == id && c.Name == name), It.IsAny<CancellationToken>()))
+            .Returns<UpdateRecipeCommand, CancellationToken>((_, _) => new ValueTask<RecipeDetailDto>((RecipeDetailDto)default!));
+
+        await _sut.update_recipe(id, name, null, Array.Empty<RecipeIngredientInput>(), CancellationToken.None);
+
+        _mediator.Verify(m => m.Send(It.Is<UpdateRecipeCommand>(c => c.Id == id && c.Name == name), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
