@@ -13,5 +13,5 @@ public static class McpServerRegistration
             .WithTools<Tools.MealPlanTools>()
             .WithTools<Tools.StockTools>()
             .WithTools<Tools.ShoppingListTools>()
-        .WithTools<Tools.BudgetTools>();
+            .WithTools<Tools.BudgetTools>();
 }

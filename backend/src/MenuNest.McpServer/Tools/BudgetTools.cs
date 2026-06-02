@@ -28,7 +28,7 @@ public sealed class BudgetTools(IMediator mediator)
 {
     // ── Summary ──────────────────────────────────────────────────────────────
 
-    [McpServerTool, Description("Get the monthly budget summary including income, assigned amounts, available to assign, and all envelope groups with their categories")]
+    [McpServerTool, Description("Get the monthly budget summary including income, assigned amounts, available to assign, per-category spent and available balances, and all envelope groups with their categories")]
     public async Task<MonthlySummaryDto> get_budget_summary(
         [Description("Year (e.g. 2026)")] int year,
         [Description("Month 1–12")] int month,
@@ -72,7 +72,7 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Year for inflow/outflow summary")] int year,
         [Description("Month for inflow/outflow summary")] int month,
         [Description("Number of transactions to skip (for pagination)")] int skip,
-        [Description("Maximum number of transactions to return")] int take,
+        [Description("Maximum number of transactions to return (e.g. 20)")] int take,
         CancellationToken ct)
         => await mediator.Send(new ListAccountTransactionsQuery(accountId, year, month, skip, take), ct);
 
