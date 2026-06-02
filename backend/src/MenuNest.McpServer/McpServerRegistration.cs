@@ -9,6 +9,7 @@ public static class McpServerRegistration
             .AddMcpServer()
             .WithHttpTransport()
             .WithTools<Tools.RecipeTools>()
-            .WithTools<Tools.IngredientTools>();
+            .WithTools<Tools.IngredientTools>()
+            .WithTools<Tools.MealPlanTools>();
     // Tool registrations (.WithTools<T>()) are added incrementally in Tasks 3–8.
 }
