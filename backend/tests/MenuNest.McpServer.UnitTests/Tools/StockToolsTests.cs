@@ -32,7 +32,8 @@ public class StockToolsTests
         const decimal quantity = 250m;
         _mediator
             .Setup(m => m.Send(It.Is<UpsertStockCommand>(c => c.IngredientId == ingredientId && c.Quantity == quantity), It.IsAny<CancellationToken>()))
-            .Returns<UpsertStockCommand, CancellationToken>((_, _) => new ValueTask<StockItemDto>((StockItemDto)default!));
+            .Returns<UpsertStockCommand, CancellationToken>((cmd, _) => new ValueTask<StockItemDto>(
+                new StockItemDto(Guid.NewGuid(), cmd.IngredientId, "Flour", "g", cmd.Quantity, DateTime.UtcNow, Guid.NewGuid())));
         await _sut.upsert_stock(ingredientId, quantity, CancellationToken.None);
         _mediator.Verify(m => m.Send(It.Is<UpsertStockCommand>(c => c.IngredientId == ingredientId && c.Quantity == quantity), It.IsAny<CancellationToken>()), Times.Once);
     }
