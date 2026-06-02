@@ -78,7 +78,7 @@ public sealed class BudgetTools(IMediator mediator)
 
     // ── Groups ───────────────────────────────────────────────────────────────
 
-    [McpServerTool, Description("List all budget category groups")]
+    [McpServerTool, Description("List all budget category groups (metadata only — no categories or IDs). To get category IDs and balances, call get_budget_summary instead.")]
     public async Task<IReadOnlyList<CategoryGroupDto>> list_budget_groups(
         CancellationToken ct)
         => await mediator.Send(new ListGroupsQuery(), ct);
