@@ -38,6 +38,28 @@ public static class OAuthEndpoints
                 response_types = new[] { "code" },
             });
         }).AllowAnonymous();
+
+        // --- Authorize: validate, store flow, redirect to Entra (NO resource param) ---
+        app.MapGet("/oauth/authorize", (
+            [FromQuery] string client_id,
+            [FromQuery] string redirect_uri,
+            [FromQuery] string code_challenge,
+            [FromQuery] string? code_challenge_method,
+            [FromQuery] string? state,
+            [FromQuery] string? scope,
+            ClientStore clients, PkceStateStore flows, EntraClient entra) =>
+        {
+            if (!clients.TryGet(client_id, out var reg) || !reg.RedirectUris.Contains(redirect_uri))
+                return Results.BadRequest(new { error = "invalid_client" });
+            if (!RedirectAllowlist.IsAllowed(redirect_uri))
+                return Results.BadRequest(new { error = "invalid_redirect_uri" });
+            if (!string.Equals(code_challenge_method, "S256", StringComparison.Ordinal))
+                return Results.BadRequest(new { error = "invalid_request", error_description = "code_challenge_method must be S256" });
+
+            var ourVerifier = PkceUtil.GenerateVerifier();
+            var flowId = flows.Save(new PkceFlow(redirect_uri, state ?? "", code_challenge, ourVerifier, scope ?? ""));
+            return Results.Redirect(entra.BuildAuthorizeUrl(flowId, PkceUtil.Challenge(ourVerifier)));
+        }).AllowAnonymous();
     }
 
     public record DcrRequest(string[]? redirect_uris, string? client_name, string? scope);
