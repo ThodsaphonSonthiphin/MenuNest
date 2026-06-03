@@ -83,7 +83,9 @@ public static class OAuthEndpoints
                 Name: id.Name, Email: id.Email, EntraRefreshToken: entraTokens.RefreshToken));
 
             var sep = flow.ClientRedirectUri.Contains('?') ? '&' : '?';
-            var target = $"{flow.ClientRedirectUri}{sep}code={Uri.EscapeDataString(proxyCode)}&state={Uri.EscapeDataString(flow.ClientState)}";
+            var target = $"{flow.ClientRedirectUri}{sep}code={Uri.EscapeDataString(proxyCode)}";
+            if (!string.IsNullOrEmpty(flow.ClientState))
+                target += $"&state={Uri.EscapeDataString(flow.ClientState)}";
             return Results.Redirect(target);
         }).AllowAnonymous();
 
