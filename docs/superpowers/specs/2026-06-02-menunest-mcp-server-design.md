@@ -220,7 +220,7 @@ Tenant ID comes from `AzureAd:TenantId`. Endpoint is `[AllowAnonymous]`.
 In Claude Settings → Integrations → Add MCP Server:
 
 ```
-URL:   https://menunest-api.azurewebsites.net/mcp
+URL:   https://menunest.azurewebsites.net/mcp
 Auth:  OAuth / Microsoft
 Scope: api://{AzureAd:ClientId}/access_as_user
 ```

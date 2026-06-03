@@ -249,7 +249,7 @@ Pure React differs from the legacy library: views render as plain children (`<Da
 **Resources (single resource group `rg-family-menu`):**
 - Azure SQL Database (existing, empty)
 - Azure Storage Account + container `recipe-images` (private)
-- Azure App Service (Linux, .NET 10) — backend API at e.g. `menunest-api.azurewebsites.net`
+- Azure App Service (Linux, .NET 10) — backend API at e.g. `menunest.azurewebsites.net`
 - Azure Static Web Apps — frontend at e.g. `menunest.azurestaticapps.net` (or a custom domain `menunest.app`)
 - Azure App Registration — the Entra ID app (single app, multi-tenant + personal, redirect URIs for both localhost dev and prod)
 - Application Insights
