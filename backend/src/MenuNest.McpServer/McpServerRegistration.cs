@@ -15,7 +15,8 @@ public static class McpServerRegistration
             .WithTools<Tools.ShoppingListTools>()
             .WithTools<Tools.BudgetTools>()
             // Translate expected domain/validation exceptions from tools into clean
-            // tool error results (mirrors the WebApi ExceptionHandlingMiddleware). See ADR-004 / spec D3.
+            // tool error results (mirrors the WebApi ExceptionHandlingMiddleware). See
+            // docs/superpowers/specs/2026-06-03-mcp-oauth-personal-account-identity-design.md (decision D3).
             .WithRequestFilters(filters =>
                 filters.AddCallToolFilter(next => (context, ct) =>
                     McpToolErrorMapper.GuardAsync(
