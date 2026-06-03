@@ -60,6 +60,32 @@ public static class OAuthEndpoints
             var flowId = flows.Save(new PkceFlow(redirect_uri, state ?? "", code_challenge, ourVerifier, scope ?? ""));
             return Results.Redirect(entra.BuildAuthorizeUrl(flowId, PkceUtil.Challenge(ourVerifier)));
         }).AllowAnonymous();
+
+        // --- Callback: Entra returns code -> exchange -> store -> redirect proxy code to claude ---
+        app.MapGet("/oauth/callback", async (
+            [FromQuery] string? code, [FromQuery] string? state, [FromQuery] string? error,
+            PkceStateStore flows, TokenStore tokens, EntraClient entra, CancellationToken ct) =>
+        {
+            if (!string.IsNullOrEmpty(error)) return Results.BadRequest(new { error });
+            if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(state)) return Results.BadRequest(new { error = "invalid_request" });
+
+            var flow = flows.Take(state);
+            if (flow is null) return Results.BadRequest(new { error = "invalid_state" });
+
+            var entraTokens = await entra.ExchangeCodeAsync(code, flow.OurVerifier, ct);
+            if (string.IsNullOrEmpty(entraTokens.RefreshToken) || string.IsNullOrEmpty(entraTokens.IdToken))
+                return Results.BadRequest(new { error = "server_error", error_description = "Entra did not return refresh/id token" });
+
+            var id = ClaimExtractor.FromIdToken(entraTokens.IdToken);
+            var proxyCode = tokens.SaveAuthCode(new AuthCodeData(
+                ClientCodeChallenge: flow.ClientCodeChallenge,
+                Subject: id.Oid, ClientId: "", Scope: flow.Scope,
+                Name: id.Name, Email: id.Email, EntraRefreshToken: entraTokens.RefreshToken));
+
+            var sep = flow.ClientRedirectUri.Contains('?') ? '&' : '?';
+            var target = $"{flow.ClientRedirectUri}{sep}code={Uri.EscapeDataString(proxyCode)}&state={Uri.EscapeDataString(flow.ClientState)}";
+            return Results.Redirect(target);
+        }).AllowAnonymous();
     }
 
     public record DcrRequest(string[]? redirect_uris, string? client_name, string? scope);
