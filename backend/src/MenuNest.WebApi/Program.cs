@@ -198,15 +198,18 @@ app.MapGet("/.well-known/oauth-authorization-server", () => Results.Ok(new
 // — the only fully issuer-consistent discovery path. See ADR-002.
 // Served at both the bare well-known path and the resource-suffixed path (RFC 9728 §3.1),
 // since clients differ on which they probe.
-IResult ProtectedResourceMetadata(HttpContext http)
+var azureAdCfg = app.Configuration.GetSection("AzureAd");
+var adInstance = azureAdCfg["Instance"]!;
+var adTenant   = azureAdCfg["TenantId"]!;
+var adClient   = azureAdCfg["ClientId"]!;
+
+IResult GetProtectedResourceMetadata(HttpContext http)
 {
-    var azureAd = app.Configuration.GetSection("AzureAd");
     var resourceUrl = $"{http.Request.Scheme}://{http.Request.Host}/mcp";
-    return Results.Ok(McpOAuthMetadata.Build(
-        azureAd["Instance"]!, azureAd["TenantId"]!, azureAd["ClientId"]!, resourceUrl));
+    return Results.Ok(McpOAuthMetadata.Build(adInstance, adTenant, adClient, resourceUrl));
 }
 
-app.MapGet("/.well-known/oauth-protected-resource", ProtectedResourceMetadata).AllowAnonymous();
-app.MapGet("/.well-known/oauth-protected-resource/mcp", ProtectedResourceMetadata).AllowAnonymous();
+app.MapGet("/.well-known/oauth-protected-resource", GetProtectedResourceMetadata).AllowAnonymous();
+app.MapGet("/.well-known/oauth-protected-resource/mcp", GetProtectedResourceMetadata).AllowAnonymous();
 
 app.Run();
