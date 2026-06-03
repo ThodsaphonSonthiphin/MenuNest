@@ -206,6 +206,12 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
           name: 'AzureAd__Instance'
           value: azureAdInstance
         }
+        {
+          // ADR-004: broker MCP sign-in via /common so personal/guest Microsoft
+          // accounts resolve to their stable home-tenant oid (matches the SPA).
+          name: 'AzureAd__SignInTenant'
+          value: 'common'
+        }
         // ----- Auth: Google OAuth (client ID is public) -----
         {
           name: 'Google__ClientId'
