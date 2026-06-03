@@ -203,10 +203,14 @@ var adInstance = azureAdCfg["Instance"]!;
 var adTenant   = azureAdCfg["TenantId"]!;
 var adClient   = azureAdCfg["ClientId"]!;
 
-IResult GetProtectedResourceMetadata(HttpContext http)
+IResult GetProtectedResourceMetadata()
 {
-    var resourceUrl = $"{http.Request.Scheme}://{http.Request.Host}/mcp";
-    return Results.Ok(McpOAuthMetadata.Build(adInstance, adTenant, adClient, resourceUrl));
+    // The RFC 8707 resource indicator the client derives from this value must be an
+    // Entra-resolvable Application ID URI — Entra returns AADSTS500011 for a server URL
+    // that isn't a registered identifier URI (and azurewebsites.net can't be verified).
+    // See ADR-002.
+    var resource = $"api://{adClient}";
+    return Results.Ok(McpOAuthMetadata.Build(adInstance, adTenant, adClient, resource));
 }
 
 app.MapGet("/.well-known/oauth-protected-resource", GetProtectedResourceMetadata).AllowAnonymous();
