@@ -13,5 +13,13 @@ public static class McpServerRegistration
             .WithTools<Tools.MealPlanTools>()
             .WithTools<Tools.StockTools>()
             .WithTools<Tools.ShoppingListTools>()
-            .WithTools<Tools.BudgetTools>();
+            .WithTools<Tools.BudgetTools>()
+            // Translate expected domain/validation exceptions from tools into clean
+            // tool error results (mirrors the WebApi ExceptionHandlingMiddleware). See ADR-004 / spec D3.
+            .WithRequestFilters(filters =>
+                filters.AddCallToolFilter(next => (context, ct) =>
+                    McpToolErrorMapper.GuardAsync(
+                        context.Params?.Name,
+                        context.Services,
+                        () => next(context, ct))));
 }
