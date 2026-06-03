@@ -2,6 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** Accepted
+**Amended by:** ADR-003 — the *mechanism* described here (token validated directly by the `"Microsoft"` JwtBearer handler; self-hosted authorization-server metadata pointing at Entra) was superseded by an OAuth proxy that mints its own JWT validated by a `"McpProxy"` scheme. The core decision (use Entra identity, not a static API key) still holds.
 
 ---
 
