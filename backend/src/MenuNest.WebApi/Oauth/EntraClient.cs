@@ -9,7 +9,10 @@ public record EntraTokens(string AccessToken, string? RefreshToken, string? IdTo
 public sealed class EntraClient(HttpClient http, IConfiguration config)
 {
     private string Instance => config["AzureAd:Instance"]!.TrimEnd('/');
-    private string Tenant => config["AzureAd:TenantId"]!;
+    // ADR-004: broker sign-in via /common (default) so personal/guest Microsoft
+    // accounts resolve to their stable home-tenant oid, matching the SPA. This is
+    // deliberately decoupled from AzureAd:TenantId (which prod sets to the org tenant).
+    private string SignInTenant => config["AzureAd:SignInTenant"] ?? "common";
     private string ClientId => config["AzureAd:ClientId"]!;
     private string ClientSecret => config["AzureAd:ClientSecret"]!;
     private string ServerBase => config["MCP:ServerUrl"]!.Replace("/mcp", "");
@@ -17,7 +20,7 @@ public sealed class EntraClient(HttpClient http, IConfiguration config)
     private string Scope => $"api://{ClientId}/access_as_user offline_access openid profile email";
 
     public string BuildAuthorizeUrl(string state, string codeChallenge)
-        => $"{Instance}/{Tenant}/oauth2/v2.0/authorize"
+        => $"{Instance}/{SignInTenant}/oauth2/v2.0/authorize"
          + $"?client_id={Uri.EscapeDataString(ClientId)}"
          + "&response_type=code"
          + $"&redirect_uri={Uri.EscapeDataString(Callback)}"
@@ -51,7 +54,7 @@ public sealed class EntraClient(HttpClient http, IConfiguration config)
 
     private async Task<EntraTokens> PostAsync(Dictionary<string, string> form, CancellationToken ct)
     {
-        var url = $"{Instance}/{Tenant}/oauth2/v2.0/token";
+        var url = $"{Instance}/{SignInTenant}/oauth2/v2.0/token";
         using var resp = await http.PostAsync(url, new FormUrlEncodedContent(form), ct);
         var body = await resp.Content.ReadAsStringAsync(ct);
         if (!resp.IsSuccessStatusCode)
