@@ -192,4 +192,21 @@ app.MapGet("/.well-known/oauth-authorization-server", () => Results.Ok(new
     code_challenge_methods_supported = new[] { "S256" }
 })).AllowAnonymous();
 
+// OAuth 2.0 Protected Resource Metadata (RFC 9728): claude.ai fetches this FIRST to
+// discover the authorization server + required scope before attempting login. Anonymous.
+// authorization_servers points at the tenant-specific Entra issuer (concrete GUID in prod)
+// — the only fully issuer-consistent discovery path. See ADR-002.
+// Served at both the bare well-known path and the resource-suffixed path (RFC 9728 §3.1),
+// since clients differ on which they probe.
+IResult ProtectedResourceMetadata(HttpContext http)
+{
+    var azureAd = app.Configuration.GetSection("AzureAd");
+    var resourceUrl = $"{http.Request.Scheme}://{http.Request.Host}/mcp";
+    return Results.Ok(McpOAuthMetadata.Build(
+        azureAd["Instance"]!, azureAd["TenantId"]!, azureAd["ClientId"]!, resourceUrl));
+}
+
+app.MapGet("/.well-known/oauth-protected-resource", ProtectedResourceMetadata).AllowAnonymous();
+app.MapGet("/.well-known/oauth-protected-resource/mcp", ProtectedResourceMetadata).AllowAnonymous();
+
 app.Run();
