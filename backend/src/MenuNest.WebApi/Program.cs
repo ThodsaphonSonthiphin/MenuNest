@@ -3,6 +3,7 @@ using MenuNest.Application;
 using MenuNest.Infrastructure;
 using MenuNest.McpServer;
 using MenuNest.WebApi.Middleware;
+using MenuNest.WebApi.Oauth;
 using Microsoft.AspNetCore.Authorization;
 using Scalar.AspNetCore;
 
@@ -24,6 +25,14 @@ builder.Services.AddMediator(options =>
 
 // MCP Server — tools call IMediator; no new handlers or business logic
 builder.Services.AddMenuNestMcpServer();
+
+// MCP OAuth proxy (AS facade) — see docs/adr/003-mcp-oauth-proxy.md
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient<MenuNest.WebApi.Oauth.EntraClient>();
+builder.Services.AddSingleton<MenuNest.WebApi.Oauth.ClientStore>();
+builder.Services.AddSingleton<MenuNest.WebApi.Oauth.PkceStateStore>();
+builder.Services.AddSingleton<MenuNest.WebApi.Oauth.TokenStore>();
+builder.Services.AddSingleton<MenuNest.WebApi.Oauth.OAuthJwt>();
 
 // Health module — polls FollowUpPings every minute to fire web pushes.
 builder.Services.AddHostedService<MenuNest.Infrastructure.BackgroundServices.FollowUpDispatcher>();
@@ -103,6 +112,12 @@ builder.Services
                 return Task.CompletedTask;
             },
         };
+    })
+    .AddJwtBearer("McpProxy", options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters =
+            new MenuNest.WebApi.Oauth.OAuthJwt(builder.Configuration).ValidationParameters();
     });
 
 // Every request requires auth by default; opt-out with [AllowAnonymous]
@@ -112,6 +127,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    options.AddPolicy("McpProxy", policy =>
+    {
+        policy.AddAuthenticationSchemes("McpProxy");
+        policy.RequireAuthenticatedUser();
+    });
 });
 
 // ----------------------------------------------------------------------
@@ -177,43 +197,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// MCP — Streamable HTTP; authentication is handled by the existing JwtBearer middleware
-app.MapMcp("/mcp").RequireAuthorization();
+// MCP — Streamable HTTP; authentication is handled by the McpProxy JWT bearer
+app.MapMcp("/mcp").RequireAuthorization("McpProxy");
 
-// OAuth 2.0 discovery: Claude fetches this on first connect to learn where to authenticate.
-// Intentionally Entra ID only — Google OAuth is not supported for MCP clients.
-app.MapGet("/.well-known/oauth-authorization-server", () => Results.Ok(new
-{
-    issuer = "https://login.microsoftonline.com/common/v2.0",
-    authorization_endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-    token_endpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-    response_types_supported = new[] { "code" },
-    grant_types_supported = new[] { "authorization_code", "refresh_token" },
-    code_challenge_methods_supported = new[] { "S256" }
-})).AllowAnonymous();
-
-// OAuth 2.0 Protected Resource Metadata (RFC 9728): claude.ai fetches this FIRST to
-// discover the authorization server + required scope before attempting login. Anonymous.
-// authorization_servers points at the tenant-specific Entra issuer (concrete GUID in prod)
-// — the only fully issuer-consistent discovery path. See ADR-002.
-// Served at both the bare well-known path and the resource-suffixed path (RFC 9728 §3.1),
-// since clients differ on which they probe.
-var azureAdCfg = app.Configuration.GetSection("AzureAd");
-var adInstance = azureAdCfg["Instance"]!;
-var adTenant   = azureAdCfg["TenantId"]!;
-var adClient   = azureAdCfg["ClientId"]!;
-
-IResult GetProtectedResourceMetadata()
-{
-    // The RFC 8707 resource indicator the client derives from this value must be an
-    // Entra-resolvable Application ID URI — Entra returns AADSTS500011 for a server URL
-    // that isn't a registered identifier URI (and azurewebsites.net can't be verified).
-    // See ADR-002.
-    var resource = $"api://{adClient}";
-    return Results.Ok(McpOAuthMetadata.Build(adInstance, adTenant, adClient, resource));
-}
-
-app.MapGet("/.well-known/oauth-protected-resource", GetProtectedResourceMetadata).AllowAnonymous();
-app.MapGet("/.well-known/oauth-protected-resource/mcp", GetProtectedResourceMetadata).AllowAnonymous();
+// OAuth proxy — discovery docs + DCR + authorize + callback + token
+app.MapOAuthProxy();
 
 app.Run();
