@@ -683,3 +683,32 @@ Source: [`CreateShareLinkHandler`](../backend/src/MenuNest.Application/UseCases/
 - Errors shown as `DomainException` are mapped by `ProblemDetailsMiddleware` to HTTP 400 with the message body — no stack trace leaks to the client.
 
 For implementation plans (per-task breakdowns, test plans), see [`docs/superpowers/plans/`](superpowers/plans/). For overall scope and data model, see [`docs/plan.md`](plan.md).
+
+---
+
+## 13. MCP OAuth proxy — claude.ai authorization flow
+
+A hand-rolled OAuth 2.1 Authorization-Server facade is hosted inside `MenuNest.WebApi` at `/oauth/*`. It exists because Entra ID v2 rejects the RFC 8707 `resource=<server URL>` parameter that claude.ai mandates, returning `AADSTS500011`. The proxy absorbs that parameter, runs a clean `resource`-free authorization-code flow against Entra server-side, keeps Entra tokens server-side, and mints its own HMAC JWT for `/mcp`. See [ADR-003](adr/003-mcp-oauth-proxy.md) for the full decision record.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as claude.ai
+    participant P as MenuNest /oauth proxy
+    participant E as Microsoft Entra
+    participant M as /mcp
+
+    C->>P: GET /.well-known/oauth-protected-resource (+ /oauth-authorization-server)
+    C->>P: POST /oauth/register (DCR) → client_id
+    C->>P: GET /oauth/authorize (PKCE)
+    P->>E: 302 authorize (our PKCE, scope=api://{cid}/access_as_user, NO resource param)
+    E->>P: GET /oauth/callback?code
+    P->>E: POST /token (code + client_secret + our verifier)
+    E-->>P: Entra access+refresh+id tokens (kept server-side)
+    P-->>C: 302 client redirect with proxy auth code
+    C->>P: POST /oauth/token (proxy code + client PKCE verifier)
+    P-->>C: minted HMAC JWT (aud=iss=MCP:ServerUrl) + opaque refresh code
+    C->>M: GET/POST /mcp + Bearer (our JWT) → "McpProxy" scheme validates → tools
+```
+
+Source: [`backend/src/MenuNest.WebApi/Oauth/OAuthEndpoints.cs`](../backend/src/MenuNest.WebApi/Oauth/OAuthEndpoints.cs), [ADR-003](adr/003-mcp-oauth-proxy.md).

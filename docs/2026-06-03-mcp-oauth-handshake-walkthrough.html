@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Why claude.ai needs all that OAuth setup — MenuNest handshake</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: #0a0e14; color: #e0e6ed;
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: #5fb4ff; font-size: 22px; margin: 0 0 4px; }
+  h2 { color: #b8c4cf; font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: #1a2330; padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: #ffd479; font-size: 0.9em; }
+
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: #1a2330; color: #6b7785;
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: #5fb4ff; }
+  .step-dot.current { background: #5fb4ff; color: #0a0e14; transform: scale(1.2); }
+
+  .narration {
+    background: #1a2330; padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid #5fb4ff; margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: #ffaa00; background: #2a2018; }
+  .narration.error   { border-color: #ff5757; background: #2a1818; }
+  .narration.success { border-color: #4ade80; background: #182a1f; }
+  .narration.magic   { border-color: #b070ff; background: #1f1830; }
+  .narration .step-title { color: #5fb4ff; font-weight: 700; font-size: 16px;
+                           display: block; margin-bottom: 6px; }
+  .narration.warn    .step-title { color: #ffd479; }
+  .narration.error   .step-title { color: #ff8888; }
+  .narration.success .step-title { color: #a3e8b9; }
+  .narration.magic   .step-title { color: #d4a4ff; }
+
+  .diagram-wrapper { background: #0f1419; border: 1px solid #1a2330;
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+
+  .comp rect {
+    fill: #1a2330; stroke: #2a3441; stroke-width: 2;
+    transition: all 0.4s;
+  }
+  .comp .comp-title {
+    font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700;
+    fill: #b8c4cf; transition: fill 0.4s;
+  }
+  .comp .comp-sub {
+    font-family: 'Consolas', monospace; font-size: 11px;
+    fill: #6b7785; transition: fill 0.4s;
+  }
+  .comp .comp-val {
+    font-family: 'Consolas', monospace; font-size: 12px;
+    fill: #ffd479; transition: fill 0.4s;
+  }
+  .comp .comp-line {
+    font-family: 'Consolas', monospace; font-size: 10.5px;
+    fill: #9fb0c0;
+  }
+
+  .comp.active rect {
+    fill: #1a3a5f; stroke: #5fb4ff; stroke-width: 3;
+    filter: drop-shadow(0 0 8px #5fb4ff88);
+  }
+  .comp.active .comp-title { fill: #7ed4ff; }
+  .comp.active .comp-sub   { fill: #b8c4cf; }
+
+  .comp.firing rect {
+    fill: #2a2818; stroke: #ffd479; stroke-width: 3;
+    filter: drop-shadow(0 0 8px #ffd47988);
+    animation: pulse-fire 1.2s ease-in-out infinite;
+  }
+  .comp.firing .comp-title { fill: #ffd479; }
+  @keyframes pulse-fire {
+    0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); }
+    50%      { filter: drop-shadow(0 0 16px #ffd479dd); }
+  }
+
+  .comp.locked rect {
+    fill: #2a1a3a; stroke: #b070ff; stroke-width: 3;
+    filter: drop-shadow(0 0 10px #b070ff88);
+  }
+  .comp.locked .comp-title { fill: #d4a4ff; }
+  .comp.locked .comp-val   { fill: #d4a4ff; }
+
+  .comp.done rect {
+    fill: #18301f; stroke: #4ade80; stroke-width: 2;
+  }
+  .comp.done .comp-title { fill: #a3e8b9; }
+  .comp.done .comp-val   { fill: #a3e8b9; }
+
+  .comp.error rect {
+    fill: #2a1818; stroke: #ff5757; stroke-width: 3;
+    filter: drop-shadow(0 0 10px #ff575788);
+  }
+  .comp.error .comp-title { fill: #ff8888; }
+
+  .comp.dimmed { opacity: 0.32; }
+
+  .arrow {
+    fill: none; stroke: #3d4a5f; stroke-width: 2;
+    transition: stroke 0.3s, stroke-width 0.3s;
+  }
+  .arrow.active {
+    stroke: #5fb4ff; stroke-width: 3;
+    stroke-dasharray: 8 4;
+    animation: flow 1.8s linear infinite;
+  }
+  .arrow.magic {
+    stroke: #b070ff; stroke-width: 3.5;
+    filter: drop-shadow(0 0 4px #b070ff);
+    stroke-dasharray: 8 4;
+    animation: flow 1.8s linear infinite;
+  }
+  .arrow.done  { stroke: #4ade80; stroke-width: 2.5; }
+  .arrow.error { stroke: #ff5757; stroke-width: 3;
+                 stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.dimmed { opacity: 0.2; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+
+  .flow-label {
+    fill: #ffd479; font-family: 'Consolas', monospace;
+    font-size: 12px; font-weight: 700; pointer-events: none;
+  }
+  .flow-label-bg {
+    fill: #2a2818; stroke: #ffd479; stroke-width: 1.5;
+  }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label    { fill: #d4a4ff; }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: #b070ff; }
+  .flow-label-group.error .flow-label    { fill: #ff8888; }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: #ff5757; }
+
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button {
+    background: #5fb4ff; color: #0a0e14; border: none;
+    padding: 10px 22px; border-radius: 6px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  button:hover:not(:disabled)  { background: #7ec3ff; }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: #2a3441; color: #e0e6ed; }
+  button.tertiary:hover:not(:disabled) { background: #3a4451; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .step-badge {
+    background: #5fb4ff; color: #0a0e14;
+    padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: 700;
+    display: inline-block; margin-right: 8px;
+  }
+
+  .extra-panel {
+    background: #1a2330; border-radius: 6px; padding: 14px 18px;
+    margin-bottom: 16px; font-size: 14px; line-height: 1.6;
+  }
+  .extra-panel.race    { background: #2a1818; border: 2px solid #ff5757; }
+  .extra-panel.summary { background: #182a1f; border: 2px solid #4ade80; }
+  .extra-panel.question { background: #1f1830; border: 2px solid #b070ff; }
+  .extra-panel .ep-title { font-weight: 700; margin-bottom: 6px; }
+  .extra-panel.race .ep-title    { color: #ff8888; }
+  .extra-panel.summary .ep-title { color: #a3e8b9; }
+  .extra-panel.question .ep-title { color: #d4a4ff; }
+  .extra-panel table { border-collapse: collapse; width: 100%; margin-top: 8px; }
+  .extra-panel td { padding: 4px 10px; border-bottom: 1px solid #ffffff14;
+                    vertical-align: top; font-size: 13.5px; }
+  .extra-panel td:first-child { color: #ffd479; font-family: 'Consolas', monospace;
+                                white-space: nowrap; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>🤝 Why claude.ai needs all that OAuth setup to talk to MenuNest</h1>
+  <h2>claude.ai and your server are strangers. Press <strong>Next →</strong> to watch the handshake, one move at a time — and see where each setting (redirect URI, secret, scope, the new metadata endpoint) actually gets used.</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">Start</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <div class="diagram-wrapper">
+    <svg class="diagram" viewBox="0 0 1120 600" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/>
+        </marker>
+        <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/>
+        </marker>
+        <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <polygon points="0 0, 10 4, 0 8" fill="#b070ff"/>
+        </marker>
+        <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <polygon points="0 0, 10 4, 0 8" fill="#4ade80"/>
+        </marker>
+        <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <polygon points="0 0, 10 4, 0 8" fill="#ff5757"/>
+        </marker>
+      </defs>
+
+      <!-- ===== Components ===== -->
+      <g class="comp" id="compClaude">
+        <rect x="40" y="250" width="250" height="130" rx="10"/>
+        <text class="comp-title" x="165" y="292" text-anchor="middle">🤖 claude.ai</text>
+        <text class="comp-sub"   x="165" y="314" text-anchor="middle">wants to use your tools</text>
+        <text class="comp-val"   x="165" y="344" text-anchor="middle" id="claudeState">🎫 no token yet</text>
+      </g>
+
+      <g class="comp" id="compServer">
+        <rect x="430" y="40" width="320" height="172" rx="10"/>
+        <text class="comp-title" x="590" y="78"  text-anchor="middle">🍽️ MenuNest MCP server</text>
+        <text class="comp-sub"   x="590" y="100" text-anchor="middle">menunest.azurewebsites.net</text>
+        <text class="comp-val"   x="590" y="132" text-anchor="middle" id="serverDoor">🔒 /mcp — locked, needs ID</text>
+        <text class="comp-line"  x="590" y="160" text-anchor="middle">📇 /.well-known/oauth-protected-resource</text>
+        <text class="comp-line"  x="590" y="180" text-anchor="middle">(the "instructions card" — NEW)</text>
+      </g>
+
+      <g class="comp" id="compEntra">
+        <rect x="850" y="250" width="250" height="130" rx="10"/>
+        <text class="comp-title" x="975" y="292" text-anchor="middle">🔑 Microsoft Entra</text>
+        <text class="comp-sub"   x="975" y="314" text-anchor="middle">login.microsoftonline.com</text>
+        <text class="comp-val"   x="975" y="344" text-anchor="middle">tenant d500e2f4-…</text>
+      </g>
+
+      <g class="comp" id="compApp">
+        <rect x="600" y="430" width="430" height="150" rx="10"/>
+        <text class="comp-title" x="815" y="462" text-anchor="middle">📋 App Registration "MenuNest" — e65fd81b</text>
+        <text class="comp-sub"   x="815" y="483" text-anchor="middle">the "who is allowed" record inside Entra</text>
+        <text class="comp-line"  x="815" y="510" text-anchor="middle">✅ redirect: claude.ai/api/mcp/auth_callback</text>
+        <text class="comp-line"  x="815" y="532" text-anchor="middle">🔒 secret: claude-mcp-connector</text>
+        <text class="comp-line"  x="815" y="554" text-anchor="middle">🎟️ scope: api://e65fd81b…/access_as_user</text>
+      </g>
+
+      <!-- ===== Arrows ===== -->
+      <path class="arrow" id="arr_knock" d="M 300 270 Q 365 205 445 196" marker-end="url(#arrowhead)"/>
+      <path class="arrow" id="arr_resp"  d="M 460 210 Q 365 295 300 298" marker-end="url(#arrowhead)"/>
+      <path class="arrow" id="arr_login" d="M 290 335 L 845 330" marker-end="url(#arrowhead)"/>
+      <path class="arrow" id="arr_back"  d="M 845 356 L 295 360" marker-end="url(#arrowhead)"/>
+      <path class="arrow" id="arr_check" d="M 935 382 L 885 430" marker-end="url(#arrowhead)"/>
+
+      <!-- ===== Flow labels (only one per arrow shown per step) ===== -->
+      <!-- knock arrow -->
+      <g class="flow-label-group" id="lbl_knock">
+        <rect class="flow-label-bg" x="320" y="210" width="112" height="22" rx="5"/>
+        <text class="flow-label"    x="376" y="226" text-anchor="middle">GET /mcp</text>
+      </g>
+      <g class="flow-label-group" id="lbl_disc">
+        <rect class="flow-label-bg" x="178" y="210" width="396" height="22" rx="5"/>
+        <text class="flow-label"    x="376" y="226" text-anchor="middle">GET /.well-known/oauth-protected-resource</text>
+      </g>
+      <g class="flow-label-group" id="lbl_authed">
+        <rect class="flow-label-bg" x="276" y="210" width="200" height="22" rx="5"/>
+        <text class="flow-label"    x="376" y="226" text-anchor="middle">GET /mcp + 🎫 token</text>
+      </g>
+      <!-- resp arrow -->
+      <g class="flow-label-group" id="lbl_401">
+        <rect class="flow-label-bg" x="282" y="250" width="188" height="22" rx="5"/>
+        <text class="flow-label"    x="376" y="266" text-anchor="middle">401 ✋ who are you?</text>
+      </g>
+      <g class="flow-label-group" id="lbl_meta">
+        <rect class="flow-label-bg" x="236" y="250" width="280" height="22" rx="5"/>
+        <text class="flow-label"    x="376" y="266" text-anchor="middle">📇 card: go to Entra, ask this scope</text>
+      </g>
+      <g class="flow-label-group" id="lbl_200">
+        <rect class="flow-label-bg" x="296" y="250" width="160" height="22" rx="5"/>
+        <text class="flow-label"    x="376" y="266" text-anchor="middle">200 ✓ tools open</text>
+      </g>
+      <!-- login arrow (claude → Entra) -->
+      <g class="flow-label-group" id="lbl_oidc">
+        <rect class="flow-label-bg" x="445" y="310" width="240" height="22" rx="5"/>
+        <text class="flow-label"    x="565" y="326" text-anchor="middle">GET openid-configuration</text>
+      </g>
+      <g class="flow-label-group" id="lbl_authz">
+        <rect class="flow-label-bg" x="410" y="310" width="310" height="22" rx="5"/>
+        <text class="flow-label"    x="565" y="326" text-anchor="middle">client_id + scope + redirect_uri</text>
+      </g>
+      <g class="flow-label-group" id="lbl_exch">
+        <rect class="flow-label-bg" x="463" y="310" width="204" height="22" rx="5"/>
+        <text class="flow-label"    x="565" y="326" text-anchor="middle">code + 🔒 client_secret</text>
+      </g>
+      <!-- back arrow (Entra → claude) -->
+      <g class="flow-label-group" id="lbl_code">
+        <rect class="flow-label-bg" x="415" y="372" width="300" height="22" rx="5"/>
+        <text class="flow-label"    x="565" y="388" text-anchor="middle">one-time code → /auth_callback</text>
+      </g>
+      <g class="flow-label-group" id="lbl_token">
+        <rect class="flow-label-bg" x="438" y="372" width="254" height="22" rx="5"/>
+        <text class="flow-label"    x="565" y="388" text-anchor="middle">🎫 access token (aud=e65fd81b)</text>
+      </g>
+      <!-- check arrow (Entra → App Reg) -->
+      <g class="flow-label-group" id="lbl_check">
+        <rect class="flow-label-bg" x="800" y="394" width="214" height="22" rx="5"/>
+        <text class="flow-label"    x="907" y="410" text-anchor="middle">id? redirect? secret? scope? ✔</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- ===== Extra panels ===== -->
+  <div class="extra-panel question hidden" id="questionPanel">
+    <div class="ep-title">💡 Stop and think</div>
+    claude.ai is about to send <strong>you</strong> over to Microsoft to log in, and Microsoft must later send you
+    <strong>back</strong> to claude.ai carrying a pass. But the whole internet can reach Microsoft's login page.
+    <br/><br/>
+    <strong>How does Microsoft know (a) which app is asking, (b) that it's safe to send the user back to
+    <code>claude.ai</code> and not an imposter site, and (c) that the thing later claiming the pass is really that app?</strong>
+    <br/><br/>
+    Hold that question — the next three steps are the answer, and they're exactly the three things we set up in Azure.
+  </div>
+
+  <div class="extra-panel race hidden" id="racePanel">
+    <div class="ep-title">⚠️ This is the exact error you hit — and why</div>
+    Before we added the 📇 <code>oauth-protected-resource</code> card (Steps 3–4), claude.ai had <strong>no way to learn</strong>
+    where Microsoft Entra lives or which scope to ask for. So it fell back to a last resort: it tried to
+    <strong>register itself as a brand-new app</strong> with your sign-in service on the fly (called <em>Dynamic Client Registration</em>).
+    <br/><br/>
+    Microsoft Entra does <strong>not</strong> let unknown strangers self-register. It refused:
+    <br/>
+    <code>"Couldn't register with MenuNest's sign-in service… add an OAuth Client ID" (ref ofid_bec06ce9…)</code>
+    <br/><br/>
+    That error wasn't really about registration — it was the symptom of a <strong>missing instructions card</strong>.
+    Serve the card + hand claude.ai a known Client&nbsp;ID, and the whole detour disappears.
+  </div>
+
+  <div class="extra-panel summary hidden" id="summaryPanel">
+    <div class="ep-title">📐 Every setting → its one job in the handshake</div>
+    None of these are busywork. Each one answers a specific question the handshake asks:
+    <table>
+      <tr><td>📇 protected-resource<br/>metadata (NEW)</td><td><strong>"Where do I log in, and what permission do I ask for?"</strong> — the card claude.ai reads first. This was the missing piece; without it claude.ai is lost (and tried to self-register → your error).</td></tr>
+      <tr><td>✅ redirect URI</td><td><strong>"Is it safe to send the user back here?"</strong> — Microsoft only returns the user to addresses on this list. We added <code>claude.ai/api/mcp/auth_callback</code>. Missing it → Microsoft error <code>AADSTS50011</code>.</td></tr>
+      <tr><td>🔒 client secret</td><td><strong>"Prove you're really the MenuNest app."</strong> — the code came back through the user's browser (snoopable); the secret is the private password claude.ai shows to swap that code for the real token.</td></tr>
+      <tr><td>🎟️ scope<br/><code>access_as_user</code></td><td><strong>"What is this app allowed to do?"</strong> — names the exact permission, so the token is stamped for <em>your</em> API (<code>aud=e65fd81b</code>) and nothing else.</td></tr>
+    </table>
+    <br/>
+    <strong>Trade-off we chose:</strong> pointing the card at your specific tenant (<code>d500e2f4-…</code>) keeps the login addresses
+    clean and consistent — but it means only Microsoft accounts that live in <em>your</em> tenant can connect Claude. For you and
+    family added to the tenant, that's fine; arbitrary outside Microsoft accounts could not.
+  </div>
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← Previous</button>
+    <button id="nextBtn">Next →</button>
+    <button id="resetBtn" class="tertiary">↻ Reset</button>
+  </div>
+</div>
+
+<script>
+const COMPONENTS = ['compClaude', 'compServer', 'compEntra', 'compApp'];
+const ARROWS     = ['arr_knock', 'arr_resp', 'arr_login', 'arr_back', 'arr_check'];
+const LABELS     = ['lbl_knock','lbl_disc','lbl_authed','lbl_401','lbl_meta','lbl_200',
+                    'lbl_oidc','lbl_authz','lbl_exch','lbl_code','lbl_token','lbl_check'];
+
+function setComp(id, state) {
+  const el = document.getElementById(id);
+  if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : ''));
+}
+function setArrow(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+  const markerMap = {
+    '': 'url(#arrowhead)', 'dimmed': 'url(#arrowhead)',
+    'active': 'url(#arrowhead-active)', 'magic': 'url(#arrowhead-magic)',
+    'done': 'url(#arrowhead-done)', 'error': 'url(#arrowhead-error)'
+  };
+  el.setAttribute('marker-end', markerMap[state] || 'url(#arrowhead)');
+}
+function setLabel(id, show, variant) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.setAttribute('class',
+    'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : ''));
+}
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function setNarration(cls, title, body) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = body;
+}
+function clearAllStates() {
+  COMPONENTS.forEach(c => setComp(c, ''));
+  ARROWS.forEach(a => setArrow(a, ''));
+  LABELS.forEach(l => setLabel(l, false));
+  setText('claudeState', '🎫 no token yet');
+  setText('serverDoor',  '🔒 /mcp — locked, needs ID');
+  document.querySelectorAll('.extra-panel').forEach(el => el.classList.add('hidden'));
+}
+
+const scenes = [
+
+  // 0 — Overview
+  () => {
+    setNarration('', 'Meet the four players', `
+      Think of it like arriving at a members-only kitchen.
+      <br/>• <strong>🤖 claude.ai</strong> — the visitor who wants to use your MenuNest tools.
+      <br/>• <strong>🍽️ MenuNest server</strong> — holds the tools behind a locked door (<code>/mcp</code>).
+      <br/>• <strong>🔑 Microsoft Entra</strong> — the ID office that checks who you are and issues passes.
+      <br/>• <strong>📋 App Registration <code>e65fd81b</code></strong> — the rulebook inside Entra: who's allowed, where they may go, what password proves them.
+      <br/><br/>Right now claude.ai and your server have <strong>never met</strong>. A URL alone won't open the door — watch why.
+    `);
+    setComp('compApp', 'dimmed');
+  },
+
+  // 1 — knock
+  () => {
+    setNarration('warn', 'Step 1 — claude.ai knocks (you paste the URL + Connect)', `
+      You give claude.ai the address <code>https://menunest.azurewebsites.net/mcp</code> and hit <strong>Connect</strong>.
+      claude.ai walks up and knocks: <code>GET /mcp</code>.
+      <br/>This is all most people think connecting <em>is</em> — "I gave it the link." Watch what the server says.
+    `);
+    setComp('compClaude', 'firing');
+    setArrow('arr_knock', 'active');
+    setLabel('lbl_knock', true);
+    setComp('compServer', 'active');
+    setComp('compApp', 'dimmed');
+  },
+
+  // 2 — 401
+  () => {
+    setNarration('error', 'Step 2 — Server: "401 — I don\'t know you. Show ID."', `
+      The door is locked. claude.ai brought no pass, so the server turns it away with <code>401 Unauthorized</code>.
+      <br/><strong>This is the key reason the URL alone is not enough:</strong> the tools are protected, and a stranger
+      with no token gets nothing. claude.ai now has to go <em>earn</em> a pass.
+    `);
+    setComp('compServer', 'active');
+    setText('serverDoor', '🔒 401 — show me ID first');
+    setArrow('arr_resp', 'error');
+    setLabel('lbl_401', true, 'error');
+    setComp('compClaude', 'active');
+    setComp('compApp', 'dimmed');
+  },
+
+  // 3 — discovery request (the NEW endpoint)
+  () => {
+    setNarration('', 'Step 3 — claude.ai asks: "Then where do I get ID, and what do I need?"', `
+      A well-behaved visitor doesn't guess. claude.ai asks the server for instructions:
+      <code>GET /.well-known/oauth-protected-resource</code>.
+      <br/><strong>This is the endpoint that was missing</strong> — the whole reason it couldn't connect. We're adding it now
+      so the server actually has an answer instead of another locked-door 401.
+    `);
+    setComp('compClaude', 'firing');
+    setArrow('arr_knock', 'active');
+    setLabel('lbl_disc', true);
+    setComp('compServer', 'active');
+    setComp('compApp', 'dimmed');
+  },
+
+  // 4 — metadata card
+  () => {
+    setNarration('magic', 'Step 4 — Server hands over the 📇 "instructions card"', `
+      The server replies with a tiny note (the <em>protected-resource metadata</em>) that says, in effect:
+      <br/>• "Go get your pass from <strong>Microsoft Entra</strong>, tenant <code>d500e2f4-…</code>."
+      <br/>• "Ask for exactly this permission: <code>scope = api://e65fd81b…/access_as_user</code>."
+      <br/><br/><strong>Without this card, claude.ai is lost</strong> — it has no idea where to send you or what to request.
+      (When the card was missing, it tried to improvise — we'll see that disaster at the end.)
+    `);
+    setComp('compServer', 'done');
+    setText('serverDoor', '📇 here are your instructions');
+    setArrow('arr_resp', 'magic');
+    setLabel('lbl_meta', true, 'magic');
+    setComp('compClaude', 'active');
+    setComp('compApp', 'dimmed');
+  },
+
+  // 5 — OIDC discovery at Entra
+  () => {
+    setNarration('', 'Step 5 — claude.ai looks up Entra\'s exact address book', `
+      Following the card, claude.ai visits Microsoft Entra's public directory:
+      <code>GET …/d500e2f4-…/v2.0/.well-known/openid-configuration</code>.
+      <br/>This tells it the precise <strong>login URL</strong> (to send you to) and <strong>token URL</strong> (to collect the pass from later).
+      Now claude.ai knows the way to the ID office.
+    `);
+    setComp('compClaude', 'active');
+    setArrow('arr_login', 'active');
+    setLabel('lbl_oidc', true);
+    setComp('compEntra', 'active');
+    setComp('compApp', 'dimmed');
+  },
+
+  // 6 — KEY QUESTION
+  () => {
+    setNarration('magic', 'Step 6 — Before the login, a question', `
+      claude.ai is ready to send you to Microsoft. But pause and think about the trust problem first —
+      the answer is the next three steps, and it's literally everything we configured in Azure.
+    `);
+    setComp('compClaude', 'active');
+    setComp('compEntra', 'active');
+    setComp('compApp', 'dimmed');
+    show('questionPanel');
+  },
+
+  // 7 — authorize redirect
+  () => {
+    setNarration('warn', 'Step 7 — claude.ai sends you to Microsoft, carrying 3 facts', `
+      claude.ai redirects your browser to Microsoft's login page, attaching:
+      <br/>• <code>client_id = e65fd81b</code> — "the app asking is <strong>MenuNest</strong>."
+      <br/>• <code>scope = access_as_user</code> — "I want permission to act as the user inside MenuNest."
+      <br/>• <code>redirect_uri = https://claude.ai/api/mcp/auth_callback</code> — "after login, send the user back <strong>here</strong>."
+      <br/>Those three are the answer to "which app, what permission, where to return."
+    `);
+    setComp('compClaude', 'firing');
+    setArrow('arr_login', 'active');
+    setLabel('lbl_authz', true);
+    setComp('compEntra', 'firing');
+    setComp('compApp', 'dimmed');
+  },
+
+  // 8 — Entra checks the App Registration (redirect URI!)
+  () => {
+    setNarration('warn', 'Step 8 — Microsoft checks its rulebook (the App Registration)', `
+      Before showing a login box, Entra opens record <code>e65fd81b</code> and checks:
+      <br/>• Is this <code>client_id</code> a real registered app? ✔
+      <br/>• Is <code>claude.ai/api/mcp/auth_callback</code> on the <strong>allowed redirect list</strong>? — <strong>this is exactly why we added the redirect URI.</strong>
+      <br/><br/>If that address were <em>not</em> listed, Microsoft refuses outright with error <code>AADSTS50011</code> — it will never send a user to an unregistered site (that's how phishing would steal logins).
+    `);
+    setComp('compEntra', 'active');
+    setArrow('arr_check', 'magic');
+    setLabel('lbl_check', true, 'magic');
+    setComp('compApp', 'locked');
+  },
+
+  // 9 — user logs in, code comes back
+  () => {
+    setNarration('', 'Step 9 — You log in, Microsoft sends back a one-time code', `
+      The checks pass, so Microsoft shows the login box. You sign in as
+      <code>thodsaphonSP@hotmail.co.th</code> and approve the access.
+      <br/>Microsoft then bounces your browser back to <code>claude.ai/api/mcp/auth_callback</code> carrying a
+      <strong>one-time code</strong> — not the real pass yet, just a claim ticket.
+    `);
+    setComp('compApp', 'done');
+    setComp('compEntra', 'firing');
+    setArrow('arr_back', 'active');
+    setLabel('lbl_code', true);
+    setComp('compClaude', 'active');
+  },
+
+  // 10 — exchange code + secret
+  () => {
+    setNarration('magic', 'Step 10 — claude.ai swaps the code for a real pass — using the 🔒 secret', `
+      Here's the subtle part: that code travelled <strong>through your browser</strong>, where a snoop could have copied it.
+      So Microsoft won't hand over the real token to just anyone holding the code.
+      <br/>claude.ai's server now privately calls the token URL: <code>code + client_secret</code>. That secret —
+      <code>claude-mcp-connector</code> — is the private password only the real MenuNest app knows.
+      <strong>This is why we created the client secret.</strong>
+    `);
+    setComp('compClaude', 'firing');
+    setArrow('arr_login', 'magic');
+    setLabel('lbl_exch', true, 'magic');
+    setComp('compEntra', 'firing');
+    setComp('compApp', 'done');
+  },
+
+  // 11 — token issued
+  () => {
+    setNarration('success', 'Step 11 — Secret checks out → Microsoft issues the access token', `
+      Entra confirms the secret matches record <code>e65fd81b</code>, then issues the real
+      <strong>access token</strong> — a tamper-proof signed pass stamped:
+      <br/>• <code>aud = e65fd81b</code> — "this pass is for the MenuNest API."
+      <br/>• <code>scope = access_as_user</code> — "bearer may act as the user."
+    `);
+    setComp('compEntra', 'done');
+    setArrow('arr_back', 'done');
+    setLabel('lbl_token', true);
+    setComp('compClaude', 'done');
+    setText('claudeState', '🎫 has token (aud=e65fd81b)');
+    setComp('compApp', 'done');
+  },
+
+  // 12 — authorized call → tools open
+  () => {
+    setNarration('success', 'Step 12 — claude.ai knocks again — this time with the pass', `
+      claude.ai returns to the locked door and knocks once more, now holding the token:
+      <code>GET /mcp + Authorization: Bearer …</code>.
+      <br/>The server reads the stamp, sees <code>aud == e65fd81b</code> ✔, and opens up. Your tools
+      (Recipe, Stock, MealPlan, ShoppingList, Budget) load. <strong>Handshake complete. 🎉</strong>
+    `);
+    setComp('compClaude', 'done');
+    setText('claudeState', '🎫 connected!');
+    setArrow('arr_knock', 'done');
+    setLabel('lbl_authed', true);
+    setComp('compServer', 'done');
+    setText('serverDoor', '🔓 /mcp — open, tools ready');
+    setArrow('arr_resp', 'done');
+    setLabel('lbl_200', true);
+    setComp('compEntra', 'done');
+    setComp('compApp', 'done');
+  },
+
+  // 13 — counter-example: the error you saw
+  () => {
+    setNarration('error', 'Step 13 — What broke before: no card → claude.ai tried to self-register', `
+      Rewind to before Steps 3–4 existed. With no 📇 instructions card, claude.ai never learned where Entra
+      was or what scope to ask for — so it improvised and tried to register a brand-new identity on the fly.
+      Microsoft refused. <strong>That's the exact "Couldn't register" error you saw.</strong>
+    `);
+    setComp('compClaude', 'error');
+    setText('claudeState', '🎫 still no token');
+    setComp('compServer', 'error');
+    setText('serverDoor', '❌ no card to give');
+    setArrow('arr_login', 'error');
+    setComp('compEntra', 'error');
+    setComp('compApp', 'dimmed');
+    show('racePanel');
+  },
+
+  // 14 — summary
+  () => {
+    setNarration('success', 'Step 14 — So why each setting exists', `
+      Every item we configured maps to one question the handshake forces. Nothing is decoration.
+    `);
+    setComp('compClaude', 'done');
+    setComp('compServer', 'done');
+    setComp('compEntra', 'done');
+    setComp('compApp', 'done');
+    setText('claudeState', '🎫 connected!');
+    setText('serverDoor', '🔓 /mcp — open');
+    show('summaryPanel');
+  }
+];
+
+const TOTAL = scenes.length - 1;
+
+let currentStep = 0;
+function buildProgressDots() {
+  const progress = document.getElementById('stepProgress');
+  progress.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot';
+    d.textContent = i;
+    d.id = 'dot' + i;
+    progress.appendChild(d);
+  }
+}
+function render(step) {
+  clearAllStates();
+  if (scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = `Step ${step} / ${TOTAL}`;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+
+buildProgressDots();
+render(0);
+</script>
+</body>
+</html>

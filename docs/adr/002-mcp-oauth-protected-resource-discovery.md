@@ -1,10 +1,12 @@
 # ADR-002: MCP OAuth uses RFC 9728 protected-resource discovery; DCR deliberately omitted
 
 **Date:** 2026-06-03
-**Status:** Accepted
+**Status:** Superseded by ADR-003
 **Supersedes (in part):** ADR-001 (which assumed `/.well-known/oauth-authorization-server` alone was sufficient)
 
 ---
+
+> **⚠️ Superseded by [ADR-003](003-mcp-oauth-proxy.md) (2026-06-03).** All three decisions below were reversed. claude.ai sends an RFC 8707 `resource=<server URL>` that Entra rejects (AADSTS500011), so a hand-rolled OAuth proxy (with DCR, mint-own JWT, no manual credentials, `authorization_servers` pointing at the server itself) replaced this approach. Do not implement what's below — see ADR-003.
 
 ## Context
 
