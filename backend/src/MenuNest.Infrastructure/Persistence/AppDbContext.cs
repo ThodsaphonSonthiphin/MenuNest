@@ -46,6 +46,12 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
     public DbSet<Photo> Photos => Set<Photo>();
 
+    // Trip Planner module
+    public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<TripPlace> TripPlaces => Set<TripPlace>();
+    public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
+    public DbSet<Stop> Stops => Set<Stop>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
