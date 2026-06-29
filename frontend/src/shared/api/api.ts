@@ -1201,6 +1201,10 @@ export const api = createApi({
             query: () => '/api/trips',
             providesTags: ['Trips'],
         }),
+        getTrip: build.query<TripDto, string>({
+            query: (id) => `/api/trips/${id}`,
+            providesTags: (_r, _e, id) => [{type: 'TripDetail', id}],
+        }),
         createTrip: build.mutation<TripDto, {name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode}>({
             query: (b) => ({url: '/api/trips', method: 'POST', body: b}),
             invalidatesTags: ['Trips'],
@@ -1379,6 +1383,7 @@ export const {
     useRevokeShareLinkMutation,
     // -------- Trips --------
     useListTripsQuery,
+    useGetTripQuery,
     useCreateTripMutation,
     useUpdateTripMutation,
     useDeleteTripMutation,

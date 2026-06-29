@@ -17,9 +17,6 @@ namespace MenuNest.Infrastructure.Maps;
 public sealed class GooglePlaceResolver : IPlaceResolver
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
-    private static readonly HashSet<string> AllowedHosts =
-        new(StringComparer.OrdinalIgnoreCase)
-        { "maps.app.goo.gl", "goo.gl", "maps.google.com", "www.google.com", "google.com", "g.co" };
     private readonly IHttpClientFactory _http;
     private readonly GoogleMapsOptions _opts;
 
@@ -32,10 +29,18 @@ public sealed class GooglePlaceResolver : IPlaceResolver
             throw new DomainException("Maps is not configured.");
 
         var client = _http.CreateClient();
+        // Bound the outbound Google calls so one hung upstream cannot hang the request.
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(10));
+
         // 1) unfurl short links — works whether the client auto-followed (production, final 200)
         //    or the stub returned a raw 3xx (unit test).  Multi-hop chains are handled for free
         //    because RequestMessage.RequestUri reflects the FINAL URL after all auto-redirects.
-        var head = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
+        HttpResponseMessage head;
+        try { head = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cts.Token); }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !ct.IsCancellationRequested)
+        { throw new DomainException("Could not read that Google Maps link. Enter the place manually."); }
+
         string longUrl;
         if ((int)head.StatusCode is >= 300 and < 400 && head.Headers.Location is not null)
             longUrl = head.Headers.Location.IsAbsoluteUri
@@ -44,9 +49,8 @@ public sealed class GooglePlaceResolver : IPlaceResolver
         else
             longUrl = head.RequestMessage?.RequestUri?.ToString() ?? url;
 
-        // 1b) SSRF guard: ensure the resolved URL stays on Google-owned hosts
-        if (!Uri.TryCreate(longUrl, UriKind.Absolute, out var longUri)
-            || (!AllowedHosts.Contains(longUri.Host) && !longUri.Host.EndsWith(".google.com", StringComparison.OrdinalIgnoreCase)))
+        // 1b) SSRF guard: re-check that the resolved URL stays on Google-owned hosts (ADR-007)
+        if (!GoogleMapsHosts.IsAllowedUrl(longUrl))
             throw new DomainException("Could not read that Google Maps link. Enter the place manually.");
 
         // 2) extract a text query from the /place/<name>/ segment of the long URL
@@ -60,10 +64,16 @@ public sealed class GooglePlaceResolver : IPlaceResolver
             "places.id,places.displayName,places.location,places.formattedAddress,places.priceLevel,places.regularOpeningHours");
         req.Headers.Add("X-Goog-Maps-Solution-ID", "gmp_git_agentskills_v1");
         req.Content = JsonContent.Create(new { textQuery = query });
-        var resp = await client.SendAsync(req, ct);
-        resp.EnsureSuccessStatusCode();
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await client.SendAsync(req, cts.Token);
+            resp.EnsureSuccessStatusCode();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException && !ct.IsCancellationRequested)
+        { throw new DomainException("Could not look up that place right now. Enter it manually."); }
 
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(cts.Token));
         var place = doc.RootElement.GetProperty("places").EnumerateArray().FirstOrDefault();
         if (place.ValueKind == JsonValueKind.Undefined)
             throw new DomainException("No place found for that link. Enter it manually.");

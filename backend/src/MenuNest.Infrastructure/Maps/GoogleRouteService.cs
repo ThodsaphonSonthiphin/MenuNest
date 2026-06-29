@@ -51,6 +51,7 @@ public sealed class GoogleRouteService : IRouteService
         }
         catch (Exception ex)
         {
+            ct.ThrowIfCancellationRequested(); // honour real caller cancellation; only fall back on Google failures/timeouts
             _log.LogWarning(ex, "Routes API failed; using Haversine fallback.");
             var fb = await _fallback.GetLegTimesAsync(pts, mode, ct);
             for (var i = 0; i < result.Length; i++) result[i] ??= fb[i];
@@ -71,9 +72,12 @@ public sealed class GoogleRouteService : IRouteService
             destinations = new[] { Wp(d) },
             travelMode = mode switch { TravelMode.Walk => "WALK", TravelMode.Transit => "TRANSIT", _ => "DRIVE" },
         });
-        var resp = await client.SendAsync(req, ct);
+        // Bound each Google call so one slow upstream cannot stall the whole itinerary response.
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        timeoutCts.CancelAfter(TimeSpan.FromSeconds(8));
+        var resp = await client.SendAsync(req, timeoutCts.Token);
         resp.EnsureSuccessStatusCode();
-        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(timeoutCts.Token));
         var el = doc.RootElement.EnumerateArray().First();
         var seconds = ParseDuration(el.GetProperty("duration").GetString());
         var meters = el.TryGetProperty("distanceMeters", out var m) ? m.GetInt32() : 0;
