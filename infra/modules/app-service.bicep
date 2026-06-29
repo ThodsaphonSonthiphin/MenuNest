@@ -85,6 +85,11 @@ param shareTokenSigningKey string
 @description('Base URL of the SPA — used to build share links')
 param shareBaseUrl string
 
+// ----- Google Maps Platform (server key) -----
+@secure()
+@description('Google Maps server key — Places + Routes + Geocoding (SECRET — pass via --parameters). Blank disables Maps-link place resolution.')
+param googleMapsApiKey string
+
 // ----- CORS -----
 @description('Comma-separated allowed SPA origins for CORS')
 param corsAllowedOrigins string
@@ -243,6 +248,11 @@ resource site 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'Share__BaseUrl'
           value: shareBaseUrl
+        }
+        // ----- Google Maps Platform (server key — never reaches the browser; ADR-007) -----
+        {
+          name: 'GoogleMaps__ApiKey'
+          value: googleMapsApiKey
         }
         // ----- Legacy placeholders (kept for backward compat; values currently unused by code) -----
         {

@@ -69,6 +69,10 @@ param pushVapidPrivateKey string
 @description('Doctor-share token signing key (SECRET)')
 param shareTokenSigningKey string
 
+@secure()
+@description('Google Maps Platform server key — Places + Routes + Geocoding (SECRET). Empty/missing disables Maps-link place resolution.')
+param googleMapsApiKey string
+
 // ----- Existing resource names (มีอยู่แล้วใน Azure) -----
 @description('ชื่อ App Service Plan เดิม (F1) ที่จะ upgrade')
 param existingAppServicePlanName string = 'ASP-MenuNest-a132'
@@ -158,6 +162,7 @@ module appService 'modules/app-service.bicep' = {
     shareTokenSigningKey: shareTokenSigningKey
     shareBaseUrl: shareBaseUrl
     corsAllowedOrigins: corsAllowedOrigins
+    googleMapsApiKey: googleMapsApiKey
   }
 }
 
