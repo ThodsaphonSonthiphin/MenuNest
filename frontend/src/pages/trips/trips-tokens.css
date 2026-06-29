@@ -34,17 +34,27 @@
   font-family: 'Spline Sans Mono', ui-monospace, monospace;
 }
 
-/* ── Segmented-tab classes kept for completeness (ej2 TabComponent
-   renders .e-tab* classes; these guard any future custom seg-ctrl) ── */
+/* ── Segmented tabs (controlled Syncfusion Button group, see SegmentedTabs.tsx).
+   The .seg-tab rules also neutralise the default .e-btn chrome (min-width,
+   elevation, uppercase) so the buttons read as flat teal pills. ── */
 .seg-tabs { display: flex; gap: 6px; }
-.seg-tab {
+.seg-tab.seg-tab {
   border: 1px solid var(--border);
   background: var(--surface);
+  color: var(--ink);
   border-radius: 999px;
   padding: 6px 14px;
+  min-width: 0;
+  height: auto;
+  line-height: 1.4;
+  box-shadow: none;
+  text-transform: none;
+  font: inherit;
   cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
-.seg-tab.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+.seg-tab.seg-tab:hover:not(.active) { background: var(--teal-soft); border-color: var(--teal); }
+.seg-tab.active.active { background: var(--teal); border-color: var(--teal); color: #fff; }
 
 /* ── Day summary bar ── */
 .day-summary {
