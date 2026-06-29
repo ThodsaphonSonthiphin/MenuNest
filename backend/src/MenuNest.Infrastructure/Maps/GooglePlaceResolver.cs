@@ -29,11 +29,17 @@ public sealed class GooglePlaceResolver : IPlaceResolver
             throw new DomainException("Maps is not configured.");
 
         var client = _http.CreateClient();
-        // 1) unfurl short links by following the redirect to the long URL
-        var longUrl = url;
+        // 1) unfurl short links — works whether the client auto-followed (production, final 200)
+        //    or the stub returned a raw 3xx (unit test).  Multi-hop chains are handled for free
+        //    because RequestMessage.RequestUri reflects the FINAL URL after all auto-redirects.
         var head = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
-        if (head.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.MovedPermanently && head.Headers.Location is not null)
-            longUrl = head.Headers.Location.ToString();
+        string longUrl;
+        if ((int)head.StatusCode is >= 300 and < 400 && head.Headers.Location is not null)
+            longUrl = head.Headers.Location.IsAbsoluteUri
+                ? head.Headers.Location.ToString()
+                : new Uri(new Uri(url), head.Headers.Location).ToString();
+        else
+            longUrl = head.RequestMessage?.RequestUri?.ToString() ?? url;
 
         // 2) extract a text query from the /place/<name>/ segment of the long URL
         var query = ExtractPlaceQuery(longUrl)
