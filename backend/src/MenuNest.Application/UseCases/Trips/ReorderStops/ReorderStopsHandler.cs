@@ -21,6 +21,11 @@ public sealed class ReorderStopsHandler : ICommandHandler<ReorderStopsCommand, U
         if (!ownsDay) throw new DomainException("Itinerary day not found.");
 
         var stops = await _db.Stops.Where(s => s.ItineraryDayId == c.DayId).ToListAsync(ct);
+
+        var stopIds = stops.Select(s => s.Id).ToHashSet();
+        if (c.OrderedStopIds.Count != stops.Count || !c.OrderedStopIds.All(stopIds.Contains))
+            throw new DomainException("The reorder list must include exactly the stops of this day.");
+
         for (var i = 0; i < c.OrderedStopIds.Count; i++)
         {
             var stop = stops.FirstOrDefault(s => s.Id == c.OrderedStopIds[i])
