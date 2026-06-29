@@ -17,16 +17,16 @@ import {
 } from '@syncfusion/ej2-react-navigations'
 // TODO: migrate to Pure React Tab when @syncfusion/react-navigations ships one
 
-// SelectEventArgs shape (from ej2-navigations/src/tab/tab.js):
-//   selectedItem    – the tab header DOM element
-//   selectedIndex   – number (0-based)
-//   selectedContent – content pane DOM element
-//   isSwiped        – boolean
-//   isInteracted    – boolean  ← true only when the user clicked/keyboard-ed;
-//                               false for programmatic select() calls
-interface SelectEventArgs {
-  selectedIndex: number
-  isInteracted: boolean
+// SelectingEventArgs shape (from ej2-navigations/src/tab/tab.d.ts). The
+// `selecting` event fires BEFORE the item is selected and is cancellable.
+//   selectingIndex – number (0-based) the user/programme is moving TO
+//   isInteracted   – true only when the user clicked/keyboard-ed; false (or
+//                    undefined) for programmatic select() calls
+//   cancel         – set true to stop ej2 from performing the selection
+interface SelectingEventArgs {
+  selectingIndex: number
+  isInteracted?: boolean
+  cancel?: boolean
 }
 
 export function SegmentedTabs<T extends string>({
@@ -42,31 +42,43 @@ export function SegmentedTabs<T extends string>({
 
   const selectedIndex = options.findIndex((o) => o.value === value)
 
-  // Sync controlled value → ej2 Tab when the parent drives a change
-  // (selectedItem prop is one-shot on mount; after that the component owns
-  // its own selection state internally, so we drive updates via ref).
+  // `value` (from the parent / Redux) is the SINGLE source of truth for which
+  // tab is active. ej2 Tab is uncontrolled internally — left to itself it owns
+  // its own selection index, which can drift ahead of `value` under a
+  // re-render/animation race. Once ej2's index drifts past `value`, a click on
+  // the tab ej2 already thinks is active is silently dropped (clickHandler only
+  // acts when `trgIndex !== this.selectedItem`) — the "tab click does nothing"
+  // bug. We close that gap by making ej2 fully controlled: CANCEL its own
+  // selection on user interaction and re-derive the selection from `value`.
+  // (Same "cancel the built-in, drive it yourself" pattern the project uses for
+  // the Scheduler — see frontend-guidelines §2.)
   useEffect(() => {
-    if (tabRef.current && tabRef.current.selectedItem !== selectedIndex) {
+    if (
+      tabRef.current &&
+      selectedIndex >= 0 &&
+      tabRef.current.selectedItem !== selectedIndex
+    ) {
       tabRef.current.select(selectedIndex)
     }
   }, [selectedIndex])
 
-  function handleSelected(args: SelectEventArgs) {
-    // Guard: only call onChange for genuine user interactions, not for
-    // programmatic selections triggered by the effect above (which would
-    // create an onChange→state→render→effect→select loop).
+  function handleSelecting(args: SelectingEventArgs) {
+    // Programmatic select() (from the effect above) — let ej2 perform it so the
+    // header tracks `value`. isInteracted is false/undefined in that path.
     if (!args.isInteracted) return
-    const picked = options[args.selectedIndex]
-    if (picked && picked.value !== value) {
-      onChange(picked.value)
-    }
+    // Genuine user interaction: block ej2 from owning the change, then push the
+    // intent up. `value` flows back down and the effect re-selects ej2 — so
+    // ej2's internal index can never get ahead of `value`.
+    args.cancel = true
+    const picked = options[args.selectingIndex]
+    if (picked) onChange(picked.value)
   }
 
   return (
     <TabComponent
       ref={tabRef}
       selectedItem={selectedIndex >= 0 ? selectedIndex : 0}
-      selected={handleSelected}
+      selecting={handleSelecting}
     >
       <TabItemsDirective>
         {options.map((o) => (
