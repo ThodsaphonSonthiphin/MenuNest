@@ -6,6 +6,7 @@ using MenuNest.Application.UseCases.Trips.CreateTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
 using MenuNest.Application.UseCases.Trips.GetItinerary;
+using MenuNest.Application.UseCases.Trips.GetTrip;
 using MenuNest.Application.UseCases.Trips.ListTripPlaces;
 using MenuNest.Application.UseCases.Trips.ListTrips;
 using MenuNest.Application.UseCases.Trips.RemoveStop;
@@ -29,6 +30,10 @@ public sealed class TripsController : ControllerBase
     [HttpGet("api/trips")]
     public async Task<ActionResult<IReadOnlyList<TripDto>>> List(CancellationToken ct)
         => Ok(await _mediator.Send(new ListTripsQuery(), ct));
+
+    [HttpGet("api/trips/{id:guid}")]
+    public async Task<ActionResult<TripDto>> Get(Guid id, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetTripQuery(id), ct));
 
     [HttpPost("api/trips")]
     public async Task<ActionResult<TripDto>> Create([FromBody] CreateTripCommand cmd, CancellationToken ct)

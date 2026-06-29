@@ -1,7 +1,7 @@
 // frontend/src/pages/trips/TripDetailPage.tsx
 import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
-import { useListTripsQuery, useListTripPlacesQuery } from '../../shared/api/api'
+import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
 import { setActiveTab, setPlacesView, setAddPlaceOpen } from './tripsSlice'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
@@ -21,11 +21,20 @@ export function TripDetailPage() {
   const addOpen = useAppSelector((s) => s.trips.addPlaceOpen)
   const bp = useBreakpoint()
 
-  const { data: trips } = useListTripsQuery()
-  const trip = trips?.find((t) => t.id === tripId)
-  const { data: places } = useListTripPlacesQuery(tripId)
+  const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
+  const { data: places } = useListTripPlacesQuery(tripId, { skip: !tripId })
 
   const isDesktop = bp === 'desktop'
+
+  // Not-found / error guard (after all hooks, so Rules of Hooks hold). Covers
+  // deep-links to a trip the user does not own or that was deleted.
+  if (!tripId || tripError || (!tripLoading && !trip)) {
+    return (
+      <section className="trip-detail">
+        <p className="trips-empty">ไม่พบทริปนี้ — อาจถูกลบ หรือลิงก์ไม่ถูกต้อง</p>
+      </section>
+    )
+  }
 
   // ── Desktop split: two-pane grid ──────────────────────────────────────────
   if (isDesktop) {

@@ -1,6 +1,6 @@
 // frontend/src/pages/trips/hooks/useSchedule.test.ts
 import {describe, it, expect} from 'vitest'
-import {computeSchedule, flagStop} from './useSchedule'
+import {computeSchedule, dayOfWeek, flagStop, isOpenAt} from './useSchedule'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 
 const stop = (id: string, seq: number, dwell: number, legSec: number | null) => ({
@@ -36,6 +36,45 @@ describe('flagStop', () => {
   })
   it('green when no best window set (nothing to flag against)', () => {
     expect(flagStop(place(null, null, null), '13:50', '15:20')).toBe('green')
+  })
+})
+
+describe('dayOfWeek', () => {
+  it('maps yyyy-MM-dd to 0=Sunday..6=Saturday (UTC, timezone-stable)', () => {
+    expect(dayOfWeek('2026-11-14')).toBe(6) // Saturday
+    expect(dayOfWeek('2026-11-15')).toBe(0) // Sunday
+  })
+})
+
+describe('isOpenAt', () => {
+  const hours = (periods: unknown) => JSON.stringify({periods})
+
+  it('returns null when hours are unknown (no JSON / empty periods / malformed)', () => {
+    expect(isOpenAt(null, 1, 600)).toBeNull()
+    expect(isOpenAt(undefined, 1, 600)).toBeNull()
+    expect(isOpenAt(hours([]), 1, 600)).toBeNull() // 24h / always-open
+    expect(isOpenAt('{not json', 1, 600)).toBeNull()
+  })
+
+  it('evaluates a same-day open period', () => {
+    const j = hours([{open: {day: 1, hour: 9, minute: 0}, close: {day: 1, hour: 17, minute: 0}}]) // Mon 09:00–17:00
+    expect(isOpenAt(j, 1, 10 * 60)).toBe(true)  // 10:00 Mon → open
+    expect(isOpenAt(j, 1, 8 * 60)).toBe(false)  // 08:00 Mon → before open
+    expect(isOpenAt(j, 1, 17 * 60)).toBe(false) // 17:00 Mon → at close (exclusive)
+    expect(isOpenAt(j, 2, 10 * 60)).toBe(false) // Tue → no period
+  })
+
+  it('handles an overnight period crossing midnight', () => {
+    const j = hours([{open: {day: 5, hour: 18, minute: 0}, close: {day: 6, hour: 2, minute: 0}}]) // Fri 18:00 → Sat 02:00
+    expect(isOpenAt(j, 5, 23 * 60)).toBe(true) // Fri 23:00 → open
+    expect(isOpenAt(j, 6, 60)).toBe(true)      // Sat 01:00 → still open
+    expect(isOpenAt(j, 6, 3 * 60)).toBe(false) // Sat 03:00 → closed
+  })
+
+  it('treats an open period with no close as open all that day', () => {
+    const j = hours([{open: {day: 0, hour: 0, minute: 0}}]) // Sun, always open
+    expect(isOpenAt(j, 0, 12 * 60)).toBe(true)
+    expect(isOpenAt(j, 1, 12 * 60)).toBe(false)
   })
 })
 
