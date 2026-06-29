@@ -28,6 +28,7 @@
     "@syncfusion/react-inputs": "^33.1.44",
     "@syncfusion/react-popups": "^33.1.44",
     "@syncfusion/react-scheduler": "^33.1.44",
+    "@vis.gl/react-google-maps": "^1.8.3",
     "microsoft-cognitiveservices-speech-sdk": "^1.49.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
