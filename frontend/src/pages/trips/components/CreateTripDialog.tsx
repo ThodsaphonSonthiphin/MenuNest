@@ -48,7 +48,7 @@ export function CreateTripDialog({
   onCreated: (id: string) => void
 }) {
   const today = dateToStr(new Date())
-  const {control, handleSubmit, formState} = useForm<FormValues>({
+  const {control, handleSubmit} = useForm<FormValues>({
     defaultValues: {
       name: '',
       destination: '',
@@ -105,7 +105,7 @@ export function CreateTripDialog({
                   onChange={e => field.onChange(e.value ?? '')}
                 />
                 {fieldState.error && (
-                  <p className="trip-field-error">{fieldState.error.message}</p>
+                  <p className="trips-field-error">{fieldState.error.message}</p>
                 )}
               </>
             )}
@@ -146,7 +146,7 @@ export function CreateTripDialog({
                   }
                 />
                 {fieldState.error && (
-                  <p className="trip-field-error">{fieldState.error.message}</p>
+                  <p className="trips-field-error">{fieldState.error.message}</p>
                 )}
               </>
             )}
@@ -160,7 +160,7 @@ export function CreateTripDialog({
           <Controller
             control={control}
             name="dayCount"
-            rules={{required: true, min: {value: 1, message: 'ต้องมากกว่า 0'}, max: {value: 60, message: 'ไม่เกิน 60 วัน'}}}
+            rules={{required: 'กรุณากรอกจำนวนวัน', min: {value: 1, message: 'ต้องมากกว่า 0'}, max: {value: 60, message: 'ไม่เกิน 60 วัน'}}}
             render={({field, fieldState}) => (
               <>
                 <NumericTextBox
@@ -170,7 +170,7 @@ export function CreateTripDialog({
                   onChange={e => field.onChange((e.value as number | null) ?? 1)}
                 />
                 {fieldState.error && (
-                  <p className="trip-field-error">{fieldState.error.message}</p>
+                  <p className="trips-field-error">{fieldState.error.message}</p>
                 )}
               </>
             )}
@@ -195,7 +195,7 @@ export function CreateTripDialog({
           />
         </div>
 
-        {serverError && <p className="trip-field-error">{serverError}</p>}
+        {serverError && <p className="trips-field-error">{serverError}</p>}
 
         <div className="trip-form-actions">
           <Button
@@ -210,7 +210,7 @@ export function CreateTripDialog({
             type="submit"
             variant={Variant.Filled}
             color={Color.Primary}
-            disabled={isLoading || !formState.isValid}
+            disabled={isLoading}
           >
             {isLoading ? '…' : 'สร้าง'}
           </Button>

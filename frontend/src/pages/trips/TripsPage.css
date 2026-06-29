@@ -150,7 +150,7 @@
   margin-left: 2px;
 }
 
-.trip-field-error {
+.trips-field-error {
   color: var(--trp-error);
   font-size: 0.8rem;
   margin: 0;
