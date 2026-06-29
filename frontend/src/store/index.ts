@@ -14,6 +14,7 @@ import shoppingSlice from '../pages/shopping/shoppingSlice'
 import ingredientsSlice from '../pages/ingredients/ingredientsSlice'
 import aiAssistantSlice from '../pages/ai-assistant/aiAssistantSlice'
 import budgetSlice from '../pages/budget/budgetSlice'
+import tripsSlice from '../pages/trips/tripsSlice'
 
 export const store = configureStore({
   reducer: {
@@ -26,6 +27,7 @@ export const store = configureStore({
     ingredients: ingredientsSlice,
     aiAssistant: aiAssistantSlice,
     budget: budgetSlice,
+    trips: tripsSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(api.middleware, publicApi.middleware, rtkErrorTelemetry),
