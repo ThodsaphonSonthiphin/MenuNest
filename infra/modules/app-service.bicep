@@ -87,8 +87,8 @@ param shareBaseUrl string
 
 // ----- Google Maps Platform (server key) -----
 @secure()
-@description('Google Maps server key — Places + Routes + Geocoding (SECRET — pass via --parameters). Blank disables Maps-link place resolution.')
-param googleMapsApiKey string
+@description('Google Maps server key — Places + Routes + Geocoding (SECRET — pass via --parameters). Empty/omitted degrades cleanly to manual place entry (MissingConfigPlaceResolver), never a bogus-key REQUEST_DENIED.')
+param googleMapsApiKey string = ''
 
 // ----- CORS -----
 @description('Comma-separated allowed SPA origins for CORS')

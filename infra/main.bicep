@@ -70,8 +70,8 @@ param pushVapidPrivateKey string
 param shareTokenSigningKey string
 
 @secure()
-@description('Google Maps Platform server key — Places + Routes + Geocoding (SECRET). Empty/missing disables Maps-link place resolution.')
-param googleMapsApiKey string
+@description('Google Maps Platform server key — Places + Routes + Geocoding (SECRET — pass via --parameters at deploy time). Empty/omitted degrades cleanly to manual place entry (MissingConfigPlaceResolver).')
+param googleMapsApiKey string = ''
 
 // ----- Existing resource names (มีอยู่แล้วใน Azure) -----
 @description('ชื่อ App Service Plan เดิม (F1) ที่จะ upgrade')
