@@ -23,4 +23,10 @@ public sealed class ItineraryDay : Entity
         DayStartTime = start;
         UpdatedAt = DateTime.UtcNow;
     }
+
+    public void SetDate(DateOnly date)
+    {
+        Date = date;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
