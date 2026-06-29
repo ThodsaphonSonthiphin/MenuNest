@@ -14,6 +14,7 @@ export function ItineraryStopCard({
   onDown,
   canUp,
   canDown,
+  overnight = false,
 }: {
   place: TripPlaceDto
   arrival: string
@@ -26,6 +27,7 @@ export function ItineraryStopCard({
   onDown: () => void
   canUp: boolean
   canDown: boolean
+  overnight?: boolean
 }) {
   return (
     <div className={`stop-card${flag === 'amber' ? ' warn' : ''}`}>
@@ -37,6 +39,7 @@ export function ItineraryStopCard({
         <div className="stop-name">{place.name}</div>
         <div className="stop-chips">
           <span className="chip dwell">⏱ อยู่ {dwell} น.</span>
+          {overnight && <span className="chip warn">+1วัน</span>}
           {bestLabel && (
             <span className={`chip ${flag === 'amber' ? 'warn' : 'good'}`}>
               {flag === 'amber' ? '⚠' : '✓'} {bestLabel}

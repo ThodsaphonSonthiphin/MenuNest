@@ -17,6 +17,9 @@ namespace MenuNest.Infrastructure.Maps;
 public sealed class GooglePlaceResolver : IPlaceResolver
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private static readonly HashSet<string> AllowedHosts =
+        new(StringComparer.OrdinalIgnoreCase)
+        { "maps.app.goo.gl", "goo.gl", "maps.google.com", "www.google.com", "google.com", "g.co" };
     private readonly IHttpClientFactory _http;
     private readonly GoogleMapsOptions _opts;
 
@@ -40,6 +43,11 @@ public sealed class GooglePlaceResolver : IPlaceResolver
                 : new Uri(new Uri(url), head.Headers.Location).ToString();
         else
             longUrl = head.RequestMessage?.RequestUri?.ToString() ?? url;
+
+        // 1b) SSRF guard: ensure the resolved URL stays on Google-owned hosts
+        if (!Uri.TryCreate(longUrl, UriKind.Absolute, out var longUri)
+            || (!AllowedHosts.Contains(longUri.Host) && !longUri.Host.EndsWith(".google.com", StringComparison.OrdinalIgnoreCase)))
+            throw new DomainException("Could not read that Google Maps link. Enter the place manually.");
 
         // 2) extract a text query from the /place/<name>/ segment of the long URL
         var query = ExtractPlaceQuery(longUrl)

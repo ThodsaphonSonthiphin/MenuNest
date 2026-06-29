@@ -83,9 +83,14 @@ export function StopEditorDialog({
     }
   }
 
-  const handleDelete = () => {
-    removeStop({tripId, stopId})
-    onClose()
+  const handleDelete = async () => {
+    setSaveError(null)
+    try {
+      await removeStop({tripId, stopId}).unwrap()
+      onClose()
+    } catch (err) {
+      setSaveError(getErrorMessage(err))
+    }
   }
 
   const handleModeChange = (e: DDLChangeEvent) => {

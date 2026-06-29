@@ -38,3 +38,31 @@ describe('flagStop', () => {
     expect(flagStop(place(null, null, null), '13:50', '15:20')).toBe('green')
   })
 })
+
+describe('computeSchedule overnight', () => {
+  it('marks overnight when a stop crosses midnight', () => {
+    // Day starts at 22:00, stop 1: 120min dwell (ends 00:00), stop 2: 30min leg + 60min dwell
+    // stop1: arrival=22:00 (1320min), depart=00:00 (1440min) → overnight on depart
+    // stop2: arrival=00:30 (1470min) → overnight
+    const day: ItineraryDayDto = {
+      id: 'd1', date: '2026-11-14', dayStartTime: '22:00:00',
+      stops: [
+        stop('1', 0, 120, null),          // arrival 1320, depart 1440 → overnight
+        stop('2', 1, 60, 30 * 60),        // arrival 1470, depart 1530 → overnight
+      ],
+    }
+    const s = computeSchedule(day)
+    expect(s[0].overnight).toBe(true)   // depart == 1440
+    expect(s[1].overnight).toBe(true)   // arrival > 1440
+  })
+
+  it('does not mark overnight for normal day stops', () => {
+    const day: ItineraryDayDto = {
+      id: 'd2', date: '2026-11-14', dayStartTime: '09:00:00',
+      stops: [stop('1', 0, 60, null), stop('2', 1, 45, 25 * 60)],
+    }
+    const s = computeSchedule(day)
+    expect(s[0].overnight).toBe(false)
+    expect(s[1].overnight).toBe(false)
+  })
+})
