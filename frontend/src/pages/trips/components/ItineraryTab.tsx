@@ -7,7 +7,7 @@ import {
   useReorderStopsMutation,
   useAddStopMutation,
 } from '../../../shared/api/api'
-import type {TripPlaceDto} from '../../../shared/api/api'
+import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../../store/index'
 import {setActiveDay, setStopEditor} from '../tripsSlice'
 import {useSchedule} from '../hooks/useSchedule'
@@ -92,22 +92,33 @@ export function ItineraryTab({tripId}: {tripId: string}) {
   const {data: trips} = useListTripsQuery()
   const [reorder] = useReorderStopsMutation()
 
+  // Derive stable values used by useSchedule — must run before any early return.
+  const dayList = days ?? []
+  const dayId =
+    activeDayId && dayList.some((d) => d.id === activeDayId) ? activeDayId : dayList[0]?.id
+  const day = dayList.find((d) => d.id === dayId)
+  const placesById = Object.fromEntries((places ?? []).map((p) => [p.id, p]))
+
+  // EMPTY_DAY is used as a fallback so useSchedule is ALWAYS called unconditionally
+  // (Rules of Hooks: hook count must be identical on every render).
+  const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', stops: []}
+  const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
+
   const trip = trips?.find((t) => t.id === tripId)
 
-  if (!days?.length) return <p className="trips-muted">กำลังโหลดแผน…</p>
+  // Early return is now safe — all hooks have already been called above.
+  if (!dayList.length) return <p className="trips-muted">กำลังโหลดแผน…</p>
 
-  const dayId =
-    activeDayId && days.some((d) => d.id === activeDayId) ? activeDayId : days[0].id
-  const day = days.find((d) => d.id === dayId)!
-  const placesById = Object.fromEntries((places ?? []).map((p) => [p.id, p]))
-  const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day, placesById)
+  // After the guard above, dayList is non-empty, so dayId and day are defined.
+  const resolvedDayId = dayId!
+  const resolvedDay = day!
 
   const move = (index: number, dir: -1 | 1) => {
     const ids = scheduled.map((s) => s.stop.id)
     const j = index + dir
     if (j < 0 || j >= ids.length) return
     ;[ids[index], ids[j]] = [ids[j], ids[index]]
-    reorder({tripId, dayId, orderedStopIds: ids})
+    reorder({tripId, dayId: resolvedDayId, orderedStopIds: ids})
   }
 
   const existingTripPlaceIds = new Set(scheduled.map((s) => s.stop.tripPlaceId))
@@ -115,14 +126,14 @@ export function ItineraryTab({tripId}: {tripId: string}) {
   return (
     <div className="itinerary-tab">
       <SegmentedTabs
-        value={dayId}
+        value={resolvedDayId}
         onChange={(v) => dispatch(setActiveDay(v))}
-        options={days.map((d, i) => ({label: `วัน ${i + 1}`, value: d.id}))}
+        options={dayList.map((d, i) => ({label: `วัน ${i + 1}`, value: d.id}))}
       />
 
       <div className="day-summary">
         <span>
-          เริ่ม <b>{day.dayStartTime.slice(0, 5)}</b>
+          เริ่ม <b>{resolvedDay.dayStartTime.slice(0, 5)}</b>
         </span>
         <span>
           เสร็จ <b>{dayEnd}</b>
@@ -166,7 +177,7 @@ export function ItineraryTab({tripId}: {tripId: string}) {
       {pickerOpen ? (
         <AddStopPicker
           tripId={tripId}
-          dayId={dayId}
+          dayId={resolvedDayId}
           places={places ?? []}
           existingTripPlaceIds={existingTripPlaceIds}
           defaultTravelMode={trip?.defaultTravelMode ?? 'Drive'}
@@ -181,7 +192,7 @@ export function ItineraryTab({tripId}: {tripId: string}) {
       {editorStopId && (
         <StopEditorDialog
           tripId={tripId}
-          day={day}
+          day={resolvedDay}
           stopId={editorStopId}
           placesById={placesById}
           onClose={() => dispatch(setStopEditor(null))}
