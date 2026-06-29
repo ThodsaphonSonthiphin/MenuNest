@@ -4,6 +4,7 @@ using MenuNest.Application.Abstractions;
 using MenuNest.Infrastructure.AI;
 using MenuNest.Infrastructure.AI.Tools;
 using MenuNest.Infrastructure.Authentication;
+using MenuNest.Infrastructure.Maps;
 using MenuNest.Infrastructure.Persistence;
 using MenuNest.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -95,6 +96,17 @@ public static class DependencyInjection
         services.Configure<ShareOptions>(configuration.GetSection(ShareOptions.SectionName));
         services.AddScoped<IShareTokenService, HmacShareTokenService>();
         services.AddScoped<IShareUrlBuilder, ShareUrlBuilder>();
+
+        // Maps / Place resolver. Real implementation wired only when GoogleMaps:ApiKey
+        // is present. Dev environments without a key fall back to a stub that throws a
+        // clear DomainException when called — DI bootstrap still succeeds so the rest
+        // of the app is usable.
+        services.Configure<GoogleMapsOptions>(configuration.GetSection(GoogleMapsOptions.SectionName));
+        var mapsKey = configuration[$"{GoogleMapsOptions.SectionName}:ApiKey"];
+        if (!string.IsNullOrWhiteSpace(mapsKey))
+            services.AddScoped<IPlaceResolver, GooglePlaceResolver>();
+        else
+            services.AddScoped<IPlaceResolver, MissingConfigPlaceResolver>();
 
         return services;
     }

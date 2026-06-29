@@ -28,6 +28,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MenuNest.Application\MenuNest.Application.csproj" />
     <ProjectReference Include="..\..\src\MenuNest.Domain\MenuNest.Domain.csproj" />
+    <ProjectReference Include="..\..\src\MenuNest.Infrastructure\MenuNest.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\MenuNest.WebApi\MenuNest.WebApi.csproj" />
   </ItemGroup>
 
