@@ -1,5 +1,6 @@
 // frontend/src/pages/trips/components/ItineraryTab.tsx
 import {useState} from 'react'
+import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
   useListTripPlacesQuery,
@@ -38,6 +39,7 @@ function AddStopPicker({
   onClose: () => void
 }) {
   const [addStop] = useAddStopMutation()
+  const [addError, setAddError] = useState<string | null>(null)
 
   const available = places.filter((p) => !existingTripPlaceIds.has(p.id))
 
@@ -61,15 +63,19 @@ function AddStopPicker({
           <li key={p.id}>
             <button
               className="add-stop-item"
-              onClick={() => {
-                addStop({
-                  tripId,
-                  dayId,
-                  tripPlaceId: p.id,
-                  dwellMinutes: 60,
-                  travelModeToReach: (defaultTravelMode as 'Drive' | 'Walk' | 'Transit') ?? 'Drive',
-                })
-                onClose()
+              onClick={async () => {
+                try {
+                  await addStop({
+                    tripId,
+                    dayId,
+                    tripPlaceId: p.id,
+                    dwellMinutes: 60,
+                    travelModeToReach: (defaultTravelMode as 'Drive' | 'Walk' | 'Transit') ?? 'Drive',
+                  }).unwrap()
+                  onClose()
+                } catch (err) {
+                  setAddError(getErrorMessage(err))
+                }
               }}
             >
               <span className="add-stop-name">{p.name}</span>
@@ -77,6 +83,7 @@ function AddStopPicker({
           </li>
         ))}
       </ul>
+      {addError && <p className="trips-field-error">{addError}</p>}
     </div>
   )
 }
@@ -86,6 +93,7 @@ export function ItineraryTab({tripId}: {tripId: string}) {
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
   const editorStopId = useAppSelector((s) => s.trips.stopEditorStopId)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   const {data: days} = useGetItineraryQuery(tripId)
   const {data: places} = useListTripPlacesQuery(tripId)
@@ -113,12 +121,16 @@ export function ItineraryTab({tripId}: {tripId: string}) {
   const resolvedDayId = dayId!
   const resolvedDay = day!
 
-  const move = (index: number, dir: -1 | 1) => {
+  const move = async (index: number, dir: -1 | 1) => {
     const ids = scheduled.map((s) => s.stop.id)
     const j = index + dir
     if (j < 0 || j >= ids.length) return
     ;[ids[index], ids[j]] = [ids[j], ids[index]]
-    reorder({tripId, dayId: resolvedDayId, orderedStopIds: ids})
+    try {
+      await reorder({tripId, dayId: resolvedDayId, orderedStopIds: ids}).unwrap()
+    } catch (err) {
+      setActionError(getErrorMessage(err))
+    }
   }
 
   const existingTripPlaceIds = new Set(scheduled.map((s) => s.stop.tripPlaceId))
@@ -143,6 +155,8 @@ export function ItineraryTab({tripId}: {tripId: string}) {
         </span>
       </div>
 
+      {actionError && <p className="trips-field-error">{actionError}</p>}
+
       <div className="stop-list">
         {scheduled.map((s, i) => {
           const place = placesById[s.stop.tripPlaceId]
@@ -164,6 +178,7 @@ export function ItineraryTab({tripId}: {tripId: string}) {
                   onDown={() => move(i, 1)}
                   canUp={i > 0}
                   canDown={i < scheduled.length - 1}
+                  overnight={s.overnight}
                 />
               )}
             </div>

@@ -2,7 +2,7 @@
 import {useMemo} from 'react'
 import type {ItineraryDayDto, StopDto, TripPlaceDto} from '../../../shared/api/api'
 
-export interface ScheduledStop { stop: StopDto; arrival: string; depart: string }
+export interface ScheduledStop { stop: StopDto; arrival: string; depart: string; overnight: boolean }
 export type StopFlag = 'green' | 'amber'
 
 const toMin = (hhmm: string) => { const [h, m] = hhmm.slice(0, 5).split(':').map(Number); return h * 60 + m }
@@ -15,7 +15,7 @@ export function computeSchedule(day: ItineraryDayDto): ScheduledStop[] {
   for (const stop of [...day.stops].sort((a, b) => a.sequence - b.sequence)) {
     const arrival = cursor + (stop.legToReach ? Math.round(stop.legToReach.seconds / 60) : 0)
     const depart = arrival + stop.dwellMinutes
-    result.push({stop, arrival: fromMin(arrival), depart: fromMin(depart)})
+    result.push({stop, arrival: fromMin(arrival), depart: fromMin(depart), overnight: arrival >= 1440 || depart >= 1440})
     cursor = depart
   }
   return result
@@ -32,7 +32,11 @@ export function useSchedule(day: ItineraryDayDto, placesById: Record<string, Tri
   return useMemo(() => {
     const scheduled = computeSchedule(day).map(s => ({
       ...s,
-      flag: placesById[s.stop.tripPlaceId] ? flagStop(placesById[s.stop.tripPlaceId], s.arrival, s.depart) : 'green' as StopFlag,
+      flag: ((): StopFlag => {
+        if (s.overnight) return 'amber'
+        const place = placesById[s.stop.tripPlaceId]
+        return place ? flagStop(place, s.arrival, s.depart) : 'green'
+      })(),
     }))
     const totalTravelSeconds = day.stops.reduce((sum, st) => sum + (st.legToReach?.seconds ?? 0), 0)
     const dayEnd = scheduled.length ? scheduled[scheduled.length - 1].depart : day.dayStartTime.slice(0, 5)

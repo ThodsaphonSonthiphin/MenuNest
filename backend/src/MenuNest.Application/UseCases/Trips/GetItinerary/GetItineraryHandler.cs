@@ -34,15 +34,19 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
         {
             var dayStops = stops.Where(s => s.ItineraryDayId == day.Id).OrderBy(s => s.Sequence).ToList();
             var points = dayStops.Select(s => new RoutePoint(places[s.TripPlaceId].Lat, places[s.TripPlaceId].Lng)).ToList();
-            var legs = dayStops.Count > 1
-                ? await _routes.GetLegTimesAsync(points, trip.DefaultTravelMode, ct)
-                : Array.Empty<LegTime>();
+            var legTimes = new LegTime[dayStops.Count > 0 ? dayStops.Count - 1 : 0];
+            for (var li = 1; li < dayStops.Count; li++)
+            {
+                var pairPoints = new[] { points[li - 1], points[li] };
+                var pairLegs = await _routes.GetLegTimesAsync(pairPoints, dayStops[li].TravelModeToReach, ct);
+                legTimes[li - 1] = pairLegs[0];
+            }
 
             var stopDtos = new List<StopDto>(dayStops.Count);
             for (var i = 0; i < dayStops.Count; i++)
             {
                 var s = dayStops[i];
-                LegDto? leg = i == 0 ? null : new LegDto(legs[i - 1].Seconds, legs[i - 1].Meters);
+                LegDto? leg = i == 0 ? null : new LegDto(legTimes[i - 1].Seconds, legTimes[i - 1].Meters);
                 stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg));
             }
             result.Add(new ItineraryDayDto(day.Id, day.Date, day.DayStartTime, stopDtos));

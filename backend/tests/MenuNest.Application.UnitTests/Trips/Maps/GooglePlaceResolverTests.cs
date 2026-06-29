@@ -1,7 +1,10 @@
 using System.Net;
 using System.Net.Http;
 using FluentAssertions;
+using FluentValidation;
+using MenuNest.Application.UseCases.Trips.ResolvePlace;
 using MenuNest.Domain.Enums;
+using MenuNest.Domain.Exceptions;
 using MenuNest.Infrastructure.Maps;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -103,5 +106,38 @@ public class GooglePlaceResolverTests
     {
         var result = GooglePlaceResolver.ExtractPlaceQuery(url);
         result.Should().Be(expected);
+    }
+
+    [Fact]
+    public void Validator_rejects_non_Google_URL()
+    {
+        var validator = new ResolvePlaceValidator();
+        var result = validator.Validate(new ResolvePlaceCommand("http://169.254.169.254/latest/meta-data"));
+        result.IsValid.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task Resolver_throws_DomainException_on_non_Google_redirect()
+    {
+        var callCount = 0;
+        var handler = new SequencedHandler(req =>
+        {
+            callCount++;
+            // First (and only) call: redirect to evil host
+            var r = new HttpResponseMessage(HttpStatusCode.Redirect);
+            r.Headers.Location = new Uri("http://evil.com/payload");
+            return r;
+        });
+        var http = new HttpClient(handler);
+        var factory = new SingleClientFactory(http);
+        var opts = Options.Create(new GoogleMapsOptions { ApiKey = "demo" });
+
+        var resolver = new GooglePlaceResolver(factory, opts);
+        await FluentActions
+            .Awaiting(() => resolver.ResolveFromUrlAsync("https://maps.app.goo.gl/abc", CancellationToken.None))
+            .Should()
+            .ThrowAsync<DomainException>();
+
+        callCount.Should().Be(1); // resolver must NOT proceed to call Places API
     }
 }

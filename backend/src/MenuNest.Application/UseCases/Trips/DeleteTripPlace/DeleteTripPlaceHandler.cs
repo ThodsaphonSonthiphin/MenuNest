@@ -20,6 +20,12 @@ public sealed class DeleteTripPlaceHandler : ICommandHandler<DeleteTripPlaceComm
         var place = await _db.TripPlaces.FirstOrDefaultAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct)
             ?? throw new DomainException("Place not found.");
 
+        var isScheduled = await _db.Stops.AnyAsync(
+            s => s.TripPlaceId == c.PlaceId
+              && _db.ItineraryDays.Any(d => d.Id == s.ItineraryDayId && d.TripId == c.TripId), ct);
+        if (isScheduled)
+            throw new DomainException("ลบไม่ได้ — สถานที่นี้ถูกจัดลงตารางแล้ว ลบจุดในแผนก่อน");
+
         _db.TripPlaces.Remove(place);
         await _db.SaveChangesAsync(ct);
         return Unit.Value;
