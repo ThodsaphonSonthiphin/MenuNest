@@ -112,6 +112,8 @@ export function AddPlaceSheet({tripId, onClose}: {tripId: string; onClose: () =>
                 fields={{text: 'label', value: 'value'}}
                 value={category}
                 onChange={(e: {value: unknown}) =>
+                  // ?? 'Other' guards against a null event value during ej2 clear;
+                  // behaviour is intentional — don't change without updating CATS.
                   setCategory((e.value as PlaceCategory) ?? 'Other')
                 }
               />

@@ -1,11 +1,12 @@
 /* ============================================================
    TripDetailPage — teal-accented, mobile-first layout.
-   Shares the teal palette tokens from TripsPage.css.
-   Task 19 will consolidate CSS variables app-wide.
+   Teal palette tokens and shared component styles live in
+   trips-tokens.css (Task 19 consolidation).
    ============================================================ */
 
 .trip-detail {
-  /* Teal palette (mirrors TripsPage.css pending Task 19 consolidation) */
+  /* Legacy local tokens kept for components that still reference --trp-*
+     (PlaceCard, place-list, etc). trips-tokens.css owns the canonical vars. */
   --trp-teal:        #0d9488;
   --trp-teal-dark:   #0f766e;
   --trp-teal-soft:   rgba(13, 148, 136, 0.10);
@@ -28,8 +29,43 @@
 @media (min-width: 600px) {
   .trip-detail { max-width: 600px; margin: 0 auto; padding: 24px 24px 96px; }
 }
-@media (min-width: 1024px) {
-  .trip-detail { max-width: 860px; padding: 32px 32px 96px; }
+
+/* Mobile / tablet: single column (default flex-direction: column above) */
+@media (max-width: 1023px) {
+  .trip-detail { display: block; }
+}
+
+/* ── Desktop split layout (≥1024 px) ── */
+.trip-detail.desktop {
+  display: grid;
+  grid-template-columns: 464px 1fr;
+  gap: 16px;
+  height: calc(100vh - 64px);
+  max-width: 100%;
+  padding: 24px 32px;
+  overflow: hidden;
+}
+
+/* Left column — itinerary/places pane — scrollable */
+.trip-detail.desktop .trip-detail-col-left {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 4px;
+}
+
+/* Right column — persistent full-height map */
+.trip-detail.desktop .trip-detail-col-right {
+  position: sticky;
+  top: 0;
+  height: 100%;
+}
+
+.trip-detail.desktop .trip-map {
+  height: 100%;
+  min-height: unset;
+  border-radius: 12px;
 }
 
 /* -------- Header -------- */
@@ -51,45 +87,6 @@
 .trip-detail-meta {
   font-size: 0.85rem;
   color: var(--trp-text-muted);
-}
-
-/* -------- Segmented tabs -------- */
-.seg-tabs {
-  display: flex;
-  gap: 0;
-  background: var(--trp-bg-card);
-  border: 1.5px solid var(--trp-border);
-  border-radius: 10px;
-  overflow: hidden;
-  align-self: flex-start;
-}
-
-.seg-tab {
-  flex: 1;
-  padding: 8px 18px;
-  border: none;
-  background: transparent;
-  color: var(--trp-text-muted);
-  font-size: 0.875rem;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-  white-space: nowrap;
-}
-
-.seg-tab + .seg-tab {
-  border-left: 1.5px solid var(--trp-border);
-}
-
-.seg-tab:hover:not(.active) {
-  background: var(--trp-teal-soft);
-}
-
-.seg-tab.active {
-  background: var(--trp-teal);
-  color: #ffffff;
-  font-weight: 600;
 }
 
 /* -------- Places tab -------- */
@@ -177,10 +174,8 @@
   margin: 0;
 }
 
-/* -------- TripMap (CF2: explicit height so map is never 0×0) -------- */
+/* -------- TripMap (CF2: base height in trips-tokens.css; extras here) -------- */
 .trip-map {
-  width: 100%;
-  height: 420px;          /* fixed height — required by @vis.gl/react-google-maps */
   border-radius: 10px;
   overflow: hidden;
   border: 1.5px solid var(--trp-border);

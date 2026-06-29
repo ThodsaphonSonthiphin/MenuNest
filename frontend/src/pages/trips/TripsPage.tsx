@@ -6,6 +6,7 @@ import {useAppDispatch, useAppSelector} from '../../store/index'
 import {setCreateTripOpen} from './tripsSlice'
 import {CreateTripDialog} from './components/CreateTripDialog'
 import {getErrorMessage} from '../../shared/utils/getErrorMessage'
+import './trips-tokens.css'
 import './TripsPage.css'
 
 export function TripsPage() {
