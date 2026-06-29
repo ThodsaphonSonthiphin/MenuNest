@@ -1,12 +1,18 @@
 using Mediator;
 using MenuNest.Application.UseCases.Trips;
+using MenuNest.Application.UseCases.Trips.AddStop;
 using MenuNest.Application.UseCases.Trips.AddTripPlace;
 using MenuNest.Application.UseCases.Trips.CreateTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
+using MenuNest.Application.UseCases.Trips.GetItinerary;
 using MenuNest.Application.UseCases.Trips.ListTripPlaces;
 using MenuNest.Application.UseCases.Trips.ListTrips;
+using MenuNest.Application.UseCases.Trips.RemoveStop;
+using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.ResolvePlace;
+using MenuNest.Application.UseCases.Trips.SetDayStartTime;
+using MenuNest.Application.UseCases.Trips.UpdateStop;
 using MenuNest.Application.UseCases.Trips.UpdateTrip;
 using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
 using MenuNest.Domain.Enums;
@@ -59,6 +65,30 @@ public sealed class TripsController : ControllerBase
     [HttpDelete("api/trips/{id:guid}/places/{placeId:guid}")]
     public async Task<IActionResult> DeletePlace(Guid id, Guid placeId, CancellationToken ct)
     { await _mediator.Send(new DeleteTripPlaceCommand(id, placeId), ct); return NoContent(); }
+
+    [HttpGet("api/trips/{id:guid}/itinerary")]
+    public async Task<ActionResult<IReadOnlyList<ItineraryDayDto>>> GetItinerary(Guid id, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetItineraryQuery(id), ct));
+
+    [HttpPost("api/trips/{id:guid}/days/{dayId:guid}/stops")]
+    public async Task<ActionResult<StopDto>> AddStop(Guid id, Guid dayId, [FromBody] AddStopBody b, CancellationToken ct)
+        => Ok(await _mediator.Send(new AddStopCommand(id, dayId, b.TripPlaceId, b.DwellMinutes, b.TravelModeToReach), ct));
+
+    [HttpPatch("api/trips/{id:guid}/stops/{stopId:guid}")]
+    public async Task<IActionResult> UpdateStop(Guid id, Guid stopId, [FromBody] UpdateStopBody b, CancellationToken ct)
+    { await _mediator.Send(new UpdateStopCommand(id, stopId, b.DwellMinutes, b.TravelModeToReach), ct); return NoContent(); }
+
+    [HttpDelete("api/trips/{id:guid}/stops/{stopId:guid}")]
+    public async Task<IActionResult> RemoveStop(Guid id, Guid stopId, CancellationToken ct)
+    { await _mediator.Send(new RemoveStopCommand(id, stopId), ct); return NoContent(); }
+
+    [HttpPost("api/trips/{id:guid}/days/{dayId:guid}/reorder")]
+    public async Task<IActionResult> Reorder(Guid id, Guid dayId, [FromBody] ReorderBody b, CancellationToken ct)
+    { await _mediator.Send(new ReorderStopsCommand(id, dayId, b.OrderedStopIds), ct); return NoContent(); }
+
+    [HttpPatch("api/trips/{id:guid}/days/{dayId:guid}")]
+    public async Task<IActionResult> SetDayStart(Guid id, Guid dayId, [FromBody] SetDayStartBody b, CancellationToken ct)
+    { await _mediator.Send(new SetDayStartTimeCommand(id, dayId, b.StartTime), ct); return NoContent(); }
 }
 
 public sealed record UpdateTripBody(
@@ -72,3 +102,13 @@ public sealed record AddPlaceBody(
 public sealed record UpdatePlaceBody(
     string Name, PlaceCategory Category, string? Address, string? FeeNote, string? Notes,
     TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd);
+
+public sealed record AddStopBody(
+    Guid TripPlaceId, int DwellMinutes, TravelMode TravelModeToReach);
+
+public sealed record UpdateStopBody(
+    int? DwellMinutes, TravelMode? TravelModeToReach);
+
+public sealed record ReorderBody(IReadOnlyList<Guid> OrderedStopIds);
+
+public sealed record SetDayStartBody(TimeOnly StartTime);
