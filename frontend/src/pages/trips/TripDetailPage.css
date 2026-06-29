@@ -36,6 +36,14 @@
 }
 
 /* ── Desktop split layout (≥1024 px) ── */
+/* Map-forward: break out of AppLayout's centered 1200px cap
+   (index.css .app-main { max-width:1200px; margin:0 auto }) so the map
+   fills the viewport instead of collapsing into a narrow centred panel. */
+.app-main:has(.trip-detail.desktop) {
+  max-width: none;
+  padding: 0;
+}
+
 .trip-detail.desktop {
   display: grid;
   grid-template-columns: 464px 1fr;
