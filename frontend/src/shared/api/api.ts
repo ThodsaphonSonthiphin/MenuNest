@@ -462,6 +462,22 @@ export interface CoverOverspendingRequest {
     amount: number
 }
 
+// -------------------- Trips --------------------
+export type TravelMode = 'Drive' | 'Walk' | 'Transit'
+export type PlaceCategory = 'Stay' | 'Eat' | 'See' | 'Cafe' | 'Shop' | 'Other'
+
+export interface TripDto { id: string; name: string; destination: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode }
+export interface TripPlaceDto {
+    id: string; tripId: string; googlePlaceId: string | null; name: string; lat: number; lng: number
+    address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null
+    bestTimeStart: string | null; bestTimeEnd: string | null; openingHoursJson: string | null
+    feeNote: string | null; notes: string | null
+}
+export interface LegDto { seconds: number; meters: number }
+export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null }
+export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; stops: StopDto[] }
+export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
+
 // ----------------------------------------------------------------------
 export const api = createApi({
     reducerPath: 'api',
@@ -498,6 +514,10 @@ export const api = createApi({
         'ActiveEpisode',
         'ShareLink',
         'PushSubscription',
+        'Trips',
+        'TripDetail',
+        'TripPlaces',
+        'TripItinerary',
     ],
     endpoints: (build) => ({
         // -------------------- Me / Family --------------------
@@ -1176,6 +1196,66 @@ export const api = createApi({
             query: (id) => ({url: `/api/share-links/${id}`, method: 'DELETE'}),
             invalidatesTags: [{type: 'ShareLink', id: 'LIST'}],
         }),
+        // -------------------- Trips --------------------
+        listTrips: build.query<TripDto[], void>({
+            query: () => '/api/trips',
+            providesTags: ['Trips'],
+        }),
+        createTrip: build.mutation<TripDto, {name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode}>({
+            query: (b) => ({url: '/api/trips', method: 'POST', body: b}),
+            invalidatesTags: ['Trips'],
+        }),
+        updateTrip: build.mutation<TripDto, {id: string; name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode}>({
+            query: ({id, ...b}) => ({url: `/api/trips/${id}`, method: 'PUT', body: b}),
+            invalidatesTags: (_r, _e, a) => ['Trips', {type: 'TripDetail', id: a.id}, {type: 'TripItinerary', id: a.id}],
+        }),
+        deleteTrip: build.mutation<void, string>({
+            query: (id) => ({url: `/api/trips/${id}`, method: 'DELETE'}),
+            invalidatesTags: ['Trips'],
+        }),
+        resolvePlace: build.mutation<ResolvedPlaceDto, {url: string}>({
+            query: (b) => ({url: '/api/trips/resolve-place', method: 'POST', body: b}),
+        }),
+        listTripPlaces: build.query<TripPlaceDto[], string>({
+            query: (tripId) => `/api/trips/${tripId}/places`,
+            providesTags: (_r, _e, id) => [{type: 'TripPlaces', id}],
+        }),
+        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes'>>({
+            query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+        }),
+        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null}>({
+            query: ({tripId, placeId, ...b}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'PUT', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+        }),
+        deleteTripPlace: build.mutation<void, {tripId: string; placeId: string}>({
+            query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+        }),
+        getItinerary: build.query<ItineraryDayDto[], string>({
+            query: (tripId) => `/api/trips/${tripId}/itinerary`,
+            providesTags: (_r, _e, id) => [{type: 'TripItinerary', id}],
+        }),
+        addStop: build.mutation<StopDto, {tripId: string; dayId: string; tripPlaceId: string; dwellMinutes: number; travelModeToReach: TravelMode}>({
+            query: ({tripId, dayId, ...b}) => ({url: `/api/trips/${tripId}/days/${dayId}/stops`, method: 'POST', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
+        updateStop: build.mutation<void, {tripId: string; stopId: string; dwellMinutes?: number | null; travelModeToReach?: TravelMode | null}>({
+            query: ({tripId, stopId, ...b}) => ({url: `/api/trips/${tripId}/stops/${stopId}`, method: 'PATCH', body: b}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
+        removeStop: build.mutation<void, {tripId: string; stopId: string}>({
+            query: ({tripId, stopId}) => ({url: `/api/trips/${tripId}/stops/${stopId}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
+        reorderStops: build.mutation<void, {tripId: string; dayId: string; orderedStopIds: string[]}>({
+            query: ({tripId, dayId, orderedStopIds}) => ({url: `/api/trips/${tripId}/days/${dayId}/reorder`, method: 'POST', body: {orderedStopIds}}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
+        setDayStartTime: build.mutation<void, {tripId: string; dayId: string; startTime: string}>({
+            query: ({tripId, dayId, startTime}) => ({url: `/api/trips/${tripId}/days/${dayId}`, method: 'PATCH', body: {startTime}}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
     }),
 })
 
@@ -1297,6 +1377,22 @@ export const {
     useCreateShareLinkMutation,
     useListMyShareLinksQuery,
     useRevokeShareLinkMutation,
+    // -------- Trips --------
+    useListTripsQuery,
+    useCreateTripMutation,
+    useUpdateTripMutation,
+    useDeleteTripMutation,
+    useResolvePlaceMutation,
+    useListTripPlacesQuery,
+    useAddTripPlaceMutation,
+    useUpdateTripPlaceMutation,
+    useDeleteTripPlaceMutation,
+    useGetItineraryQuery,
+    useAddStopMutation,
+    useUpdateStopMutation,
+    useRemoveStopMutation,
+    useReorderStopsMutation,
+    useSetDayStartTimeMutation,
 } = api
 
 export const {
