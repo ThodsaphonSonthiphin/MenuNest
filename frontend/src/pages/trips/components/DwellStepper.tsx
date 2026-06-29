@@ -1,5 +1,5 @@
 // frontend/src/pages/trips/components/DwellStepper.tsx
-import {Button, Color} from '@syncfusion/react-buttons'
+import {Button, Color, Variant} from '@syncfusion/react-buttons'
 
 const CHIPS = [30, 60, 90, 120]
 
@@ -13,13 +13,15 @@ export function DwellStepper({value, onChange}: {value: number; onChange: (v: nu
       </div>
       <div className="dwell-chips">
         {CHIPS.map(c => (
-          <button
+          <Button
             key={c}
             className={`chip${c === value ? ' active' : ''}`}
+            color={c === value ? Color.Primary : undefined}
+            variant={c === value ? Variant.Filled : Variant.Outlined}
             onClick={() => onChange(c)}
           >
             {c}
-          </button>
+          </Button>
         ))}
       </div>
     </div>
