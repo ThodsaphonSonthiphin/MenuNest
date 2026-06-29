@@ -1,0 +1,214 @@
+/* ============================================================
+   trips-tokens.css — Shared teal design tokens for the Trips
+   feature. Scoped to .trips-page and .trip-detail so the global
+   orange Syncfusion theme is untouched.
+   Task 19: consolidates the duplicate --trp-* vars that previously
+   lived separately in TripsPage.css and TripDetailPage.css.
+   ============================================================ */
+
+.trips-page, .trip-detail {
+  --teal:      #0e8f9e;
+  --teal-deep: #0b7a87;
+  --teal-soft: #e3f5f6;
+  --ink:       #0f172a;
+  --page:      #f8fafc;
+  --surface:   #fff;
+  --border:    #eef2f6;
+  --muted:     #94a3b8;
+  --good:      #1f9d76;
+  --good-bg:   #eafaf3;
+  --warn:      #b4791f;
+  --warn-bg:   #fff4e0;
+  background: var(--page);
+  color: var(--ink);
+}
+
+/* ── Spline Sans Mono on numeric/time elements ── */
+.stop-arr,
+.stop-dep,
+.place-coords,
+.leg-pill,
+.dwell-value,
+.computed-box,
+.day-summary b {
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+}
+
+/* ── Segmented-tab classes kept for completeness (ej2 TabComponent
+   renders .e-tab* classes; these guard any future custom seg-ctrl) ── */
+.seg-tabs { display: flex; gap: 6px; }
+.seg-tab {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.seg-tab.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+/* ── Day summary bar ── */
+.day-summary {
+  display: flex;
+  gap: 16px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+/* ── Stop card ── */
+.stop-card {
+  display: flex;
+  gap: 11px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 12px;
+}
+.stop-card.warn {
+  border-color: var(--warn);
+  box-shadow: 0 0 0 1px var(--warn) inset;
+}
+
+/* ── Chips ── */
+.chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+.chip.good { background: var(--good-bg); color: var(--good); }
+.chip.warn  { background: var(--warn-bg); color: var(--warn); }
+
+/* ── Travel leg ── */
+.travel-leg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0 7px 58px;
+  color: var(--teal-deep);
+  font-size: 11.5px;
+}
+
+/* ── Map default height (overridden in desktop split) ── */
+.trip-map {
+  height: 60vh;
+  min-height: 320px;
+  width: 100%;
+}
+
+/* ── AddPlaceSheet extras (T14) ── */
+.add-place-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.add-place-row > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.add-place-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--teal-soft);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+
+.add-place-hint {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+.place-coords {
+  font-size: 0.78rem;
+  color: var(--muted);
+  /* font-family set above by .place-coords selector */
+}
+
+/* ── Add-stop picker (ItineraryTab, T16) ── */
+.add-stop-picker {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.add-stop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--ink);
+}
+
+.add-stop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.add-stop-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--ink);
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.add-stop-item:hover {
+  background: var(--teal-soft);
+  border-color: var(--teal);
+}
+
+.add-stop-name {
+  font-weight: 500;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--teal-deep);
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  font-family: inherit;
+}
+.btn-text:hover { text-decoration: underline; }
+
+.btn-add-stop {
+  width: 100%;
+  border: 1.5px dashed var(--border);
+  border-radius: 10px;
+  background: transparent;
+  padding: 10px 0;
+  color: var(--teal-deep);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.btn-add-stop:hover {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
+/* ── Responsive: map height on narrow mobile ── */
+@media (max-width: 479px) {
+  .trip-map {
+    height: 50vh;
+    min-height: 280px;
+  }
+}

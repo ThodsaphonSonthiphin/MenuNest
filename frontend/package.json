@@ -22,7 +22,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "@syncfusion/ej2-react-barcode-generator": "^33.1.44",
     "@syncfusion/ej2-react-interactive-chat": "^33.1.49",
-    "@syncfusion/ej2-react-navigations": "^33.2.15",
+    "@syncfusion/ej2-react-navigations": "^33.1.44",
     "@syncfusion/react-buttons": "^33.1.44",
     "@syncfusion/react-calendars": "^33.1.44",
     "@syncfusion/react-data": "^33.1.44",

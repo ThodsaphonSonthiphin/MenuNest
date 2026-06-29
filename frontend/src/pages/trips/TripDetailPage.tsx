@@ -4,11 +4,13 @@ import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useListTripsQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
 import { setActiveTab, setPlacesView, setAddPlaceOpen } from './tripsSlice'
+import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
 import { SegmentedTabs } from './components/SegmentedTabs'
 import { PlaceCard } from './components/PlaceCard'
 import { AddPlaceSheet } from './components/AddPlaceSheet'
 import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
+import './trips-tokens.css'
 import './TripDetailPage.css'
 
 export function TripDetailPage() {
@@ -17,11 +19,83 @@ export function TripDetailPage() {
   const tab = useAppSelector((s) => s.trips.activeTab)
   const placesView = useAppSelector((s) => s.trips.placesView)
   const addOpen = useAppSelector((s) => s.trips.addPlaceOpen)
+  const bp = useBreakpoint()
 
   const { data: trips } = useListTripsQuery()
   const trip = trips?.find((t) => t.id === tripId)
   const { data: places } = useListTripPlacesQuery(tripId)
 
+  const isDesktop = bp === 'desktop'
+
+  // ── Desktop split: two-pane grid ──────────────────────────────────────────
+  if (isDesktop) {
+    return (
+      <section className="trip-detail desktop">
+        {/* Left column — itinerary / places panel */}
+        <div className="trip-detail-col-left">
+          <header className="trip-detail-header">
+            <div className="trip-detail-name">{trip?.name ?? '…'}</div>
+            <div className="trip-detail-meta">
+              {trip?.destination}
+              {trip?.destination ? ' · ' : ''}
+              {trip?.dayCount != null ? `${trip.dayCount} วัน` : ''}
+            </div>
+          </header>
+
+          <SegmentedTabs
+            value={tab}
+            onChange={(v) => dispatch(setActiveTab(v))}
+            options={[
+              { label: 'คลังสถานที่', value: 'places' },
+              { label: 'แผนเที่ยว', value: 'itinerary' },
+            ]}
+          />
+
+          {tab === 'places' && (
+            <div className="trip-places">
+              <div className="trip-places-toolbar">
+                <Button
+                  color={Color.Primary}
+                  variant={Variant.Filled}
+                  onClick={() => dispatch(setAddPlaceOpen(true))}
+                >
+                  + เพิ่มสถานที่
+                </Button>
+              </div>
+
+              {places?.length ? (
+                <div className="place-list">
+                  {places.map((p) => (
+                    <PlaceCard key={p.id} place={p} />
+                  ))}
+                </div>
+              ) : (
+                <p className="trips-empty">
+                  ยังไม่มีสถานที่ — วางลิงก์จาก Google Maps เพื่อเริ่ม
+                </p>
+              )}
+            </div>
+          )}
+
+          {tab === 'itinerary' && <ItineraryTab tripId={tripId} />}
+
+          {addOpen && (
+            <AddPlaceSheet
+              tripId={tripId}
+              onClose={() => dispatch(setAddPlaceOpen(false))}
+            />
+          )}
+        </div>
+
+        {/* Right column — persistent map */}
+        <div className="trip-detail-col-right">
+          <TripMap places={places ?? []} />
+        </div>
+      </section>
+    )
+  }
+
+  // ── Mobile / tablet: single column, tabbed ────────────────────────────────
   return (
     <section className="trip-detail">
       <header className="trip-detail-header">
