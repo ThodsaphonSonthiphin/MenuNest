@@ -1211,7 +1211,7 @@ export const api = createApi({
         }),
         deleteTrip: build.mutation<void, string>({
             query: (id) => ({url: `/api/trips/${id}`, method: 'DELETE'}),
-            invalidatesTags: ['Trips'],
+            invalidatesTags: (_r, _e, id) => ['Trips', {type: 'TripDetail', id}, {type: 'TripItinerary', id}],
         }),
         resolvePlace: build.mutation<ResolvedPlaceDto, {url: string}>({
             query: (b) => ({url: '/api/trips/resolve-place', method: 'POST', body: b}),
