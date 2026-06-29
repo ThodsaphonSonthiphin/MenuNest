@@ -32,6 +32,8 @@ import '@syncfusion/react-popups/styles/material.css'
 import '@syncfusion/react-grid/styles/material.css'
 import '@syncfusion/react-scheduler/styles/material.css'
 import '@syncfusion/ej2-react-interactive-chat/styles/material.css'
+// TODO: migrate to Pure React Tab when @syncfusion/react-navigations ships one
+import '@syncfusion/ej2-react-navigations/styles/material.css'
 
 import './index.css'
 
