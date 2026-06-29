@@ -31,3 +31,33 @@ the glossary wins until the glossary is deliberately changed.
 - **OAuth proxy** — MenuNest's in-app OAuth 2.1 Authorization-Server facade
   (`/oauth/*`) that brokers MCP authentication to Entra and mints the app's own
   JWT for `/mcp`. See ADR-003 / ADR-004.
+
+## Travel & trip planning
+
+- **Trip** — a planned journey owned by one **User** (user-scoped, not
+  family-gated — see ADR-005). It holds a collection of saved **Places** and an
+  ordered **Itinerary**, and rolls up a total **estimated cost**.
+  _Avoid_: Journey, Tour, Vacation.
+- **Place** — a saved location the user wants to visit, anchored to a Google
+  **`place_id`** (the only Maps datum stored indefinitely — see ADR-007). Carries a
+  cached snapshot (name, coordinates, address, opening hours) sourced from a live
+  Google Maps Platform API, never scraped.
+  _Avoid_: Location, Spot, POI, Pin.
+- **Stop** — one entry in a Trip's itinerary: a reference to a **Place** plus a
+  planned visit time and a **dwell** duration. Ordering Stops produces the route.
+  _Avoid_: Visit, Waypoint, Item.
+- **Leg** — the travel segment between two consecutive **Stops**; its travel time
+  comes from the Google **Routes API**, not an estimate (see ADR-007).
+  _Avoid_: Segment, Hop.
+- **Dwell** — how long the user plans to stay at a Stop, in minutes. Distinct from
+  **Leg** travel time.
+- **Travel mode** — how a **Leg** is travelled (walk / transit / drive); chosen per
+  Leg and fed to the Routes API. A Trip carries a default mode that new Legs inherit.
+- **Smart Schedule** — the per-day itinerary view that cascades arrival/leave times
+  from the day start through **Dwell** + **Leg** travel time, and flags each Stop
+  against its best-time window and opening hours (see ADR-008).
+- **Capture** — bringing a Place into a Trip from Google Maps, resolved server-side
+  (ADR-007). MVP supports **pasting a link** only; share-from-Maps (PWA share
+  target) and the browser bookmarklet are Phase 2.
+- _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
+  **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
