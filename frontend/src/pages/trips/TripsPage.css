@@ -1,0 +1,165 @@
+/* ============================================================
+   Trips page — teal-accented, mobile-first card grid.
+   CSS variables scoped to .trips-page (Task 19 will consolidate).
+   ============================================================ */
+
+.trips-page {
+  /* Teal palette */
+  --trp-teal:        #0d9488;   /* teal-600 — primary accent */
+  --trp-teal-dark:   #0f766e;   /* teal-700 — hover */
+  --trp-teal-soft:   rgba(13, 148, 136, 0.10);
+
+  /* Neutrals */
+  --trp-bg-page:     #f0fdfa;   /* teal-50  — page background */
+  --trp-bg-card:     #ffffff;
+  --trp-bg-card-2:   #f0fdfa;
+  --trp-border:      #99f6e4;   /* teal-200 */
+  --trp-text:        #134e4a;   /* teal-900 */
+  --trp-text-muted:  #0f766e;   /* teal-700 */
+  --trp-text-dim:    #5eead4;   /* teal-300 */
+  --trp-error:       #b91c1c;   /* red-700  */
+
+  background: var(--trp-bg-page);
+  color: var(--trp-text);
+  min-height: calc(100vh - 56px);
+  padding: 16px 16px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 14px;
+}
+
+@media (min-width: 600px) {
+  .trips-page { max-width: 600px; margin: 0 auto; padding: 24px 24px 96px; }
+}
+@media (min-width: 1024px) {
+  .trips-page { max-width: 860px; padding: 32px 32px 96px; }
+}
+
+/* -------- Header -------- */
+.trips-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trips-header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--trp-text);
+  letter-spacing: -0.02em;
+}
+
+/* -------- States -------- */
+.trips-muted,
+.trips-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--trp-text-muted);
+  font-size: 0.95rem;
+}
+
+.trips-field-error {
+  color: var(--trp-error);
+  font-size: 0.85rem;
+  margin: 0;
+  padding: 4px 0;
+}
+
+/* -------- Trip cards grid -------- */
+.trips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+}
+
+.trip-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--trp-bg-card);
+  border: 1.5px solid var(--trp-border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+  font-family: inherit;
+  color: var(--trp-text);
+}
+
+.trip-card:hover {
+  border-color: var(--trp-teal);
+  box-shadow: 0 4px 16px rgba(13, 148, 136, 0.18);
+  transform: translateY(-2px);
+}
+
+.trip-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.12);
+}
+
+.trip-card-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--trp-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-card-meta {
+  font-size: 0.82rem;
+  color: var(--trp-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.trip-card-dates {
+  font-size: 0.78rem;
+  color: var(--trp-teal);
+  font-weight: 500;
+}
+
+/* -------- Create-trip dialog form -------- */
+.trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 8px 0 4px;
+}
+
+.trip-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trip-form-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--trp-text);
+}
+
+.trip-field-required {
+  color: var(--trp-error);
+  margin-left: 2px;
+}
+
+.trip-field-error {
+  color: var(--trp-error);
+  font-size: 0.8rem;
+  margin: 0;
+  padding: 2px 0 0;
+}
+
+.trip-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
