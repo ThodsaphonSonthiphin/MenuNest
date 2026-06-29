@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net.Http.Json;
 using System.Text.Json;
 using MenuNest.Application.Abstractions;
@@ -79,7 +80,9 @@ public sealed class GoogleRouteService : IRouteService
         return new LegTime(seconds, meters);
 
         static object Wp(RoutePoint p) => new { waypoint = new { location = new { latLng = new { latitude = p.Lat, longitude = p.Lng } } } };
-        static int ParseDuration(string? s) => int.TryParse(s?.TrimEnd('s'), out var v) ? v : 0;
+        static int ParseDuration(string? s) =>
+            s is not null && double.TryParse(s.TrimEnd('s'), NumberStyles.Any, CultureInfo.InvariantCulture, out var v)
+                ? (int)Math.Round(v) : 0;
     }
 
     private static string Key(RoutePoint o, RoutePoint d, TravelMode mode)
