@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Planner — Day Timeline</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-page: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-2: #f8fafc;
+    --bg-muted: #eef2f6;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text-muted: #64748b;
+    /* travel accent — teal/sky */
+    --accent: #0d9488;
+    --accent-soft: #ccfbf1;
+    --good: #16a34a;
+    --good-bg: rgba(22,163,74,0.10);
+    --warn: #d97706;
+    --warn-bg: rgba(217,119,6,0.12);
+    --leg: #0369a1;
+    --leg-bg: rgba(3,105,161,0.08);
+  }
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--bg-page);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .page-header { padding: 18px 20px 6px; text-align: center; }
+  .page-title { font-size: 18px; font-weight: 700; }
+  .page-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+  .phones { display: flex; gap: 28px; justify-content: center; align-items: flex-start;
+            padding: 20px; flex-wrap: wrap; }
+  .phone { width: 380px; flex-shrink: 0; }
+  .phone-label { text-align: center; color: var(--text-muted); font-size: 12px;
+                 margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .phone-frame {
+    width: 380px; height: 800px; background: var(--bg-page);
+    border-radius: 38px; border: 9px solid #0f172a; overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(2,6,23,0.4); position: relative;
+  }
+  .screen { height: 100%; overflow-y: auto; }
+  .screen::-webkit-scrollbar { width: 0; }
+
+  /* App bar */
+  .appbar {
+    background: linear-gradient(135deg, #0d9488, #0369a1);
+    color: #fff; padding: 16px 16px 14px;
+  }
+  .appbar .crumb { font-size: 12px; opacity: .85; }
+  .appbar .trip-name { font-size: 19px; font-weight: 700; margin-top: 2px; }
+  .appbar .trip-meta { font-size: 12px; opacity: .9; margin-top: 3px; }
+
+  /* Day tabs */
+  .day-tabs { display: flex; gap: 8px; padding: 12px 14px 4px; overflow-x: auto; }
+  .day-tab {
+    flex-shrink: 0; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 8px 12px; text-align: center; min-width: 62px;
+  }
+  .day-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .day-tab .d-num { font-size: 11px; opacity: .85; }
+  .day-tab .d-date { font-size: 14px; font-weight: 700; margin-top: 1px; }
+
+  /* Day summary */
+  .day-summary {
+    margin: 10px 14px; background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 12px 14px; display: flex; justify-content: space-between;
+  }
+  .sum-item { text-align: center; flex: 1; }
+  .sum-item + .sum-item { border-left: 1px solid var(--border); }
+  .sum-val { font-size: 15px; font-weight: 700; }
+  .sum-lbl { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Timeline */
+  .timeline { padding: 4px 14px 24px; }
+
+  .stop {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 12px 13px; display: flex; gap: 11px; position: relative;
+  }
+  .stop.warn { border-color: var(--warn); box-shadow: 0 0 0 1px var(--warn) inset; }
+  .stop-time {
+    flex-shrink: 0; width: 46px; text-align: center;
+  }
+  .stop-time .arr { font-size: 15px; font-weight: 700; }
+  .stop-time .dep { font-size: 10.5px; color: var(--text-muted); margin-top: 2px; }
+  .stop-ico {
+    flex-shrink: 0; width: 38px; height: 38px; border-radius: 11px;
+    background: var(--accent-soft); display: flex; align-items: center;
+    justify-content: center; font-size: 19px;
+  }
+  .stop-body { flex: 1; min-width: 0; }
+  .stop-name { font-size: 14.5px; font-weight: 700; }
+  .stop-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+  .stop-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+  .chip {
+    font-size: 10.5px; padding: 2px 8px; border-radius: 20px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .chip.dwell { background: var(--bg-muted); color: var(--text-muted); }
+  .chip.good { background: var(--good-bg); color: var(--good); }
+  .chip.warn { background: var(--warn-bg); color: var(--warn); }
+  .stop-flagnote {
+    margin-top: 8px; font-size: 11px; background: var(--warn-bg); color: var(--warn);
+    border-radius: 9px; padding: 7px 9px; line-height: 1.4;
+  }
+  .stop-flagnote b { font-weight: 700; }
+  .suggest-btn {
+    margin-top: 6px; display: inline-block; font-size: 11px; font-weight: 600;
+    color: var(--warn); background: #fff; border: 1px solid var(--warn);
+    border-radius: 8px; padding: 4px 9px; cursor: pointer;
+  }
+
+  /* Leg between stops */
+  .leg {
+    display: flex; align-items: center; gap: 8px; padding: 7px 0 7px 58px;
+    color: var(--leg); font-size: 11.5px; font-weight: 600;
+  }
+  .leg .line { flex: 1; height: 1px; background: var(--border); }
+  .leg .pill {
+    background: var(--leg-bg); border-radius: 18px; padding: 3px 9px;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+
+  /* Add stop */
+  .add-stop {
+    margin: 6px 0 0; border: 1.5px dashed var(--border); border-radius: 13px;
+    padding: 12px; text-align: center; color: var(--text-muted); font-size: 13px; font-weight: 600;
+  }
+
+  .legend { padding: 0 18px 22px; max-width: 380px; margin: 0 auto; font-size: 11.5px;
+            color: var(--text-muted); line-height: 1.7; }
+  .legend b { color: var(--text); }
+  .dot { display:inline-block; width:9px; height:9px; border-radius:50%; vertical-align: middle; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="page-title">วางแผนทริป — Day Timeline (mock)</div>
+    <div class="page-sub">เชียงใหม่ · Day 1 · เสาร์ 14 พ.ย. 2026 — สาธิตการคำนวน dwell + ETA + ช่วงเวลาที่ดี</div>
+  </div>
+
+  <div class="phones">
+    <div class="phone">
+      <div class="phone-label">Day timeline</div>
+      <div class="phone-frame">
+        <div class="screen">
+          <div class="appbar">
+            <div class="crumb">← ทริปของฉัน</div>
+            <div class="trip-name">เชียงใหม่ 3 วัน 2 คืน</div>
+            <div class="trip-meta">14–16 พ.ย. 2026 · งบประมาณ ฿12,000</div>
+          </div>
+
+          <div class="day-tabs">
+            <div class="day-tab active"><div class="d-num">Day 1</div><div class="d-date">ส. 14</div></div>
+            <div class="day-tab"><div class="d-num">Day 2</div><div class="d-date">อา. 15</div></div>
+            <div class="day-tab"><div class="d-num">Day 3</div><div class="d-date">จ. 16</div></div>
+          </div>
+
+          <div class="day-summary">
+            <div class="sum-item"><div class="sum-val">09:00</div><div class="sum-lbl">เริ่มวัน</div></div>
+            <div class="sum-item"><div class="sum-val">4</div><div class="sum-lbl">จุดแวะ</div></div>
+            <div class="sum-item"><div class="sum-val">1:35</div><div class="sum-lbl">เวลาเดินทาง</div></div>
+            <div class="sum-item"><div class="sum-val">฿1,150</div><div class="sum-lbl">ค่าใช้จ่าย</div></div>
+          </div>
+
+          <div class="timeline">
+
+            <!-- Stop 1 -->
+            <div class="stop">
+              <div class="stop-time"><div class="arr">09:00</div><div class="dep">→10:00</div></div>
+              <div class="stop-ico">🛕</div>
+              <div class="stop-body">
+                <div class="stop-name">วัดพระธาตุดอยสุเทพ</div>
+                <div class="stop-sub">เปิด 06:00–18:00 · ⭐ 4.7</div>
+                <div class="stop-chips">
+                  <span class="chip dwell">⏱️ อยู่ 60 น.</span>
+                  <span class="chip good">✓ ช่วงที่ดี เช้า 08–10</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="leg"><span class="pill">🚗 25 นาที</span><span class="line"></span><span>4.2 กม.</span></div>
+
+            <!-- Stop 2 -->
+            <div class="stop">
+              <div class="stop-time"><div class="arr">10:25</div><div class="dep">→11:10</div></div>
+              <div class="stop-ico">☕</div>
+              <div class="stop-body">
+                <div class="stop-name">ร้านกาแฟบนดอย (Khagee)</div>
+                <div class="stop-sub">เปิด 08:00–17:00 · ⭐ 4.5</div>
+                <div class="stop-chips">
+                  <span class="chip dwell">⏱️ อยู่ 45 น.</span>
+                  <span class="chip good">✓ เปิดอยู่</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="leg"><span class="pill">🚗 30 นาที</span><span class="line"></span><span>9.1 กม.</span></div>
+
+            <!-- Stop 3 -->
+            <div class="stop">
+              <div class="stop-time"><div class="arr">11:40</div><div class="dep">→13:10</div></div>
+              <div class="stop-ico">🛍️</div>
+              <div class="stop-body">
+                <div class="stop-name">ตลาดวโรรส (กาดหลวง)</div>
+                <div class="stop-sub">เปิด 05:00–18:00 · ⭐ 4.3</div>
+                <div class="stop-chips">
+                  <span class="chip dwell">⏱️ อยู่ 90 น.</span>
+                  <span class="chip good">✓ เปิดอยู่ · มื้อเที่ยง</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="leg"><span class="pill">🚗 40 นาที</span><span class="line"></span><span>12.5 กม.</span></div>
+
+            <!-- Stop 4 — WARN -->
+            <div class="stop warn">
+              <div class="stop-time"><div class="arr">13:50</div><div class="dep">→15:20</div></div>
+              <div class="stop-ico">🌅</div>
+              <div class="stop-body">
+                <div class="stop-name">จุดชมวิวพระอาทิตย์ตก ดอยปุย</div>
+                <div class="stop-sub">เปิดตลอด · ⭐ 4.8</div>
+                <div class="stop-chips">
+                  <span class="chip dwell">⏱️ อยู่ 90 น.</span>
+                  <span class="chip warn">⚠ ช่วงที่ดี 17:30–18:30</span>
+                </div>
+                <div class="stop-flagnote">
+                  จะไปถึง <b>13:50</b> แต่ช่วงพระอาทิตย์ตกที่ดีคือ <b>17:30–18:30</b> —
+                  เร็วไป 3 ชม. 40 นาที
+                </div>
+                <span class="suggest-btn">↓ ย้ายไปไว้ท้ายวัน</span>
+              </div>
+            </div>
+
+            <div class="add-stop">+ เพิ่มจุดแวะ</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div style="max-width:340px">
+      <div class="phone-label">อ่านยังไง</div>
+      <div class="legend" style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:14px 16px;">
+        <p><span class="dot" style="background:var(--accent)"></span> <b>เวลาซ้ายมือ</b> = เวลา "ไปถึง" ที่ระบบ cascade ให้อัตโนมัติ (บรรทัด →HH:MM คือเวลาออก = ถึง + dwell)</p>
+        <p style="margin-top:8px"><span class="dot" style="background:var(--leg)"></span> <b>แถบ 🚗 ระหว่างจุด</b> = ETA จริงจาก Google Routes API (จะ cache ต่อคู่จุด+โหมดเดินทาง)</p>
+        <p style="margin-top:8px"><span class="dot" style="background:var(--good)"></span> <b>ชิปเขียว</b> = ไปถึงในช่วงที่ดี + ร้านเปิด</p>
+        <p style="margin-top:8px"><span class="dot" style="background:var(--warn)"></span> <b>ชิป/กรอบเหลือง</b> = นอกช่วงที่ดี / ร้านปิด / วันยาวเกิน → มีปุ่มแนะนำให้ย้ายเอง (ไม่ auto จัดลำดับใน MVP)</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

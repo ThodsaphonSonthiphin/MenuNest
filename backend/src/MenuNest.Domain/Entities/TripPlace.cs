@@ -65,8 +65,8 @@ public sealed class TripPlace : Entity
 
     public void SetBestTime(TimeOnly? start, TimeOnly? end)
     {
-        if (start is not null && end is not null && end <= start)
-            throw new DomainException("Best-time end must be after start.");
+        if (start is null || end is null) { start = null; end = null; }
+        else if (end <= start) throw new DomainException("Best-time end must be after start.");
         BestTimeStart = start;
         BestTimeEnd = end;
         UpdatedAt = DateTime.UtcNow;
