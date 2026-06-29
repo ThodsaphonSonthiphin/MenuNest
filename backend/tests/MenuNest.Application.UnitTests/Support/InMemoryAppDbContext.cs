@@ -48,6 +48,12 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
     public DbSet<Photo> Photos => Set<Photo>();
 
+    // Trip Planner module
+    public DbSet<Trip> Trips => Set<Trip>();
+    public DbSet<TripPlace> TripPlaces => Set<TripPlace>();
+    public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
+    public DbSet<Stop> Stops => Set<Stop>();
+
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

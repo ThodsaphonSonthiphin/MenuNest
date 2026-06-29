@@ -40,5 +40,11 @@ public interface IApplicationDbContext
     DbSet<ShareLink> ShareLinks { get; }
     DbSet<Photo> Photos { get; }
 
+    // Trip Planner module
+    DbSet<Trip> Trips { get; }
+    DbSet<TripPlace> TripPlaces { get; }
+    DbSet<ItineraryDay> ItineraryDays { get; }
+    DbSet<Stop> Stops { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
