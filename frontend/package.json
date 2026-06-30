@@ -20,6 +20,7 @@
     "@microsoft/applicationinsights-web": "^3.4.1",
     "@react-oauth/google": "^0.13.5",
     "@reduxjs/toolkit": "^2.11.2",
+    "@syncfusion/ej2-base": "^33.1.44",
     "@syncfusion/ej2-react-barcode-generator": "^33.1.44",
     "@syncfusion/ej2-react-interactive-chat": "^33.1.49",
     "@syncfusion/ej2-react-navigations": "^33.1.44",
