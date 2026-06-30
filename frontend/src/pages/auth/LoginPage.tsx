@@ -6,6 +6,7 @@ import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { GoogleLogin } from '@react-oauth/google'
 import { loginRequest } from '../../shared/auth/msalConfig'
 import { setGoogleToken, isGoogleAuthenticated } from '../../shared/auth/googleAuth'
+import { isReauthBounce } from '../../shared/auth/reauth'
 import { setUser } from '../../shared/telemetry/appInsights'
 
 function decodeJwtSub(token: string): string | null {
@@ -36,8 +37,15 @@ export function LoginPage() {
 
   // If the user lands on /login while already authenticated (e.g. via
   // a direct URL or after a stale redirect), send them back into the
-  // app instead of making them sign in again.
-  if (inProgress === InteractionStatus.None && (isAuthenticated || isGoogleAuthenticated())) {
+  // app instead of making them sign in again. The exception is a 401
+  // reauth bounce (?reauth=expired): the backend just rejected this
+  // session, so bouncing it back in would loop — show the login UI so
+  // the user can re-authenticate (or pick a different account).
+  if (
+    !isReauthBounce(window.location.search) &&
+    inProgress === InteractionStatus.None &&
+    (isAuthenticated || isGoogleAuthenticated())
+  ) {
     return <Navigate to="/" replace />
   }
 

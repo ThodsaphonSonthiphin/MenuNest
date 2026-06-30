@@ -48,6 +48,9 @@ builder.Services
     {
         options.ForwardDefaultSelector = context =>
         {
+            var logger = context.RequestServices
+                .GetRequiredService<ILoggerFactory>()
+                .CreateLogger("MenuNest.Auth.PolicyScheme");
             var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
             if (authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
             {
@@ -56,18 +59,21 @@ builder.Services
                 if (handler.CanReadToken(token))
                 {
                     var jwt = handler.ReadJwtToken(token);
-                    Console.WriteLine($"[POLICY SCHEME] issuer={jwt.Issuer}, forwarding to={(jwt.Issuer == "https://accounts.google.com" ? "Google" : "Microsoft")}");
                     if (jwt.Issuer == "https://accounts.google.com")
+                    {
+                        logger.LogDebug("Bearer issuer {Issuer}; forwarding to Google scheme", jwt.Issuer);
                         return "Google";
+                    }
+                    logger.LogDebug("Bearer issuer {Issuer}; forwarding to Microsoft scheme", jwt.Issuer);
                 }
                 else
                 {
-                    Console.WriteLine("[POLICY SCHEME] CanReadToken=false");
+                    logger.LogDebug("Bearer token is not a readable JWT; forwarding to Microsoft scheme");
                 }
             }
             else
             {
-                Console.WriteLine("[POLICY SCHEME] No Bearer token found");
+                logger.LogDebug("No Bearer token on request; forwarding to Microsoft scheme");
             }
             return "Microsoft";
         };
@@ -93,22 +99,28 @@ builder.Services
             ValidateIssuer = true,
             ValidIssuer = "https://accounts.google.com",
         };
-        // TEMP DIAGNOSTIC — remove after debugging
+        // Structured auth diagnostics. LogWarning surfaces failures in
+        // Application Insights (the ApplicationInsightsLoggerProvider
+        // captures ILogger Warning and above); the success path stays at
+        // Debug so it is silent in production. Replaces earlier
+        // Console.WriteLine probes, which only reached the App Service
+        // log stream and were invisible in App Insights.
         options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
         {
             OnAuthenticationFailed = ctx =>
             {
-                Console.WriteLine($"[GOOGLE AUTH FAILED] {ctx.Exception.GetType().Name}: {ctx.Exception.Message}");
+                ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("MenuNest.Auth.Google")
+                    .LogWarning(ctx.Exception, "Google JWT authentication failed: {Reason}", ctx.Exception.Message);
                 return Task.CompletedTask;
             },
             OnTokenValidated = ctx =>
             {
-                Console.WriteLine($"[GOOGLE AUTH OK] sub={ctx.Principal?.FindFirst("sub")?.Value}");
-                return Task.CompletedTask;
-            },
-            OnMessageReceived = ctx =>
-            {
-                Console.WriteLine($"[GOOGLE AUTH] Token received, length={ctx.Token?.Length ?? 0}");
+                ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("MenuNest.Auth.Google")
+                    .LogDebug("Google JWT validated for sub {Sub}", ctx.Principal?.FindFirst("sub")?.Value);
                 return Task.CompletedTask;
             },
         };
