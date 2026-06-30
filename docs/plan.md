@@ -236,7 +236,7 @@ Pure React differs from the legacy library: views render as plain children (`<Da
 - `@reduxjs/toolkit`, `react-redux`
 - `react-router-dom` v6
 - `@syncfusion/react-scheduler` (meal plan calendar), `react-grid`, `react-popups`, `react-dropdowns`, `react-buttons`, `react-inputs` — **Pure React**, not the legacy `ej2-react-*` wrappers. Reference docs: <https://react.syncfusion.com/react-ui> (component catalogue + live demos) and <https://syncfusion.com> (licensing).
-- The Syncfusion license is registered in `main.tsx` via `registerLicense(import.meta.env.VITE_SYNCFUSION_KEY)` from `@syncfusion/react-base`.
+- The Syncfusion license is registered at boot in `main.tsx` via `registerSyncfusionLicense(import.meta.env.VITE_SYNCFUSION_LICENSE_KEY)` (see `src/shared/syncfusion/license.ts`). It registers the key with **both** `@syncfusion/react-base` (Pure React) and `@syncfusion/ej2-base` (legacy EJ2 — e.g. the QR generator on the Family/Health pages). Each family has its own license validator, so both must be registered or ej2 pages show the trial banner.
 
 **Auth flow:**
 - `MsalProvider` wraps `App`
