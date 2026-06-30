@@ -2,6 +2,7 @@
 // Google Maps: Syncfusion has no interactive street map (frontend-guidelines §2 allowed exception).
 import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps'
 import type { TripPlaceDto } from '../../../shared/api/api'
+import { trackGoogleMapsError } from '../../../shared/telemetry/googleMapsTelemetry'
 
 const CAT_COLOR: Record<string, string> = {
   Stay:  '#6d5ae6',
@@ -35,7 +36,7 @@ export function TripMap({ places }: { places: TripPlaceDto[] }) {
     : BKK_CENTER
 
   return (
-    <APIProvider apiKey={KEY}>
+    <APIProvider apiKey={KEY} onError={trackGoogleMapsError}>
       {/* CF2: .trip-map has an explicit height defined in TripDetailPage.css */}
       <div className="trip-map">
         <Map
