@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-06-30T00:27:13+07:00'
+updated: '2026-06-30T08:33:15+07:00'
 ---
 
 ## Log
@@ -114,3 +114,25 @@ new value up via onChange â€” there is no internal selection state, so the
 active segment can never drift out of sync with `value`.
 
 This removes the tab
+- 2026-06-30T08:08:22+07:00 — @
+fix(syncfusion): register license with ej2-base to remove trial banner
+
+The Syncfusion trial banner kept showing even with the license key set.
+Cause: the app registered the key only with @syncfusion/react-base, but
+the QR generator uses the legacy @syncfusion/ej2-* family, whose
+@syncfusion/ej2-base keeps a SEPARATE license validator. With ej2-base
+unregistered, rendering the QR component injected the trial banner into
+document.body; as an SPA (React Router never reloads) that banner then
+persisted across every subsequent route.
+
+- Extract registration into shared/syncfusion/license.ts, registering the
+  key with BOTH react-base and ej2-base
+- Add a unit test guarding the dual registration (adversarially verified:
+  removing the ej2 call turns the test red)
+- Sync package-lock.json for the now-direct @syncfusion/ej2-base dependency
+- Fix the stale env var name + description in docs/plan.md
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+@
+- 2026-06-30T08:09:23+07:00 — (commit)
+- 2026-06-30T08:33:15+07:00 — (commit)
