@@ -10,6 +10,7 @@ import { msalInstance } from './shared/auth/msalConfig'
 import { store } from './store'
 import App from './App'
 import './shared/telemetry/appInsights'
+import {wireGoogleMapsTelemetry} from './shared/telemetry/googleMapsTelemetry'
 
 // Syncfusion *Pure React* (@syncfusion/react-*) theme — Material 3.
 //
@@ -59,6 +60,10 @@ const syncfusionLicense = import.meta.env.VITE_SYNCFUSION_LICENSE_KEY
 if (syncfusionLicense) {
   registerLicense(syncfusionLicense)
 }
+
+// Forward Google Maps auth failures + API console errors to App Insights.
+// These are console.* / global-callback errors the AI SDK can't autocapture.
+wireGoogleMapsTelemetry()
 
 // msal-react's MsalProvider calls handleRedirectPromise internally;
 // doing it ourselves as well throws no_token_request_cache_error in
