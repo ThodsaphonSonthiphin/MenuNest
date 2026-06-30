@@ -4,19 +4,20 @@
    ============================================================ */
 
 .trips-page {
-  /* Teal palette */
-  --trp-teal:        #0d9488;   /* teal-600 — primary accent */
-  --trp-teal-dark:   #0f766e;   /* teal-700 — hover */
-  --trp-teal-soft:   rgba(13, 148, 136, 0.10);
+  /* Teal palette — aligned to the "Map-Forward" slate/teal spec (was a mint
+     teal-50/200/900 scheme that diverged). Mirrors TripDetailPage.css. */
+  --trp-teal:        #0e8f9e;   /* spec teal — primary accent */
+  --trp-teal-dark:   #0b7a87;   /* spec deep teal — hover */
+  --trp-teal-soft:   rgba(14, 143, 158, 0.10);
 
   /* Neutrals */
-  --trp-bg-page:     #f0fdfa;   /* teal-50  — page background */
+  --trp-bg-page:     #f8fafc;   /* slate-50 — page background */
   --trp-bg-card:     #ffffff;
-  --trp-bg-card-2:   #f0fdfa;
-  --trp-border:      #99f6e4;   /* teal-200 */
-  --trp-text:        #134e4a;   /* teal-900 */
-  --trp-text-muted:  #0f766e;   /* teal-700 */
-  --trp-text-dim:    #5eead4;   /* teal-300 */
+  --trp-bg-card-2:   #f1f5f9;
+  --trp-border:      #eef2f6;   /* hairline */
+  --trp-text:        #0f172a;   /* ink */
+  --trp-text-muted:  #94a3b8;   /* muted */
+  --trp-text-dim:    #cbd5e1;   /* dim */
   --trp-error:       #b91c1c;   /* red-700  */
 
   background: var(--trp-bg-page);

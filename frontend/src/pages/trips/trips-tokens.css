@@ -175,10 +175,62 @@
 
 /* ── Map default height (overridden in desktop split) ── */
 .trip-map {
+  position: relative; /* anchors the day-summary card overlay */
   height: 60vh;
   min-height: 320px;
   width: 100%;
 }
+
+/* ── Itinerary route markers (numbered teal pins + time/name callout) ── */
+.route-pin { display: flex; flex-direction: column; align-items: center; }
+.route-callout {
+  max-width: 190px;
+  margin-bottom: 4px;
+  padding: 4px 9px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+.route-pin.amber .route-callout { color: var(--warn); }
+.route-dot {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--teal);
+  color: #fff;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 4px 12px rgba(14, 143, 158, 0.5);
+}
+.route-pin.amber .route-dot {
+  background: #e9a23b;
+  box-shadow: 0 4px 12px rgba(233, 162, 59, 0.5);
+}
+
+/* ── Day-summary card pinned bottom-right of the map ── */
+.map-day-card {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  z-index: 2;
+  padding: 10px 14px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+}
+.map-day-label { font-size: 10px; font-weight: 600; color: var(--muted); }
+.map-day-text { font-size: 14px; font-weight: 700; color: var(--ink); }
 
 /* ── AddPlaceSheet extras (T14) ── */
 .add-place-row {
