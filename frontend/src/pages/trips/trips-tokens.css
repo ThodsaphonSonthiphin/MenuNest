@@ -59,41 +59,119 @@
 /* ── Day summary bar ── */
 .day-summary {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   background: var(--ink);
-  color: #fff;
+  color: #9fb0c4;
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 11px 15px;
+  font-size: 12px;
 }
+.day-summary b { color: #fff; font-weight: 700; }
 
-/* ── Stop card ── */
+/* ── Itinerary layout (was unstyled → cramped) ── */
+.itinerary-tab { display: flex; flex-direction: column; gap: 14px; }
+.stop-list { display: flex; flex-direction: column; gap: 8px; }
+
+/* ── Stop card: [ time-rail | body | reorder ] ── */
 .stop-card {
   display: flex;
-  gap: 11px;
+  align-items: stretch;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 13px;
-  padding: 12px;
+  overflow: hidden;
 }
-.stop-card.warn {
-  border-color: var(--warn);
-  box-shadow: 0 0 0 1px var(--warn) inset;
+.stop-card.warn { background: #fffdf7; border-color: #f3e2c2; }
+
+/* left rail — arrival time (mono) over depart */
+.stop-rail {
+  flex: none;
+  width: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 6px 4px;
+  background: #f1f8f9;
 }
+.stop-card.warn .stop-rail { background: #fdf3e0; }
+.stop-arr { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.1; }
+.stop-dep { font-size: 10px; font-weight: 500; color: var(--muted); line-height: 1.1; }
+
+/* body — clickable, opens the stop editor. Reset the native <button> chrome
+   that previously made the place name read as a bare input box. */
+.stop-body {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 11px 13px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background 0.12s ease;
+}
+.stop-body:hover { background: #fafdfd; }
+.stop-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stop-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+/* reorder — subtle ghost arrows (drag-to-reorder is Phase 2) */
+.stop-reorder {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding-right: 6px;
+}
+.stop-reorder button {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.stop-reorder button:hover:not(:disabled) { background: var(--teal-soft); color: var(--teal-deep); }
+.stop-reorder button:disabled { opacity: 0.25; cursor: default; }
 
 /* ── Chips ── */
-.chip { font-size: 11px; padding: 2px 8px; border-radius: 999px; }
-.chip.good { background: var(--good-bg); color: var(--good); }
+.chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.chip.dwell { background: var(--teal-soft); color: var(--teal-deep); }
+.chip.good  { background: var(--good-bg); color: var(--good); }
 .chip.warn  { background: var(--warn-bg); color: var(--warn); }
 
-/* ── Travel leg ── */
+/* ── Travel leg (between stops) ── */
 .travel-leg {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 0 7px 58px;
+  padding: 3px 0 3px 66px;
   color: var(--teal-deep);
-  font-size: 11.5px;
+  font-size: 11px;
+  font-weight: 600;
 }
+.leg-line { flex: none; width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.45; }
+.leg-dist { color: var(--muted); font-weight: 500; }
 
 /* ── Map default height (overridden in desktop split) ── */
 .trip-map {
