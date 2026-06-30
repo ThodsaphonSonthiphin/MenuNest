@@ -4,7 +4,9 @@ import type { DataOptions } from '@syncfusion/react-data'
 import { useMsal } from '@azure/msal-react'
 import { apiScopes } from '../auth/msalConfig'
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://localhost:5001'
+// `||` not `??`: an unset CI secret renders as '' (not undefined); '' ?? fallback
+// keeps the empty string → requests hit relative paths instead of the API.
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5001'
 
 // ---------------------------------------------------------------------------
 // Auth adaptor – exported so pages can extend it further

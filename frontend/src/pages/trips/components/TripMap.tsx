@@ -13,7 +13,10 @@ const CAT_COLOR: Record<string, string> = {
 }
 
 const KEY    = import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY as string | undefined
-const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) ?? 'DEMO_MAP_ID'
+// `||` not `??`: an unset GitHub Actions secret renders as '' (not undefined),
+// and '' ?? 'DEMO_MAP_ID' keeps the empty string → <Map mapId=""> → Google logs
+// "initialized without a valid Map ID" and AdvancedMarkers silently break.
+const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) || 'DEMO_MAP_ID'
 
 // Bangkok city-centre fallback when no places are loaded yet.
 const BKK_CENTER = { lat: 13.7563, lng: 100.5018 }
