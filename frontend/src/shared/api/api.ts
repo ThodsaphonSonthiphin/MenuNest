@@ -2,6 +2,7 @@ import {createApi, fetchBaseQuery} from '@reduxjs/toolkit/query/react'
 import {InteractionRequiredAuthError} from '@azure/msal-browser'
 import {apiScopes, msalInstance} from '../auth/msalConfig'
 import {getGoogleToken} from '../auth/googleAuth'
+import {handleAuthFailure} from '../auth/reauth'
 import type {
     AttachedPhotoInfo,
     CreateCustomSymptomRequest,
@@ -46,6 +47,19 @@ import type {
  * gains real handlers.
  */
 
+/**
+ * Set for the remainder of the turn once we've kicked off an MSAL
+ * `acquireTokenRedirect`. That call begins a full-page navigation to
+ * Microsoft to complete silent re-auth, but it does NOT halt JS
+ * execution — so the in-flight fetch still goes out with no bearer and
+ * comes back 401. Without this flag, `baseQueryWithReauth` would react
+ * to that 401 by calling `handleAuthFailure()` → `window.location.assign('/login')`,
+ * which races (and can clobber) the MSAL redirect, yanking the user out
+ * of an otherwise-recoverable SSO and onto the login screen. The flag
+ * lets the reauth wrapper defer to the already-queued Microsoft redirect.
+ */
+let msalRedirectInProgress = false
+
 async function acquireAccessToken(): Promise<string | null> {
     // Try MSAL first (Microsoft)
     const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0]
@@ -55,7 +69,18 @@ async function acquireAccessToken(): Promise<string | null> {
             return result.accessToken
         } catch (err) {
             if (err instanceof InteractionRequiredAuthError) {
+                // A full-page redirect to Microsoft is now being initiated to
+                // silently re-establish the session. Flag it so the 401 the
+                // current (token-less) request is about to get does NOT trigger
+                // a competing assign('/login') in baseQueryWithReauth.
+                // Stays true for the rest of the page on purpose: once ANY
+                // redirect is underway, concurrent callers' acquireTokenRedirect
+                // throw interaction_in_progress, and the page is navigating
+                // anyway — so every later 401 must keep deferring to that
+                // redirect instead of racing it with assign('/login').
+                msalRedirectInProgress = true
                 await msalInstance.acquireTokenRedirect({scopes: apiScopes, account})
+                return null
             }
         }
     }
@@ -479,16 +504,40 @@ export interface ItineraryDayDto { id: string; date: string; dayStartTime: strin
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
 
 // ----------------------------------------------------------------------
+const rawBaseQuery = fetchBaseQuery({
+    baseUrl: import.meta.env.VITE_API_BASE_URL || '/',
+    prepareHeaders: async (headers) => {
+        const token = await acquireAccessToken()
+        if (token) headers.set('Authorization', `Bearer ${token}`)
+        return headers
+    },
+})
+
+/**
+ * Wrap the base query so a 401 (missing / expired / rejected bearer)
+ * tears down the stale session and bounces to /login. MSAL refresh is
+ * already attempted in prepareHeaders; a 401 past that means the
+ * session is truly gone. The public doctor-report slice (`publicApi`
+ * below) keeps a plain fetchBaseQuery and never reaches this wrapper.
+ */
+const baseQueryWithReauth: typeof rawBaseQuery = async (args, apiCtx, extraOptions) => {
+    const result = await rawBaseQuery(args, apiCtx, extraOptions)
+    if (result.error && result.error.status === 401) {
+        // If MSAL has already begun a redirect to Microsoft to silently
+        // re-auth, let that navigation proceed — firing assign('/login')
+        // here would race it and could dump the user on the login screen
+        // mid-SSO. The Microsoft redirect either restores the session or
+        // lands the user on the login flow itself.
+        if (!msalRedirectInProgress) {
+            handleAuthFailure()
+        }
+    }
+    return result
+}
+
 export const api = createApi({
     reducerPath: 'api',
-    baseQuery: fetchBaseQuery({
-        baseUrl: import.meta.env.VITE_API_BASE_URL || '/',
-        prepareHeaders: async (headers) => {
-            const token = await acquireAccessToken()
-            if (token) headers.set('Authorization', `Bearer ${token}`)
-            return headers
-        },
-    }),
+    baseQuery: baseQueryWithReauth,
     tagTypes: [
         'Me',
         'Family',

@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>ทำไม ej2 Tab ทำให้คลิกแท็บแล้วไม่มีอะไรเกิดขึ้น — และทำไม Pure React toggle แก้ได้</title>
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#1a2330; --surface:#0f1722; --surface-2:#0f1419;
+    --border:#2a3441; --border-dim:#3d4a5f; --surface-active:#233040;
+    --text:#e0e6ed; --text-dim:#b8c4cf; --muted:#6b7785; --muted-2:#8a96a3;
+    --accent:#5fb4ff; --accent-bright:#7ed4ff;
+    --amber:#ffd479; --warn:#ffaa00; --warn-text:#ffaa44;
+    --magic:#b070ff; --magic-text:#d4a4ff; --magic-bg:#2a1a3a;
+    --success:#4ade80; --success-text:#a3e8b9;
+    --error:#ff5757; --error-text:#ff8888; --conflict:#ff3030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 22px; margin: 0 0 4px; }
+  h2 { color: var(--text-dim); font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: var(--amber); font-size: 0.9em; }
+
+  /* progress dots */
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: var(--panel); color: var(--muted);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: var(--accent); }
+  .step-dot.current { background: var(--accent); color: var(--bg); transform: scale(1.2); }
+
+  /* narration — the canonical NESTED shape (badge+title+body inside #narration) */
+  .narration {
+    background: var(--panel); padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid var(--accent); margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: var(--warn);    background: #2a2018; }
+  .narration.error   { border-color: var(--error);   background: #2a1818; }
+  .narration.success { border-color: var(--success); background: #182a1f; }
+  .narration.magic   { border-color: var(--magic);   background: #1f1830; }
+  .narration .step-badge { background: var(--accent); color: var(--bg);
+                           padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                           font-weight: 700; display: inline-block; margin-right: 8px; }
+  .narration .step-title { color: var(--accent); font-weight: 700; font-size: 16px;
+                           display: block; margin: 8px 0 6px; }
+  .narration.warn    .step-title { color: var(--amber); }
+  .narration.error   .step-title { color: var(--error-text); }
+  .narration.success .step-title { color: var(--success-text); }
+  .narration.magic   .step-title { color: var(--magic-text); }
+
+  /* shared hidden panel (replaces the old .extra-panel/.toggleable/.key-question) */
+  .wt-panel { background: var(--panel); border-radius: 6px; padding: 14px 18px;
+              margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .wt-panel .wt-panel-title { font-weight: 700; margin-bottom: 6px; }
+  .wt-panel.question { background: #1f1830; border: 2px solid var(--magic); }
+  .wt-panel.question .wt-panel-title { color: var(--magic-text); }
+  .wt-panel.race     { background: #2a1818; border: 2px solid var(--error); }
+  .wt-panel.race .wt-panel-title { color: var(--error-text); }
+  .wt-panel.summary  { background: #182a1f; border: 2px solid var(--success); }
+  .wt-panel.summary .wt-panel-title { color: var(--success-text); }
+
+  /* controls */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button { background: var(--accent); color: var(--bg); border: none;
+           padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 700;
+           cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover:not(:disabled)  { background: var(--accent-bright); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: var(--border); color: var(--text); }
+  button.tertiary:hover:not(:disabled) { background: var(--border-dim); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hidden { display: none !important; }
+  
+  .diagram-wrapper { background: var(--surface-2); border: 1px solid var(--panel);
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .comp rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .comp .comp-title { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: var(--text-dim); transition: fill 0.4s; }
+  .comp .comp-sub { font-family: 'Consolas', monospace; font-size: 11px; fill: var(--muted); transition: fill 0.4s; }
+  .comp .comp-val { font-family: 'Consolas', monospace; font-size: 12px; fill: var(--amber); transition: fill 0.4s; }
+  .comp.active rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .comp.active .comp-title { fill: var(--accent-bright); }
+  .comp.active .comp-sub { fill: var(--text-dim); }
+  .comp.firing rect { fill: #2a2818; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 8px #ffd47988); animation: pulse-fire 1.2s ease-in-out infinite; }
+  .comp.firing .comp-title { fill: var(--amber); }
+  @keyframes pulse-fire { 0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); } 50% { filter: drop-shadow(0 0 16px #ffd479dd); } }
+  .comp.locked rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3; filter: drop-shadow(0 0 10px #b070ff88); }
+  .comp.locked .comp-title { fill: var(--magic-text); }
+  .comp.locked .comp-val { fill: var(--magic-text); }
+  .comp.blocked rect { fill: #2a1f10; stroke: var(--warn); stroke-width: 2; animation: blink-block 1s ease-in-out infinite alternate; }
+  .comp.blocked .comp-title { fill: var(--warn-text); }
+  @keyframes blink-block { from { opacity: 0.55; } to { opacity: 0.9; } }
+  .comp.done rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .comp.done .comp-title { fill: var(--success-text); }
+  .comp.done .comp-val { fill: var(--success-text); }
+  .comp.error rect { fill: #2a1818; stroke: var(--error); stroke-width: 3; filter: drop-shadow(0 0 10px #ff575788); }
+  .comp.error .comp-title { fill: var(--error-text); }
+  .comp.error .comp-val { fill: var(--error-text); }
+  .comp.dimmed { opacity: 0.3; }
+  .arrow { fill: none; stroke: var(--border-dim); stroke-width: 2; transition: stroke 0.3s, stroke-width 0.3s; }
+  .arrow.active { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.magic { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); }
+  .arrow.done { stroke: var(--success); stroke-width: 2.5; }
+  .arrow.error { stroke: var(--error); stroke-width: 3; }
+  .arrow.dimmed { opacity: 0.18; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .flow-label { fill: var(--amber); font-family: 'Consolas', monospace; font-size: 12px; font-weight: 700; pointer-events: none; }
+  .flow-label-bg { fill: #2a2818; stroke: var(--amber); stroke-width: 1.5; }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label { fill: var(--magic-text); }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: var(--magic); }
+  .flow-label-group.error .flow-label { fill: var(--error-text); }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: var(--error); }
+  
+  /* Colors are engine :root tokens (var(--token)), so a palette change in the engine
+     propagates here too; the standalone demo's :root above supplies them when opened raw. */
+  .term { border-bottom: 1px dotted var(--accent); color: var(--accent); cursor: help; }
+  .term:hover { color: var(--accent-bright); }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 86vw;
+    background: var(--panel); border-left: 2px solid var(--accent);
+    box-shadow: -8px 0 24px #00000088;
+    padding: 18px 20px; overflow-y: auto; z-index: 50;
+  }
+  .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .drawer-term { color: var(--accent-bright); font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .drawer-source { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                   letter-spacing: 0.5px; margin: 2px 0 12px; }
+  .drawer-def { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+  .drawer-seealso-title { font-size: 11px; color: var(--muted-2); text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 8px; }
+  .seealso-chip {
+    display: inline-block; background: var(--panel); border: 1px solid var(--border);
+    color: var(--accent); border-radius: 14px; padding: 4px 12px;
+    margin: 0 6px 6px 0; font-size: 13px; cursor: pointer;
+  }
+  .seealso-chip:hover { background: var(--surface-active); border-color: var(--accent); }
+  .drawer-btns { display: flex; gap: 8px; margin-top: 18px; }
+  
+</style></head>
+<body>
+<div class="container">
+  <h1>ทำไม ej2 Tab ทำให้คลิกแท็บแล้วไม่มีอะไรเกิดขึ้น — และทำไม Pure React toggle แก้ได้</h1>
+  <h2>กด <strong>ถัดไป →</strong> เพื่อดูทีละ step</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">เริ่มต้น</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <!-- ===== MODE CONTENT — assembly inserts the chosen mode pack's §HTML here ===== -->
+<div class="diagram-wrapper">
+  <svg class="diagram" viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
+    <!-- forward path (top row): User -> ej2 Tab -> selected handler -> Redux value -->
+    <g class="comp" id="compUser">
+      <rect x="30" y="72" width="170" height="90" rx="10"/>
+      <text class="comp-title" x="115" y="112" text-anchor="middle">👆 ผู้ใช้</text>
+      <text class="comp-sub"   x="115" y="134" text-anchor="middle">คลิก tab header</text>
+    </g>
+    <g class="comp" id="compTab">
+      <rect x="290" y="55" width="210" height="130" rx="10"/>
+      <text class="comp-title" x="395" y="90"  text-anchor="middle">🧩 ej2 TabComponent</text>
+      <text class="comp-sub"   x="395" y="112" text-anchor="middle">ej2 legacy · tier-2</text>
+      <text class="comp-val"   x="395" y="150" text-anchor="middle" id="tabIndex">index: 0</text>
+    </g>
+    <g class="comp" id="compHandler">
+      <rect x="560" y="55" width="190" height="130" rx="10"/>
+      <text class="comp-title" x="655" y="90"  text-anchor="middle">🔀 selected handler</text>
+      <text class="comp-sub"   x="655" y="112" text-anchor="middle">guard ×2</text>
+      <text class="comp-val"   x="655" y="150" text-anchor="middle" id="guardStatus">—</text>
+    </g>
+    <g class="comp" id="compValue">
+      <rect x="840" y="55" width="160" height="130" rx="10"/>
+      <text class="comp-title" x="920" y="90"  text-anchor="middle">🗃️ Redux activeTab</text>
+      <text class="comp-sub"   x="920" y="112" text-anchor="middle">React state</text>
+      <text class="comp-val"   x="920" y="150" text-anchor="middle" id="reduxVal">value: 'places'</text>
+    </g>
+    <!-- return path (bottom row): useEffect sync  +  Content pane -->
+    <g class="comp" id="compEffect">
+      <rect x="250" y="320" width="220" height="110" rx="10"/>
+      <text class="comp-title" x="360" y="362" text-anchor="middle">♻️ useEffect sync</text>
+      <text class="comp-sub"   x="360" y="386" text-anchor="middle">value → ej2.select()</text>
+    </g>
+    <g class="comp" id="compContent">
+      <rect x="840" y="320" width="160" height="110" rx="10"/>
+      <text class="comp-title" x="920" y="356" text-anchor="middle">🖼️ Content pane</text>
+      <text class="comp-sub"   x="920" y="378" text-anchor="middle">render จาก value</text>
+      <text class="comp-val"   x="920" y="406" text-anchor="middle" id="contentShows">คลังสถานที่</text>
+    </g>
+
+    <!-- arrows -->
+    <path class="arrow" id="arrUserTab"      d="M 200 117 L 290 117" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrTabHandler"   d="M 500 120 L 560 120" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrHandlerValue" d="M 750 120 L 840 120" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrValueContent" d="M 920 185 L 920 320" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrValueEffect"  d="M 855 185 C 720 255, 560 320, 440 322" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrEffectTab"    d="M 360 320 L 360 185" marker-end="url(#arrowhead)"/>
+
+    <!-- flying-value labels -->
+    <g class="flow-label-group" id="lblUserTab">
+      <rect class="flow-label-bg" x="198" y="95" width="96" height="22" rx="5"/>
+      <text class="flow-label"    x="246" y="111" text-anchor="middle">คลิก idx 1</text>
+    </g>
+    <g class="flow-label-group" id="lblTabHandler">
+      <rect class="flow-label-bg" x="483" y="96" width="94" height="22" rx="5"/>
+      <text class="flow-label"    x="530" y="112" text-anchor="middle">selected(1)</text>
+    </g>
+    <g class="flow-label-group" id="lblHandlerValue">
+      <rect class="flow-label-bg" x="745" y="96" width="100" height="22" rx="5"/>
+      <text class="flow-label"    x="795" y="112" text-anchor="middle">onChange(1)</text>
+    </g>
+    <g class="flow-label-group" id="lblValueContent">
+      <rect class="flow-label-bg" x="930" y="240" width="88" height="22" rx="5"/>
+      <text class="flow-label"    x="974" y="256" text-anchor="middle">re-render</text>
+    </g>
+    <g class="flow-label-group" id="lblValueEffect">
+      <rect class="flow-label-bg" x="600" y="262" width="92" height="22" rx="5"/>
+      <text class="flow-label"    x="646" y="278" text-anchor="middle">value→1</text>
+    </g>
+    <g class="flow-label-group" id="lblEffectTab">
+      <rect class="flow-label-bg" x="265" y="244" width="90" height="22" rx="5"/>
+      <text class="flow-label"    x="310" y="260" text-anchor="middle">select(1)</text>
+    </g>
+  </svg>
+</div>
+
+<!-- extra panels (declared once, toggled by scenes via show()/hide()) -->
+<div class="wt-panel question hidden" id="panelQuestion">
+  <div class="wt-panel-title">❓ คำถามก่อนไปต่อ</div>
+  <div id="panelQuestionBody"></div>
+</div>
+<div class="wt-panel race hidden" id="panelRace">
+  <div class="wt-panel-title">⚠️ 2 source of truth หลุดจากกัน</div>
+  <div id="panelRaceBody"></div>
+</div>
+<div class="wt-panel summary hidden" id="panelSummary">
+  <div class="wt-panel-title">✅ ทางแก้: Pure React segmented control</div>
+  <div id="panelSummaryBody"></div>
+</div>
+  
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← ย้อนกลับ</button>
+    <button id="nextBtn">ถัดไป →</button>
+    <button id="resetBtn" class="tertiary">↻ เริ่มใหม่</button>
+  </div>
+
+    <aside id="termDrawer" class="drawer hidden" aria-label="term definition">
+    <div class="drawer-head">
+      <span class="drawer-term" id="drawerTerm"></span>
+      <button class="tertiary" id="drawerClose" title="ปิด">✕</button>
+    </div>
+    <div class="drawer-source" id="drawerSource"></div>
+    <div class="drawer-def" id="drawerDef"></div>
+    <div class="drawer-seealso-title hidden" id="drawerSeeAlsoTitle">ดูเพิ่ม</div>
+    <div id="drawerSeeAlso"></div>
+    <div class="drawer-btns">
+      <button class="tertiary hidden" id="drawerBack">← ย้อน</button>
+    </div>
+  </aside>
+  
+</div>
+
+<!-- The engine owns the fixed 5 markerheads; SVG modes select from them (ADR 0022). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/></marker>
+  <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/></marker>
+  <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b070ff"/></marker>
+  <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ade80"/></marker>
+  <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5757"/></marker>
+</defs></svg>
+<script>
+let currentStep = 0;
+let TOTAL = 0;                 // the authored bootstrap sets TOTAL = scenes.length - 1
+let MODE = null;              // the authored bootstrap sets MODE = '<mode name>'
+const RENDER_HOOKS = [];      // cross-cutting per-render actions; capabilities self-register (e.g. drawer pushes closeDrawer)
+const modeRenderers = {};     // modes self-register: modeRenderers['<name>'] = { registry, clear, <setters> }
+
+function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+// canonical 3-arg narration (nested shape). setSceneTitle kept for scenes that set only the title.
+function setNarration(cls, title, bodyHTML) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = bodyHTML || '';
+}
+function setSceneTitle(text) { document.getElementById('sceneTitle').textContent = text; }
+
+function buildProgressDots() {
+  const p = document.getElementById('stepProgress');
+  p.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot'; d.textContent = i; d.id = 'dot' + i;
+    p.appendChild(d);
+  }
+}
+
+function render(step) {
+  RENDER_HOOKS.forEach(h => h());                 // runs FIRST (drawer closes here), before any paint
+  const R = modeRenderers[MODE];
+  if (R && R.clear) R.clear(R.registry);          // engine calls the mode's reset generically
+  if (typeof scenes !== 'undefined' && scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = 'Step ' + step + ' / ' + TOTAL;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+
+/* GLOSSARY is provided by the generated walkthrough's authored bootstrap (inlined from
+   CONTEXT.md at authoring time): an object keyed by slug -> {term, short, seeAlso, source}
+   where source is 'CONTEXT.md' | 'authored'. The §JS below only READS it; the standalone
+   demo declares a demo GLOSSARY in its DEMO-ONLY block at the bottom of this file. */
+
+let drawerStack = [];   // GLOSSARY keys visited this open, for ← back
+
+function renderTerm(key) {
+  const entry = GLOSSARY[key];
+  if (!entry) return;
+  document.getElementById('drawerTerm').textContent = entry.term;
+  document.getElementById('drawerSource').textContent =
+    entry.source === 'CONTEXT.md' ? 'จาก CONTEXT.md' : 'อธิบายเพิ่มเติม';
+  document.getElementById('drawerDef').textContent = entry.short;
+  const wrap = document.getElementById('drawerSeeAlso');
+  wrap.innerHTML = '';
+  const related = (entry.seeAlso || []).filter(k => GLOSSARY[k]);
+  if (related.length) {
+    document.getElementById('drawerSeeAlsoTitle').classList.remove('hidden');
+    related.forEach(k => {
+      const chip = document.createElement('span');
+      chip.className = 'seealso-chip';
+      chip.textContent = GLOSSARY[k].term;
+      chip.dataset.hop = k;
+      wrap.appendChild(chip);
+    });
+  } else {
+    document.getElementById('drawerSeeAlsoTitle').classList.add('hidden');
+  }
+  document.getElementById('drawerBack').classList.toggle('hidden', drawerStack.length <= 1);
+}
+
+function openTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+  document.getElementById('termDrawer').classList.remove('hidden');
+}
+
+function hopTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+}
+
+function backTerm() {
+  if (drawerStack.length <= 1) return;
+  drawerStack.pop();
+  renderTerm(drawerStack[drawerStack.length - 1]);
+}
+
+function closeDrawer() {
+  drawerStack = [];
+  document.getElementById('termDrawer').classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  const termEl = e.target.closest('[data-term]');
+  if (termEl) { openTerm(termEl.dataset.term); return; }
+  const hopEl = e.target.closest('[data-hop]');
+  if (hopEl) { hopTerm(hopEl.dataset.hop); return; }
+});
+document.getElementById('drawerClose').onclick = closeDrawer;
+document.getElementById('drawerBack').onclick  = backTerm;
+
+// Self-register with the walkthrough engine so stepping closes the drawer
+// (Phase 2 RENDER_HOOKS model). Guarded so this file still runs standalone.
+if (typeof RENDER_HOOKS !== 'undefined' && RENDER_HOOKS.indexOf(closeDrawer) === -1) RENDER_HOOKS.push(closeDrawer);
+
+modeRenderers['diagram'] = {
+  registry: {
+    COMPONENTS: ['compUser', 'compTab', 'compHandler', 'compValue', 'compEffect', 'compContent'],
+    ARROWS: ['arrUserTab', 'arrTabHandler', 'arrHandlerValue', 'arrValueContent', 'arrValueEffect', 'arrEffectTab'],
+    LABELS: ['lblUserTab', 'lblTabHandler', 'lblHandlerValue', 'lblValueContent', 'lblValueEffect', 'lblEffectTab'],
+    LIVE: { tabIndex: 'index: 0', guardStatus: '—', reduxVal: "value: 'places'", contentShows: 'คลังสถานที่' },
+  },
+  clear(reg) {
+    reg.COMPONENTS.forEach(id => this.setComp(id, ''));
+    reg.ARROWS.forEach(id => this.setArrow(id, ''));
+    reg.LABELS.forEach(id => this.setLabel(id, false));
+    Object.keys(reg.LIVE).forEach(id => this.setText(id, reg.LIVE[id]));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setComp(id, state) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : '')); },
+  setArrow(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+    const m = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)', magic: 'url(#arrowhead-magic)', done: 'url(#arrowhead-done)', error: 'url(#arrowhead-error)' };
+    el.setAttribute('marker-end', m[state] || 'url(#arrowhead)');
+  },
+  setLabel(id, show, variant) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : '')); },
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+  assertRegistryComplete() {
+    const got = { comp: '.comp', arrow: '.arrow', flow: '.flow-label-group' };
+    const lists = { comp: this.registry.COMPONENTS, arrow: this.registry.ARROWS, flow: this.registry.LABELS };
+    const miss = [];
+    Object.keys(got).forEach(k => [].forEach.call(document.querySelectorAll(got[k]), e => { if (e.id && !lists[k].includes(e.id)) miss.push(e.id); }));
+    [].concat(this.registry.COMPONENTS, this.registry.ARROWS, this.registry.LABELS, Object.keys(this.registry.LIVE))
+      .forEach(id => { if (!document.getElementById(id)) miss.push(id); });
+    if (miss.length) throw new Error('diagram registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+
+/* ===== AUTHORED BOOTSTRAP — ej2 Tab vs Pure React segmented toggle ===== */
+MODE = 'diagram';
+const { setComp, setArrow, setLabel, setText } = modeRenderers[MODE];
+
+const GLOSSARY = {
+  'pure-react': {
+    term: 'Syncfusion Pure React (tier-1)',
+    short: 'แพ็กเกจ @syncfusion/react-* — เป็น library ที่โปรเจกต์ "เลือกก่อน" เสมอ (lookup order ข้อ 1 ใน frontend-guidelines §2). API เป็น React จริง (children ธรรมดา ไม่ใช่ directive). SegmentedTabs ตัวใหม่ใช้ react-buttons จาก tier นี้.',
+    seeAlso: ['ej2', 'segmented-control'],
+    source: 'CONTEXT.md',
+  },
+  'ej2': {
+    term: 'Syncfusion legacy ej2 (tier-2)',
+    short: 'แพ็กเกจ @syncfusion/ej2-react-* — fallback ชั้นที่ 2 ใน §2 lookup order ใช้ต่อเมื่อ Pure React "ยังไม่มี" component นั้น. API คนละชุด (<XxxComponent> + ref) และ component ถือ state ของตัวเองภายใน.',
+    seeAlso: ['pure-react', 'selectedItem'],
+    source: 'CONTEXT.md',
+  },
+  'selectedItem': {
+    term: 'ej2 selectedItem (internal index)',
+    short: 'index 0-based ที่ ej2 Tab เก็บไว้ "ภายในตัวมันเอง" ว่ากำลังเลือก tab ไหน. มันคือ state ส่วนตัวของ component แยกขาดจาก React/Redux value — จึงกลายเป็น source of truth ที่ 2.',
+    seeAlso: ['source-of-truth', 'isInteracted'],
+    source: 'authored',
+  },
+  'isInteracted': {
+    term: 'isInteracted',
+    short: 'flag บน event `selected` ของ ej2 Tab: true เฉพาะตอนผู้ใช้คลิก/กดคีย์จริง, false เมื่อเป็นการ select() แบบ programmatic. โค้ดเดิมใช้ guard ตัวนี้กันลูป onChange→select→selected→onChange.',
+    seeAlso: ['selectedItem'],
+    source: 'authored',
+  },
+  'source-of-truth': {
+    term: 'single source of truth',
+    short: 'หลักการที่ว่า "ข้อมูลหนึ่งชิ้นควรอยู่ที่เดียว". บั๊กเกิดเมื่อความจริงเดียวกัน (tab ไหน active) ถูกเก็บ 2 ที่ — ej2 internal index กับ Redux value — แล้ว 2 ที่ขัดกันได้.',
+    seeAlso: ['selectedItem'],
+    source: 'authored',
+  },
+  'segmented-control': {
+    term: 'segmented control (toggle)',
+    short: 'ปุ่มกลุ่มที่เลือกได้ทีละอัน ทำหน้าที่เป็น toggle เดียว — ไม่มี content pane ในตัว. use case จริงของ SegmentedTabs เป็นแบบนี้ ไม่ใช่ Tab; Pure React ครอบคลุมด้วย react-buttons อยู่แล้ว.',
+    seeAlso: ['pure-react'],
+    source: 'authored',
+  },
+};
+
+const T = {
+  pureReact: '<span class="term" data-term="pure-react">Pure React</span>',
+  ej2: '<span class="term" data-term="ej2">ej2</span>',
+  selItem: '<span class="term" data-term="selectedItem">internal index</span>',
+  isInter: '<span class="term" data-term="isInteracted">isInteracted</span>',
+  sot: '<span class="term" data-term="source-of-truth">source of truth</span>',
+  seg: '<span class="term" data-term="segmented-control">segmented control</span>',
+};
+
+const scenes = [
+  // 0 — Overview
+  () => {
+    setText('tabIndex', 'index: 0');
+    setText('reduxVal', "value: 'places'");
+    setText('contentShows', 'คลังสถานที่');
+    setComp('compTab', 'active');
+    setComp('compValue', 'active');
+    setNarration('', 'ภาพรวม — SegmentedTabs สลับ 2 แท็บ',
+      `<code>SegmentedTabs</code> ทำหน้าที่สลับ <strong>คลังสถานที่ ↔ แผนเที่ยว</strong>. ` +
+      `เวอร์ชันเดิมห่อ ${T.ej2} <code>TabComponent</code> ไว้ข้างใน. ` +
+      `<strong>จุดสำคัญที่ต้องจำ:</strong> สถานะ "แท็บไหน active" ถูกเก็บไว้ <strong>2 ที่</strong> — ` +
+      `${T.selItem} ใน ej2 Tab (กรอบฟ้าซ้าย) และ Redux <code>value</code> (กรอบฟ้าขวา). ` +
+      `มี ${T.sot} อยู่สองแห่ง คือต้นเหตุของเรื่องทั้งหมด.`);
+  },
+  // 1 — Trigger (happy path)
+  () => {
+    setText('tabIndex', 'index: 0');
+    setText('reduxVal', "value: 'places'");
+    setText('contentShows', 'คลังสถานที่');
+    setComp('compUser', 'firing');
+    setArrow('arrUserTab', 'active'); setLabel('lblUserTab', true);
+    setComp('compTab', 'active');
+    setNarration('warn', 'Step 1 — ผู้ใช้คลิกแท็บ "แผนเที่ยว"',
+      `ผู้ใช้คลิกแท็บ <strong>แผนเที่ยว</strong> ซึ่งคือ index 1. event เดินทางเข้า ${T.ej2} <code>TabComponent</code> ก่อนเป็นด่านแรก ` +
+      `เพราะ ej2 เป็นเจ้าของ DOM ของหัวแท็บ.`);
+  },
+  // 2 — ej2 changes its internal index, fires selected
+  () => {
+    setText('reduxVal', "value: 'places'");
+    setText('contentShows', 'คลังสถานที่');
+    setComp('compUser', 'done'); setArrow('arrUserTab', 'done');
+    setComp('compTab', 'firing'); setText('tabIndex', 'index: 0 → 1');
+    setArrow('arrTabHandler', 'active'); setLabel('lblTabHandler', true);
+    setComp('compHandler', 'active');
+    setNarration('', 'Step 2 — ej2 ขยับ internal index แล้ว fire `selected`',
+      `เพราะ ${T.selItem} เปลี่ยน (0 → 1) ej2 จึง fire event <code>selected</code> ขึ้นมา พร้อม ` +
+      `<code>selectedIndex = 1</code> และ <code>${T.isInter} = true</code>. ` +
+      `<strong>กุญแจสำคัญ:</strong> ej2 จะ fire ก็ต่อเมื่อ index <em>เปลี่ยน</em> เท่านั้น.`);
+  },
+  // 3 — handler passes both guards -> onChange
+  () => {
+    setText('tabIndex', 'index: 1');
+    setText('reduxVal', "value: 'places'");
+    setText('contentShows', 'คลังสถานที่');
+    setComp('compUser', 'done'); setArrow('arrUserTab', 'done');
+    setComp('compTab', 'done');
+    setComp('compHandler', 'firing'); setText('guardStatus', '✓ ผ่าน guard');
+    setArrow('arrHandlerValue', 'active'); setLabel('lblHandlerValue', true);
+    setComp('compValue', 'active');
+    setNarration('', 'Step 3 — handler ผ่าน guard ทั้งคู่ → เรียก onChange',
+      `handler เช็ก 2 guard: (1) <code>${T.isInter}</code> = true ✓ และ ` +
+      `(2) <code>picked.value ('itinerary') ≠ value ('places')</code> ✓ → จึงเรียก <code>onChange('itinerary')</code> ` +
+      `ส่งค่าขึ้นไปให้ Redux.`);
+  },
+  // 4 — Redux updates, content switches, effect no-ops -> in sync
+  () => {
+    setComp('compUser', 'done'); setArrow('arrUserTab', 'done');
+    setComp('compHandler', 'done'); setText('guardStatus', '✓ ผ่าน guard');
+    setArrow('arrHandlerValue', 'done');
+    setComp('compValue', 'done'); setText('reduxVal', "value: 'itinerary'");
+    setArrow('arrValueContent', 'done'); setLabel('lblValueContent', true);
+    setComp('compContent', 'done'); setText('contentShows', 'แผนเที่ยว');
+    setArrow('arrValueEffect', 'done'); setComp('compEffect', 'done');
+    setComp('compTab', 'done'); setText('tabIndex', 'index: 1');
+    setNarration('success', 'Step 4 — Redux อัปเดต, Content สลับ, effect ไม่ทำอะไร → ตรงกัน',
+      `Redux <code>value = 'itinerary'</code> → Content re-render เป็น <strong>แผนเที่ยว</strong>. ` +
+      `<code>useEffect</code> รันตามหลัง แต่เห็นว่า ej2 ${T.selItem} (1) <em>ตรงกับ</em> value แล้ว → จึง <strong>ไม่</strong> เรียก <code>select()</code> ซ้ำ. ` +
+      `ตอนนี้ทั้ง 2 ที่ = 1 ตรงกันสนิท. <strong>happy path สำเร็จ</strong> — แล้วบั๊กมาจากไหน?`);
+  },
+  // 5 — KEY QUESTION
+  () => {
+    setText('tabIndex', 'index: 1');
+    setText('reduxVal', "value: 'itinerary'");
+    setText('contentShows', 'แผนเที่ยว');
+    setComp('compTab', 'active'); setComp('compValue', 'active');
+    setComp('compUser', 'dimmed'); setComp('compHandler', 'dimmed');
+    setComp('compEffect', 'dimmed'); setComp('compContent', 'dimmed');
+    show('panelQuestion');
+    document.getElementById('panelQuestionBody').innerHTML =
+      `ej2 เก็บ ${T.selItem} ของตัวเอง <strong>แยกจาก</strong> Redux <code>value</code>. ` +
+      `ถ้าจังหวะ re-render/animation ทำให้ ej2 ขยับ internal index ไปที่ 1 <strong>ก่อน</strong> ที่ Redux value จะตามทัน — ` +
+      `แล้วผู้ใช้คลิกแท็บที่ ej2 "คิดว่า" เลือกอยู่แล้ว <strong>onChange จะยังถูกเรียกไหม?</strong>`;
+    setNarration('magic', 'Step 5 — คำถามสำคัญ: ถ้า 2 ที่หลุดจากกันล่ะ?',
+      `หยุดคิดก่อน 1 วินาที. มองที่กรอบ 2 อันที่ไฮไลต์ — <strong>ej2 ${T.selItem}</strong> กับ <strong>Redux value</strong>. ` +
+      `อะไรเป็นตัวรับประกันว่ามันจะตรงกันเสมอ? คำตอบอยู่หน้าถัดไป.`);
+  },
+  // 6 — The drift (race)
+  () => {
+    setComp('compTab', 'error'); setText('tabIndex', 'index: 1  ⚠️');
+    setComp('compValue', 'error'); setText('reduxVal', "value: 'places'  ⚠️");
+    setComp('compEffect', 'blocked');
+    setComp('compContent', 'blocked'); setText('contentShows', 'คลังสถานที่');
+    setComp('compUser', 'dimmed'); setComp('compHandler', 'dimmed');
+    show('panelRace');
+    document.getElementById('panelRaceBody').innerHTML =
+      `ej2 ${T.selItem} = <strong>1</strong> (แผนเที่ยว) · Redux <code>value</code> = <strong>'places'</strong> (คลังสถานที่). ` +
+      `Content เรนเดอร์จาก value จึง<strong>ยังโชว์ คลังสถานที่</strong> — แต่ ej2 ข้างในเชื่อว่าอยู่ที่แผนเที่ยวไปแล้ว. ` +
+      `<code>useEffect</code> sync ก็ช่วยไม่ได้ เพราะ value ยังไม่เปลี่ยน มันเลยไม่ทำงาน.`;
+    setNarration('error', 'Step 6 — race: ej2 index ขยับล่วงหน้า value ตามไม่ทัน',
+      `ระหว่าง re-render/animation ej2 ขยับ ${T.selItem} ไป 1 ก่อน แต่ Redux value ยังค้างที่ 'places'. ` +
+      `${T.sot} ทั้งสองที่ <strong>ขัดกันแล้ว</strong> (กรอบแดงทั้งคู่). หน้าจอยังโชว์คลังสถานที่อยู่ ผู้ใช้เลยคิดว่ายังไม่ได้กด.`);
+  },
+  // 7 — User clicks the itinerary tab -> ej2 sees no change -> dead arrow
+  () => {
+    setText('tabIndex', 'index: 1');
+    setText('reduxVal', "value: 'places'");
+    setText('contentShows', 'คลังสถานที่');
+    setComp('compUser', 'firing');
+    setArrow('arrUserTab', 'active'); setLabel('lblUserTab', true);
+    setComp('compTab', 'error');
+    setArrow('arrTabHandler', 'error');   // dead — no value flies, no label shown
+    setComp('compHandler', 'dimmed'); setText('guardStatus', '(ไม่ถูกเรียก)');
+    setComp('compValue', 'blocked');
+    setComp('compContent', 'blocked');
+    show('panelRace');
+    document.getElementById('panelRaceBody').innerHTML =
+      `ผู้ใช้คลิก <strong>แผนเที่ยว</strong> (index 1) — แต่ ej2 ${T.selItem} = 1 <strong>อยู่แล้ว</strong>. ` +
+      `ej2 จึงถือว่า "ไม่มีการเปลี่ยน index" → <strong>ไม่ fire <code>selected</code> เลย</strong>. ลูกศร ej2 → handler ตายสนิท (เส้นแดง ไม่มีค่าวิ่ง).`;
+    setNarration('error', 'Step 7 — คลิกแล้ว... ej2 มองว่า "ไม่เปลี่ยน" → ไม่ fire event',
+      `นี่คือหัวใจของบั๊ก: เพราะ index ภายในตรงกับแท็บที่คลิกพอดี ej2 short-circuit ทิ้ง — ` +
+      `<code>selected</code> ไม่ทำงาน. handler ไม่เคยถูกเรียก (กรอบหรี่).`);
+  },
+  // 8 — onChange never fires -> "tab click does nothing"
+  () => {
+    setText('tabIndex', 'index: 1');
+    setComp('compUser', 'error');
+    setArrow('arrUserTab', 'error');
+    setComp('compTab', 'error');
+    setArrow('arrTabHandler', 'error');
+    setComp('compHandler', 'dimmed'); setText('guardStatus', '✗ ไม่ถูกเรียก');
+    setArrow('arrHandlerValue', 'dimmed');
+    setComp('compValue', 'error'); setText('reduxVal', "value: 'places' (ค้าง)");
+    setArrow('arrValueContent', 'dimmed');
+    setComp('compContent', 'error'); setText('contentShows', 'คลังสถานที่ (ไม่เปลี่ยน)');
+    setNarration('error', 'Step 8 — onChange ไม่ถูกเรียก = "tab click does nothing"',
+      `เมื่อ <code>selected</code> ไม่ fire → <code>onChange</code> ไม่ถูกเรียก → Redux value ค้างที่ 'places' → Content ไม่สลับ. ` +
+      `ผู้ใช้คลิกแท็บแล้ว <strong>"ไม่มีอะไรเกิดขึ้น"</strong> — นี่คือบั๊ก <em>"tab click does nothing"</em> ที่บันทึกไว้ในคอมเมนต์หัวไฟล์.`);
+  },
+  // 9 — Counter-example: "just remove the guard?"
+  () => {
+    setText('reduxVal', "value: ↻");
+    setText('tabIndex', 'index: ↻');
+    setText('guardStatus', '(ลบ guard)');
+    setText('contentShows', 'กระพริบ ↻');
+    setComp('compHandler', 'firing');
+    setArrow('arrHandlerValue', 'active'); setLabel('lblHandlerValue', true);
+    setComp('compValue', 'firing');
+    setArrow('arrValueEffect', 'active'); setLabel('lblValueEffect', true);
+    setComp('compEffect', 'firing');
+    setArrow('arrEffectTab', 'active'); setLabel('lblEffectTab', true);
+    setComp('compTab', 'firing');
+    setArrow('arrTabHandler', 'active'); setLabel('lblTabHandler', true);
+    setComp('compContent', 'blocked');
+    setNarration('warn', 'Step 9 — "ก็แค่ลบ guard ออกสิ?" → กลับมาเจอลูปไม่รู้จบ',
+      `ถ้าลบ guard <code>${T.isInter}</code> / value-changed ทิ้งเพื่อไม่ให้คลิกหาย จะ<strong>ปลุกลูปกลับมา</strong>: ` +
+      `<code>onChange → setActiveTab → re-render → useEffect → tab.select() → selected → onChange → …</code> วนไม่จบ. ` +
+      `แก้ตรง ๆ ไม่ได้ เพราะรากปัญหาคือ <strong>มี ${T.sot} 2 ที่</strong> ไม่ใช่ตัว guard.`);
+  },
+  // 10 — Resolution: Pure React segmented control (one source of truth)
+  () => {
+    setComp('compTab', 'dimmed'); setText('tabIndex', '❌ ลบทิ้ง');
+    setComp('compHandler', 'dimmed'); setText('guardStatus', '❌ ลบทิ้ง');
+    setComp('compEffect', 'dimmed');
+    setArrow('arrTabHandler', 'dimmed'); setArrow('arrHandlerValue', 'dimmed');
+    setArrow('arrValueEffect', 'dimmed'); setArrow('arrEffectTab', 'dimmed');
+    setArrow('arrUserTab', 'dimmed');
+    setComp('compUser', 'done');
+    setComp('compValue', 'locked'); setText('reduxVal', 'value (ที่เดียว)');
+    setArrow('arrValueContent', 'done'); setLabel('lblValueContent', true);
+    setComp('compContent', 'done'); setText('contentShows', 'แผนเที่ยว ✓');
+    show('panelSummary');
+    document.getElementById('panelSummaryBody').innerHTML =
+      `<strong>ลบ</strong> ej2 TabComponent + ${T.selItem} + useEffect sync + guard ออกทั้งหมด (กรอบหรี่ = โค้ดที่หายไป).<br>` +
+      `• 2 ปุ่มจาก ${T.pureReact} <code>react-buttons</code>: <code>active = (o.value === value)</code>, <code>onClick → onChange(o.value)</code><br>` +
+      `• ${T.sot} เหลือ <strong>ที่เดียว</strong> = <code>value</code> → render เป็น pure function ของ value, race เป็นไปไม่ได้เชิงโครงสร้าง<br>` +
+      `• <strong>Trade-off:</strong> เสีย animation/content-pane ของ ej2 — แต่ control นี้ไม่เคยใช้ (<code>content=''</code>) จึงไม่เสียอะไร<br>` +
+      `• ตรง §2 lookup order: ${T.pureReact} (tier-1) มาก่อน ${T.ej2} (tier-2) อยู่แล้ว`;
+    setNarration('success', 'Step 10 — ทางแก้: เหลือ source of truth ที่เดียว',
+      `use case จริงคือ ${T.seg} (ปุ่ม 2 อัน controlled 100%) ไม่ใช่ Tab. ` +
+      `พอใช้ ${T.pureReact} buttons ที่ render สะท้อน <code>value</code> ตรง ๆ — ไม่มี index ภายใน, ไม่มี sync effect, ไม่มี guard, ` +
+      `<strong>บั๊กทั้งคลาสนี้หายไปเลย</strong>.`);
+  },
+];
+
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();
+buildProgressDots();
+render(0);
+/* ===== END AUTHORED BOOTSTRAP ===== */
+
+</script>
+</body></html>

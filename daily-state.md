@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-06-29T21:31:00+07:00'
+updated: '2026-06-30T00:27:13+07:00'
 ---
 
 ## Log
@@ -100,3 +100,17 @@ tsc -b + vite build clean.
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )
+- 2026-06-29T22:47:49+07:00 — (commit)
+- 2026-06-29T23:02:33+07:00 — (commit)
+- 2026-06-29T23:03:22+07:00 — (commit)
+- 2026-06-30T00:27:07+07:00 — (commit)
+- 2026-06-30T00:27:13+07:00 — $(cat <<'EOF'
+refactor(trips): rebuild SegmentedTabs as stateless Pure React Buttons
+
+Replace the ej2 TabComponent (which owns its selection index internally)
+with a stateless control built from @syncfusion/react-buttons. `value` is
+the single source of truth: the render reflects it and a click reports the
+new value up via onChange â€” there is no internal selection state, so the
+active segment can never drift out of sync with `value`.
+
+This removes the tab
