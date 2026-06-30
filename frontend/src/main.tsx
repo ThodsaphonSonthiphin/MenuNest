@@ -4,8 +4,7 @@ import { Provider as ReduxProvider } from 'react-redux'
 import { MsalProvider } from '@azure/msal-react'
 import { EventType, type AccountInfo } from '@azure/msal-browser'
 import { GoogleOAuthProvider } from '@react-oauth/google'
-import { registerLicense } from '@syncfusion/react-base'
-import { registerLicense as registerEj2License } from '@syncfusion/ej2-base'
+import { registerSyncfusionLicense } from './shared/syncfusion/license'
 
 import { msalInstance } from './shared/auth/msalConfig'
 import { store } from './store'
@@ -56,21 +55,9 @@ if ('serviceWorker' in navigator) {
   })
 }
 
-// Syncfusion Community License — registered once at app boot.
-//
-// We mix two Syncfusion package families: Pure React (@syncfusion/react-*,
-// used almost everywhere) and legacy EJ2 (@syncfusion/ej2-react-*, currently
-// only the QR generator on the Family / Health pages). Each family keeps its
-// OWN module-scoped license validator — registering with react-base does NOT
-// register ej2-base. If we skip the ej2 registration, any ej2 component
-// injects the trial banner into document.body, and because this is an SPA
-// (React Router never reloads) that banner then persists across every
-// subsequent route. So register the SAME key with BOTH bases.
-const syncfusionLicense = import.meta.env.VITE_SYNCFUSION_LICENSE_KEY
-if (syncfusionLicense) {
-  registerLicense(syncfusionLicense)
-  registerEj2License(syncfusionLicense)
-}
+// Syncfusion Community License — registered once at app boot, with BOTH the
+// Pure React and legacy EJ2 bases (see ./shared/syncfusion/license).
+registerSyncfusionLicense(import.meta.env.VITE_SYNCFUSION_LICENSE_KEY)
 
 // Forward Google Maps auth failures + API console errors to App Insights.
 // These are console.* / global-callback errors the AI SDK can't autocapture.
