@@ -10,8 +10,26 @@ import { PlaceCard } from './components/PlaceCard'
 import { AddPlaceSheet } from './components/AddPlaceSheet'
 import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
+import { useDayRoute } from './hooks/useDayRoute'
 import './trips-tokens.css'
 import './TripDetailPage.css'
+
+const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+
+/** "14–18 พ.ย." from startDate (ISO DateOnly) + dayCount. endDate is derived
+ *  (no explicit field). Returns '' when there is no usable start date. */
+function formatTripDates(startDate?: string | null, dayCount?: number | null): string {
+  if (!startDate) return ''
+  const start = new Date(`${startDate.slice(0, 10)}T00:00:00`)
+  if (Number.isNaN(start.getTime())) return ''
+  const days = Math.max(1, dayCount ?? 1)
+  const end = new Date(start)
+  end.setDate(start.getDate() + days - 1)
+  if (days <= 1) return `${start.getDate()} ${TH_MONTHS[start.getMonth()]}`
+  return start.getMonth() === end.getMonth()
+    ? `${start.getDate()}–${end.getDate()} ${TH_MONTHS[end.getMonth()]}`
+    : `${start.getDate()} ${TH_MONTHS[start.getMonth()]} – ${end.getDate()} ${TH_MONTHS[end.getMonth()]}`
+}
 
 export function TripDetailPage() {
   const { tripId = '' } = useParams()
@@ -23,6 +41,9 @@ export function TripDetailPage() {
 
   const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
   const { data: places } = useListTripPlacesQuery(tripId, { skip: !tripId })
+  // Active day's ordered, time-aware stops → numbered pins + route on the map.
+  // Called unconditionally (before the not-found guard) to keep Rules of Hooks.
+  const dayRoute = useDayRoute(tripId)
 
   const isDesktop = bp === 'desktop'
 
@@ -36,21 +57,26 @@ export function TripDetailPage() {
     )
   }
 
-  // ── Desktop split: two-pane grid ──────────────────────────────────────────
+  // ── Desktop split: dark top-bar + two-pane grid ───────────────────────────
   if (isDesktop) {
+    const metaText = [
+      trip?.destination,
+      formatTripDates(trip?.startDate, trip?.dayCount),
+      trip?.dayCount != null ? `${trip.dayCount} วัน` : '',
+    ]
+      .filter(Boolean)
+      .join(' · ')
+
     return (
       <section className="trip-detail desktop">
+        <header className="trip-topbar">
+          <span className="trip-topbar-name">🗺️ {trip?.name ?? '…'}</span>
+          {metaText && <span className="trip-topbar-meta">{metaText}</span>}
+        </header>
+
+        <div className="trip-detail-body">
         {/* Left column — itinerary / places panel */}
         <div className="trip-detail-col-left">
-          <header className="trip-detail-header">
-            <div className="trip-detail-name">{trip?.name ?? '…'}</div>
-            <div className="trip-detail-meta">
-              {trip?.destination}
-              {trip?.destination ? ' · ' : ''}
-              {trip?.dayCount != null ? `${trip.dayCount} วัน` : ''}
-            </div>
-          </header>
-
           <SegmentedTabs
             value={tab}
             onChange={(v) => dispatch(setActiveTab(v))}
@@ -96,9 +122,16 @@ export function TripDetailPage() {
           )}
         </div>
 
-        {/* Right column — persistent map */}
+        {/* Right column — persistent map. In the itinerary tab it shows the
+            active day's numbered route; otherwise all saved places. */}
         <div className="trip-detail-col-right">
-          <TripMap places={places ?? []} />
+          <TripMap
+            places={places ?? []}
+            route={tab === 'itinerary' ? dayRoute.route : undefined}
+            summaryLabel={dayRoute.dayLabel}
+            summaryText={dayRoute.summaryText}
+          />
+        </div>
         </div>
       </section>
     )

@@ -6,15 +6,17 @@
 
 .trip-detail {
   /* Legacy local tokens kept for components that still reference --trp-*
-     (PlaceCard, place-list, etc). trips-tokens.css owns the canonical vars. */
-  --trp-teal:        #0d9488;
-  --trp-teal-dark:   #0f766e;
-  --trp-teal-soft:   rgba(13, 148, 136, 0.10);
-  --trp-bg-page:     #f0fdfa;
+     (PlaceCard, place-list, etc). Values realigned to the canonical
+     "Map-Forward" slate/teal palette (was a mint teal-50/200/900 scheme that
+     diverged from the spec); trips-tokens.css owns the canonical vars. */
+  --trp-teal:        #0e8f9e;
+  --trp-teal-dark:   #0b7a87;
+  --trp-teal-soft:   rgba(14, 143, 158, 0.10);
+  --trp-bg-page:     #f8fafc;
   --trp-bg-card:     #ffffff;
-  --trp-border:      #99f6e4;
-  --trp-text:        #134e4a;
-  --trp-text-muted:  #0f766e;
+  --trp-border:      #eef2f6;
+  --trp-text:        #0f172a;
+  --trp-text-muted:  #94a3b8;
 
   background: var(--trp-bg-page);
   color: var(--trp-text);
@@ -45,11 +47,35 @@
 }
 
 .trip-detail.desktop {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  max-width: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Full-bleed dark trip top-bar (desktop only). Shows only data that exists:
+   trip name + destination + date range (members/FX/budget are deferred, ADR-009). */
+.trip-detail.desktop .trip-topbar {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 14px 32px;
+  background: var(--ink);
+  color: #fff;
+}
+.trip-topbar-name { font-size: 16px; font-weight: 800; }
+.trip-topbar-meta { font-size: 12px; color: #9fb0c4; }
+
+/* Two-pane body below the top-bar: 464px itinerary column + flex map */
+.trip-detail.desktop .trip-detail-body {
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 464px 1fr;
   gap: 16px;
-  height: calc(100vh - 64px);
-  max-width: 100%;
   padding: 24px 32px;
   overflow: hidden;
 }
