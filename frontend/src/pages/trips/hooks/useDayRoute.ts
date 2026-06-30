@@ -30,8 +30,10 @@ const toMin = (hhmm: string) => {
 
 export function useDayRoute(tripId: string) {
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
-  const {data: days} = useGetItineraryQuery(tripId)
-  const {data: places} = useListTripPlacesQuery(tripId)
+  // skip on empty tripId: this hook is called before TripDetailPage's not-found
+  // guard, so without skip an empty id would fire GET /api/trips//itinerary.
+  const {data: days} = useGetItineraryQuery(tripId, {skip: !tripId})
+  const {data: places} = useListTripPlacesQuery(tripId, {skip: !tripId})
 
   const dayList = days ?? []
   const dayId =
@@ -51,7 +53,9 @@ export function useDayRoute(tripId: string) {
       scheduled
         .map((s, i) => {
           const p = placesById[s.stop.tripPlaceId]
-          if (!p) return null
+          // Drop stops with no place or non-finite coords — they would make the
+          // map center / polyline / bounds NaN and break the map silently.
+          if (!p || !Number.isFinite(p.lat) || !Number.isFinite(p.lng)) return null
           return {
             id: s.stop.id,
             lat: p.lat,

@@ -78,11 +78,11 @@ export function TripMap({
   summaryText?: string
 }) {
   const routeStops = route ?? []
+  // `route` is a stable reference from useDayRoute (memoised), so depending on it
+  // directly memoises path correctly without rebuilding the polyline each render.
   const path = useMemo<LatLng[]>(
-    () => routeStops.map((r) => ({lat: r.lat, lng: r.lng})),
-    // Re-run only when the actual coordinates change, not on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [routeStops.map((r) => `${r.lat},${r.lng}`).join('|')],
+    () => (route ?? []).map((r) => ({lat: r.lat, lng: r.lng})),
+    [route],
   )
 
   if (!KEY) {

@@ -75,6 +75,9 @@
   min-height: 0;
   display: grid;
   grid-template-columns: 464px 1fr;
+  /* Constrain the single row to the body height so a long itinerary scrolls
+     inside the left column instead of expanding the row past the viewport. */
+  grid-template-rows: minmax(0, 1fr);
   gap: 16px;
   padding: 24px 32px;
   overflow: hidden;
@@ -82,6 +85,7 @@
 
 /* Left column — itinerary/places pane — scrollable */
 .trip-detail.desktop .trip-detail-col-left {
+  min-height: 0; /* allow the grid item to shrink so overflow-y can scroll */
   overflow-y: auto;
   display: flex;
   flex-direction: column;
