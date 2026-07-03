@@ -90,3 +90,25 @@ export function buildDayNavUrl(points: NavPoint[], cap: number, mode: TravelMode
 
   return {url: `${DIR_BASE}?${params.toString()}`, coveredCount: covered, overflow}
 }
+
+/**
+ * True when the surface is plausibly a phone or the iPad (which reports a
+ * desktop UA). The link may open the native Maps app (waypoint cap 3) OR a
+ * mobile browser (cap 3), and Google silently drops waypoints past the cap —
+ * so we treat any plausibly-mobile surface conservatively. Impure (reads
+ * navigator); kept out of the pure builders.
+ */
+export function isMobileSurface(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const nav = navigator as Navigator & {userAgentData?: {mobile?: boolean}}
+  if (typeof nav.userAgentData?.mobile === 'boolean') return nav.userAgentData.mobile
+  if (/Android|iPhone|iPad|iPod|Mobile/i.test(nav.userAgent || '')) return true
+  // iPadOS 13+ reports a desktop "Macintosh" UA with a touch screen.
+  if (nav.platform === 'MacIntel' && nav.maxTouchPoints > 1) return true
+  return false
+}
+
+/** Waypoint cap: 3 on any plausibly-mobile surface, 9 otherwise. */
+export function getWaypointCap(): number {
+  return isMobileSurface() ? 3 : 9
+}
