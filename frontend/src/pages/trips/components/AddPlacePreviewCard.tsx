@@ -20,6 +20,7 @@ const CATS = (Object.keys(CAT_LABEL) as PlaceCategory[]).map((value) => ({
 export interface AddPlacePreviewCardProps {
   place: ResolvedPlaceDto
   category: PlaceCategory
+  guessedCategory?: PlaceCategory
   onCategoryChange(c: PlaceCategory): void
   onCancel(): void
   onAdd(): void
@@ -28,7 +29,7 @@ export interface AddPlacePreviewCardProps {
 }
 
 export function AddPlacePreviewCard({
-  place, category, onCategoryChange, onCancel, onAdd, saving, variant = 'floating',
+  place, category, guessedCategory, onCategoryChange, onCancel, onAdd, saving, variant = 'floating',
 }: AddPlacePreviewCardProps) {
   return (
     <div className={`add-preview add-preview-${variant}`}>
@@ -45,7 +46,10 @@ export function AddPlacePreviewCard({
 
       <div className="add-preview-cat">
         <div className="add-preview-cat-lab">
-          หมวดหมู่ <span className="add-preview-auto">เดาจาก Google: {CAT_LABEL[category]}</span>
+          หมวดหมู่{' '}
+          {guessedCategory !== undefined && category === guessedCategory && (
+            <span className="add-preview-auto">เดาจาก Google: {CAT_LABEL[category]}</span>
+          )}
         </div>
         <span className="add-preview-cat-dot" style={{background: CAT_COLOR[category]}} />
         <DropDownList
