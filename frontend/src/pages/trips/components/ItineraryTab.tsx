@@ -1,5 +1,5 @@
 // frontend/src/pages/trips/components/ItineraryTab.tsx
-import {useState, useEffect} from 'react'
+import {useMemo, useState, useEffect} from 'react'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
@@ -17,7 +17,8 @@ import {ItineraryStopCard} from './ItineraryStopCard'
 import {TravelLeg} from './TravelLeg'
 import {StopEditorDialog} from './StopEditorDialog'
 import {DayStartEditor} from './DayStartEditor'
-import {buildStopNavUrl} from '../lib/navUrl'
+import {NavIcon} from './NavIcon'
+import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {appInsights} from '../../../shared/telemetry/appInsights'
 
 function bestLabel(p: TripPlaceDto): string | null {
@@ -123,6 +124,15 @@ export function ItineraryTab({tripId}: {tripId: string}) {
 
   const trip = trips?.find((t) => t.id === tripId)
 
+  const cap = useMemo(() => getWaypointCap(), [])
+  const dayMode = trip?.defaultTravelMode ?? 'Drive'
+  const navPoints = scheduled
+    .map((s) => placesById[s.stop.tripPlaceId])
+    .filter((p): p is TripPlaceDto => !!p)
+    .map((p) => ({lat: p.lat, lng: p.lng, placeId: p.googlePlaceId}))
+  const dayNav = buildDayNavUrl(navPoints, cap, dayMode)
+  const mixedMode = scheduled.slice(1).some((s) => s.stop.travelModeToReach !== dayMode)
+
   // Early return is now safe — all hooks have already been called above.
   if (!dayList.length) return <p className="trips-muted">กำลังโหลดแผน…</p>
 
@@ -153,20 +163,56 @@ export function ItineraryTab({tripId}: {tripId: string}) {
       />
 
       <div className="day-summary">
-        <DayStartEditor
-          key={resolvedDayId}
-          tripId={tripId}
-          dayId={resolvedDayId}
-          dayStartTime={resolvedDay.dayStartTime}
-          onError={setActionError}
-        />
-        <span>
-          เสร็จ <b>{dayEnd}</b>
-        </span>
-        <span>
-          เดินทางรวม <b>{Math.round(totalTravelSeconds / 60)} น.</b>
-        </span>
+        <div className="day-stats">
+          <DayStartEditor
+            key={resolvedDayId}
+            tripId={tripId}
+            dayId={resolvedDayId}
+            dayStartTime={resolvedDay.dayStartTime}
+            onError={setActionError}
+          />
+          <span>
+            เสร็จ <b>{dayEnd}</b>
+          </span>
+          <span>
+            เดินทางรวม <b>{Math.round(totalTravelSeconds / 60)} น.</b>
+          </span>
+        </div>
+        {dayNav && (
+          <a
+            className="btn-day-nav"
+            href={dayNav.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() =>
+              appInsights.trackEvent(
+                {name: 'TripNavHandoff'},
+                {
+                  scope: 'day',
+                  travelMode: dayMode,
+                  stopCount: navPoints.length,
+                  coveredCount: dayNav.coveredCount,
+                  overflow: dayNav.overflow,
+                  mixedMode,
+                },
+              )
+            }
+          >
+            <NavIcon /> นำทาง
+          </a>
+        )}
       </div>
+
+      {dayNav?.overflow && (
+        <p className="nav-note">
+          นำทางครอบคลุม {dayNav.coveredCount} จุดแรก — จุดที่เหลือใช้ปุ่มนำทางรายจุด
+        </p>
+      )}
+      {dayNav && mixedMode && (
+        <p className="nav-note">
+          วันนี้มีหลายโหมดเดินทาง — เส้นทางทั้งวันใช้โหมดเดียว ใช้ปุ่มรายจุดเพื่อโหมดที่ถูก
+        </p>
+      )}
 
       {actionError && <p className="trips-field-error">{actionError}</p>}
 

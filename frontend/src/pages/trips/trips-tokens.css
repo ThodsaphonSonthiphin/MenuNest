@@ -70,6 +70,50 @@
 }
 .day-summary b { color: #fff; font-weight: 700; }
 
+/* ── Navigate hand-off — whole-day pill + inline notes (ADR-011) ── */
+.day-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.btn-day-nav {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--teal);
+  color: #fff;
+  border: 0;
+  border-radius: 999px;
+  padding: 7px 14px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(14, 143, 158, 0.45);
+  transition: background 0.12s ease;
+}
+.btn-day-nav:hover { background: #13a3b4; }
+.btn-day-nav:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.btn-day-nav svg { width: 14px; height: 14px; }
+
+.nav-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  background: var(--warn-bg);
+  color: var(--warn);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
 /* ── Itinerary layout (was unstyled → cramped) ── */
 .itinerary-tab { display: flex; flex-direction: column; gap: 14px; }
 .stop-list { display: flex; flex-direction: column; gap: 8px; }
