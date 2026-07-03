@@ -2,7 +2,7 @@
 // Add-mode controller, rendered inside <Map>. Owns the selected place, the temp
 // teal pin, the search bar + preview card + link fallback, and the addTripPlace
 // call. Stays armed after a successful add (ADR-016); Esc exits.
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {AdvancedMarker, Pin} from '@vis.gl/react-google-maps'
 import {useAddTripPlaceMutation, type PlaceCategory, type ResolvedPlaceDto} from '../../../shared/api/api'
 import {usePlaceSearch} from '../hooks/usePlaceSearch'
@@ -35,16 +35,23 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed}: Add
     setGuessedCategory(dto.category)
   }, [])
 
-  // A POI tapped on the map (Task 9 pushes its place_id down).
+  // A POI tapped on the map (Task 9 pushes its place_id down). Resolve each tap
+  // exactly once: usePlaceSearch returns a fresh object each render, so a plain
+  // `search` dep would re-fire the effect mid-flight — double-billing a Places
+  // Details call and (via a per-invocation cancelled flag) dropping the tap.
+  // Guard by the tapped id, reset when it clears, so a re-render can't re-resolve
+  // and the same POI can still be re-tapped later.
+  const handledTapRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!tappedPlaceId) return
-    let cancelled = false
-    void search.resolveById(tappedPlaceId)
-      .then((dto) => { if (!cancelled) present(dto) })
-      .catch(() => { /* ignore — bad/blank POI */ })
+    if (!tappedPlaceId) { handledTapRef.current = null; return }
+    if (handledTapRef.current === tappedPlaceId) return
+    handledTapRef.current = tappedPlaceId
+    const id = tappedPlaceId
+    void search.resolveById(id)
+      .then((dto) => present(dto))
+      .catch(() => { /* ignore bad/blank POI */ })
       .finally(() => onTapConsumed())
-    return () => { cancelled = true }
-  }, [tappedPlaceId, search, present, onTapConsumed])
+  }, [tappedPlaceId, search.resolveById, present, onTapConsumed])
 
   // Esc exits add-mode.
   useEffect(() => {
