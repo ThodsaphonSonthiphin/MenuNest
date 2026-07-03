@@ -509,3 +509,17 @@
 .add-preview-add:hover:not(:disabled) { background: var(--teal-deep); }
 .add-preview-add:disabled { opacity: 0.6; cursor: default; }
 .add-preview-add svg { width: 16px; height: 16px; }
+
+.add-search-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; flex: none;
+  border: 0; background: transparent; color: var(--muted);
+  border-radius: 8px; cursor: pointer;
+}
+.add-search-close:hover { background: #f1f5f9; color: var(--ink); }
+.add-search-close svg { width: 16px; height: 16px; }
+.add-search-hint {
+  margin-top: 6px; align-self: flex-start;
+  background: rgba(15, 23, 42, 0.82); color: #e2e8f0;
+  font-size: 11.5px; font-weight: 600; padding: 6px 11px; border-radius: 999px;
+}

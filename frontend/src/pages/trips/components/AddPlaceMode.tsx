@@ -100,6 +100,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed}: Add
         error={search.error}
         onPick={pick}
         onOpenLinkFallback={() => setShowLink(true)}
+        onClose={onExit}
       />
 
       {selected && (
