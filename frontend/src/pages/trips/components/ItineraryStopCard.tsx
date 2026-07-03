@@ -1,17 +1,7 @@
 // frontend/src/pages/trips/components/ItineraryStopCard.tsx
 import type {TripPlaceDto} from '../../../shared/api/api'
 import type {StopFlag} from '../hooks/useSchedule'
-
-// Category glyph prefixed to the stop name, mirroring the design prototype
-// (⛩️ ฟูชิมิอินาริ). Keys match PlaceCategory / PlaceCard's CAT_COLOR.
-const CAT_EMOJI: Record<string, string> = {
-  Stay: '🛏️',
-  Eat: '🍜',
-  See: '⛩️',
-  Cafe: '☕',
-  Shop: '🛍️',
-  Other: '📍',
-}
+import {catEmoji} from '../placeCategory'
 
 export function ItineraryStopCard({
   place,
@@ -47,7 +37,7 @@ export function ItineraryStopCard({
         <div className="stop-dep">→{depart}</div>
       </div>
       <button className="stop-body" onClick={onEdit}>
-        <div className="stop-name">{CAT_EMOJI[place.category] ?? '📍'} {place.name}</div>
+        <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
         <div className="stop-chips">
           <span className="chip dwell">⏱ อยู่ {dwell} น.</span>
           {overnight && <span className="chip warn">+1วัน</span>}

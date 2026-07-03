@@ -1,27 +1,46 @@
 // frontend/src/pages/trips/components/DwellStepper.tsx
-import {Button, Color, Variant} from '@syncfusion/react-buttons'
+// Plain buttons (not Syncfusion) so the circular −/+ and pill presets match the
+// redesign pixel-for-pixel without fighting the .sf-btn chrome. Styled by the
+// .stop-editor-dialog .se-dwell rules in TripDetailPage.css.
 
 const CHIPS = [30, 60, 90, 120]
 
 export function DwellStepper({value, onChange}: {value: number; onChange: (v: number) => void}) {
   return (
-    <div className="dwell-stepper">
-      <div className="dwell-row">
-        <Button onClick={() => onChange(Math.max(15, value - 15))} aria-label="ลด">−</Button>
-        <div className="dwell-value">{value} <span>นาที</span></div>
-        <Button color={Color.Primary} onClick={() => onChange(value + 15)} aria-label="เพิ่ม">+</Button>
+    <div className="se-dwell">
+      <div className="se-dwell-row">
+        <button
+          type="button"
+          className="se-step se-step-minus"
+          onClick={() => onChange(Math.max(15, value - 15))}
+          aria-label="ลดเวลา 15 นาที"
+        >
+          −
+        </button>
+        <div className="se-dwell-center">
+          <div className="se-dwell-num">{value}</div>
+          <div className="se-dwell-unit">นาที</div>
+        </div>
+        <button
+          type="button"
+          className="se-step se-step-plus"
+          onClick={() => onChange(value + 15)}
+          aria-label="เพิ่มเวลา 15 นาที"
+        >
+          +
+        </button>
       </div>
-      <div className="dwell-chips">
-        {CHIPS.map(c => (
-          <Button
+      <div className="se-dwell-chips">
+        {CHIPS.map((c) => (
+          <button
+            type="button"
             key={c}
-            className={`chip${c === value ? ' active' : ''}`}
-            color={c === value ? Color.Primary : undefined}
-            variant={c === value ? Variant.Filled : Variant.Outlined}
+            className={`se-chip${c === value ? ' active' : ''}`}
+            aria-pressed={c === value}
             onClick={() => onChange(c)}
           >
             {c}
-          </Button>
+          </button>
         ))}
       </div>
     </div>

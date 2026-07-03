@@ -39,26 +39,37 @@ export function BestTimeBar({start, end, onChange}: {
   }
 
   return (
-    <div className="best-time-bar">
-      <label>ช่วงเวลาที่ดีที่สุด (ใส่เอง)</label>
-      <div className="best-time-row">
-        <TimePicker
-          value={hmsToDate(start)}
-          onChange={handleStartChange}
-          format="HH:mm"
-          step={15}
-          placeholder="เริ่ม"
-        />
-        <span>–</span>
-        <TimePicker
-          value={hmsToDate(end)}
-          onChange={handleEndChange}
-          format="HH:mm"
-          step={15}
-          placeholder="สิ้นสุด"
-        />
+    <section className="se-sec se-best">
+      <div className="se-sec-head">
+        <span className="se-ico">🕐</span>ช่วงเวลาที่ดีที่สุด
+        <span className="se-pill">ใส่เอง</span>
       </div>
-      <p className="best-time-hint">crowd-by-hour (popular times) ไม่มีใน Places API — v1 กรอกช่วงเองตามนี้</p>
-    </div>
+      <p className="se-sub">
+        ยังไม่มีข้อมูลความหนาแน่นของคนจาก Places API — กำหนดช่วงที่อยากมาเองได้
+      </p>
+      <div className="se-time-grid">
+        <div className="se-time-card">
+          <span className="se-time-lab">เริ่ม</span>
+          <TimePicker
+            value={hmsToDate(start)}
+            onChange={handleStartChange}
+            format="HH:mm"
+            step={15}
+            placeholder="--:--"
+          />
+        </div>
+        <span className="se-time-dash">–</span>
+        <div className="se-time-card">
+          <span className="se-time-lab">สิ้นสุด</span>
+          <TimePicker
+            value={hmsToDate(end)}
+            onChange={handleEndChange}
+            format="HH:mm"
+            step={15}
+            placeholder="--:--"
+          />
+        </div>
+      </div>
+    </section>
   )
 }

@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stop Editor — redesign mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent:       #ef6d2d;   /* primary orange */
+    --accent-deep:  #d95f22;   /* hover / active / depart time */
+    --accent-soft:  #fdefe1;   /* cream-peach surface */
+    --accent-line:  #f6d9bf;   /* peach hairline for cream cards */
+    --ink:          #2b2521;   /* warm near-black */
+    --ink-soft:     #6b625b;   /* secondary text */
+    --muted:        #a99e94;   /* labels, hints */
+    --border:       #ece4d9;   /* hairline card border */
+    --surface:      #ffffff;
+    --cafe:         #b4791f;   /* category color (Cafe) */
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: 'Noto Sans Thai', system-ui, sans-serif;
+    color: var(--ink);
+    /* mimic the map-behind-modal context */
+    background:
+      radial-gradient(120% 90% at 50% -10%, #cfe3d6 0%, #b9d3c4 40%, #a9c7b8 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+  }
+
+  .backdrop {
+    position: fixed; inset: 0;
+    background: rgba(20, 28, 24, 0.32);
+    backdrop-filter: blur(1px);
+  }
+
+  /* ============ Dialog shell ============ */
+  .dlg {
+    position: relative;
+    width: 480px;
+    max-width: 100%;
+    background: var(--surface);
+    border-radius: 22px;
+    box-shadow: 0 24px 60px rgba(26, 20, 14, 0.28), 0 4px 14px rgba(26, 20, 14, 0.12);
+    overflow: hidden;
+  }
+
+  .dlg-inner { padding: 22px 24px 20px; }
+
+  /* ---- Header ---- */
+  .dlg-head { display: flex; align-items: flex-start; gap: 12px; }
+  .dlg-title {
+    flex: 1; min-width: 0;
+    margin: 0;
+    font-size: 20px; font-weight: 700; line-height: 1.25;
+    color: var(--ink); letter-spacing: -0.01em;
+  }
+  .dlg-close {
+    flex: none;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border: 0; border-radius: 10px;
+    background: transparent; color: var(--ink-soft);
+    cursor: pointer; transition: background .15s ease;
+  }
+  .dlg-close:hover { background: #f4efe9; }
+  .dlg-close svg { width: 18px; height: 18px; }
+
+  .dlg-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+  .cat-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 11px 4px 9px;
+    background: var(--accent-soft);
+    border-radius: 999px;
+    font-size: 12px; font-weight: 600; color: #8a6a3a;
+  }
+  .cat-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--cafe); }
+  .crumb { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+
+  /* ---- Generic section ---- */
+  .sec { margin-top: 22px; }
+  .sec-head {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 15px; font-weight: 700; color: var(--ink);
+  }
+  .sec-head .ico { font-size: 15px; line-height: 1; }
+  .pill-note {
+    margin-left: 2px;
+    padding: 2px 9px;
+    background: var(--accent-soft);
+    color: var(--accent-deep);
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .sec-sub {
+    margin: 6px 0 0;
+    font-size: 12.5px; line-height: 1.5; color: var(--muted);
+  }
+
+  /* ---- Best-time: two time cards ---- */
+  .time-grid {
+    margin-top: 12px;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
+  }
+  .time-card {
+    position: relative;
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 11px 14px 12px;
+    background: var(--surface);
+    transition: border-color .15s ease;
+  }
+  .time-card:hover { border-color: var(--accent-line); }
+  .time-card .lab { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .time-card .val {
+    margin-top: 2px;
+    font-family: 'Spline Sans Mono', monospace;
+    font-size: 26px; font-weight: 700; letter-spacing: 0.01em; color: var(--ink);
+  }
+  .time-card .clk {
+    position: absolute; top: 12px; right: 12px;
+    width: 18px; height: 18px; color: #c9a36a;
+  }
+  .time-dash { text-align: center; color: var(--muted); font-size: 18px; }
+
+  /* ---- Dwell stepper ---- */
+  .dwell { margin-top: 14px; }
+  .dwell-row {
+    display: flex; align-items: center; justify-content: center; gap: 26px;
+  }
+  .step-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; font-weight: 400; line-height: 1;
+    cursor: pointer; transition: transform .08s ease, background .15s ease, border-color .15s ease;
+    font-family: inherit;
+  }
+  .step-btn:active { transform: scale(0.94); }
+  .step-minus {
+    background: var(--surface); color: var(--accent-deep);
+    border: 1.5px solid var(--border);
+  }
+  .step-minus:hover { border-color: var(--accent); }
+  .step-plus {
+    background: var(--accent); color: #fff; border: 0;
+    box-shadow: 0 6px 16px rgba(239, 109, 45, 0.38);
+  }
+  .step-plus:hover { background: var(--accent-deep); }
+  .dwell-center { text-align: center; min-width: 92px; }
+  .dwell-num {
+    font-family: 'Spline Sans Mono', monospace;
+    font-size: 52px; font-weight: 700; line-height: 1; color: var(--ink);
+  }
+  .dwell-unit { margin-top: 2px; font-size: 13px; color: var(--muted); }
+
+  .dwell-chips {
+    margin-top: 16px;
+    display: flex; justify-content: center; gap: 10px;
+  }
+  .chip-preset {
+    min-width: 62px;
+    padding: 9px 0;
+    border-radius: 999px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-family: 'Spline Sans Mono', monospace;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all .15s ease;
+  }
+  .chip-preset:hover { border-color: var(--accent-line); color: var(--accent-deep); }
+  .chip-preset.active {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+    box-shadow: 0 4px 12px rgba(239, 109, 45, 0.30);
+  }
+
+  /* ---- Travel mode ---- */
+  .mode-card {
+    margin-top: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; background: var(--surface);
+    cursor: pointer; transition: border-color .15s ease;
+  }
+  .mode-card:hover { border-color: var(--accent-line); }
+  .mode-label { font-size: 15px; font-weight: 600; color: var(--ink); }
+  .mode-card .chev { width: 18px; height: 18px; color: var(--muted); }
+  .leg-info { margin: 9px 2px 0; font-size: 12.5px; color: var(--muted); }
+
+  /* ---- Arrival / depart card ---- */
+  .sched {
+    margin-top: 20px;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-line);
+    border-radius: 16px;
+    padding: 15px 22px;
+  }
+  .sched-col { text-align: center; }
+  .sched-lab { font-size: 12px; font-weight: 600; color: #b08a5e; }
+  .sched-val {
+    margin-top: 3px;
+    font-family: 'Spline Sans Mono', monospace;
+    font-size: 25px; font-weight: 700; color: var(--ink);
+  }
+  .sched-col.out .sched-val { color: var(--accent-deep); }
+  .sched-arrow { color: #cBa06a; font-size: 20px; }
+
+  /* ---- Footer ---- */
+  .dlg-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 22px; padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-delete {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 0; background: transparent;
+    color: var(--ink-soft);
+    font-family: inherit; font-size: 14px; font-weight: 600;
+    cursor: pointer; padding: 8px 6px; border-radius: 8px;
+    transition: background .15s ease, color .15s ease;
+  }
+  .btn-delete:hover { background: #fbeae3; color: #b4543a; }
+  .btn-save {
+    border: 0; border-radius: 13px;
+    background: var(--accent); color: #fff;
+    font-family: inherit; font-size: 15px; font-weight: 700;
+    padding: 12px 30px; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(239, 109, 45, 0.34);
+    transition: background .15s ease, transform .08s ease;
+  }
+  .btn-save:hover { background: var(--accent-deep); }
+  .btn-save:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+  <div class="backdrop"></div>
+
+  <div class="dlg" role="dialog" aria-modal="true" aria-label="แก้ไขจุดแวะ">
+    <div class="dlg-inner">
+
+      <!-- Header -->
+      <div class="dlg-head">
+        <h2 class="dlg-title">บ้านไร่ กู๊ดวิว คาเฟ่&amp;รีสอร์ท</h2>
+        <button class="dlg-close" aria-label="ปิด">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="dlg-meta">
+        <span class="cat-chip"><span class="cat-dot"></span>คาเฟ่</span>
+        <span class="crumb">วัน 1 · จุดที่ 1</span>
+      </div>
+
+      <!-- Best time -->
+      <section class="sec">
+        <div class="sec-head"><span class="ico">🕐</span>ช่วงเวลาที่ดีที่สุด<span class="pill-note">ใส่เอง</span></div>
+        <p class="sec-sub">ยังไม่มีข้อมูลความหนาแน่นของคนจาก Places API — กำหนดช่วงที่อยากมาเองได้</p>
+        <div class="time-grid">
+          <div class="time-card">
+            <div class="lab">เริ่ม</div>
+            <div class="val">08:00</div>
+            <svg class="clk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="time-dash">–</div>
+          <div class="time-card">
+            <div class="lab">สิ้นสุด</div>
+            <div class="val">10:00</div>
+            <svg class="clk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- Dwell -->
+      <section class="sec">
+        <div class="sec-head"><span class="ico">⏱️</span>จะอยู่ที่นี่กี่นาที</div>
+        <div class="dwell">
+          <div class="dwell-row">
+            <button class="step-btn step-minus" aria-label="ลด">−</button>
+            <div class="dwell-center">
+              <div class="dwell-num">120</div>
+              <div class="dwell-unit">นาที</div>
+            </div>
+            <button class="step-btn step-plus" aria-label="เพิ่ม">+</button>
+          </div>
+          <div class="dwell-chips">
+            <button class="chip-preset">30</button>
+            <button class="chip-preset">60</button>
+            <button class="chip-preset">90</button>
+            <button class="chip-preset active">120</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Travel mode -->
+      <section class="sec">
+        <div class="sec-head"><span class="ico">🚋</span>การเดินทางมาที่นี่</div>
+        <div class="mode-card">
+          <span class="mode-label">🚗 รถยนต์</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <p class="leg-info">14 นาที · 7.0 กม จากจุดก่อนหน้า · คำนวณอัตโนมัติ</p>
+      </section>
+
+      <!-- Schedule preview -->
+      <div class="sched">
+        <div class="sched-col">
+          <div class="sched-lab">ถึง</div>
+          <div class="sched-val">09:00</div>
+        </div>
+        <div class="sched-arrow">→</div>
+        <div class="sched-col out">
+          <div class="sched-lab">ออก · อัตโนมัติ</div>
+          <div class="sched-val">11:00</div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="dlg-foot">
+        <button class="btn-delete">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+          ลบจุดนี้
+        </button>
+        <button class="btn-save">บันทึก</button>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
