@@ -1,5 +1,5 @@
-import {describe, it, expect} from 'vitest'
-import {travelModeToGmaps, buildStopNavUrl, buildDayNavUrl} from './navUrl'
+import {describe, it, expect, vi, afterEach} from 'vitest'
+import {travelModeToGmaps, buildStopNavUrl, buildDayNavUrl, isMobileSurface, getWaypointCap} from './navUrl'
 import type {NavPoint} from './navUrl'
 import type {TravelMode} from '../../../shared/api/api'
 
@@ -117,5 +117,41 @@ describe('travelmode omission (defensive, design §4)', () => {
   })
   it('encodes Transit through a builder end-to-end', () => {
     expect(q(buildStopNavUrl({lat: 1, lng: 1, googlePlaceId: null}, 'Transit')!).get('travelmode')).toBe('transit')
+  })
+})
+
+afterEach(() => vi.unstubAllGlobals())
+
+const stubNav = (n: Partial<Navigator> & {userAgentData?: {mobile?: boolean}}) =>
+  vi.stubGlobal('navigator', n)
+
+describe('isMobileSurface / getWaypointCap', () => {
+  it('trusts userAgentData.mobile when present (true → mobile)', () => {
+    stubNav({userAgentData: {mobile: true}, userAgent: 'irrelevant'})
+    expect(isMobileSurface()).toBe(true)
+    expect(getWaypointCap()).toBe(3)
+  })
+
+  it('trusts userAgentData.mobile when present (false → desktop, even with mobile-looking UA)', () => {
+    stubNav({userAgentData: {mobile: false}, userAgent: 'Mozilla/5.0 (iPhone)'})
+    expect(isMobileSurface()).toBe(false)
+    expect(getWaypointCap()).toBe(9)
+  })
+
+  it('falls back to a UA regex for Android / iPhone', () => {
+    stubNav({userAgent: 'Mozilla/5.0 (Linux; Android 14) Mobile'})
+    expect(getWaypointCap()).toBe(3)
+    stubNav({userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0)'})
+    expect(getWaypointCap()).toBe(3)
+  })
+
+  it('detects iPadOS reporting a desktop Macintosh UA (MacIntel + touch)', () => {
+    stubNav({userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)', platform: 'MacIntel', maxTouchPoints: 5})
+    expect(getWaypointCap()).toBe(3)
+  })
+
+  it('treats a real desktop as desktop (cap 9)', () => {
+    stubNav({userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: 'Win32', maxTouchPoints: 0})
+    expect(getWaypointCap()).toBe(9)
   })
 })
