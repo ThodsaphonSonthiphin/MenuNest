@@ -23,6 +23,17 @@ describe('categorizePlace', () => {
     expect(categorizePlace(['shopping_mall'])).toBe('Shop')
     expect(categorizePlace(['store'])).toBe('Shop')
   })
+  it('covers the extended Places API (New) type vocabulary beyond the spec examples', () => {
+    expect(categorizePlace(['meal_delivery'])).toBe('Eat')
+    expect(categorizePlace(['bar'])).toBe('Eat')
+    expect(categorizePlace(['motel'])).toBe('Stay')
+    expect(categorizePlace(['bed_and_breakfast'])).toBe('Stay')
+    expect(categorizePlace(['art_gallery'])).toBe('See')
+    expect(categorizePlace(['zoo'])).toBe('See')
+    expect(categorizePlace(['national_park'])).toBe('See')
+    expect(categorizePlace(['supermarket'])).toBe('Shop')
+    expect(categorizePlace(['convenience_store'])).toBe('Shop')
+  })
   it('falls back to Other for unknown / empty / null', () => {
     expect(categorizePlace(['premise'])).toBe('Other')
     expect(categorizePlace([])).toBe('Other')
