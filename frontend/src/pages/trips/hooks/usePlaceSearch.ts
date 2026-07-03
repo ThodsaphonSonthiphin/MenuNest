@@ -9,7 +9,7 @@
 // suggestions.ts, autocomplete-custom.tsx) + Google extended-component-library.
 import {useCallback, useEffect, useRef, useState} from 'react'
 import {useMap, useMapsLibrary} from '@vis.gl/react-google-maps'
-import {toResolvedPlace, PLACE_DETAIL_FIELDS, type RawPlaceFields} from '../lib/placeSnapshot'
+import {toResolvedPlace, openingHoursToJson, PLACE_DETAIL_FIELDS, type RawPlaceFields} from '../lib/placeSnapshot'
 import type {ResolvedPlaceDto} from '../../../shared/api/api'
 
 const DEBOUNCE_MS = 300
@@ -31,12 +31,7 @@ function extract(place: google.maps.places.Place, fallbackId: string): RawPlaceF
     address: place.formattedAddress ?? null,
     types: place.types ?? [],
     priceLevel: (place.priceLevel as unknown as string) ?? null,
-    openingHoursJson: place.regularOpeningHours
-      ? JSON.stringify({
-          periods: place.regularOpeningHours.periods,
-          weekdayDescriptions: place.regularOpeningHours.weekdayDescriptions,
-        })
-      : null,
+    openingHoursJson: openingHoursToJson(place.regularOpeningHours),
   }
 }
 

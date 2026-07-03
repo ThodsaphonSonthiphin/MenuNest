@@ -33,6 +33,31 @@ const PRICE: Record<string, number> = {
   VERY_EXPENSIVE: 4,
 }
 
+/** Minimal structural view of google.maps.places.OpeningHours we read (getter-safe). */
+export interface OpeningHoursLike {
+  periods?: ReadonlyArray<{
+    open?: { day: number; hour: number; minute?: number } | null
+    close?: { day: number; hour: number; minute?: number } | null
+  }> | null
+  weekdayDescriptions?: string[] | null
+}
+
+/**
+ * Serialize Google opening hours into the exact shape useSchedule.isOpenAt parses
+ * ({periods:[{open:{day,hour,minute},close?:{...}}], weekdayDescriptions}). We read
+ * day/hour/minute EXPLICITLY instead of JSON.stringify-ing the SDK object, because
+ * OpeningHoursPeriod/Point expose those via prototype getters that JSON.stringify
+ * omits — which would emit '{}' periods and make every timed place read as "closed".
+ */
+export function openingHoursToJson(hours: OpeningHoursLike | null | undefined): string | null {
+  if (!hours) return null
+  const periods = (hours.periods ?? []).map((p) => ({
+    open: p.open ? { day: p.open.day, hour: p.open.hour, minute: p.open.minute ?? 0 } : undefined,
+    close: p.close ? { day: p.close.day, hour: p.close.hour, minute: p.close.minute ?? 0 } : undefined,
+  }))
+  return JSON.stringify({ periods, weekdayDescriptions: hours.weekdayDescriptions ?? undefined })
+}
+
 export function toResolvedPlace(raw: RawPlaceFields): ResolvedPlaceDto {
   const category: PlaceCategory = categorizePlace(raw.types)
   const priceLevel = raw.priceLevel != null && raw.priceLevel in PRICE ? PRICE[raw.priceLevel] : null

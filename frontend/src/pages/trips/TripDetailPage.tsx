@@ -90,10 +90,10 @@ export function TripDetailPage() {
               <div className="trip-places-toolbar">
                 <Button
                   color={Color.Primary}
-                  variant={Variant.Filled}
-                  onClick={() => dispatch(setAddMode(true))}
+                  variant={addMode ? Variant.Outlined : Variant.Filled}
+                  onClick={() => dispatch(setAddMode(!addMode))}
                 >
-                  + เพิ่มสถานที่
+                  {addMode ? 'เสร็จ' : '+ เพิ่มสถานที่'}
                 </Button>
               </div>
 
@@ -166,10 +166,13 @@ export function TripDetailPage() {
             />
             <Button
               color={Color.Primary}
-              variant={Variant.Filled}
-              onClick={() => { dispatch(setPlacesView('map')); dispatch(setAddMode(true)) }}
+              variant={addMode ? Variant.Outlined : Variant.Filled}
+              onClick={() => {
+                if (addMode) { dispatch(setAddMode(false)) }
+                else { dispatch(setPlacesView('map')); dispatch(setAddMode(true)) }
+              }}
             >
-              + เพิ่มสถานที่
+              {addMode ? 'เสร็จ' : '+ เพิ่มสถานที่'}
             </Button>
           </div>
 

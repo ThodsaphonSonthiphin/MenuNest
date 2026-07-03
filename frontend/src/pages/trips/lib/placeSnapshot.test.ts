@@ -1,5 +1,6 @@
 import {describe, it, expect} from 'vitest'
-import {toResolvedPlace, PLACE_DETAIL_FIELDS} from './placeSnapshot'
+import {toResolvedPlace, openingHoursToJson, PLACE_DETAIL_FIELDS} from './placeSnapshot'
+import {isOpenAt} from '../hooks/useSchedule'
 
 const base = {
   placeId: 'ChIJxyz', name: 'Ristr8to Coffee', lat: 18.8, lng: 98.97,
@@ -40,5 +41,33 @@ describe('toResolvedPlace', () => {
     const r = toResolvedPlace({...base, address: null, types: []})
     expect(r.address).toBeNull()
     expect(r.category).toBe('Other')
+  })
+})
+
+describe('openingHoursToJson', () => {
+  it('round-trips a normal period through isOpenAt', () => {
+    const json = openingHoursToJson({
+      periods: [{open: {day: 1, hour: 9, minute: 0}, close: {day: 1, hour: 17, minute: 0}}],
+      weekdayDescriptions: ['Mon: 9AM-5PM'],
+    })!
+    expect(JSON.parse(json).periods[0].open).toEqual({day: 1, hour: 9, minute: 0})
+    expect(isOpenAt(json, 1, 10 * 60)).toBe(true)   // Mon 10:00 → open
+    expect(isOpenAt(json, 1, 18 * 60)).toBe(false)  // Mon 18:00 → closed
+    expect(isOpenAt(json, 2, 10 * 60)).toBe(false)  // Tue → no period → closed
+  })
+  it('reads getter-exposed points (SDK-like), not just plain literals', () => {
+    const pt = (day: number, hour: number, minute: number) =>
+      ({get day() {return day}, get hour() {return hour}, get minute() {return minute}})
+    const json = openingHoursToJson({periods: [{open: pt(3, 8, 30), close: pt(3, 12, 0)}]})!
+    expect(JSON.parse(json).periods[0].open).toEqual({day: 3, hour: 8, minute: 30})
+    expect(isOpenAt(json, 3, 9 * 60)).toBe(true)
+  })
+  it('returns null for null/undefined hours', () => {
+    expect(openingHoursToJson(null)).toBeNull()
+    expect(openingHoursToJson(undefined)).toBeNull()
+  })
+  it('empty periods → isOpenAt returns null (always-open, no penalty)', () => {
+    const json = openingHoursToJson({periods: [], weekdayDescriptions: ['Open 24 hours']})!
+    expect(isOpenAt(json, 1, 10 * 60)).toBeNull()
   })
 })

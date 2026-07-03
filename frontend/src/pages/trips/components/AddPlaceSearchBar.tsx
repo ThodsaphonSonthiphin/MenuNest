@@ -11,10 +11,11 @@ export interface AddPlaceSearchBarProps {
   error: string | null
   onPick(placeId: string): void
   onOpenLinkFallback(): void
+  onClose(): void
 }
 
 export function AddPlaceSearchBar({
-  query, onQueryChange, suggestions, loading, error, onPick, onOpenLinkFallback,
+  query, onQueryChange, suggestions, loading, error, onPick, onOpenLinkFallback, onClose,
 }: AddPlaceSearchBarProps) {
   return (
     <div className="add-search-wrap">
@@ -31,7 +32,14 @@ export function AddPlaceSearchBar({
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
           วางลิงก์
         </button>
+        <button type="button" className="add-search-close" onClick={onClose} aria-label="ปิดการค้นหา">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12" /><path d="M18 6L6 18" /></svg>
+        </button>
       </div>
+
+      {!query && suggestions.length === 0 && !loading && !error && (
+        <div className="add-search-hint">หรือแตะหมุดบนแผนที่เพื่อเพิ่ม</div>
+      )}
 
       {(suggestions.length > 0 || error) && (
         <div className="add-suggest">
