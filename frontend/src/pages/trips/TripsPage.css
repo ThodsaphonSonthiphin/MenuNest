@@ -164,3 +164,245 @@
   gap: 10px;
   padding-top: 4px;
 }
+
+/* ============================================================
+   Create-trip dialog (CreateTripDialog.tsx) — teal redesign.
+   The Syncfusion Dialog renders in a body-level PORTAL, so it sits OUTSIDE
+   the .trips-page scope and cannot see the --trp-* / --teal tokens. All
+   colours are therefore defined locally on .create-trip-dialog, and
+   Syncfusion's own .sf-* chrome (header, content, inputs) is restyled below.
+   Mirrors the .stop-editor-dialog approach in TripDetailPage.css.
+   ============================================================ */
+.create-trip-dialog {
+  --teal:      #0e8f9e;
+  --teal-deep: #0b7a87;
+  --teal-soft: #e3f5f6;
+  --ink:       #0f172a;
+  --label:     #475569;
+  --muted:     #94a3b8;
+  --border:    #e2e8f0;
+  --surface:   #ffffff;
+  --error:     #b91c1c;
+
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24), 0 4px 14px rgba(15, 23, 42, 0.10);
+  color: var(--ink);
+  /* Override the app's warm Material surface tint — this dialog is white. */
+  background: var(--surface);
+}
+.create-trip-dialog .sf-dlg-header-content,
+.create-trip-dialog .sf-dlg-content { background: var(--surface); }
+
+/* ---- Header: badge + title + subtitle (rendered as a ReactNode) ---- */
+.create-trip-dialog .sf-dlg-header { width: 100%; }
+.create-trip-dialog .sf-dlg-header-content {
+  padding: 22px 24px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.create-trip-dialog .sf-dlg-closeicon-btn { color: var(--muted); }
+
+.create-trip-dialog .ctd-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-right: 30px; /* clear the native close icon */
+}
+.create-trip-dialog .ctd-head-badge {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--teal);
+  color: #fff;
+  font-size: 24px;
+  box-shadow: 0 6px 16px rgba(14, 143, 158, 0.35);
+}
+.create-trip-dialog .ctd-head-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.create-trip-dialog .ctd-head-title {
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  color: var(--ink);
+}
+.create-trip-dialog .ctd-head-sub { font-size: 12.5px; color: var(--muted); }
+
+/* ---- Body ---- */
+.create-trip-dialog .sf-dlg-content { padding: 0 24px 22px; }
+.create-trip-dialog .ctd-form { display: flex; flex-direction: column; gap: 16px; padding-top: 18px; }
+.create-trip-dialog .ctd-field { display: flex; flex-direction: column; gap: 6px; }
+.create-trip-dialog .ctd-label { font-size: 13px; font-weight: 600; color: var(--label); }
+.create-trip-dialog .ctd-req { color: var(--error); margin-left: 2px; }
+.create-trip-dialog .ctd-error { color: var(--error); font-size: 12px; margin: 2px 0 0; }
+
+/* ---- Syncfusion inputs (TextBox + DatePicker) restyled as boxed fields ---- */
+.create-trip-dialog .sf-input-group {
+  border: 1.5px solid var(--border) !important;
+  border-radius: 12px !important;
+  background: var(--surface) !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease;
+}
+.create-trip-dialog .sf-input-group::before,
+.create-trip-dialog .sf-input-group::after { display: none !important; }
+.create-trip-dialog .sf-input-group:focus-within { border-color: var(--teal) !important; }
+.create-trip-dialog .sf-input {
+  padding: 11px 12px !important;
+  font: inherit;
+  color: var(--ink);
+}
+.create-trip-dialog .sf-input::placeholder { color: var(--muted); }
+.create-trip-dialog .sf-date-icon,
+.create-trip-dialog .sf-input-group-icon { color: var(--muted); }
+
+/* ---- Destination: pin lead icon ---- */
+.create-trip-dialog .ctd-pin { position: relative; }
+.create-trip-dialog .ctd-pin-ico {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+  display: flex;
+  font-size: 17px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.create-trip-dialog .ctd-pin .sf-input { padding-left: 36px !important; }
+
+/* ---- Start date + day count: two columns ---- */
+.create-trip-dialog .ctd-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 380px) {
+  .create-trip-dialog .ctd-row2 { grid-template-columns: 1fr; }
+}
+
+/* ---- Day-count stepper (plain buttons: −  N  +) ---- */
+.create-trip-dialog .ctd-stepper {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  height: 46px;
+  border: 1.5px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+.create-trip-dialog .ctd-step {
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--teal-deep);
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.create-trip-dialog .ctd-step:hover:not(:disabled) { background: var(--teal-soft); }
+.create-trip-dialog .ctd-step:disabled { color: #cbd5e1; cursor: default; }
+.create-trip-dialog .ctd-step-val {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+}
+
+/* ---- Live end-date summary pill ---- */
+.create-trip-dialog .ctd-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--teal-soft);
+  color: #334155;
+  font-size: 13px;
+}
+.create-trip-dialog .ctd-summary b { color: var(--teal-deep); font-weight: 700; }
+.create-trip-dialog .ctd-summary-ico { display: flex; font-size: 16px; color: var(--teal); }
+
+/* ---- Travel-mode tiles ---- */
+.create-trip-dialog .ctd-modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.create-trip-dialog .ctd-mode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 14px 6px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: #64748b;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+.create-trip-dialog .ctd-mode:hover { border-color: var(--teal); background: var(--teal-soft); }
+.create-trip-dialog .ctd-mode.active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal-deep);
+  box-shadow: inset 0 0 0 1px var(--teal);
+}
+.create-trip-dialog .ctd-mode-ico { font-size: 25px; line-height: 1; color: var(--teal); }
+.create-trip-dialog .ctd-mode-lab { font-size: 13px; font-weight: 600; }
+
+/* ---- Footer actions ---- */
+.create-trip-dialog .ctd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.create-trip-dialog .ctd-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 12px;
+  padding: 11px 20px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+.create-trip-dialog .ctd-btn-ghost {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--label);
+}
+.create-trip-dialog .ctd-btn-ghost:hover { border-color: #cbd5e1; background: #f8fafc; }
+.create-trip-dialog .ctd-btn-primary {
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(14, 143, 158, 0.38);
+}
+.create-trip-dialog .ctd-btn-primary:hover:not(:disabled) { background: #13a3b4; }
+.create-trip-dialog .ctd-btn-primary:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
+
+.create-trip-dialog .ctd-step:focus-visible,
+.create-trip-dialog .ctd-mode:focus-visible,
+.create-trip-dialog .ctd-btn:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}

@@ -61,6 +61,7 @@ all pages, all features — no exceptions.
 | Autocomplete / dropdown | `@syncfusion/react-dropdowns` (Pure React) | `DropDownList`, `ComboBox`, `AutoComplete` |
 | Buttons / Switch / Chip | `@syncfusion/react-buttons` (Pure React) | |
 | Inputs (Textbox, Numeric, Form) | `@syncfusion/react-inputs` (Pure React) | |
+| Icons (inline or on a control) | `@syncfusion/react-icons` (Pure React) | SVG components, e.g. `<TrashIcon/>`, `<PlusIcon/>`. **Never** emoji / raw unicode glyphs — see the Icons rule below. |
 | **QR Code / Barcode** | `@syncfusion/ej2-react-barcode-generator` (**ej2 fallback** — Pure React not yet available) | `QRCodeGeneratorComponent` for QR codes. See [docs](https://ej2.syncfusion.com/react/documentation/barcode/qrcodegenerator). |
 
 ### Pure React component conventions (different from legacy)
@@ -99,6 +100,52 @@ own `Dialog` + RTK Query.
 
 **Custom HTML stays for layout only.** `<section>`, `<header>`, the page CSS
 grid — fine. Never re-implement table/dialog/dropdown/QR code primitives.
+
+### Icons — Syncfusion icons, never emoji
+
+**Icons in the UI MUST be Syncfusion icons, never emoji or raw unicode
+glyphs.** Do not drop `⚠`, `⇄`, `✎`, `🗑`, `📷`, `💊`, `📅`, `🔍`, etc. into
+JSX to stand in for an icon. Emoji render differently on every OS/font, don't
+inherit theme color or size, and read poorly to assistive tech. Use the Pure
+React SVG icon set **`@syncfusion/react-icons`** instead.
+
+```tsx
+import { WarningIcon, PlusIcon } from '@syncfusion/react-icons'
+import { Button } from '@syncfusion/react-buttons'
+import { Position } from '@syncfusion/react-base'
+
+// Standalone — sizes/colours via props (color takes any CSS colour, incl. tokens)
+<WarningIcon width={20} height={20} color="var(--sf-color-error)" />
+
+// On a control — react-buttons Button takes `icon?: React.ReactNode`
+<Button icon={<PlusIcon />} iconPosition={Position.Left}>เพิ่ม</Button>
+```
+
+- **Naming:** the kebab-case icon file maps to a PascalCase export with an
+  `Icon` suffix — `trash` → `TrashIcon`, `edit` → `EditIcon`, `arrow-right` →
+  `ArrowRightIcon`. Browse the ~500 names in
+  `node_modules/@syncfusion/react-icons/src/icons/` or the gallery at
+  <https://react.syncfusion.com/react-ui/appearance/icons>.
+- **Declare the dependency.** `@syncfusion/react-icons` currently resolves only
+  as a transitive dep of the other `react-*` packages. Add it to
+  `frontend/package.json` explicitly so it isn't a hoist accident.
+- **Do NOT use the legacy ej2 `e-icons` font** (`className="e-icons e-…"`) for
+  new UI — its stylesheet isn't imported. Stay on Pure React
+  `@syncfusion/react-icons`.
+- **Component-internal icons are automatic.** The clock in a TimePicker,
+  chevrons in dropdowns, etc. come from each package's `styles/material.css` —
+  never author those; only tint them via CSS if needed (see `.sf-time-icon` in
+  the trips styles).
+
+> **Exception — emoji as user *data* is allowed.** The Budget module stores a
+> user-chosen category `emoji` (the envelope emoji picker). That's content the
+> user typed, not UI chrome. This rule bans emoji used as *icons / affordances
+> in our own UI* — it does not touch emoji stored or displayed as user data.
+
+> Existing code predates this rule and still uses emoji as icons in several
+> places (Budget envelope actions, Health / Family sections, some Trips
+> controls). Migrate opportunistically when you touch those files; new code has
+> no excuse.
 
 ## 3. Forms — react-hook-form, per-field validation
 
