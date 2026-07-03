@@ -60,9 +60,13 @@ the glossary wins until the glossary is deliberately changed.
 - **Smart Schedule** — the per-day itinerary view that cascades arrival/leave times
   from the day start through **Dwell** + **Leg** travel time, and flags each Stop
   against its best-time window and opening hours (see ADR-008).
-- **Capture** — bringing a Place into a Trip from Google Maps, resolved server-side
-  (ADR-007). MVP supports **pasting a link** only; share-from-Maps (PWA share
-  target) and the browser bookmarklet are Phase 2.
+- **Capture** — bringing a Place into a Trip from Google Maps. The MVP-primary paths
+  are **live search** (type a name → Google Places autocomplete suggestions → pick one)
+  and **map-tap** (tap a place on the in-app map), both handled client-side (ADR-014,
+  ADR-015). **Pasting a link** is kept as a hidden fallback, resolved server-side
+  (ADR-007). Every path ends the same way: a Google `place_id` + snapshot → preview →
+  category → save. Share-from-Maps (PWA share target) and the browser bookmarklet are
+  Phase 2.
 - **Navigate hand-off** — opening a day's route or a single **Stop** in the external
   **Google Maps** app via a client-side deep link (Maps URLs), for real turn-by-turn
   navigation. Distinct from the in-app **map** (which only displays); the hand-off

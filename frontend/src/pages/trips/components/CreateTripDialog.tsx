@@ -1,14 +1,22 @@
 // frontend/src/pages/trips/components/CreateTripDialog.tsx
-import {useState} from 'react'
-import {Controller, useForm} from 'react-hook-form'
+import {useMemo, useState, type ReactNode} from 'react'
+import {Controller, useForm, useWatch} from 'react-hook-form'
 import {Dialog} from '@syncfusion/react-popups'
-import {TextBox, NumericTextBox} from '@syncfusion/react-inputs'
-import {DropDownList} from '@syncfusion/react-dropdowns'
+import {TextBox} from '@syncfusion/react-inputs'
 import {DatePicker} from '@syncfusion/react-calendars'
 import type {DatePickerChangeEvent} from '@syncfusion/react-calendars'
-import {Button, Color, Variant} from '@syncfusion/react-buttons'
 import {useCreateTripMutation, type TravelMode} from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {
+  ArrowRightIcon,
+  CarIcon,
+  MapPinIcon,
+  MinusIcon,
+  PlusIcon,
+  SuitcaseIcon,
+  TransitIcon,
+  WalkIcon,
+} from './TripFormIcons'
 
 interface FormValues {
   name: string
@@ -18,13 +26,18 @@ interface FormValues {
   defaultTravelMode: TravelMode
 }
 
-const MODES: {label: string; value: TravelMode}[] = [
-  {label: 'รถยนต์', value: 'Drive'},
-  {label: 'เดิน', value: 'Walk'},
-  {label: 'ขนส่งสาธารณะ', value: 'Transit'},
+// The backend TravelMode enum has exactly these three values (Drive/Walk/Transit,
+// see the trip-planner design spec → Routes API travelMode). Rendered as tiles.
+const MODES: {label: string; value: TravelMode; icon: ReactNode}[] = [
+  {label: 'รถยนต์', value: 'Drive', icon: <CarIcon />},
+  {label: 'ขนส่งสาธารณะ', value: 'Transit', icon: <TransitIcon />},
+  {label: 'เดิน', value: 'Walk', icon: <WalkIcon />},
 ]
 
-/** Convert a "yyyy-MM-dd" string to a Date object (noon UTC to avoid TZ shift). */
+const MIN_DAYS = 1
+const MAX_DAYS = 60
+
+/** Convert a "yyyy-MM-dd" string to a Date object (local midnight). */
 function strToDate(s: string): Date | null {
   if (!s) return null
   const [y, m, d] = s.split('-').map(Number)
@@ -38,6 +51,11 @@ function dateToStr(d: Date | null): string {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+/** Thai Buddhist-era long date, e.g. "5 ก.ค. 2569" (matches the rest of the app). */
+function thaiDate(d: Date): string {
+  return d.toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: 'numeric'})
 }
 
 export function CreateTripDialog({
@@ -60,6 +78,16 @@ export function CreateTripDialog({
   const [createTrip, {isLoading}] = useCreateTripMutation()
   const [serverError, setServerError] = useState<string | null>(null)
 
+  // Live end-date summary — start + (dayCount − 1) days, inclusive.
+  const [startDate, dayCount] = useWatch({control, name: ['startDate', 'dayCount']})
+  const endLabel = useMemo(() => {
+    const s = strToDate(startDate)
+    if (!s || !dayCount || dayCount < 1) return null
+    const end = new Date(s)
+    end.setDate(end.getDate() + (dayCount - 1))
+    return thaiDate(end)
+  }, [startDate, dayCount])
+
   const submit = handleSubmit(async (v) => {
     setServerError(null)
     try {
@@ -76,19 +104,32 @@ export function CreateTripDialog({
     }
   })
 
+  const header = (
+    <div className="ctd-head">
+      <span className="ctd-head-badge">
+        <SuitcaseIcon />
+      </span>
+      <div className="ctd-head-text">
+        <span className="ctd-head-title">สร้างทริปใหม่</span>
+        <span className="ctd-head-sub">วางแผนการเดินทางครั้งใหม่ของคุณ</span>
+      </div>
+    </div>
+  )
+
   return (
     <Dialog
       open
       onClose={onClose}
       modal
-      header="สร้างทริปใหม่"
-      style={{width: '440px'}}
+      className="create-trip-dialog"
+      header={header}
+      style={{width: 'min(460px, calc(100vw - 24px))'}}
     >
-      <form onSubmit={submit} noValidate className="trip-form">
-
-        <div className="trip-form-field">
-          <label className="trip-form-label">
-            ชื่อทริป <span className="trip-field-required">*</span>
+      <form onSubmit={submit} noValidate className="ctd-form">
+        {/* Trip name */}
+        <div className="ctd-field">
+          <label className="ctd-label">
+            ชื่อทริป <span className="ctd-req">*</span>
           </label>
           <Controller
             control={control}
@@ -105,115 +146,151 @@ export function CreateTripDialog({
                   onChange={e => field.onChange(e.value ?? '')}
                 />
                 {fieldState.error && (
-                  <p className="trips-field-error">{fieldState.error.message}</p>
+                  <p className="ctd-error">{fieldState.error.message}</p>
                 )}
               </>
             )}
           />
         </div>
 
-        <div className="trip-form-field">
-          <label className="trip-form-label">ปลายทาง</label>
+        {/* Destination — pin lead icon */}
+        <div className="ctd-field">
+          <label className="ctd-label">ปลายทาง</label>
           <Controller
             control={control}
             name="destination"
             render={({field}) => (
-              <TextBox
-                value={field.value}
-                placeholder="Chiang Mai"
-                onChange={e => field.onChange(e.value ?? '')}
-              />
-            )}
-          />
-        </div>
-
-        <div className="trip-form-field">
-          <label className="trip-form-label">
-            วันเริ่ม <span className="trip-field-required">*</span>
-          </label>
-          <Controller
-            control={control}
-            name="startDate"
-            rules={{required: 'เลือกวันเริ่ม'}}
-            render={({field, fieldState}) => (
-              <>
-                {/* DatePicker.value is Date|null; onChange fires DatePickerChangeEvent with value: Date|null */}
-                <DatePicker
-                  value={strToDate(field.value)}
-                  format="yyyy-MM-dd"
-                  onChange={(e: DatePickerChangeEvent) =>
-                    field.onChange(dateToStr(e.value))
-                  }
-                />
-                {fieldState.error && (
-                  <p className="trips-field-error">{fieldState.error.message}</p>
-                )}
-              </>
-            )}
-          />
-        </div>
-
-        <div className="trip-form-field">
-          <label className="trip-form-label">
-            จำนวนวัน <span className="trip-field-required">*</span>
-          </label>
-          <Controller
-            control={control}
-            name="dayCount"
-            rules={{required: 'กรุณากรอกจำนวนวัน', min: {value: 1, message: 'ต้องมากกว่า 0'}, max: {value: 60, message: 'ไม่เกิน 60 วัน'}}}
-            render={({field, fieldState}) => (
-              <>
-                <NumericTextBox
+              <div className="ctd-pin">
+                <span className="ctd-pin-ico">
+                  <MapPinIcon />
+                </span>
+                <TextBox
                   value={field.value}
-                  min={1}
-                  max={60}
-                  onChange={e => field.onChange((e.value as number | null) ?? 1)}
+                  placeholder="Chiang Mai"
+                  onChange={e => field.onChange(e.value ?? '')}
                 />
-                {fieldState.error && (
-                  <p className="trips-field-error">{fieldState.error.message}</p>
-                )}
-              </>
+              </div>
             )}
           />
         </div>
 
-        <div className="trip-form-field">
-          <label className="trip-form-label">การเดินทางหลัก</label>
+        {/* Start date + day count — two columns */}
+        <div className="ctd-row2">
+          <div className="ctd-field">
+            <label className="ctd-label">
+              วันเริ่ม <span className="ctd-req">*</span>
+            </label>
+            <Controller
+              control={control}
+              name="startDate"
+              rules={{required: 'เลือกวันเริ่ม'}}
+              render={({field, fieldState}) => (
+                <>
+                  <DatePicker
+                    value={strToDate(field.value)}
+                    format="dd MMM yyyy"
+                    onChange={(e: DatePickerChangeEvent) =>
+                      field.onChange(dateToStr(e.value))
+                    }
+                  />
+                  {fieldState.error && (
+                    <p className="ctd-error">{fieldState.error.message}</p>
+                  )}
+                </>
+              )}
+            />
+          </div>
+
+          <div className="ctd-field">
+            <label className="ctd-label">
+              จำนวนวัน <span className="ctd-req">*</span>
+            </label>
+            <Controller
+              control={control}
+              name="dayCount"
+              rules={{required: true, min: MIN_DAYS, max: MAX_DAYS}}
+              render={({field}) => (
+                <div className="ctd-stepper">
+                  <button
+                    type="button"
+                    className="ctd-step"
+                    aria-label="ลดจำนวนวัน"
+                    disabled={field.value <= MIN_DAYS}
+                    onClick={() => field.onChange(Math.max(MIN_DAYS, field.value - 1))}
+                  >
+                    <MinusIcon />
+                  </button>
+                  <span className="ctd-step-val" aria-live="polite">
+                    {field.value}
+                  </span>
+                  <button
+                    type="button"
+                    className="ctd-step"
+                    aria-label="เพิ่มจำนวนวัน"
+                    disabled={field.value >= MAX_DAYS}
+                    onClick={() => field.onChange(Math.min(MAX_DAYS, field.value + 1))}
+                  >
+                    <PlusIcon />
+                  </button>
+                </div>
+              )}
+            />
+          </div>
+        </div>
+
+        {/* Live end-date summary */}
+        {endLabel && (
+          <div className="ctd-summary">
+            <span className="ctd-summary-ico">
+              <ArrowRightIcon />
+            </span>
+            <span>
+              สิ้นสุด <b>{endLabel}</b> · รวม <b>{dayCount} วัน</b>
+            </span>
+          </div>
+        )}
+
+        {/* Primary travel mode — tiles */}
+        <div className="ctd-field">
+          <label className="ctd-label">การเดินทางหลัก</label>
           <Controller
             control={control}
             name="defaultTravelMode"
             render={({field}) => (
-              <DropDownList
-                dataSource={MODES}
-                fields={{text: 'label', value: 'value'}}
-                value={field.value}
-                onChange={(e: {value: unknown}) =>
-                  field.onChange((e.value as TravelMode) ?? 'Drive')
-                }
-              />
+              <div className="ctd-modes" role="radiogroup" aria-label="การเดินทางหลัก">
+                {MODES.map(m => (
+                  <button
+                    type="button"
+                    key={m.value}
+                    role="radio"
+                    aria-checked={field.value === m.value}
+                    className={`ctd-mode${field.value === m.value ? ' active' : ''}`}
+                    onClick={() => field.onChange(m.value)}
+                  >
+                    <span className="ctd-mode-ico">{m.icon}</span>
+                    <span className="ctd-mode-lab">{m.label}</span>
+                  </button>
+                ))}
+              </div>
             )}
           />
         </div>
 
-        {serverError && <p className="trips-field-error">{serverError}</p>}
+        {serverError && <p className="ctd-error">{serverError}</p>}
 
-        <div className="trip-form-actions">
-          <Button
-            type="button"
-            variant={Variant.Outlined}
-            color={Color.Secondary}
-            onClick={onClose}
-          >
+        <div className="ctd-actions">
+          <button type="button" className="ctd-btn ctd-btn-ghost" onClick={onClose}>
             ยกเลิก
-          </Button>
-          <Button
-            type="submit"
-            variant={Variant.Filled}
-            color={Color.Primary}
-            disabled={isLoading}
-          >
-            {isLoading ? '…' : 'สร้าง'}
-          </Button>
+          </button>
+          <button type="submit" className="ctd-btn ctd-btn-primary" disabled={isLoading}>
+            {isLoading ? (
+              '…'
+            ) : (
+              <>
+                <PlusIcon /> สร้างทริป
+              </>
+            )}
+          </button>
         </div>
       </form>
     </Dialog>
