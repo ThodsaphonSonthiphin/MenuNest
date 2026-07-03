@@ -1,6 +1,7 @@
 // Pure lookup: Google Places (New) place `types` → MenuNest PlaceCategory.
-// First matching rule wins; unknown/empty → 'Other'. See ADR-016 §4 and the
-// spec's category table. `types` vocabulary: Places API (New) type tables.
+// First matching rule wins; unknown/empty → 'Other'. See
+// docs/adr/016-map-centric-add-place-ux.md (Decision item 4) and the spec's
+// §5.1 category table. `types` vocabulary: Places API (New) type tables.
 import type {PlaceCategory} from '../../../shared/api/api'
 
 // Ordered: earlier entries take precedence when a place carries several types.
