@@ -3,11 +3,10 @@ import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
-import { setActiveTab, setPlacesView, setAddPlaceOpen } from './tripsSlice'
+import { setActiveTab, setPlacesView, setAddMode } from './tripsSlice'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
 import { SegmentedTabs } from './components/SegmentedTabs'
 import { PlaceCard } from './components/PlaceCard'
-import { AddPlaceSheet } from './components/AddPlaceSheet'
 import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
 import { useDayRoute } from './hooks/useDayRoute'
@@ -36,7 +35,7 @@ export function TripDetailPage() {
   const dispatch = useAppDispatch()
   const tab = useAppSelector((s) => s.trips.activeTab)
   const placesView = useAppSelector((s) => s.trips.placesView)
-  const addOpen = useAppSelector((s) => s.trips.addPlaceOpen)
+  const addMode = useAppSelector((s) => s.trips.addMode)
   const bp = useBreakpoint()
 
   const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
@@ -92,7 +91,7 @@ export function TripDetailPage() {
                 <Button
                   color={Color.Primary}
                   variant={Variant.Filled}
-                  onClick={() => dispatch(setAddPlaceOpen(true))}
+                  onClick={() => dispatch(setAddMode(true))}
                 >
                   + เพิ่มสถานที่
                 </Button>
@@ -113,13 +112,6 @@ export function TripDetailPage() {
           )}
 
           {tab === 'itinerary' && <ItineraryTab tripId={tripId} />}
-
-          {addOpen && (
-            <AddPlaceSheet
-              tripId={tripId}
-              onClose={() => dispatch(setAddPlaceOpen(false))}
-            />
-          )}
         </div>
 
         {/* Right column — persistent map. In the itinerary tab it shows the
@@ -130,6 +122,9 @@ export function TripDetailPage() {
             route={tab === 'itinerary' ? dayRoute.route : undefined}
             summaryLabel={dayRoute.dayLabel}
             summaryText={dayRoute.summaryText}
+            addMode={tab === 'places' && addMode}
+            tripId={tripId}
+            onExitAddMode={() => dispatch(setAddMode(false))}
           />
         </div>
         </div>
@@ -172,14 +167,19 @@ export function TripDetailPage() {
             <Button
               color={Color.Primary}
               variant={Variant.Filled}
-              onClick={() => dispatch(setAddPlaceOpen(true))}
+              onClick={() => { dispatch(setPlacesView('map')); dispatch(setAddMode(true)) }}
             >
               + เพิ่มสถานที่
             </Button>
           </div>
 
           {placesView === 'map' ? (
-            <TripMap places={places ?? []} />
+            <TripMap
+              places={places ?? []}
+              addMode={addMode}
+              tripId={tripId}
+              onExitAddMode={() => dispatch(setAddMode(false))}
+            />
           ) : places?.length ? (
             <div className="place-list">
               {places.map((p) => (
@@ -195,13 +195,6 @@ export function TripDetailPage() {
       )}
 
       {tab === 'itinerary' && <ItineraryTab tripId={tripId} />}
-
-      {addOpen && (
-        <AddPlaceSheet
-          tripId={tripId}
-          onClose={() => dispatch(setAddPlaceOpen(false))}
-        />
-      )}
     </section>
   )
 }
