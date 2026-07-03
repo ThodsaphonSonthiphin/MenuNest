@@ -1,0 +1,86 @@
+- generic [active] [ref=e1]:
+  - heading "เวลาเริ่มวัน — แตะค่าเพื่อแก้ (inline TimePicker)" [level=1] [ref=e2]
+  - paragraph [ref=e3]: ADR-011 (แตะค่าในแถบสรุป) + ADR-012 (บันทึกทันทีที่เลือก). โทนสี/แถบตรงกับ trips-tokens.css จริง
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "A · ปกติ (at rest)" [level=2] [ref=e6]
+      - generic [ref=e7]:
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - text: เริ่ม
+            - generic [ref=e10] [cursor=pointer]:
+              - generic [ref=e11]: 🕘
+              - generic [ref=e12]: 09:00
+          - generic [ref=e13]:
+            - text: เสร็จ
+            - generic [ref=e14]: 11:41
+          - generic [ref=e15]:
+            - text: เดินทางรวม
+            - generic [ref=e16]: 11 น.
+        - generic [ref=e17]:
+          - generic [ref=e18]:
+            - generic [ref=e19]: 09:00
+            - generic [ref=e20]: →10:00
+          - generic [ref=e22]: บ้านไร่ กู๊ดวิว คาเฟ่&รีสอร์ท
+        - paragraph [ref=e23]: เฉพาะค่า “เริ่ม” มีกรอบจาง + ไอคอน 🕘 → บอกว่าแตะได้ ส่วน “เสร็จ/เดินทางรวม” ยังเป็นข้อความล้วน
+    - generic [ref=e24]:
+      - heading "B · แตะแล้ว — TimePicker เปิด" [level=2] [ref=e25]
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - text: เริ่ม
+            - generic [ref=e29]:
+              - generic [ref=e30] [cursor=pointer]:
+                - generic [ref=e31]: 🕘
+                - generic [ref=e32]: 09:00
+              - generic [ref=e33]:
+                - generic [ref=e34] [cursor=pointer]: 08:15
+                - generic [ref=e35] [cursor=pointer]: 08:30
+                - generic [ref=e36] [cursor=pointer]: 08:45
+                - generic [ref=e37] [cursor=pointer]: 09:00
+                - generic [ref=e38] [cursor=pointer]: 09:15
+                - generic [ref=e39] [cursor=pointer]: 09:30
+                - generic [ref=e40] [cursor=pointer]: 09:45
+          - generic [ref=e41]:
+            - text: เสร็จ
+            - generic [ref=e42]: 11:41
+          - generic [ref=e43]:
+            - text: เดินทางรวม
+            - generic [ref=e44]: 11 น.
+        - paragraph [ref=e45]: TimePicker ของ Syncfusion (format HH:mm, step 15) — ตัวเดียวกับที่ BestTimeBar ใช้
+    - generic [ref=e46]:
+      - heading "C · เลือก 08:00 → บันทึก + ตารางเลื่อน" [level=2] [ref=e47]
+      - generic [ref=e48]:
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - text: เริ่ม
+            - generic [ref=e51] [cursor=pointer]:
+              - generic [ref=e52]: 🕘
+              - generic [ref=e53]: 08:00
+          - generic [ref=e54]: กำลังบันทึก…
+          - generic [ref=e56]:
+            - text: เสร็จ
+            - generic [ref=e57]: 10:41
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - generic [ref=e60]: 08:00
+            - generic [ref=e61]: →09:00
+          - generic [ref=e63]: บ้านไร่ กู๊ดวิว คาเฟ่&รีสอร์ท
+        - paragraph [ref=e64]: บันทึกทันที → TripItinerary invalidate → ทุก stop เลื่อนตาม (09:00→08:00). เห็นผลทันทีคือ feedback ว่าบันทึกสำเร็จ
+    - generic [ref=e65]:
+      - heading "D · บันทึกล้มเหลว — revert + error" [level=2] [ref=e66]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - text: เริ่ม
+            - generic [ref=e70] [cursor=pointer]:
+              - generic [ref=e71]: 🕘
+              - generic [ref=e72]: 09:00
+          - generic [ref=e73]:
+            - text: เสร็จ
+            - generic [ref=e74]: 11:41
+          - generic [ref=e75]:
+            - text: เดินทางรวม
+            - generic [ref=e76]: 11 น.
+        - paragraph [ref=e77]: บันทึกเวลาเริ่มไม่สำเร็จ ลองอีกครั้ง
+        - paragraph [ref=e78]: ค่าที่แสดงถอยกลับเป็นค่าเดิม (09:00) และโชว์บรรทัด .trips-field-error เดิมของแท็บ

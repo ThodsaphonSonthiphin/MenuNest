@@ -1,0 +1,62 @@
+- dialog "แก้ไขจุดแวะ" [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "บ้านไร่ กู๊ดวิว คาเฟ่&รีสอร์ท" [level=2] [ref=e6]
+      - button "ปิด" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+    - generic [ref=e10]:
+      - generic [ref=e11]: คาเฟ่
+      - generic [ref=e13]: วัน 1 · จุดที่ 1
+    - generic [ref=e14]:
+      - generic [ref=e15]:
+        - generic [ref=e16]: 🕐
+        - text: ช่วงเวลาที่ดีที่สุด
+        - generic [ref=e17]: ใส่เอง
+      - paragraph [ref=e18]: ยังไม่มีข้อมูลความหนาแน่นของคนจาก Places API — กำหนดช่วงที่อยากมาเองได้
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: เริ่ม
+          - generic [ref=e22]: 08:00
+          - img [ref=e23]
+        - generic [ref=e26]: –
+        - generic [ref=e27]:
+          - generic [ref=e28]: สิ้นสุด
+          - generic [ref=e29]: 10:00
+          - img [ref=e30]
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]: ⏱️
+        - text: จะอยู่ที่นี่กี่นาที
+      - generic [ref=e36]:
+        - generic [ref=e37]:
+          - button "ลด" [ref=e38] [cursor=pointer]: −
+          - generic [ref=e39]:
+            - generic [ref=e40]: "120"
+            - generic [ref=e41]: นาที
+          - button "เพิ่ม" [ref=e42] [cursor=pointer]: +
+        - generic [ref=e43]:
+          - button "30" [ref=e44] [cursor=pointer]
+          - button "60" [ref=e45] [cursor=pointer]
+          - button "90" [ref=e46] [cursor=pointer]
+          - button "120" [ref=e47] [cursor=pointer]
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]: 🚋
+        - text: การเดินทางมาที่นี่
+      - generic [ref=e51] [cursor=pointer]:
+        - generic [ref=e52]: 🚗 รถยนต์
+        - img [ref=e53]
+      - paragraph [ref=e55]: 14 นาที · 7.0 กม จากจุดก่อนหน้า · คำนวณอัตโนมัติ
+    - generic [ref=e56]:
+      - generic [ref=e57]:
+        - generic [ref=e58]: ถึง
+        - generic [ref=e59]: 09:00
+      - generic [ref=e60]: →
+      - generic [ref=e61]:
+        - generic [ref=e62]: ออก · อัตโนมัติ
+        - generic [ref=e63]: 11:00
+    - generic [ref=e64]:
+      - button "ลบจุดนี้" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+        - text: ลบจุดนี้
+      - button "บันทึก" [ref=e68] [cursor=pointer]
