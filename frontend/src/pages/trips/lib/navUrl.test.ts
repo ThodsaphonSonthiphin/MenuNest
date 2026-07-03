@@ -1,6 +1,7 @@
 import {describe, it, expect} from 'vitest'
 import {travelModeToGmaps, buildStopNavUrl, buildDayNavUrl} from './navUrl'
 import type {NavPoint} from './navUrl'
+import type {TravelMode} from '../../../shared/api/api'
 
 // Helpers to read a built URL without asserting brittle encoded strings.
 const q = (url: string) => new URL(url).searchParams
@@ -104,5 +105,17 @@ describe('buildDayNavUrl', () => {
     expect(q(r.url).has('waypoint_place_ids')).toBe(false)
     expect(q(r.url).has('destination_place_id')).toBe(false)
     expect(r.url.length).toBeLessThan(2048)
+  })
+})
+
+describe('travelmode omission (defensive, design §4)', () => {
+  it('omits travelmode for an out-of-union mode in both builders', () => {
+    const stop = buildStopNavUrl({lat: 1, lng: 1, googlePlaceId: null}, 'Bogus' as unknown as TravelMode)!
+    expect(q(stop).has('travelmode')).toBe(false)
+    const day = buildDayNavUrl([pt(1, 1), pt(2, 2)], 3, 'Bogus' as unknown as TravelMode)!
+    expect(q(day.url).has('travelmode')).toBe(false)
+  })
+  it('encodes Transit through a builder end-to-end', () => {
+    expect(q(buildStopNavUrl({lat: 1, lng: 1, googlePlaceId: null}, 'Transit')!).get('travelmode')).toBe('transit')
   })
 })
