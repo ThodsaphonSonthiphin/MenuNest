@@ -14,13 +14,14 @@ interface TripsState {
   activeStopId: string | null
   createTripOpen: boolean
   addPlaceOpen: boolean
+  addMode: boolean
   stopEditorStopId: string | null
 }
 
 const initialState: TripsState = {
   activeDayId: null, activeTab: 'itinerary', placesView: 'map',
   placeCategoryFilter: 'all', activeStopId: null,
-  createTripOpen: false, addPlaceOpen: false, stopEditorStopId: null,
+  createTripOpen: false, addPlaceOpen: false, addMode: false, stopEditorStopId: null,
 }
 
 const tripsSlice = createSlice({
@@ -34,12 +35,13 @@ const tripsSlice = createSlice({
     setActiveStop(s, a: PayloadAction<string | null>) { s.activeStopId = a.payload },
     setCreateTripOpen(s, a: PayloadAction<boolean>) { s.createTripOpen = a.payload },
     setAddPlaceOpen(s, a: PayloadAction<boolean>) { s.addPlaceOpen = a.payload },
+    setAddMode(s, a: PayloadAction<boolean>) { s.addMode = a.payload },
     setStopEditor(s, a: PayloadAction<string | null>) { s.stopEditorStopId = a.payload },
   },
 })
 
 export const {
   setActiveDay, setActiveTab, setPlacesView, setPlaceCategoryFilter,
-  setActiveStop, setCreateTripOpen, setAddPlaceOpen, setStopEditor,
+  setActiveStop, setCreateTripOpen, setAddPlaceOpen, setAddMode, setStopEditor,
 } = tripsSlice.actions
 export default tripsSlice.reducer
