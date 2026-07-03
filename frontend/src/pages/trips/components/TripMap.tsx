@@ -1,10 +1,11 @@
 // frontend/src/pages/trips/components/TripMap.tsx
 // Google Maps: Syncfusion has no interactive street map (frontend-guidelines §2 allowed exception).
-import {useEffect, useMemo} from 'react'
+import {useCallback, useEffect, useMemo, useState} from 'react'
 import {APIProvider, Map, AdvancedMarker, Pin, useMap, useMapsLibrary} from '@vis.gl/react-google-maps'
 import type {TripPlaceDto} from '../../../shared/api/api'
 import type {RouteStop} from '../hooks/useDayRoute'
 import {trackGoogleMapsError} from '../../../shared/telemetry/googleMapsTelemetry'
+import {AddPlaceMode} from './AddPlaceMode'
 
 type LatLng = {lat: number; lng: number}
 
@@ -71,11 +72,17 @@ export function TripMap({
   route,
   summaryLabel,
   summaryText,
+  addMode = false,
+  tripId,
+  onExitAddMode,
 }: {
   places: TripPlaceDto[]
   route?: RouteStop[]
   summaryLabel?: string
   summaryText?: string
+  addMode?: boolean
+  tripId?: string
+  onExitAddMode?: () => void
 }) {
   const routeStops = route ?? []
   // `route` is a stable reference from useDayRoute (memoised), so depending on it
@@ -84,6 +91,12 @@ export function TripMap({
     () => (route ?? []).map((r) => ({lat: r.lat, lng: r.lng})),
     [route],
   )
+
+  // The POI place_id most recently tapped on the map (add-mode only). Pushed down
+  // to AddPlaceMode, which resolves it once and clears it via onTapConsumed.
+  const [tappedPlaceId, setTappedPlaceId] = useState<string | null>(null)
+  // Stable callback keeps AddPlaceMode's tap-resolving effect from re-firing.
+  const onTapConsumed = useCallback(() => setTappedPlaceId(null), [])
 
   if (!KEY) {
     return (
@@ -111,6 +124,18 @@ export function TripMap({
           gestureHandling="greedy"
           disableDefaultUI
           internalUsageAttributionIds={['gmp_git_agentskills_v1']}
+          onClick={(ev) => {
+            if (!addMode) return
+            // POI clicks carry a placeId; empty-ground clicks do not (ADR-016).
+            // Grounded: google IconMouseEvent exposes `placeId` + `latLng`, and
+            // event.stop() suppresses the default POI info window; @vis.gl surfaces
+            // these as ev.detail.placeId and ev.stop().
+            const placeId = ev.detail.placeId
+            if (placeId) {
+              ev.stop() // suppress the default Google info window
+              setTappedPlaceId(placeId)
+            }
+          }}
         >
           {routeMode ? (
             <>
@@ -144,6 +169,15 @@ export function TripMap({
                 />
               </AdvancedMarker>
             ))
+          )}
+
+          {addMode && tripId && (
+            <AddPlaceMode
+              tripId={tripId}
+              onExit={() => onExitAddMode?.()}
+              tappedPlaceId={tappedPlaceId}
+              onTapConsumed={onTapConsumed}
+            />
           )}
         </Map>
 
