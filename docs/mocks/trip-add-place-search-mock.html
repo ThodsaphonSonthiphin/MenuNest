@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Add Place — map-centric search + tap (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --teal:      #0e8f9e;
+    --teal-deep: #0b7a87;
+    --teal-soft: #e3f5f6;
+    --ink:       #0f172a;
+    --page:      #f8fafc;
+    --surface:   #fff;
+    --border:    #eef2f6;
+    --muted:     #94a3b8;
+    --good:      #1f9d76;
+    /* category colours (from TripMap.tsx CAT_COLOR) */
+    --c-see:  #1f9d76;
+    --c-eat:  #e2553e;
+    --c-cafe: #b4791f;
+    --c-stay: #6d5ae6;
+    --c-shop: #c2418f;
+    --c-other:#0e8f9e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 18px 60px;
+    font-family: 'Noto Sans Thai', system-ui, sans-serif;
+    color: var(--ink); background: #eaeef2;
+    display: flex; flex-direction: column; align-items: center; gap: 34px;
+  }
+  .caption { max-width: 1080px; width: 100%; }
+  .caption h1 { font-size: 17px; margin: 0 0 4px; }
+  .caption p { margin: 0; font-size: 13px; color: #64748b; line-height: 1.5; }
+  .frame-label {
+    max-width: 1080px; width: 100%;
+    font-size: 12px; font-weight: 700; letter-spacing: .04em;
+    color: var(--teal-deep); text-transform: uppercase;
+    margin: 6px 0 -18px;
+  }
+
+  /* ============ Desktop trip-detail shell ============ */
+  .trip {
+    width: 1080px; max-width: 100%;
+    background: var(--page);
+    border-radius: 18px; overflow: hidden;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, .18);
+    border: 1px solid #dbe2ea;
+  }
+  .topbar {
+    display: flex; align-items: baseline; gap: 14px;
+    background: var(--ink); color: #cbd5e1;
+    padding: 14px 20px;
+  }
+  .topbar .name { display: inline-flex; align-items: center; gap: 8px; color: #fff; font-size: 16px; font-weight: 700; }
+  .topbar .meta { font-size: 12.5px; color: #9fb0c4; }
+  .topbar svg { width: 17px; height: 17px; color: var(--teal); }
+
+  .body { display: grid; grid-template-columns: 380px 1fr; min-height: 560px; }
+
+  /* ---- Left column ---- */
+  .left { padding: 16px; display: flex; flex-direction: column; gap: 14px; border-right: 1px solid #e2e8f0; background: var(--surface); }
+  .segtabs { display: flex; gap: 6px; }
+  .seg { border: 1px solid var(--border); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+  .seg.active { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .toolbar { display: flex; }
+  .btn-add {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--teal); color: #fff; border: 0; border-radius: 10px;
+    padding: 9px 15px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(14,143,158,.4);
+  }
+  .btn-add.armed { background: var(--teal-deep); box-shadow: inset 0 0 0 2px rgba(255,255,255,.35), 0 2px 8px rgba(14,143,158,.4); }
+  .btn-add svg { width: 15px; height: 15px; }
+  .place-list { display: flex; flex-direction: column; gap: 8px; }
+  .pcard { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .pcard .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .pcard .pname { font-size: 13.5px; font-weight: 600; }
+  .pcard .psub { font-size: 11.5px; color: var(--muted); }
+  .pcard.fresh { border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+
+  /* ---- Right column: the MAP ---- */
+  .map {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(90% 70% at 25% 20%, #dcede3 0%, transparent 60%),
+      linear-gradient(135deg, #e8f0ea 0%, #dce9e2 45%, #d3e4dd 100%);
+    background-color: #dfeae3;
+  }
+  /* faux streets */
+  .map::before, .map::after {
+    content: ""; position: absolute; background: #eef4f0; opacity: .9;
+  }
+  .map::before { left: 0; right: 0; top: 46%; height: 26px; transform: rotate(-4deg); box-shadow: 0 120px 0 #eef4f0, 0 -160px 0 #eef4f0; }
+  .map::after  { top: 0; bottom: 0; left: 58%; width: 22px; transform: rotate(3deg); box-shadow: -260px 0 0 #eef4f0; }
+
+  /* faux POI markers */
+  .poi { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; color: #475569; font-weight: 600; z-index: 1; }
+  .poi .pin { width: 14px; height: 14px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 2px 5px rgba(0,0,0,.25); border: 2px solid #fff; }
+  .poi.p1 { top: 30%; left: 22%; } .poi.p1 .pin { background: var(--c-see); }
+  .poi.p2 { top: 62%; left: 38%; } .poi.p2 .pin { background: var(--c-eat); }
+  .poi.p3 { top: 40%; left: 70%; } .poi.p3 .pin { background: var(--c-cafe); }
+
+  /* floating search bar on the map */
+  .search-wrap { position: absolute; top: 16px; left: 16px; right: 16px; z-index: 6; }
+  .search-box {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff; border-radius: 12px; padding: 11px 14px;
+    box-shadow: 0 6px 20px rgba(15,23,42,.18);
+  }
+  .search-box svg.mag { width: 18px; height: 18px; color: var(--teal); flex: none; }
+  .search-box input {
+    flex: 1; border: 0; outline: 0; font: inherit; font-size: 14.5px; color: var(--ink); background: transparent;
+  }
+  .search-box .caret { width: 1.5px; height: 18px; background: var(--teal); animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .search-box .link-fallback {
+    display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent;
+    color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 8px; white-space: nowrap;
+  }
+  .search-box .link-fallback:hover { background: #f1f5f9; color: var(--teal-deep); }
+  .search-box .link-fallback svg { width: 14px; height: 14px; }
+
+  .suggest { margin-top: 6px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15,23,42,.18); }
+  .sug { display: flex; align-items: center; gap: 11px; padding: 11px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; }
+  .sug:last-child { border-bottom: 0; }
+  .sug:hover, .sug.hi { background: var(--teal-soft); }
+  .sug .mkr { width: 16px; height: 16px; color: var(--muted); flex: none; }
+  .sug .txt b { font-size: 14px; font-weight: 600; display: block; }
+  .sug .txt span { font-size: 12px; color: var(--muted); }
+  .sug .bias { margin-left: auto; font-size: 11px; color: var(--good); font-weight: 600; white-space: nowrap; }
+
+  /* temporary selected pin (larger, teal, bouncing halo) */
+  .sel-pin { position: absolute; top: 40%; left: 70%; z-index: 4; transform: translate(-50%, -100%); }
+  .sel-pin .halo { position: absolute; left: 50%; top: 100%; width: 34px; height: 12px; background: rgba(14,143,158,.28); border-radius: 50%; transform: translate(-50%, 2px); filter: blur(1px); }
+  .sel-pin .body { width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--teal); border: 3px solid #fff; box-shadow: 0 6px 16px rgba(14,143,158,.55); }
+
+  /* floating preview card */
+  .preview {
+    position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+    width: min(420px, calc(100% - 40px)); z-index: 7;
+    background: #fff; border-radius: 16px; padding: 16px 18px 15px;
+    box-shadow: 0 14px 40px rgba(15,23,42,.26);
+  }
+  .pv-head { display: flex; align-items: flex-start; gap: 10px; }
+  .pv-title { flex: 1; min-width: 0; }
+  .pv-name { font-size: 17px; font-weight: 700; line-height: 1.2; }
+  .pv-addr { margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+  .pv-close { flex: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .pv-close:hover { background: #f1f5f9; }
+  .pv-close svg { width: 16px; height: 16px; }
+
+  .pv-cat { margin-top: 13px; }
+  .pv-cat-lab { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .pv-cat-lab .auto { background: var(--teal-soft); color: var(--teal-deep); border-radius: 999px; padding: 1px 8px; font-size: 10.5px; }
+  .cat-select {
+    display: inline-flex; align-items: center; gap: 9px; width: 100%;
+    border: 1.5px solid var(--border); border-radius: 11px; padding: 10px 13px; cursor: pointer; background: var(--surface);
+  }
+  .cat-select:hover { border-color: var(--teal); }
+  .cat-select .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .cat-select .label { font-size: 14px; font-weight: 600; }
+  .cat-select .chev { margin-left: auto; width: 16px; height: 16px; color: var(--muted); }
+
+  .pv-foot { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-ghost { flex: none; border: 1.5px solid var(--border); background: #fff; color: #475569; border-radius: 11px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-ghost:hover { background: #f8fafc; }
+  .btn-primary { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; background: var(--teal); color: #fff; border-radius: 11px; padding: 11px 18px; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(14,143,158,.4); }
+  .btn-primary:hover { background: var(--teal-deep); }
+  .btn-primary svg { width: 16px; height: 16px; }
+
+  .hint-pill {
+    position: absolute; left: 16px; bottom: 20px; z-index: 5;
+    background: rgba(15,23,42,.82); color: #e2e8f0; font-size: 11.5px; font-weight: 600;
+    padding: 7px 12px; border-radius: 999px; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .hint-pill svg { width: 14px; height: 14px; color: var(--teal); }
+
+  /* ============ Mobile frame ============ */
+  .phone {
+    width: 360px; background: var(--page); border-radius: 30px; overflow: hidden;
+    border: 8px solid #0f172a; box-shadow: 0 18px 50px rgba(15,23,42,.28);
+  }
+  .phone .m-map { position: relative; height: 520px; overflow: hidden;
+    background: linear-gradient(135deg, #e8f0ea 0%, #dce9e2 45%, #d3e4dd 100%); background-color: #dfeae3; }
+  .phone .search-wrap { top: 12px; left: 12px; right: 12px; }
+  .phone .sheet {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 7;
+    background: #fff; border-radius: 20px 20px 0 0; padding: 8px 18px 20px;
+    box-shadow: 0 -10px 30px rgba(15,23,42,.2);
+  }
+  .phone .grip { width: 40px; height: 4px; border-radius: 999px; background: #cbd5e1; margin: 6px auto 12px; }
+  .phone .sel-pin { top: 44%; left: 50%; }
+</style>
+</head>
+<body>
+
+  <div class="caption">
+    <h1>เพิ่มสถานที่ — ค้นหาแบบ Google บนแผนที่ (map-centric)</h1>
+    <p>กด “+ เพิ่มสถานที่” → แผนที่เข้าโหมดเพิ่ม: พิมพ์ในช่องค้นที่ลอยบนแผนที่แล้วขึ้น suggestion สด (bias ตามพื้นที่ที่มองอยู่) <b>หรือ</b> แตะหมุด POI บนแผนที่ตรงๆ → ปักหมุดชั่วคราว + การ์ด preview (ชื่อ · หมวดเดาอัตโนมัติ · เพิ่ม). วางลิงก์ = ปุ่มสำรองในช่องค้น.</p>
+  </div>
+
+  <!-- ============ FRAME A — typing, live suggestions ============ -->
+  <div class="frame-label">A · พิมพ์แล้วขึ้น suggestion สด</div>
+  <div class="trip">
+    <div class="topbar">
+      <span class="name">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-5.5 2.5V6L9 3.5m0 16.5l6 2.5m-6-2.5V3.5m6 19l5.5-2.5V2L15 4.5m0 18V4.5m0 0L9 3.5"/></svg>
+        เที่ยวเชียงใหม่ 3 วัน
+      </span>
+      <span class="meta">เชียงใหม่ · 14–16 พ.ย. · 3 วัน</span>
+    </div>
+    <div class="body">
+      <div class="left">
+        <div class="segtabs"><span class="seg active">คลังสถานที่</span><span class="seg">แผนเที่ยว</span></div>
+        <div class="toolbar"><button class="btn-add armed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> กำลังเพิ่ม…</button></div>
+        <div class="place-list">
+          <div class="pcard"><span class="dot" style="background:var(--c-stay)"></span><span><span class="pname">โรงแรมนิมมาน</span><br><span class="psub">ถ.นิมมานเหมินท์</span></span></div>
+          <div class="pcard"><span class="dot" style="background:var(--c-see)"></span><span><span class="pname">วัดพระธาตุดอยสุเทพ</span><br><span class="psub">ดอยสุเทพ</span></span></div>
+        </div>
+      </div>
+
+      <div class="map">
+        <div class="poi p1"><span class="pin"></span>ดอยสุเทพ</div>
+        <div class="poi p2"><span class="pin"></span>ตลาดวโรรส</div>
+        <div class="poi p3"><span class="pin"></span>Ristr8to</div>
+
+        <div class="search-wrap">
+          <div class="search-box">
+            <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input value="ร้านกาแฟ นิมมาน" readonly /><span class="caret"></span>
+            <button class="link-fallback">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+              วางลิงก์
+            </button>
+          </div>
+          <div class="suggest">
+            <div class="sug hi"><svg class="mkr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span class="txt"><b>Ristr8to Coffee</b><span>ถ.นิมมานเหมินท์ ซอย 3, เชียงใหม่</span></span><span class="bias">ใกล้ที่มองอยู่</span></div>
+            <div class="sug"><svg class="mkr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span class="txt"><b>Graph Cafe</b><span>ซอยนิมมานเหมินท์ 6, เชียงใหม่</span></span></div>
+            <div class="sug"><svg class="mkr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.3-7-11a7 7 0 0 1 14 0c0 4.7-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span class="txt"><b>Nimman Coffee Roasters</b><span>ถ.นิมมานเหมินท์, เชียงใหม่</span></span></div>
+          </div>
+        </div>
+
+        <div class="hint-pill">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          หรือแตะหมุดบนแผนที่เพื่อเพิ่ม
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ FRAME B — selected → preview card ============ -->
+  <div class="frame-label">B · เลือกแล้ว → ปักหมุด + การ์ด preview (หมวดเดาอัตโนมัติ)</div>
+  <div class="trip">
+    <div class="topbar">
+      <span class="name">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20l-5.5 2.5V6L9 3.5m0 16.5l6 2.5m-6-2.5V3.5m6 19l5.5-2.5V2L15 4.5m0 18V4.5m0 0L9 3.5"/></svg>
+        เที่ยวเชียงใหม่ 3 วัน
+      </span>
+      <span class="meta">เชียงใหม่ · 14–16 พ.ย. · 3 วัน</span>
+    </div>
+    <div class="body">
+      <div class="left">
+        <div class="segtabs"><span class="seg active">คลังสถานที่</span><span class="seg">แผนเที่ยว</span></div>
+        <div class="toolbar"><button class="btn-add armed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> กำลังเพิ่ม…</button></div>
+        <div class="place-list">
+          <div class="pcard"><span class="dot" style="background:var(--c-stay)"></span><span><span class="pname">โรงแรมนิมมาน</span><br><span class="psub">ถ.นิมมานเหมินท์</span></span></div>
+          <div class="pcard"><span class="dot" style="background:var(--c-see)"></span><span><span class="pname">วัดพระธาตุดอยสุเทพ</span><br><span class="psub">ดอยสุเทพ</span></span></div>
+        </div>
+      </div>
+
+      <div class="map">
+        <div class="poi p1"><span class="pin"></span>ดอยสุเทพ</div>
+        <div class="poi p2"><span class="pin"></span>ตลาดวโรรส</div>
+
+        <div class="search-wrap">
+          <div class="search-box">
+            <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input value="Ristr8to Coffee" readonly />
+            <button class="link-fallback">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+              วางลิงก์
+            </button>
+          </div>
+        </div>
+
+        <div class="sel-pin"><span class="body"></span><span class="halo"></span></div>
+
+        <div class="preview">
+          <div class="pv-head">
+            <div class="pv-title">
+              <div class="pv-name">Ristr8to Coffee</div>
+              <div class="pv-addr">ถ.นิมมานเหมินท์ ซอย 3, ต.สุเทพ, เชียงใหม่ 50200</div>
+            </div>
+            <button class="pv-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="pv-cat">
+            <div class="pv-cat-lab">หมวดหมู่ <span class="auto">เดาจาก Google: คาเฟ่</span></div>
+            <button class="cat-select">
+              <span class="dot" style="background:var(--c-cafe)"></span>
+              <span class="label">คาเฟ่</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+          </div>
+          <div class="pv-foot">
+            <button class="btn-ghost">ยกเลิก</button>
+            <button class="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> เพิ่มลงทริป</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MOBILE ============ -->
+  <div class="frame-label">C · มือถือ — ช่องค้นลอยบนแผนที่ + preview เป็น bottom sheet</div>
+  <div class="phone">
+    <div class="m-map">
+      <div class="poi p1" style="top:26%;left:26%"><span class="pin"></span>ดอยสุเทพ</div>
+      <div class="poi p2" style="top:34%;left:64%"><span class="pin"></span>ตลาด</div>
+
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          <input value="Ristr8to Coffee" readonly />
+          <button class="link-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></button>
+        </div>
+      </div>
+
+      <div class="sel-pin"><span class="body"></span><span class="halo"></span></div>
+
+      <div class="sheet">
+        <div class="grip"></div>
+        <div class="pv-head">
+          <div class="pv-title">
+            <div class="pv-name">Ristr8to Coffee</div>
+            <div class="pv-addr">ถ.นิมมานเหมินท์ ซอย 3, เชียงใหม่</div>
+          </div>
+          <button class="pv-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+        </div>
+        <div class="pv-cat">
+          <div class="pv-cat-lab">หมวดหมู่ <span class="auto">เดาจาก Google: คาเฟ่</span></div>
+          <button class="cat-select">
+            <span class="dot" style="background:var(--c-cafe)"></span>
+            <span class="label">คาเฟ่</span>
+            <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+        </div>
+        <div class="pv-foot">
+          <button class="btn-ghost">ยกเลิก</button>
+          <button class="btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> เพิ่มลงทริป</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
