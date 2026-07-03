@@ -17,6 +17,8 @@ import {ItineraryStopCard} from './ItineraryStopCard'
 import {TravelLeg} from './TravelLeg'
 import {StopEditorDialog} from './StopEditorDialog'
 import {DayStartEditor} from './DayStartEditor'
+import {buildStopNavUrl} from '../lib/navUrl'
+import {appInsights} from '../../../shared/telemetry/appInsights'
 
 function bestLabel(p: TripPlaceDto): string | null {
   if (!p.bestTimeStart || !p.bestTimeEnd) return null
@@ -171,6 +173,7 @@ export function ItineraryTab({tripId}: {tripId: string}) {
       <div className="stop-list">
         {scheduled.map((s, i) => {
           const place = placesById[s.stop.tripPlaceId]
+          const stopNav = place ? buildStopNavUrl(place, s.stop.travelModeToReach) : null
           return (
             <div key={s.stop.id}>
               {i > 0 && s.stop.legToReach && (
@@ -190,6 +193,13 @@ export function ItineraryTab({tripId}: {tripId: string}) {
                   canUp={i > 0}
                   canDown={i < scheduled.length - 1}
                   overnight={s.overnight}
+                  navUrl={stopNav}
+                  onNavigate={() =>
+                    appInsights.trackEvent(
+                      {name: 'TripNavHandoff'},
+                      {scope: 'stop', travelMode: s.stop.travelModeToReach, hasPlaceId: !!place.googlePlaceId},
+                    )
+                  }
                 />
               )}
             </div>

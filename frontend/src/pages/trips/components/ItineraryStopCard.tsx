@@ -2,6 +2,7 @@
 import type {TripPlaceDto} from '../../../shared/api/api'
 import type {StopFlag} from '../hooks/useSchedule'
 import {catEmoji} from '../placeCategory'
+import {NavIcon} from './NavIcon'
 
 export function ItineraryStopCard({
   place,
@@ -16,6 +17,8 @@ export function ItineraryStopCard({
   canUp,
   canDown,
   overnight = false,
+  navUrl,
+  onNavigate,
 }: {
   place: TripPlaceDto
   arrival: string
@@ -29,6 +32,8 @@ export function ItineraryStopCard({
   canUp: boolean
   canDown: boolean
   overnight?: boolean
+  navUrl: string | null
+  onNavigate?: () => void
 }) {
   return (
     <div className={`stop-card${flag === 'amber' ? ' warn' : ''}`}>
@@ -48,6 +53,25 @@ export function ItineraryStopCard({
           )}
         </div>
       </button>
+      {navUrl ? (
+        <a
+          className="stop-nav"
+          href={navUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="นำทาง"
+          onClick={(e) => {
+            e.stopPropagation()
+            onNavigate?.()
+          }}
+        >
+          <NavIcon />
+        </a>
+      ) : (
+        <span className="stop-nav" role="img" aria-label="ไม่มีพิกัดสำหรับนำทาง" aria-disabled="true">
+          <NavIcon />
+        </span>
+      )}
       <div className="stop-reorder">
         <button disabled={!canUp} onClick={onUp} aria-label="ขึ้น">▲</button>
         <button disabled={!canDown} onClick={onDown} aria-label="ลง">▼</button>

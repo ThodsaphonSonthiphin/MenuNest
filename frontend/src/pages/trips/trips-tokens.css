@@ -154,6 +154,26 @@
 .stop-reorder button:hover:not(:disabled) { background: var(--teal-soft); color: var(--teal-deep); }
 .stop-reorder button:disabled { opacity: 0.25; cursor: default; }
 
+/* ── Navigate hand-off — per-Stop icon (ADR-011) ── */
+.stop-nav {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; /* ≥44px touch target */
+  border: 0;
+  border-left: 1px solid var(--border);
+  background: transparent;
+  color: var(--teal);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.stop-nav:hover { background: var(--teal-soft); color: var(--teal-deep); }
+.stop-nav[aria-disabled='true'] { color: #cbd5e1; cursor: default; pointer-events: none; }
+.stop-nav:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: -2px; }
+.stop-nav svg { width: 17px; height: 17px; }
+
 /* ── Chips ── */
 .chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .chip.dwell { background: var(--teal-soft); color: var(--teal-deep); }
