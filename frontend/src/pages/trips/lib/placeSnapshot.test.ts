@@ -56,8 +56,19 @@ describe('openingHoursToJson', () => {
     expect(isOpenAt(json, 2, 10 * 60)).toBe(false)  // Tue → no period → closed
   })
   it('reads getter-exposed points (SDK-like), not just plain literals', () => {
-    const pt = (day: number, hour: number, minute: number) =>
-      ({get day() {return day}, get hour() {return hour}, get minute() {return minute}})
+    // Points whose day/hour/minute are NON-ENUMERABLE getters — like the SDK's
+    // OpeningHoursPoint. JSON.stringify() emits {} for these, so this test only
+    // passes because openingHoursToJson reads the fields explicitly. (Regression
+    // guard: reverting to JSON.stringify(raw) makes this fail.)
+    const pt = (day: number, hour: number, minute: number) => {
+      const o = {}
+      Object.defineProperties(o, {
+        day: {get: () => day},
+        hour: {get: () => hour},
+        minute: {get: () => minute},
+      })
+      return o as {day: number; hour: number; minute: number}
+    }
     const json = openingHoursToJson({periods: [{open: pt(3, 8, 30), close: pt(3, 12, 0)}]})!
     expect(JSON.parse(json).periods[0].open).toEqual({day: 3, hour: 8, minute: 30})
     expect(isOpenAt(json, 3, 9 * 60)).toBe(true)
