@@ -26,7 +26,7 @@ const GMAPS_MODE: Record<TravelMode, 'driving' | 'walking' | 'transit'> = {
   Transit: 'transit',
 }
 
-export function travelModeToGmaps(mode: TravelMode): 'driving' | 'walking' | 'transit' {
+export function travelModeToGmaps(mode: TravelMode): 'driving' | 'walking' | 'transit' | undefined {
   return GMAPS_MODE[mode]
 }
 
@@ -58,7 +58,8 @@ export function buildStopNavUrl(
   if (!isUsable(place)) return null
   const params = new URLSearchParams({api: '1', destination: coord(place)})
   if (place.googlePlaceId) params.set('destination_place_id', place.googlePlaceId)
-  params.set('travelmode', travelModeToGmaps(mode))
+  const gmode = travelModeToGmaps(mode)
+  if (gmode) params.set('travelmode', gmode)
   params.set('dir_action', 'navigate')
   return `${DIR_BASE}?${params.toString()}`
 }
@@ -83,7 +84,8 @@ export function buildDayNavUrl(points: NavPoint[], cap: number, mode: TravelMode
 
   const params = new URLSearchParams({api: '1', destination: coord(destination)})
   if (waypoints.length > 0) params.set('waypoints', waypoints.map(coord).join('|'))
-  params.set('travelmode', travelModeToGmaps(mode))
+  const gmode = travelModeToGmaps(mode)
+  if (gmode) params.set('travelmode', gmode)
   params.set('dir_action', 'navigate')
 
   return {url: `${DIR_BASE}?${params.toString()}`, coveredCount: covered, overflow}
