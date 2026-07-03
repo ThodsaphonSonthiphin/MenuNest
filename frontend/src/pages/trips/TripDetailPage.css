@@ -237,3 +237,320 @@
   text-align: center;
   padding: 16px;
 }
+
+/* ============================================================
+   Stop editor dialog — redesign (matches docs/mocks/trip-stop-editor-mock.html)
+   The Syncfusion Dialog renders in a body-level PORTAL, so it sits OUTSIDE the
+   .trip-detail scope and cannot see the --trp-* / --teal tokens. All colors are
+   therefore defined locally on .stop-editor-dialog, and Syncfusion's own .sf-*
+   chrome (header, content, timepicker, dropdown) is restyled below.
+   ============================================================ */
+.stop-editor-dialog {
+  --se-accent:      #ef6d2d;   /* primary orange */
+  --se-accent-deep: #d95f22;   /* hover / active / depart time */
+  --se-accent-soft: #fdefe1;   /* cream-peach surface */
+  --se-accent-line: #f6d9bf;   /* peach hairline for cream cards */
+  --se-ink:         #2b2521;   /* warm near-black */
+  --se-ink-soft:    #6b625b;   /* secondary text */
+  --se-muted:       #a99e94;   /* labels, hints */
+  --se-border:      #ece4d9;   /* hairline card border */
+
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(26, 20, 14, 0.28), 0 4px 14px rgba(26, 20, 14, 0.12);
+  color: var(--se-ink);
+}
+
+/* ---- Header (title + category chip + breadcrumb, rendered as a ReactNode) ---- */
+.stop-editor-dialog .sf-dlg-header-content {
+  padding: 22px 24px 0;
+  border-bottom: 0;
+}
+.stop-editor-dialog .sf-dlg-header { width: 100%; }
+.stop-editor-dialog .se-head { padding-right: 30px; }
+.stop-editor-dialog .se-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--se-ink);
+}
+.stop-editor-dialog .se-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.stop-editor-dialog .se-cat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px 4px 9px;
+  background: var(--se-accent-soft);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a6a3a;
+}
+.stop-editor-dialog .se-cat-dot { width: 9px; height: 9px; border-radius: 50%; }
+.stop-editor-dialog .se-crumb { font-size: 12.5px; font-weight: 500; color: var(--se-muted); }
+
+.stop-editor-dialog .sf-dlg-closeicon-btn { color: var(--se-ink-soft); }
+
+/* ---- Body ---- */
+.stop-editor-dialog .sf-dlg-content { padding: 0 24px 20px; }
+.stop-editor-dialog .stop-editor { display: block; }
+
+/* ---- Generic section ---- */
+.stop-editor-dialog .se-sec { margin-top: 22px; }
+.stop-editor-dialog .se-sec-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--se-ink);
+}
+.stop-editor-dialog .se-ico { font-size: 15px; line-height: 1; }
+.stop-editor-dialog .se-pill {
+  margin-left: 2px;
+  padding: 2px 9px;
+  background: var(--se-accent-soft);
+  color: var(--se-accent-deep);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.stop-editor-dialog .se-sub {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--se-muted);
+}
+
+/* ---- Best time: two Syncfusion TimePickers restyled as cards ---- */
+.stop-editor-dialog .se-time-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.stop-editor-dialog .se-time-card {
+  position: relative;
+  border: 1.5px solid var(--se-border);
+  border-radius: 14px;
+  padding: 11px 14px 12px;
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+.stop-editor-dialog .se-time-card:focus-within { border-color: var(--se-accent); }
+.stop-editor-dialog .se-time-lab {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--se-muted);
+}
+.stop-editor-dialog .se-time-dash { text-align: center; color: var(--se-muted); font-size: 18px; }
+
+/* Strip the TimePicker's own border/underline so it reads as bare text in the card */
+.stop-editor-dialog .se-time-card .sf-timepicker,
+.stop-editor-dialog .se-time-card .sf-input-group {
+  border: 0 !important;
+  background: transparent !important;
+  width: 100%;
+  margin: 0;
+  box-shadow: none !important;
+}
+.stop-editor-dialog .se-time-card .sf-input-group::before,
+.stop-editor-dialog .se-time-card .sf-input-group::after { display: none !important; }
+.stop-editor-dialog .se-time-card .sf-input {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--se-ink);
+  padding: 2px 0 0;
+  height: auto;
+  line-height: 1.1;
+  background: transparent;
+}
+.stop-editor-dialog .se-time-card .sf-input::placeholder { color: var(--se-muted); font-weight: 600; }
+/* Anchor the clock to the CARD's top-right (make the input group a non-positioned
+   context) and hide the hover/focus "clear" button so only the clock ever shows. */
+.stop-editor-dialog .se-time-card .sf-timepicker { position: static !important; }
+.stop-editor-dialog .se-time-card .sf-clear-icon { display: none !important; }
+.stop-editor-dialog .se-time-card .sf-time-icon {
+  position: absolute !important;
+  top: 11px !important;
+  right: 12px !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  color: #c9a36a;
+}
+
+/* ---- Dwell stepper (plain buttons from DwellStepper.tsx) ---- */
+.stop-editor-dialog .se-dwell { margin-top: 14px; }
+.stop-editor-dialog .se-dwell-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+}
+.stop-editor-dialog .se-step {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.08s ease, background 0.15s ease, border-color 0.15s ease;
+}
+.stop-editor-dialog .se-step:active { transform: scale(0.94); }
+.stop-editor-dialog .se-step-minus {
+  background: #fff;
+  color: var(--se-accent-deep);
+  border: 1.5px solid var(--se-border);
+}
+.stop-editor-dialog .se-step-minus:hover { border-color: var(--se-accent); }
+.stop-editor-dialog .se-step-plus {
+  background: var(--se-accent);
+  color: #fff;
+  border: 0;
+  box-shadow: 0 6px 16px rgba(239, 109, 45, 0.38);
+}
+.stop-editor-dialog .se-step-plus:hover { background: var(--se-accent-deep); }
+.stop-editor-dialog .se-dwell-center { text-align: center; min-width: 92px; }
+.stop-editor-dialog .se-dwell-num {
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--se-ink);
+}
+.stop-editor-dialog .se-dwell-unit { margin-top: 2px; font-size: 13px; color: var(--se-muted); }
+.stop-editor-dialog .se-dwell-chips {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.stop-editor-dialog .se-chip {
+  min-width: 62px;
+  padding: 9px 0;
+  border-radius: 999px;
+  border: 1.5px solid var(--se-border);
+  background: #fff;
+  color: var(--se-ink-soft);
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.stop-editor-dialog .se-chip:hover { border-color: var(--se-accent-line); color: var(--se-accent-deep); }
+.stop-editor-dialog .se-chip.active {
+  background: var(--se-accent);
+  border-color: var(--se-accent);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(239, 109, 45, 0.30);
+}
+
+/* ---- Travel mode: DropDownList restyled as a card ---- */
+.stop-editor-dialog .se-mode.sf-dropdown,
+.stop-editor-dialog .se-mode .sf-input-group {
+  border: 1.5px solid var(--se-border) !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  width: 100%;
+  margin: 12px 0 0;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease;
+}
+.stop-editor-dialog .se-mode.sf-dropdown:hover,
+.stop-editor-dialog .se-mode .sf-input-group:hover { border-color: var(--se-accent-line) !important; }
+.stop-editor-dialog .se-mode .sf-input-group::before,
+.stop-editor-dialog .se-mode .sf-input-group::after { display: none !important; }
+.stop-editor-dialog .se-mode .sf-input,
+.stop-editor-dialog .se-mode .sf-input-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--se-ink);
+  padding: 14px 16px;
+  height: auto;
+}
+.stop-editor-dialog .se-mode .sf-input-icon { color: var(--se-muted); }
+.stop-editor-dialog .se-leg {
+  margin: 9px 2px 0;
+  font-size: 12.5px;
+  color: var(--se-muted);
+}
+
+/* ---- Arrival / depart preview card ---- */
+.stop-editor-dialog .se-sched {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  background: var(--se-accent-soft);
+  border: 1px solid var(--se-accent-line);
+  border-radius: 16px;
+  padding: 15px 22px;
+}
+.stop-editor-dialog .se-sched-col { text-align: center; }
+.stop-editor-dialog .se-sched-lab { font-size: 12px; font-weight: 600; color: #b08a5e; }
+.stop-editor-dialog .se-sched-val {
+  margin-top: 3px;
+  font-family: 'Spline Sans Mono', monospace;
+  font-size: 25px;
+  font-weight: 700;
+  color: var(--se-ink);
+}
+.stop-editor-dialog .se-sched-col.out .se-sched-val { color: var(--se-accent-deep); }
+.stop-editor-dialog .se-sched-arrow { color: #c9a06a; font-size: 20px; }
+
+/* ---- Footer ---- */
+.stop-editor-dialog .se-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--se-border);
+}
+.stop-editor-dialog .se-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  color: var(--se-ink-soft);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.stop-editor-dialog .se-delete:hover { background: #fbeae3; color: #b4543a; }
+.stop-editor-dialog .se-save {
+  border: 0;
+  border-radius: 13px;
+  background: var(--se-accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 30px;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(239, 109, 45, 0.34);
+  transition: background 0.15s ease, transform 0.08s ease;
+}
+.stop-editor-dialog .se-save:hover { background: var(--se-accent-deep); }
+.stop-editor-dialog .se-save:active { transform: translateY(1px); }
+.stop-editor-dialog .se-save:disabled { opacity: 0.6; cursor: default; box-shadow: none; }

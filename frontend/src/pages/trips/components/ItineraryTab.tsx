@@ -208,6 +208,7 @@ export function ItineraryTab({tripId}: {tripId: string}) {
         <StopEditorDialog
           tripId={tripId}
           day={resolvedDay}
+          dayNumber={dayList.findIndex((d) => d.id === resolvedDayId) + 1}
           stopId={editorStopId}
           placesById={placesById}
           onClose={() => dispatch(setStopEditor(null))}
