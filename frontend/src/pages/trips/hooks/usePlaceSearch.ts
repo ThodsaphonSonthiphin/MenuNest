@@ -64,8 +64,10 @@ export function usePlaceSearch() {
 
   const runFetch = useCallback(async (input: string) => {
     if (!placesLib || input.trim().length < MIN_CHARS) {
+      reqId.current++ // invalidate any in-flight response so it can't repopulate
       setSuggestions([])
       rawRef.current = []
+      setLoading(false)
       return
     }
     const mine = ++reqId.current
@@ -114,8 +116,11 @@ export function usePlaceSearch() {
     const suggestion = rawRef.current.find((s) => s.placePrediction?.placeId === placeId)
     if (!suggestion?.placePrediction) throw new Error('suggestion not found')
     const place = suggestion.placePrediction.toPlace()
-    await place.fetchFields({fields: [...PLACE_DETAIL_FIELDS]})
-    tokenRef.current = null // session consumed by fetchFields — next search mints a fresh token
+    try {
+      await place.fetchFields({fields: [...PLACE_DETAIL_FIELDS]})
+    } finally {
+      tokenRef.current = null // session consumed/invalidated — next search mints a fresh token
+    }
     return toResolvedPlace(extract(place, placeId))
   }, [])
 
@@ -128,10 +133,12 @@ export function usePlaceSearch() {
   }, [placesLib])
 
   const reset = useCallback(() => {
+    reqId.current++ // invalidate any in-flight response so it can't repopulate after reset
     setQueryState('')
     setSuggestions([])
     rawRef.current = []
     setError(null)
+    setLoading(false)
     tokenRef.current = null
   }, [])
 
