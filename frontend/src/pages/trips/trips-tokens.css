@@ -460,3 +460,52 @@
 /* clock icon tint (confirm the icon's sf-* class in devtools) */
 .day-summary .day-start-picker .sf-time-icon,
 .day-summary .day-start-picker .sf-input-group-icon { color: #9fb0c4; }
+
+/* ── Add-place add-mode: search bar + suggestions + preview (ADR-016) ── */
+.add-search-wrap { position: absolute; top: 14px; left: 14px; right: 14px; z-index: 6; }
+.add-search-box {
+  display: flex; align-items: center; gap: 10px;
+  background: #fff; border-radius: 12px; padding: 10px 13px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.18);
+}
+.add-search-mag { width: 18px; height: 18px; color: var(--teal); flex: none; }
+.add-search-input { flex: 1; min-width: 0; border: 0; outline: 0; font: inherit; font-size: 14.5px; color: var(--ink); background: transparent; }
+.add-search-link {
+  display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent;
+  color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 4px 6px; border-radius: 8px; white-space: nowrap;
+}
+.add-search-link:hover { background: #f1f5f9; color: var(--teal-deep); }
+.add-search-link svg { width: 14px; height: 14px; }
+
+.add-suggest { margin-top: 6px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18); }
+.add-suggest-loading, .add-suggest-error { padding: 11px 14px; font-size: 12.5px; color: var(--muted); }
+.add-suggest-error { color: var(--warn); }
+.add-sug { display: flex; width: 100%; text-align: left; align-items: center; gap: 11px; padding: 11px 14px; cursor: pointer; border: 0; border-bottom: 1px solid #f1f5f9; background: transparent; font: inherit; }
+.add-sug:last-child { border-bottom: 0; }
+.add-sug:hover { background: var(--teal-soft); }
+.add-sug-mkr { width: 16px; height: 16px; color: var(--muted); flex: none; }
+.add-sug-txt b { font-size: 14px; font-weight: 600; display: block; color: var(--ink); }
+.add-sug-txt span { font-size: 12px; color: var(--muted); }
+
+.add-preview { background: #fff; box-shadow: 0 14px 40px rgba(15, 23, 42, 0.26); z-index: 7; }
+.add-preview-floating { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(420px, calc(100% - 36px)); border-radius: 16px; padding: 16px 18px 15px; }
+.add-preview-sheet { position: fixed; left: 0; right: 0; bottom: 0; border-radius: 20px 20px 0 0; padding: 8px 18px 20px; }
+.add-preview-grip { width: 40px; height: 4px; border-radius: 999px; background: #cbd5e1; margin: 6px auto 12px; }
+.add-preview-head { display: flex; align-items: flex-start; gap: 10px; }
+.add-preview-title { flex: 1; min-width: 0; }
+.add-preview-name { font-size: 17px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+.add-preview-addr { margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.add-preview-close { flex: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.add-preview-close:hover { background: #f1f5f9; }
+.add-preview-close svg { width: 16px; height: 16px; }
+.add-preview-cat { margin-top: 13px; position: relative; }
+.add-preview-cat-lab { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.add-preview-auto { background: var(--teal-soft); color: var(--teal-deep); border-radius: 999px; padding: 1px 8px; font-size: 10.5px; }
+.add-preview-cat-dot { position: absolute; left: 13px; bottom: 15px; width: 11px; height: 11px; border-radius: 50%; z-index: 1; pointer-events: none; }
+.add-preview-foot { display: flex; gap: 10px; margin-top: 16px; }
+.add-preview-cancel { flex: none; border: 1.5px solid var(--border); background: #fff; color: #475569; border-radius: 11px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.add-preview-cancel:hover { background: #f8fafc; }
+.add-preview-add { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; background: var(--teal); color: #fff; border-radius: 11px; padding: 11px 18px; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(14, 143, 158, 0.4); }
+.add-preview-add:hover:not(:disabled) { background: var(--teal-deep); }
+.add-preview-add:disabled { opacity: 0.6; cursor: default; }
+.add-preview-add svg { width: 16px; height: 16px; }
