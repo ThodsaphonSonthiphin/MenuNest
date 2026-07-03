@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-06-30T08:33:15+07:00'
+updated: '2026-07-03T16:54:37+07:00'
 ---
 
 ## Log
@@ -136,3 +136,47 @@ Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 @
 - 2026-06-30T08:09:23+07:00 — (commit)
 - 2026-06-30T08:33:15+07:00 — (commit)
+- 2026-07-03T09:48:48+07:00 — (commit)
+- 2026-07-03T15:41:01+07:00 — (commit)
+- 2026-07-03T15:47:50+07:00 — refactor(trips): extract hms<->Date converters into utils/time with unit tests
+- 2026-07-03T15:51:16+07:00 — feat(trips): pure Google Maps navigate-URL builders
+- 2026-07-03T15:58:37+07:00 — feat(trips): add DayStartEditor (inline TimePicker, commit-on-change, optimistic revert)
+- 2026-07-03T16:04:10+07:00 — $(cat <<'EOF'
+fix(trips): omit travelmode for out-of-union mode in nav-URL builders
+EOF
+)
+- 2026-07-03T16:09:42+07:00 — feat(trips): edit day start time inline on the summary bar
+- 2026-07-03T16:10:24+07:00 — $(cat <<'EOF'
+feat(trips): conservative mobile/desktop waypoint-cap detection
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T16:11:29+07:00 — feat(trips): edit day start time inline on the summary bar
+- 2026-07-03T16:12:04+07:00 — $(cat <<'EOF'
+feat(trips): conservative mobile/desktop waypoint-cap detection
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T16:20:56+07:00 — $(cat <<'EOF'
+feat(trips): per-Stop navigate button opens Google Maps
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T16:33:35+07:00 — $(cat <<'EOF'
+feat(trips): whole-day route pill + overflow/mixed-mode notes
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T16:39:55+07:00 — refactor(trips): reset day-start error via render-time check (avoid set-state-in-effect)
+- 2026-07-03T16:43:45+07:00 — (commit)
+- 2026-07-03T16:44:46+07:00 — (commit)
+- 2026-07-03T16:54:37+07:00 — docs(trips): ADRs 012/013 + design spec + plan + mock for day-start-time inline edit
+
+Captures the grill-then-plan design record for editing a Day's start time
+inline on the itinerary summary bar (ADR-012 affordance, ADR-013 commit-on-change).
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
