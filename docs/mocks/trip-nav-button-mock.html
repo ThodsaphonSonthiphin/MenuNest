@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip — ปุ่มนำทาง Google Maps (mock)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans+Mono:wght@500;700&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  /* ── Tokens lifted verbatim from trips-tokens.css ── */
+  :root {
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a; --page:#f8fafc; --surface:#fff; --border:#eef2f6;
+    --muted:#94a3b8; --good:#1f9d76; --good-bg:#eafaf3; --warn:#b4791f; --warn-bg:#fff4e0;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:#e9eef3; color:var(--ink);
+    font-family:'Noto Sans Thai', system-ui, sans-serif; font-size:14px;
+    padding:28px; display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start;
+  }
+  .panel-label { font-size:12px; font-weight:700; color:#64748b; margin:0 0 8px 2px; }
+  .panel {
+    width:464px; max-width:92vw; background:var(--page);
+    border-radius:16px; padding:16px; box-shadow:0 8px 30px rgba(15,23,42,.10);
+  }
+  .itinerary-tab { display:flex; flex-direction:column; gap:14px; }
+
+  /* ── Segmented day tabs ── */
+  .seg-tabs { display:flex; gap:6px; }
+  .seg-tab {
+    border:1px solid var(--border); background:var(--surface); color:var(--ink);
+    border-radius:999px; padding:6px 14px; line-height:1.4; font:inherit; cursor:pointer;
+  }
+  .seg-tab.active { background:var(--teal); border-color:var(--teal); color:#fff; }
+
+  /* ── Day summary bar (MODIFIED: stats grouped left, teal nav pill right) ── */
+  .day-summary {
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    background:var(--ink); color:#9fb0c4; border-radius:12px; padding:11px 15px; font-size:12px;
+  }
+  .day-stats { display:flex; align-items:center; gap:14px; min-width:0; flex-wrap:wrap; }
+  .day-summary b { color:#fff; font-weight:700; font-family:'Spline Sans Mono', ui-monospace, monospace; }
+
+  /* NEW — whole-day navigate pill, inside the dark bar */
+  .btn-day-nav {
+    flex:none; display:inline-flex; align-items:center; gap:6px;
+    background:var(--teal); color:#fff; border:0; border-radius:999px;
+    padding:7px 14px; font:inherit; font-size:12px; font-weight:700; cursor:pointer;
+    box-shadow:0 2px 8px rgba(14,143,158,.45); transition:background .12s ease;
+  }
+  .btn-day-nav:hover { background:#13a3b4; }
+  .btn-day-nav svg { width:14px; height:14px; }
+
+  /* ── Stop list / cards ── */
+  .stop-list { display:flex; flex-direction:column; gap:8px; }
+  .stop-card {
+    display:flex; align-items:stretch; background:var(--surface);
+    border:1px solid var(--border); border-radius:13px; overflow:hidden;
+  }
+  .stop-rail {
+    flex:none; width:58px; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:1px; padding:6px 4px; background:#f1f8f9;
+  }
+  .stop-arr { font-size:15px; font-weight:700; color:var(--ink); line-height:1.1; font-family:'Spline Sans Mono', ui-monospace, monospace; }
+  .stop-dep { font-size:10px; font-weight:500; color:var(--muted); line-height:1.1; font-family:'Spline Sans Mono', ui-monospace, monospace; }
+  .stop-body { flex:1; min-width:0; border:0; background:transparent; text-align:left; padding:11px 13px; cursor:pointer; font:inherit; color:inherit; }
+  .stop-body:hover { background:#fafdfd; }
+  .stop-name { font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stop-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chip { font-size:10px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+  .chip.dwell { background:var(--teal-soft); color:var(--teal-deep); }
+  .chip.good  { background:var(--good-bg); color:var(--good); }
+
+  /* NEW — per-stop navigate icon button (between body and reorder) */
+  .stop-nav {
+    flex:none; display:flex; align-items:center; justify-content:center;
+    width:34px; border:0; border-left:1px solid var(--border);
+    background:transparent; color:var(--teal); cursor:pointer; transition:background .12s ease,color .12s ease;
+  }
+  .stop-nav:hover { background:var(--teal-soft); color:var(--teal-deep); }
+  .stop-nav svg { width:17px; height:17px; }
+
+  .stop-reorder { flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding-right:6px; padding-left:4px; }
+  .stop-reorder button { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:0; border-radius:6px; background:transparent; color:#cbd5e1; font-size:10px; line-height:1; cursor:pointer; }
+  .stop-reorder button:disabled { opacity:.25; }
+
+  /* ── Travel leg ── */
+  .travel-leg { display:flex; align-items:center; gap:8px; padding:3px 0 3px 66px; color:var(--teal-deep); font-size:11px; font-weight:600; }
+  .leg-line { flex:none; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.45; }
+  .leg-dist { color:var(--muted); font-weight:500; font-family:'Spline Sans Mono', ui-monospace, monospace; }
+
+  /* NEW — overflow note (over-limit days) */
+  .nav-overflow-note {
+    display:flex; align-items:flex-start; gap:7px; background:var(--warn-bg); color:var(--warn);
+    border-radius:10px; padding:8px 12px; font-size:11px; font-weight:600; line-height:1.45;
+  }
+  .nav-overflow-note svg { flex:none; width:14px; height:14px; margin-top:1px; }
+
+  /* ── Add stop ── */
+  .btn-add-stop { width:100%; border:1.5px dashed var(--border); border-radius:10px; background:transparent; padding:10px 0; color:var(--teal-deep); font-size:.875rem; font-family:inherit; cursor:pointer; }
+</style>
+</head>
+<body>
+
+<!-- ════════ PANEL 1 — normal day (3 stops, fits the link) ════════ -->
+<div>
+  <p class="panel-label">A · วันปกติ (3 จุด — นำทางได้ทั้งวัน)</p>
+  <div class="panel">
+    <div class="itinerary-tab">
+      <div class="seg-tabs">
+        <button class="seg-tab active">วัน 1</button>
+        <button class="seg-tab">วัน 2</button>
+        <button class="seg-tab">วัน 3</button>
+      </div>
+
+      <!-- MODIFIED day-summary: stats left, nav pill right -->
+      <div class="day-summary">
+        <div class="day-stats">
+          <span>เริ่ม <b>09:00</b></span>
+          <span>เสร็จ <b>11:41</b></span>
+          <span>เดินทางรวม <b>11 น.</b></span>
+        </div>
+        <button class="btn-day-nav">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg>
+          นำทาง
+        </button>
+      </div>
+
+      <div class="stop-list">
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr">09:00</div><div class="stop-dep">→10:00</div></div>
+          <button class="stop-body">
+            <div class="stop-name">📍 บ้านไร่ กู๊ดวิว คาเฟ่&รีสอร์ท</div>
+            <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 60 น.</span></div>
+          </button>
+          <button class="stop-nav" aria-label="นำทางไปจุดนี้">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg>
+          </button>
+          <div class="stop-reorder"><button disabled>▲</button><button>▼</button></div>
+        </div>
+
+        <div class="travel-leg"><span class="leg-line"></span>🚗 4 นาที<span class="leg-dist">• 2.7 กม.</span></div>
+
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr">10:04</div><div class="stop-dep">→10:34</div></div>
+          <button class="stop-body">
+            <div class="stop-name">☕ กาแฟอาลูลู ดอยล้าน</div>
+            <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 30 น.</span><span class="chip good">✓ ช่วงดี 10:00–11:00</span></div>
+          </button>
+          <button class="stop-nav" aria-label="นำทางไปจุดนี้">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg>
+          </button>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+        <div class="travel-leg"><span class="leg-line"></span>🚗 7 นาที<span class="leg-dist">• 4.4 กม.</span></div>
+
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr">10:41</div><div class="stop-dep">→11:41</div></div>
+          <button class="stop-body">
+            <div class="stop-name">🍵 Akha FarmVille</div>
+            <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 60 น.</span></div>
+          </button>
+          <button class="stop-nav" aria-label="นำทางไปจุดนี้">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg>
+          </button>
+          <div class="stop-reorder"><button>▲</button><button disabled>▼</button></div>
+        </div>
+      </div>
+
+      <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ PANEL 2 — over-limit day (mobile cap 4 stops → note shows) ════════ -->
+<div>
+  <p class="panel-label">B · วันยาว (6 จุด — เกิน limit มือถือ → โน้ต)</p>
+  <div class="panel">
+    <div class="itinerary-tab">
+      <div class="day-summary">
+        <div class="day-stats">
+          <span>เริ่ม <b>08:30</b></span>
+          <span>เสร็จ <b>18:10</b></span>
+          <span>รวม <b>52 น.</b></span>
+        </div>
+        <button class="btn-day-nav">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg>
+          นำทาง
+        </button>
+      </div>
+
+      <!-- The note explains the link covers the first stops only on this device -->
+      <div class="nav-overflow-note">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L1 21h22L12 2zm0 4l7.5 13h-15L12 6zm-1 4v4h2v-4h-2zm0 6v2h2v-2h-2z"/></svg>
+        <span>นำทางครอบคลุม 4 จุดแรกของวัน (Google Maps จำกัดจำนวนจุดต่อครั้งบนมือถือ) — จุดที่เหลือใช้ปุ่ม 🧭 รายจุด</span>
+      </div>
+
+      <div class="stop-list">
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr">08:30</div><div class="stop-dep">→09:30</div></div>
+          <button class="stop-body"><div class="stop-name">🛏️ ที่พัก ดอยช้าง</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 60 น.</span></div></button>
+          <button class="stop-nav" aria-label="นำทางไปจุดนี้"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg></button>
+          <div class="stop-reorder"><button disabled>▲</button><button>▼</button></div>
+        </div>
+        <div class="travel-leg"><span class="leg-line"></span>🚗 9 นาที<span class="leg-dist">• 5.1 กม.</span></div>
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr">09:45</div><div class="stop-dep">→10:45</div></div>
+          <button class="stop-body"><div class="stop-name">⛩️ วัดพระธาตุ</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 60 น.</span></div></button>
+          <button class="stop-nav" aria-label="นำทางไปจุดนี้"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg></button>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+        <div class="travel-leg"><span class="leg-line"></span>🚗 12 นาที<span class="leg-dist">• 7.0 กม.</span></div>
+        <div class="stop-card" style="opacity:.55;">
+          <div class="stop-rail"><div class="stop-arr">11:20</div><div class="stop-dep">→12:30</div></div>
+          <button class="stop-body"><div class="stop-name">🍜 ร้านอาหารเที่ยง</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 70 น.</span></div></button>
+          <button class="stop-nav" aria-label="นำทางไปจุดนี้"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 0 0-1.42 0l-9 9a1 1 0 0 0 0 1.42l9 9a1 1 0 0 0 1.42 0l9-9a1 1 0 0 0 0-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 0 1 1-1h5V7.5l3.5 3.5z"/></svg></button>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+        <p style="margin:2px 0 0; font-size:11px; color:#94a3b8; text-align:center;">…จุดที่ 5–6 อยู่นอกช่วงนำทางทั้งวัน</p>
+      </div>
+
+      <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

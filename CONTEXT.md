@@ -38,6 +38,10 @@ the glossary wins until the glossary is deliberately changed.
   family-gated — see ADR-005). It holds a collection of saved **Places** and an
   ordered **Itinerary**, and rolls up a total **estimated cost**.
   _Avoid_: Journey, Tour, Vacation.
+- **Day (ItineraryDay)** — one calendar day of a **Trip**'s itinerary; owns an ordered
+  list of **Stops** and a **day start time** (default 09:00) from which the **Smart
+  Schedule** cascades. Each Day carries its own start time, edited per-Day.
+  _Avoid_: Date.
 - **Place** — a saved location the user wants to visit, anchored to a Google
   **`place_id`** (the only Maps datum stored indefinitely — see ADR-007). Carries a
   cached snapshot (name, coordinates, address, opening hours) sourced from a live
@@ -59,5 +63,11 @@ the glossary wins until the glossary is deliberately changed.
 - **Capture** — bringing a Place into a Trip from Google Maps, resolved server-side
   (ADR-007). MVP supports **pasting a link** only; share-from-Maps (PWA share
   target) and the browser bookmarklet are Phase 2.
+- **Navigate hand-off** — opening a day's route or a single **Stop** in the external
+  **Google Maps** app via a client-side deep link (Maps URLs), for real turn-by-turn
+  navigation. Distinct from the in-app **map** (which only displays); the hand-off
+  leaves the app. The whole-day route starts from the device's current location
+  through the day's Stops in order (see ADR-011).
+  _Avoid_: Directions, Routing (that is the Routes API / **Leg** travel time).
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
