@@ -489,7 +489,7 @@
 
 .add-preview { background: #fff; box-shadow: 0 14px 40px rgba(15, 23, 42, 0.26); z-index: 7; }
 .add-preview-floating { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: min(420px, calc(100% - 36px)); border-radius: 16px; padding: 16px 18px 15px; }
-.add-preview-sheet { position: fixed; left: 0; right: 0; bottom: 0; border-radius: 20px 20px 0 0; padding: 8px 18px 20px; }
+.add-preview-sheet { position: fixed; left: 0; right: 0; bottom: 0; border-radius: 20px 20px 0 0; padding: 8px 18px 20px; box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.2); }
 .add-preview-grip { width: 40px; height: 4px; border-radius: 999px; background: #cbd5e1; margin: 6px auto 12px; }
 .add-preview-head { display: flex; align-items: flex-start; gap: 10px; }
 .add-preview-title { flex: 1; min-width: 0; }
@@ -499,7 +499,7 @@
 .add-preview-close:hover { background: #f1f5f9; }
 .add-preview-close svg { width: 16px; height: 16px; }
 .add-preview-cat { margin-top: 13px; position: relative; }
-.add-preview-cat-lab { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; }
+.add-preview-cat-lab { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
 .add-preview-auto { background: var(--teal-soft); color: var(--teal-deep); border-radius: 999px; padding: 1px 8px; font-size: 10.5px; }
 .add-preview-cat-dot { position: absolute; left: 13px; bottom: 15px; width: 11px; height: 11px; border-radius: 50%; z-index: 1; pointer-events: none; }
 .add-preview-foot { display: flex; gap: 10px; margin-top: 16px; }

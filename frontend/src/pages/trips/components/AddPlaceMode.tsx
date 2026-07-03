@@ -51,6 +51,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed}: Add
       .then((dto) => present(dto))
       .catch(() => { /* ignore bad/blank POI */ })
       .finally(() => onTapConsumed())
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `search` is a fresh object each render (see comment above); depend on the stable memoised `search.resolveById`, not the whole object.
   }, [tappedPlaceId, search.resolveById, present, onTapConsumed])
 
   // Esc exits add-mode.
