@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Day start time — inline edit mock</title>
+<style>
+  /* Mirrors trips-tokens.css */
+  :root{
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a; --page:#f8fafc; --surface:#fff; --border:#eef2f6;
+    --muted:#94a3b8; --good:#1f9d76; --good-bg:#eafaf3; --warn:#b4791f; --warn-bg:#fff4e0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--ink);
+    font-family:'Segoe UI',system-ui,'Noto Sans Thai',sans-serif;padding:28px}
+  h1{font-size:18px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 24px}
+  .grid{display:flex;flex-wrap:wrap;gap:22px}
+  .panel{flex:1 1 300px;max-width:360px}
+  .panel h2{font-size:12px;font-weight:700;color:var(--teal-deep);
+    text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px}
+  .frame{background:var(--page);border:1px solid var(--border);border-radius:16px;
+    padding:14px;display:flex;flex-direction:column;gap:14px}
+
+  /* ── Day summary bar (real .day-summary) ── */
+  .day-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--ink);color:#9fb0c4;border-radius:12px;padding:11px 15px;font-size:12px}
+  .day-summary b{color:#fff;font-weight:700;font-family:ui-monospace,'Spline Sans Mono',monospace}
+  .ds-cell{display:flex;align-items:center;gap:5px;white-space:nowrap}
+
+  /* ── NEW: editable "เริ่ม" affordance ── */
+  .start-edit{display:inline-flex;align-items:center;gap:6px;cursor:pointer;
+    padding:3px 8px;margin:-3px -4px;border-radius:8px;
+    border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.04);
+    transition:border-color .12s ease,background .12s ease}
+  .start-edit:hover,.start-edit.hot{border-color:var(--teal);background:rgba(14,143,158,.18)}
+  .start-edit .clock{font-size:11px;opacity:.85}
+  .start-edit b{color:#fff}
+
+  /* ── Faux Syncfusion TimePicker popup ── */
+  .tp-wrap{position:relative}
+  .tp-pop{position:absolute;top:calc(100% + 6px);left:0;z-index:5;width:118px;
+    background:#fff;border:1px solid var(--border);border-radius:10px;
+    box-shadow:0 10px 28px rgba(0,0,0,.18);padding:5px;max-height:168px;overflow:auto}
+  .tp-opt{padding:7px 12px;border-radius:7px;font-size:13px;color:var(--ink);cursor:pointer;
+    font-family:ui-monospace,monospace}
+  .tp-opt:hover{background:var(--teal-soft)}
+  .tp-opt.sel{background:var(--teal);color:#fff;font-weight:700}
+
+  /* saving + error chips */
+  .saving{font-size:11px;color:#9fb0c4;display:inline-flex;align-items:center;gap:5px}
+  .spinner{width:11px;height:11px;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .trips-field-error{color:#c0392b;font-size:12px;margin:0}
+
+  /* mini stop list to show the re-cascade */
+  .stop-card{display:flex;background:var(--surface);border:1px solid var(--border);
+    border-radius:13px;overflow:hidden}
+  .stop-rail{width:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:6px 4px;background:#f1f8f9}
+  .stop-arr{font-size:14px;font-weight:700;font-family:ui-monospace,monospace}
+  .stop-dep{font-size:10px;color:var(--muted);font-family:ui-monospace,monospace}
+  .stop-body{flex:1;padding:9px 12px}
+  .stop-name{font-size:13px;font-weight:700}
+  .shift{background:#eafaf3 !important}
+  .shift .stop-arr{color:var(--good)}
+  .note{font-size:11px;color:var(--muted);margin:2px 0 0}
+</style>
+</head>
+<body>
+  <h1>เวลาเริ่มวัน — แตะค่าเพื่อแก้ (inline TimePicker)</h1>
+  <p class="sub">ADR-012 (แตะค่าในแถบสรุป) + ADR-013 (บันทึกทันทีที่เลือก). โทนสี/แถบตรงกับ trips-tokens.css จริง</p>
+
+  <div class="grid">
+
+    <!-- A. REST -->
+    <div class="panel">
+      <h2>A · ปกติ (at rest)</h2>
+      <div class="frame">
+        <div class="day-summary">
+          <span class="ds-cell">เริ่ม
+            <span class="start-edit"><span class="clock">🕘</span><b>09:00</b></span>
+          </span>
+          <span class="ds-cell">เสร็จ <b>11:41</b></span>
+          <span class="ds-cell">เดินทางรวม <b>11 น.</b></span>
+        </div>
+        <div class="stop-card">
+          <div class="stop-rail"><span class="stop-arr">09:00</span><span class="stop-dep">→10:00</span></div>
+          <div class="stop-body"><div class="stop-name">บ้านไร่ กู๊ดวิว คาเฟ่&รีสอร์ท</div></div>
+        </div>
+        <p class="note">เฉพาะค่า “เริ่ม” มีกรอบจาง + ไอคอน 🕘 → บอกว่าแตะได้ ส่วน “เสร็จ/เดินทางรวม” ยังเป็นข้อความล้วน</p>
+      </div>
+    </div>
+
+    <!-- B. OPEN -->
+    <div class="panel">
+      <h2>B · แตะแล้ว — TimePicker เปิด</h2>
+      <div class="frame">
+        <div class="day-summary">
+          <span class="ds-cell">เริ่ม
+            <span class="tp-wrap">
+              <span class="start-edit hot"><span class="clock">🕘</span><b>09:00</b></span>
+              <div class="tp-pop">
+                <div class="tp-opt">08:15</div>
+                <div class="tp-opt">08:30</div>
+                <div class="tp-opt">08:45</div>
+                <div class="tp-opt sel">09:00</div>
+                <div class="tp-opt">09:15</div>
+                <div class="tp-opt">09:30</div>
+                <div class="tp-opt">09:45</div>
+              </div>
+            </span>
+          </span>
+          <span class="ds-cell">เสร็จ <b>11:41</b></span>
+          <span class="ds-cell">เดินทางรวม <b>11 น.</b></span>
+        </div>
+        <p class="note">TimePicker ของ Syncfusion (format HH:mm, step 15) — ตัวเดียวกับที่ BestTimeBar ใช้</p>
+      </div>
+    </div>
+
+    <!-- C. SAVING + re-cascade -->
+    <div class="panel">
+      <h2>C · เลือก 08:00 → บันทึก + ตารางเลื่อน</h2>
+      <div class="frame">
+        <div class="day-summary">
+          <span class="ds-cell">เริ่ม
+            <span class="start-edit"><span class="clock">🕘</span><b>08:00</b></span>
+          </span>
+          <span class="ds-cell saving"><span class="spinner"></span>กำลังบันทึก…</span>
+          <span class="ds-cell">เสร็จ <b>10:41</b></span>
+        </div>
+        <div class="stop-card shift">
+          <div class="stop-rail"><span class="stop-arr">08:00</span><span class="stop-dep">→09:00</span></div>
+          <div class="stop-body"><div class="stop-name">บ้านไร่ กู๊ดวิว คาเฟ่&รีสอร์ท</div></div>
+        </div>
+        <p class="note">บันทึกทันที → TripItinerary invalidate → ทุก stop เลื่อนตาม (09:00→08:00). เห็นผลทันทีคือ feedback ว่าบันทึกสำเร็จ</p>
+      </div>
+    </div>
+
+    <!-- D. ERROR -->
+    <div class="panel">
+      <h2>D · บันทึกล้มเหลว — revert + error</h2>
+      <div class="frame">
+        <div class="day-summary">
+          <span class="ds-cell">เริ่ม
+            <span class="start-edit"><span class="clock">🕘</span><b>09:00</b></span>
+          </span>
+          <span class="ds-cell">เสร็จ <b>11:41</b></span>
+          <span class="ds-cell">เดินทางรวม <b>11 น.</b></span>
+        </div>
+        <p class="trips-field-error">บันทึกเวลาเริ่มไม่สำเร็จ ลองอีกครั้ง</p>
+        <p class="note">ค่าที่แสดงถอยกลับเป็นค่าเดิม (09:00) และโชว์บรรทัด .trips-field-error เดิมของแท็บ</p>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>
