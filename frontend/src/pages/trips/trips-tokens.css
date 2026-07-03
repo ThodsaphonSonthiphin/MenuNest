@@ -352,3 +352,47 @@
     min-height: 280px;
   }
 }
+
+/* ── Editable day-start value in the summary bar (ADR-012 / ADR-013) ── */
+.day-start-edit { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Neutralize the Syncfusion TimePicker chrome so it reads as bar text at rest.
+   The React package (@syncfusion/react-calendars v33) emits sf-* classes, NOT
+   the legacy ej2 .e-*. Confirm exact sub-element classes in devtools. */
+.day-summary .day-start-picker.sf-input-group,
+.day-summary .day-start-picker {
+  width: auto;
+  display: inline-flex;
+  margin: 0;
+  padding: 2px 6px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+/* remove the animated focus underline */
+.day-summary .day-start-picker.sf-input-group::before,
+.day-summary .day-start-picker.sf-input-group::after { display: none; }
+
+.day-summary .day-start-picker:hover,
+.day-summary .day-start-picker:focus-within {
+  border-color: var(--teal);
+  background: rgba(14, 143, 158, 0.18);
+}
+
+.day-summary .day-start-picker .sf-input {
+  width: 5ch;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  text-align: left;
+  cursor: pointer;
+}
+/* clock icon tint (confirm the icon's sf-* class in devtools) */
+.day-summary .day-start-picker .sf-time-icon,
+.day-summary .day-start-picker .sf-input-group-icon { color: #9fb0c4; }

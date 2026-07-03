@@ -1,5 +1,5 @@
 // frontend/src/pages/trips/components/ItineraryTab.tsx
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
@@ -16,6 +16,7 @@ import {SegmentedTabs} from './SegmentedTabs'
 import {ItineraryStopCard} from './ItineraryStopCard'
 import {TravelLeg} from './TravelLeg'
 import {StopEditorDialog} from './StopEditorDialog'
+import {DayStartEditor} from './DayStartEditor'
 
 function bestLabel(p: TripPlaceDto): string | null {
   if (!p.bestTimeStart || !p.bestTimeEnd) return null
@@ -112,6 +113,12 @@ export function ItineraryTab({tripId}: {tripId: string}) {
   const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', stops: []}
   const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
 
+  // Clear any stale start-time error when the active day changes, so a failure
+  // on one Day never surfaces against another.
+  useEffect(() => {
+    setActionError(null)
+  }, [dayId])
+
   const trip = trips?.find((t) => t.id === tripId)
 
   // Early return is now safe — all hooks have already been called above.
@@ -144,9 +151,13 @@ export function ItineraryTab({tripId}: {tripId: string}) {
       />
 
       <div className="day-summary">
-        <span>
-          เริ่ม <b>{resolvedDay.dayStartTime.slice(0, 5)}</b>
-        </span>
+        <DayStartEditor
+          key={resolvedDayId}
+          tripId={tripId}
+          dayId={resolvedDayId}
+          dayStartTime={resolvedDay.dayStartTime}
+          onError={setActionError}
+        />
         <span>
           เสร็จ <b>{dayEnd}</b>
         </span>
