@@ -1,5 +1,5 @@
 // frontend/src/pages/trips/components/ItineraryTab.tsx
-import {useMemo, useState, useEffect} from 'react'
+import {useMemo, useState} from 'react'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
@@ -116,11 +116,13 @@ export function ItineraryTab({tripId}: {tripId: string}) {
   const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', stops: []}
   const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
 
-  // Clear any stale start-time error when the active day changes, so a failure
-  // on one Day never surfaces against another.
-  useEffect(() => {
+  // Clear any stale start-time error when the active day changes (render-time
+  // reset — avoids set-state-in-effect). React re-renders immediately, no extra paint.
+  const [lastDayId, setLastDayId] = useState(dayId)
+  if (dayId !== lastDayId) {
+    setLastDayId(dayId)
     setActionError(null)
-  }, [dayId])
+  }
 
   const trip = trips?.find((t) => t.id === tripId)
 
