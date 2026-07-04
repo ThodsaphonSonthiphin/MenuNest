@@ -45,11 +45,16 @@ export function isOpenAt(openingHoursJson: string | null | undefined, dow: numbe
   if (!openingHoursJson) return null
   let periods: OhPeriod[] | undefined
   try { periods = (JSON.parse(openingHoursJson) as {periods?: OhPeriod[]}).periods } catch { return null }
-  if (!periods || periods.length === 0) return null // 24h / always-open / unknown
+  if (!periods || periods.length === 0) return null // no periods → hours unknown
   for (const p of periods) {
     if (!p.open) continue
     const openMin = p.open.hour * 60 + (p.open.minute ?? 0)
-    if (!p.close) { if (p.open.day === dow) return true; continue } // open with no close → open all that day
+    if (!p.close) {
+      // Google represents 24/7 as a single open{day:0,hour:0,minute:0} with no close → open every day.
+      if (p.open.day === 0 && openMin === 0) return true
+      if (p.open.day === dow) return true // no-close on a specific day → open all that day
+      continue
+    }
     const closeMin = p.close.hour * 60 + (p.close.minute ?? 0)
     if (p.open.day === p.close.day) {
       if (p.open.day === dow && minutes >= openMin && minutes < closeMin) return true

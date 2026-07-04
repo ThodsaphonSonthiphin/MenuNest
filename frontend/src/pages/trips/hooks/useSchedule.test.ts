@@ -54,10 +54,16 @@ describe('isOpenAt', () => {
     expect(isOpenAt(j, 6, 3 * 60)).toBe(false) // Sat 03:00 → closed
   })
 
-  it('treats an open period with no close as open all that day', () => {
-    const j = hours([{open: {day: 0, hour: 0, minute: 0}}]) // Sun, always open
+  it('treats the Google 24/7 sentinel (open day-0 00:00, no close) as open every day', () => {
+    const j = hours([{open: {day: 0, hour: 0, minute: 0}}]) // Google 24/7 representation
     expect(isOpenAt(j, 0, 12 * 60)).toBe(true)
-    expect(isOpenAt(j, 1, 12 * 60)).toBe(false)
+    expect(isOpenAt(j, 1, 12 * 60)).toBe(true)   // Monday — was wrongly false
+    expect(isOpenAt(j, 6, 3 * 60)).toBe(true)    // Saturday 03:00
+  })
+  it('treats a no-close period on a specific non-sentinel day as open all that day only', () => {
+    const j = hours([{open: {day: 3, hour: 9, minute: 0}}]) // Wed, open-ended
+    expect(isOpenAt(j, 3, 20 * 60)).toBe(true)
+    expect(isOpenAt(j, 4, 20 * 60)).toBe(false)
   })
 })
 
@@ -198,5 +204,12 @@ describe('composeFlags', () => {
     }
     const composed = composeFlags(computeSchedule(day), {p1: p, p2: p}, dayOfWeek(day.date))
     expect(composed[1].flag).toMatchObject({reason: 'overflow'}) // overflow wins over closed on the same stop
+  })
+  it('no flag for a 24/7 place (always-open sentinel) on a weekday', () => {
+    const p = mkPlace({openingHoursJson: mkHours([{open: {day: 0, hour: 0, minute: 0}}])})
+    // 2026-11-14 is Saturday (dow 6); a 24/7 place must NOT be flagged closed.
+    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', stops: [stop('1', 0, 30, null)]}
+    const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
+    expect(composed[0].flag).toBeNull()
   })
 })
