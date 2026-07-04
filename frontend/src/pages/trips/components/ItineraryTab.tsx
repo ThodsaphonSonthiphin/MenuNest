@@ -24,6 +24,12 @@ import type {DayRoute} from '../hooks/useDayRoute'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {appInsights} from '../../../shared/telemetry/appInsights'
 
+// Frame padding for the 188px itinerary map band. Small and top-weighted (route pins
+// hang above their coordinate: callout + numbered dot), so the route fills the short band
+// instead of over-zooming-out like the desktop full-height map's default (64). Module-level
+// so the reference is stable across renders — FitBounds re-runs its effect when it changes.
+const BAND_FIT_PADDING: google.maps.Padding = {top: 48, right: 20, bottom: 16, left: 20}
+
 /** Inline add-stop picker shown below the stop list. */
 function AddStopPicker({
   tripId,
@@ -170,6 +176,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             route={dayRoute.route}
             segments={dayRoute.segments}
             gestureHandling="cooperative"
+            fitPadding={BAND_FIT_PADDING}
           />
           {mapCollapsed ? (
             <button
