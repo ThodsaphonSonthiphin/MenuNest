@@ -28,7 +28,7 @@ public class GetItineraryHandlerTests
 
         var route = new Mock<IRouteService>();
         route.Setup(r => r.GetLegTimesAsync(It.IsAny<IReadOnlyList<RoutePoint>>(), It.IsAny<TravelMode>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new List<LegTime> { new(900, 4200) }); // one leg for two points
+            .ReturnsAsync(new List<LegTime> { new(900, 4200, null, RouteSource.Routed) }); // one leg for two points
 
         var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object)
             .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None);
@@ -64,7 +64,7 @@ public class GetItineraryHandlerTests
                 It.IsAny<CancellationToken>()))
             .Callback<IReadOnlyList<RoutePoint>, TravelMode, CancellationToken>(
                 (_, mode, _) => capturedModes.Add(mode))
-            .ReturnsAsync(new List<LegTime> { new(600, 2000) });
+            .ReturnsAsync(new List<LegTime> { new(600, 2000, null, RouteSource.Routed) });
 
         await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object)
             .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None);

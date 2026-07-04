@@ -2,7 +2,7 @@ using MenuNest.Domain.Enums;
 namespace MenuNest.Application.Abstractions;
 
 public sealed record RoutePoint(double Lat, double Lng);
-public sealed record LegTime(int Seconds, int Meters);
+public sealed record LegTime(int Seconds, int Meters, string? EncodedPolyline, RouteSource Source);
 
 public interface IRouteService
 {

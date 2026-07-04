@@ -15,7 +15,11 @@ public sealed class HaversineRouteService : IRouteService
         for (var i = 0; i + 1 < pts.Count; i++)
         {
             var meters = Haversine(pts[i], pts[i + 1]) * RoadFactor;
-            legs.Add(new LegTime((int)Math.Round(meters / SpeedMps(mode)), (int)Math.Round(meters)));
+            legs.Add(new LegTime(
+                (int)Math.Round(meters / SpeedMps(mode)),
+                (int)Math.Round(meters),
+                null,
+                RouteSource.Estimated));
         }
         return Task.FromResult<IReadOnlyList<LegTime>>(legs);
     }

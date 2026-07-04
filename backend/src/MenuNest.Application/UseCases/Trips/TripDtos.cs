@@ -12,7 +12,7 @@ public sealed record TripPlaceDto(
     int? PriceLevel, string? PhotoUrl, TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd,
     string? OpeningHoursJson, string? FeeNote, string? Notes);
 
-public sealed record LegDto(int Seconds, int Meters);
+public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, RouteSource Source);
 
 public sealed record StopDto(
     Guid Id, Guid TripPlaceId, int Sequence, int DwellMinutes,

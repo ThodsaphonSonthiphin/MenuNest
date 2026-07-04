@@ -17,6 +17,8 @@ public class HaversineRouteServiceTests
         legs.Should().HaveCount(2);
         legs[0].Meters.Should().BeGreaterThan(0);
         legs[0].Seconds.Should().BeGreaterThan(0);
+        legs[0].Source.Should().Be(RouteSource.Estimated);
+        legs[0].EncodedPolyline.Should().BeNull();
     }
 
     [Fact]

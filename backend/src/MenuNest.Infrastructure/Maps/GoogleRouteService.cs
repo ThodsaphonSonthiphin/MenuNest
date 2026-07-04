@@ -81,7 +81,7 @@ public sealed class GoogleRouteService : IRouteService
         var el = doc.RootElement.EnumerateArray().First();
         var seconds = ParseDuration(el.GetProperty("duration").GetString());
         var meters = el.TryGetProperty("distanceMeters", out var m) ? m.GetInt32() : 0;
-        return new LegTime(seconds, meters);
+        return new LegTime(seconds, meters, null, RouteSource.Routed);
 
         static object Wp(RoutePoint p) => new { waypoint = new { location = new { latLng = new { latitude = p.Lat, longitude = p.Lng } } } };
         static int ParseDuration(string? s) =>

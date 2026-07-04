@@ -109,7 +109,7 @@ public static class DependencyInjection
             services.AddScoped<IPlaceResolver, MissingConfigPlaceResolver>();
 
         // Route service — per-leg Haversine fallback always available; Google Routes API
-        // (computeRouteMatrix, not the legacy Distance Matrix API) registered when key is present.
+        // (computeRoutes, not the legacy Distance Matrix API) registered when key is present.
         // Cache TTL 12 h per leg, well within the ToS 30-day caching limit.
         services.AddMemoryCache();
         if (!string.IsNullOrWhiteSpace(mapsKey))
