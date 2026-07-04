@@ -97,6 +97,10 @@ export function TripMap({
   const [tappedPlaceId, setTappedPlaceId] = useState<string | null>(null)
   // Stable callback keeps AddPlaceMode's tap-resolving effect from re-firing.
   const onTapConsumed = useCallback(() => setTappedPlaceId(null), [])
+  // Coords of the currently-selected add-mode place. AddPlaceMode (a .trip-map
+  // sibling of <Map>) reports these up; the temp teal pin is rendered inside <Map>
+  // below, because AdvancedMarker needs the map subtree.
+  const [addPin, setAddPin] = useState<{lat: number; lng: number} | null>(null)
 
   if (!KEY) {
     return (
@@ -171,15 +175,22 @@ export function TripMap({
             ))
           )}
 
-          {addMode && tripId && (
-            <AddPlaceMode
-              tripId={tripId}
-              onExit={() => onExitAddMode?.()}
-              tappedPlaceId={tappedPlaceId}
-              onTapConsumed={onTapConsumed}
-            />
+          {addMode && addPin && (
+            <AdvancedMarker position={addPin} zIndex={999}>
+              <Pin background="#0e8f9e" borderColor="#fff" glyphColor="#fff" scale={1.3} />
+            </AdvancedMarker>
           )}
         </Map>
+
+        {addMode && tripId && (
+          <AddPlaceMode
+            tripId={tripId}
+            onExit={() => onExitAddMode?.()}
+            tappedPlaceId={tappedPlaceId}
+            onTapConsumed={onTapConsumed}
+            onSelectedChange={setAddPin}
+          />
+        )}
 
         {routeMode && summaryText && (
           <div className="map-day-card">

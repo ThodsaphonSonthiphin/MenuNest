@@ -12,10 +12,11 @@ export interface AddPlaceSearchBarProps {
   onPick(placeId: string): void
   onOpenLinkFallback(): void
   onClose(): void
+  autoFocus?: boolean
 }
 
 export function AddPlaceSearchBar({
-  query, onQueryChange, suggestions, loading, error, onPick, onOpenLinkFallback, onClose,
+  query, onQueryChange, suggestions, loading, error, onPick, onOpenLinkFallback, onClose, autoFocus,
 }: AddPlaceSearchBarProps) {
   return (
     <div className="add-search-wrap">
@@ -26,7 +27,7 @@ export function AddPlaceSearchBar({
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="ค้นหาสถานที่…"
-          autoFocus
+          autoFocus={autoFocus}
         />
         <button type="button" className="add-search-link" onClick={onOpenLinkFallback}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" /><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" /></svg>
