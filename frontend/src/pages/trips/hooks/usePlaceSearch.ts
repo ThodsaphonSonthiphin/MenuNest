@@ -49,8 +49,6 @@ export function usePlaceSearch() {
   const debRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reqId = useRef(0)
 
-  const ready = !!placesLib
-
   const ensureToken = useCallback(() => {
     if (!placesLib) return null
     if (!tokenRef.current) tokenRef.current = new placesLib.AutocompleteSessionToken()
@@ -139,5 +137,5 @@ export function usePlaceSearch() {
 
   useEffect(() => () => { if (debRef.current) clearTimeout(debRef.current) }, [])
 
-  return {query, setQuery, suggestions, loading, error, ready, resolveSuggestion, resolveById, reset}
+  return {query, setQuery, suggestions, loading, error, resolveSuggestion, resolveById, reset}
 }

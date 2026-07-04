@@ -26,7 +26,6 @@
 /* ── Spline Sans Mono on numeric/time elements ── */
 .stop-arr,
 .stop-dep,
-.place-coords,
 .leg-pill,
 .dwell-value,
 .computed-box,
@@ -307,29 +306,6 @@
   min-width: 0;
 }
 
-.add-place-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--teal-soft);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
-}
-
-.add-place-hint {
-  font-size: 0.78rem;
-  color: var(--muted);
-  margin: 4px 0 0;
-  line-height: 1.4;
-}
-
-.place-coords {
-  font-size: 0.78rem;
-  color: var(--muted);
-  /* font-family set above by .place-coords selector */
-}
-
 /* ── Add-stop picker (ItineraryTab, T16) ── */
 .add-stop-picker {
   background: var(--surface);
@@ -519,7 +495,7 @@
 .add-search-close:hover { background: #f1f5f9; color: var(--ink); }
 .add-search-close svg { width: 16px; height: 16px; }
 .add-search-hint {
-  margin-top: 6px; align-self: flex-start;
+  margin-top: 6px; display: inline-block;
   background: rgba(15, 23, 42, 0.82); color: #e2e8f0;
   font-size: 11.5px; font-weight: 600; padding: 6px 11px; border-radius: 999px;
 }
