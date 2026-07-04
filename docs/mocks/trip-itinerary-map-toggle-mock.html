@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trip Itinerary — Mobile Map Toggle (issue #8)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    /* Canonical "Map-Forward" tokens (match trips-tokens.css / design handoff) */
+    --teal:        #0e8f9e;
+    --teal-deep:   #0b7a87;
+    --teal-bright: #5ad0d8;
+    --teal-soft:   #e3f5f6;
+    --ink:         #0f172a;
+    --page:        #f8fafc;
+    --surface:     #ffffff;
+    --border:      #eef2f6;
+    --text:        #0f172a;
+    --muted:       #94a3b8;
+    --on-dark-mut: #9fb0c4;
+    --see:         #1f9d76;   /* category ⛩ */
+    --see-bg:      #eafaf3;
+    --warn:        #b4791f;
+    --warn-bg:     #fff4e0;
+    --warn-bd:     #f3e2c2;
+    --amber-pin:   #e9a23b;
+    --mono: "Spline Sans Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  html, body {
+    font-family: "Noto Sans Thai", -apple-system, BlinkMacSystemFont, "Segoe UI",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: #eef1f4; color: var(--text); min-height: 100vh;
+  }
+  .page-header { padding: 22px 20px 4px; text-align: center; }
+  .page-title { font-size: 19px; font-weight: 800; }
+  .page-sub { font-size: 12.5px; color: #64748b; margin-top: 5px; line-height: 1.5; max-width: 720px; margin-left:auto; margin-right:auto; }
+  .page-sub b { color: var(--teal-deep); }
+
+  .phones { display: flex; gap: 30px; justify-content: center; align-items: flex-start;
+            padding: 24px 20px 48px; flex-wrap: wrap; }
+  .col { width: 360px; flex-shrink: 0; }
+  .opt-label { text-align: center; margin-bottom: 10px; }
+  .opt-name { font-size: 14px; font-weight: 800; color: var(--ink); }
+  .opt-rec  { display:inline-block; font-size: 10px; font-weight: 700; color:#fff; background: var(--teal);
+              border-radius: 999px; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+  .opt-hint { font-size: 11.5px; color:#64748b; margin-top: 3px; line-height: 1.45; }
+  .tap-note { text-align:center; font-size: 11px; color: var(--teal-deep); margin-top: 10px; font-weight: 600; }
+
+  .phone-frame {
+    width: 360px; height: 740px; background: var(--surface);
+    border-radius: 34px; border: 8px solid var(--ink); overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(2,6,23,0.4); position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* Compact trip header */
+  .trip-head { flex: none; padding: 14px 16px 8px; background: var(--surface); }
+  .trip-name { font-size: 16px; font-weight: 800; }
+  .trip-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+  /* Trip-level segmented (Places / Itinerary) — the real app has this above the day tabs */
+  .seg { display: flex; gap: 6px; padding: 8px 16px 4px; background: var(--surface); flex: none; }
+  .seg .s { flex: 1; text-align: center; font-size: 12.5px; font-weight: 700; padding: 7px 0;
+            border-radius: 10px; background: #f1f5f9; color: #64748b; }
+  .seg .s.active { background: var(--ink); color: #fff; }
+
+  /* Day tabs */
+  .day-tabs { display: flex; gap: 7px; padding: 8px 16px 10px; overflow: hidden; background: var(--surface); flex: none; }
+  .day-tab { flex: none; font-size: 12px; font-weight: 700; padding: 6px 13px; border-radius: 999px;
+             background: #f1f5f9; color: #64748b; white-space: nowrap; }
+  .day-tab.active { background: var(--teal); color: #fff; }
+
+  /* ---- MAP band (the thing in question) ---- */
+  .map { position: relative; width: 100%; background: #eef4f3; flex: none; }
+  .map svg { display: block; width: 100%; height: 100%; }
+  .map-cap { position: absolute; left: 12px; bottom: 10px; font-size: 10px; font-weight: 600;
+             color: var(--teal-deep); background: rgba(255,255,255,.95); padding: 4px 9px;
+             border-radius: 99px; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+  .map-btn { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; border-radius: 9px;
+             background: rgba(255,255,255,.95); border: 0; box-shadow: 0 2px 8px rgba(15,23,42,.18);
+             display: flex; align-items: center; justify-content: center; cursor: pointer;
+             font-size: 15px; color: var(--ink); }
+
+  /* Dark day-summary bar (matches F3) */
+  .sumbar { flex: none; display: flex; align-items: center; justify-content: space-between;
+            background: var(--ink); padding: 9px 16px; }
+  .sumbar .l { font-size: 11px; color: var(--on-dark-mut); }
+  .sumbar .l b  { color: #fff; font-family: var(--mono); }
+  .sumbar .l .end { color: var(--teal-bright); font-family: var(--mono); font-weight: 700; }
+  .sumbar .r { font-size: 11px; color: var(--on-dark-mut); }
+  .sumbar .r b { color: #fff; }
+
+  /* Stop list */
+  .stops { flex: 1; padding: 11px 14px 16px; overflow-y: auto; background: var(--page); }
+  .stops::-webkit-scrollbar { width: 0; }
+  .stop { display: flex; align-items: stretch; background: var(--surface); border: 1px solid var(--border);
+          border-radius: 13px; overflow: hidden; }
+  .stop.warn { background: #fffdf7; border-color: var(--warn-bd); }
+  .stop .rail { width: 50px; flex: none; background: #f1f8f9; display: flex; flex-direction: column;
+                align-items: center; justify-content: center; }
+  .stop.warn .rail { background: #fdf3e0; }
+  .stop .rail .arr { font: 700 14px var(--mono); color: var(--ink); }
+  .stop .rail .lbl { font-size: 8px; color: var(--muted); }
+  .stop .body { flex: 1; padding: 8px 10px; min-width: 0; }
+  .stop .nm { font-size: 13.5px; font-weight: 700; }
+  .stop .chips { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+  .chip { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 999px; }
+  .chip.dwell { color: var(--teal-deep); background: var(--teal-soft); }
+  .chip.good  { color: var(--see); background: var(--see-bg); }
+  .chip.warn  { color: var(--warn); background: var(--warn-bg); }
+  .stop .grip { width: 26px; flex: none; display: flex; align-items: center; justify-content: center;
+                color: #cbd5e1; font-size: 14px; }
+  .stop.warn .grip { color: #e9c79a; }
+  .leg { display: flex; align-items: center; gap: 6px; padding: 5px 0 5px 58px;
+         font-size: 10.5px; font-weight: 600; color: var(--teal-deep); }
+  .leg .mut { color: #cbd5e1; }
+
+  /* Collapsed strip (Option A) */
+  .map-strip { flex: none; display: none; align-items: center; justify-content: space-between;
+               padding: 9px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+               cursor: pointer; }
+  .map-strip .t { font-size: 12.5px; font-weight: 700; color: var(--teal-deep); }
+  .map-strip .c { font-size: 14px; color: var(--muted); }
+
+  /* Option B segmented (map/list) */
+  .mlseg { display: flex; gap: 6px; padding: 4px 16px 8px; background: var(--surface); flex: none; }
+  .mlseg .s { flex: 1; text-align: center; font-size: 12px; font-weight: 700; padding: 6px 0;
+              border-radius: 9px; background: #f1f5f9; color: #64748b; cursor: pointer; }
+  .mlseg .s.active { background: var(--teal); color: #fff; }
+
+  /* state helpers */
+  .hidden { display: none !important; }
+
+  /* Option C full-screen expanded map overlay */
+  .map.full { position: absolute; inset: 0; z-index: 5; height: auto !important; }
+</style>
+</head>
+<body>
+  <div class="page-header">
+    <div class="page-title">Trip · แผนเที่ยว (มือถือ) — แผนที่ควรโผล่ยังไง? · issue #8</div>
+    <div class="page-sub">
+      ทั้งสามแบบ <b>default = เห็นแผนที่ทันทีที่เปิด</b> (นี่คือสิ่งที่แก้ #8). แตะปุ่ม/แถบบนแผนที่เพื่อดูพฤติกรรม toggle
+      · โทน teal &amp; layout ตรงกับ Map-Forward handoff (F3) และ trips-tokens.css จริง
+    </div>
+  </div>
+
+  <div class="phones">
+
+    <!-- ============ OPTION A: collapsible band ============ -->
+    <div class="col">
+      <div class="opt-label">
+        <div class="opt-name">A · แถบพับได้<span class="opt-rec">แนะนำ</span></div>
+        <div class="opt-hint">แผนที่ 188px โผล่ก่อน · แตะ ˄ พับเก็บเป็นแถบบางเพื่อให้ list กว้างขึ้น</div>
+      </div>
+      <div class="phone-frame">
+        <div class="trip-head">
+          <div class="trip-name">🗾 โอซาก้า–เกียวโต</div>
+          <div class="trip-meta">เกียวโต · 14–18 พ.ย. · 5 วัน</div>
+        </div>
+        <div class="seg"><div class="s">คลังสถานที่</div><div class="s active">แผนเที่ยว</div></div>
+        <div class="day-tabs">
+          <div class="day-tab">วัน 1</div><div class="day-tab active">วัน 2 · เกียวโต</div>
+          <div class="day-tab">วัน 3</div><div class="day-tab">4</div><div class="day-tab">5</div>
+        </div>
+
+        <!-- collapsed strip (hidden by default) -->
+        <div class="map-strip" id="A-strip" onclick="aExpand()">
+          <span class="t">🗺 แสดงแผนที่เส้นทาง</span><span class="c">˅</span>
+        </div>
+
+        <!-- map band (visible by default = fixes #8) -->
+        <div class="map" id="A-map" style="height:188px">
+          <button class="map-btn" onclick="aCollapse()" title="พับแผนที่">˄</button>
+          <div class="map-cap">เส้นทางอัปเดตเมื่อสลับลำดับ</div>
+          <!--SVGMAP-->
+        </div>
+
+        <div class="sumbar">
+          <span class="l">เริ่ม <b>09:00</b> → เสร็จ <span class="end">14:55</span></span>
+          <span class="r">เดินทางรวม <b>55 น</b></span>
+        </div>
+        <div class="stops"><!--STOPS--></div>
+      </div>
+      <div class="tap-note">แตะ ˄ บนแผนที่ / แถบ “แสดงแผนที่” เพื่อพับ–กาง</div>
+    </div>
+
+    <!-- ============ OPTION B: map / list segmented ============ -->
+    <div class="col">
+      <div class="opt-label">
+        <div class="opt-name">B · สลับ แผนที่ / รายการ</div>
+        <div class="opt-hint">segmented เหมือนแท็บ Places · เห็นทีละอย่าง (default = แผนที่เต็มจอ)</div>
+      </div>
+      <div class="phone-frame">
+        <div class="trip-head">
+          <div class="trip-name">🗾 โอซาก้า–เกียวโต</div>
+          <div class="trip-meta">เกียวโต · 14–18 พ.ย. · 5 วัน</div>
+        </div>
+        <div class="seg"><div class="s">คลังสถานที่</div><div class="s active">แผนเที่ยว</div></div>
+        <div class="day-tabs">
+          <div class="day-tab">วัน 1</div><div class="day-tab active">วัน 2 · เกียวโต</div>
+          <div class="day-tab">วัน 3</div><div class="day-tab">4</div><div class="day-tab">5</div>
+        </div>
+        <div class="mlseg">
+          <div class="s active" id="B-mseg" onclick="bShow('map')">แผนที่</div>
+          <div class="s" id="B-lseg" onclick="bShow('list')">รายการ</div>
+        </div>
+
+        <!-- map view (full remaining height) -->
+        <div class="map" id="B-map" style="flex:1">
+          <div class="map-cap">เส้นทางอัปเดตเมื่อสลับลำดับ</div>
+          <!--SVGMAP-->
+        </div>
+
+        <!-- list view (hidden by default) -->
+        <div class="sumbar hidden" id="B-sum">
+          <span class="l">เริ่ม <b>09:00</b> → เสร็จ <span class="end">14:55</span></span>
+          <span class="r">เดินทางรวม <b>55 น</b></span>
+        </div>
+        <div class="stops hidden" id="B-stops"><!--STOPS--></div>
+      </div>
+      <div class="tap-note">แตะ [แผนที่ | รายการ] เพื่อสลับ</div>
+    </div>
+
+    <!-- ============ OPTION C: peek -> full ============ -->
+    <div class="col">
+      <div class="opt-label">
+        <div class="opt-name">C · Peek → เต็มจอ</div>
+        <div class="opt-hint">peek 188px โผล่ก่อน · แตะ ⤢ ขยายเป็นแผนที่เต็มจอ (toggle = ขยาย ไม่ใช่ซ่อน)</div>
+      </div>
+      <div class="phone-frame" id="C-frame">
+        <div class="trip-head">
+          <div class="trip-name">🗾 โอซาก้า–เกียวโต</div>
+          <div class="trip-meta">เกียวโต · 14–18 พ.ย. · 5 วัน</div>
+        </div>
+        <div class="seg"><div class="s">คลังสถานที่</div><div class="s active">แผนเที่ยว</div></div>
+        <div class="day-tabs">
+          <div class="day-tab">วัน 1</div><div class="day-tab active">วัน 2 · เกียวโต</div>
+          <div class="day-tab">วัน 3</div><div class="day-tab">4</div><div class="day-tab">5</div>
+        </div>
+
+        <div class="map" id="C-map" style="height:188px">
+          <button class="map-btn" id="C-btn" onclick="cToggle()" title="ขยายแผนที่">⤢</button>
+          <div class="map-cap">เส้นทางอัปเดตเมื่อสลับลำดับ</div>
+          <!--SVGMAP-->
+        </div>
+
+        <div class="sumbar">
+          <span class="l">เริ่ม <b>09:00</b> → เสร็จ <span class="end">14:55</span></span>
+          <span class="r">เดินทางรวม <b>55 น</b></span>
+        </div>
+        <div class="stops"><!--STOPS--></div>
+      </div>
+      <div class="tap-note">แตะ ⤢ เพื่อขยายเต็มจอ · แตะ ⤡ เพื่อย่อกลับ</div>
+    </div>
+
+  </div>
+
+<script>
+  // Shared SVG map placeholder (numbered route, 3 teal + 1 amber pin) — mirrors F3.
+  const SVGMAP = `
+    <svg viewBox="0 0 360 188" preserveAspectRatio="xMidYMid slice">
+      <rect width="360" height="188" fill="#eef4f3"/>
+      <path d="M0,140 C70,128 120,162 200,150 C280,138 330,168 360,156 L360,188 L0,188Z" fill="#bfe2e4"/>
+      <rect x="245" y="16" width="100" height="52" rx="12" fill="#d8e9cf"/>
+      <g stroke="#fff" stroke-width="7" stroke-linecap="round">
+        <line x1="0" y1="70" x2="360" y2="54"/><line x1="150" y1="0" x2="172" y2="188"/>
+        <line x1="0" y1="132" x2="300" y2="120"/>
+      </g>
+      <path d="M56,138 L150,86 L250,100 L300,40" fill="none" stroke="#0e8f9e" stroke-width="4.5"
+            stroke-linecap="round" stroke-linejoin="round"/>
+      <g font-family="monospace" font-weight="700">
+        <circle cx="56" cy="138" r="13" fill="#0e8f9e" stroke="#fff" stroke-width="3"/><text x="56" y="142" font-size="11" fill="#fff" text-anchor="middle">1</text>
+        <circle cx="150" cy="86" r="13" fill="#0e8f9e" stroke="#fff" stroke-width="3"/><text x="150" y="90" font-size="11" fill="#fff" text-anchor="middle">2</text>
+        <circle cx="250" cy="100" r="13" fill="#0e8f9e" stroke="#fff" stroke-width="3"/><text x="250" y="104" font-size="11" fill="#fff" text-anchor="middle">3</text>
+        <circle cx="300" cy="40" r="13" fill="#e9a23b" stroke="#fff" stroke-width="3"/><text x="300" y="44" font-size="11" fill="#fff" text-anchor="middle">4</text>
+      </g>
+    </svg>`;
+
+  const STOPS = `
+    <div class="stop">
+      <div class="rail"><div class="arr">09:00</div><div class="lbl">ถึง</div></div>
+      <div class="body"><div class="nm">⛩️ ฟูชิมิอินาริ</div>
+        <div class="chips"><span class="chip dwell">⏱ อยู่ 90 น</span><span class="chip good">✓ เช้าเลี่ยงคน</span></div></div>
+      <div class="grip">⋮⋮</div>
+    </div>
+    <div class="leg">🚃 18 นาที · 6.2 กม <span class="mut">· คำนวณอัตโนมัติ</span></div>
+    <div class="stop">
+      <div class="rail"><div class="arr">10:48</div><div class="lbl">ถึง</div></div>
+      <div class="body"><div class="nm">⛩️ วัดคิโยมิซุ</div>
+        <div class="chips"><span class="chip dwell">⏱ อยู่ 75 น</span><span class="chip good">✓ ช่วงเหมาะ</span></div></div>
+      <div class="grip">⋮⋮</div>
+    </div>
+    <div class="leg">🚶 12 นาที · 2.1 กม</div>
+    <div class="stop">
+      <div class="rail"><div class="arr">12:15</div><div class="lbl">ถึง</div></div>
+      <div class="body"><div class="nm">☕ % Arabica</div>
+        <div class="chips"><span class="chip dwell">⏱ อยู่ 60 น</span></div></div>
+      <div class="grip">⋮⋮</div>
+    </div>
+    <div class="leg">🚃 25 นาที · 11 กม</div>
+    <div class="stop warn">
+      <div class="rail"><div class="arr">13:40</div><div class="lbl">ถึง</div></div>
+      <div class="body"><div class="nm">⛩️ ป่าไผ่อาราชิยาม่า</div>
+        <div class="chips"><span class="chip dwell">⏱ อยู่ 75 น</span><span class="chip warn">⚠ ควรไปเช้า</span></div></div>
+      <div class="grip">⋮⋮</div>
+    </div>`;
+
+  document.querySelectorAll('.map').forEach(m => m.insertAdjacentHTML('afterbegin', SVGMAP));
+  document.querySelectorAll('.stops').forEach(s => s.innerHTML = STOPS);
+
+  // Option A — collapsible band
+  function aCollapse() {
+    document.getElementById('A-map').classList.add('hidden');
+    document.getElementById('A-strip').style.display = 'flex';
+  }
+  function aExpand() {
+    document.getElementById('A-map').classList.remove('hidden');
+    document.getElementById('A-strip').style.display = 'none';
+  }
+
+  // Option B — map/list segmented
+  function bShow(which) {
+    const map = which === 'map';
+    document.getElementById('B-map').classList.toggle('hidden', !map);
+    document.getElementById('B-sum').classList.toggle('hidden', map);
+    document.getElementById('B-stops').classList.toggle('hidden', map);
+    document.getElementById('B-mseg').classList.toggle('active', map);
+    document.getElementById('B-lseg').classList.toggle('active', !map);
+  }
+
+  // Option C — peek -> full
+  let cFull = false;
+  function cToggle() {
+    cFull = !cFull;
+    const map = document.getElementById('C-map');
+    const btn = document.getElementById('C-btn');
+    map.classList.toggle('full', cFull);
+    map.style.height = cFull ? '' : '188px';
+    btn.textContent = cFull ? '⤡' : '⤢';
+    btn.title = cFull ? 'ย่อแผนที่' : 'ขยายแผนที่';
+  }
+</script>
+</body>
+</html>
