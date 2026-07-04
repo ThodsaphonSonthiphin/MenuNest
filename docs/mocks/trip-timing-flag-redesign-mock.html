@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip Planner — Timing flag redesign</title>
+<style>
+  /* ---- real trip tokens (trips-tokens.css) ---- */
+  :root{
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a; --page:#f8fafc; --surface:#fff; --border:#eef2f6;
+    --muted:#94a3b8; --good:#1f9d76; --good-bg:#eafaf3;
+    --warn:#b4791f; --warn-bg:#fff4e0;
+    --bad:#b42318;  --bad-bg:#fdeceb;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--page); color:var(--ink);
+    font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'Spline Sans Mono',ui-monospace,monospace;}
+  .wrap{max-width:960px; margin:0 auto; padding:22px 16px 56px;}
+  h1{font-size:20px; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:13px; margin:0 0 22px;}
+  .cols{display:flex; gap:26px; flex-wrap:wrap; align-items:flex-start;}
+  .col{flex:1 1 380px; min-width:320px;}
+  .col h2{font-size:13px; letter-spacing:.02em; text-transform:uppercase; color:var(--muted); margin:0 0 10px; font-weight:700;}
+  .col.after h2{color:var(--teal-deep);}
+  .stop-list{display:flex; flex-direction:column; gap:8px;}
+
+  /* ---- stop card (from trips-tokens.css) ---- */
+  .stop-card{display:flex; align-items:stretch; background:var(--surface);
+    border:1px solid var(--border); border-radius:13px; overflow:hidden;}
+  .stop-card.warn{background:#fffdf7; border-color:#f3e2c2;}
+  .stop-card.bad{background:#fffbfb; border-color:#f4d0cc;}
+  .stop-rail{flex:none; width:58px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:1px; padding:6px 4px; background:#f1f8f9;}
+  .stop-card.warn .stop-rail{background:#fdf3e0;}
+  .stop-card.bad .stop-rail{background:#fbe3e0;}
+  .stop-arr{font-size:15px; font-weight:700; color:var(--ink); line-height:1.1;}
+  .stop-dep{font-size:10px; font-weight:500; color:var(--muted); line-height:1.1;}
+  .stop-body{flex:1; min-width:0; text-align:left; padding:11px 13px;}
+  .stop-name{font-size:14px; font-weight:700; color:var(--ink); display:flex; align-items:center; gap:7px;}
+  .cat{width:16px;height:16px;flex:none;color:var(--teal);}
+  .stop-chips{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+  .chip{font-size:10px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap; display:inline-flex; align-items:center; gap:4px;}
+  .chip.dwell{background:var(--teal-soft); color:var(--teal-deep);}
+  .chip.good{background:var(--good-bg); color:var(--good);}
+  .chip.warn{background:var(--warn-bg); color:var(--warn);}
+  .chip svg{width:11px;height:11px;}
+  .stop-nav{flex:none; display:flex; align-items:center; justify-content:center; width:44px;
+    border-left:1px solid var(--border); color:var(--teal);}
+  .stop-nav svg{width:17px;height:17px;}
+  .stop-reorder{flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding-right:6px;}
+  .stop-reorder button{width:22px;height:22px; display:flex; align-items:center; justify-content:center;
+    border:0; border-radius:6px; background:transparent; color:#cbd5e1; font-size:10px; cursor:pointer;}
+
+  .travel-leg{display:flex; align-items:center; gap:8px; padding:3px 0 3px 66px;
+    color:var(--teal-deep); font-size:11px; font-weight:600;}
+  .leg-line{flex:none; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.45;}
+  .leg-dist{color:var(--muted); font-weight:500;}
+  .leg svg{width:13px;height:13px;}
+
+  /* ================= NEW: reason line ================= */
+  /* one inset line beneath the chips: icon + what/why + suggested fix.
+     TWO severity tones (ADR-021): amber '.flag-note' = suggestion (off-window),
+     red '.flag-note.bad' = problem (closed / overflow). ICON + WORDS carry which
+     problem it is (ADR-019 words-first, ADR-020 three reasons). NOTE for build:
+     the amber text must use a darker AA-passing ink (spec §7.1 --warn-ink), not the
+     chip-tuned --warn shown here. */
+  .flag-note{
+    display:flex; align-items:flex-start; gap:8px;
+    margin-top:8px; padding:7px 10px;
+    background:var(--warn-bg); border-radius:9px;
+    font-size:11.5px; line-height:1.45; color:var(--warn);
+  }
+  .flag-note svg{width:14px; height:14px; flex:none; margin-top:1px;}
+  .flag-note b{font-weight:700;}
+  .flag-note .fix{color:#8a5e14; font-weight:600;}
+  .flag-note .fix::before{content:"— "; color:#c9a24a;}
+  /* red tone = a hard problem (closed / overflow) */
+  .flag-note.bad{background:var(--bad-bg); color:var(--bad);}
+  .flag-note.bad .fix{color:#8f2318;}
+  .flag-note.bad .fix::before{color:#d08a84;}
+
+  /* (no positive/well-timed state — ADR-021; a good stop shows only its dwell chip) */
+
+  .note{font-size:11.5px; color:var(--muted); margin:16px 0 0; line-height:1.5;}
+  .legend{display:flex; flex-direction:column; gap:9px; background:var(--surface);
+    border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-top:14px;}
+  .legend h3{margin:0 0 2px; font-size:12px; color:var(--ink);}
+  .legend-row{display:flex; align-items:center; gap:9px; font-size:12px; color:var(--ink);}
+  .legend-row .ic{width:22px;height:22px;flex:none;display:flex;align-items:center;justify-content:center;
+    border-radius:6px;background:var(--warn-bg);color:var(--warn);}
+  .legend-row .ic svg{width:13px;height:13px;}
+  .legend-row .ic.bad{background:var(--bad-bg);color:var(--bad);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Trip Planner — ธงเตือนช่วงเวลา (ออกแบบใหม่)</h1>
+  <p class="sub">วัน 1 · เทียบของเดิมกับที่เสนอ — 2 โทนสีตามความหนัก (แดง=ปัญหา / ส้ม=น่าปรับ) + เหตุผลและวิธีแก้เป็นคำพูด · โชว์เฉพาะตอนมีปัญหา</p>
+
+  <div class="cols">
+    <!-- ============ BEFORE ============ -->
+    <div class="col before">
+      <h2>ปัจจุบัน — สีส้ม + ชิปเล็ก</h2>
+      <div class="stop-list">
+
+        <div class="stop-card warn">
+          <div class="stop-rail"><div class="stop-arr mono">09:00</div><div class="stop-dep mono">→09:30</div></div>
+          <div class="stop-body">
+            <div class="stop-name"><svg class="cat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7zm0 9.5A2.5 2.5 0 1112 6.5a2.5 2.5 0 010 5z"/></svg>Rayong Royal Peak 2</div>
+            <div class="stop-chips">
+              <span class="chip dwell">อยู่ 30 น.</span>
+            </div>
+          </div>
+          <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12L2 4l4 8-4 8z"/></svg></div>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+        <div class="travel-leg"><span class="leg-line"></span><span class="leg mono">🚗 203 นาที</span><span class="leg-dist">· 135.1 กม.</span></div>
+
+        <div class="stop-card warn">
+          <div class="stop-rail"><div class="stop-arr mono">14:41</div><div class="stop-dep mono">→15:41</div></div>
+          <div class="stop-body">
+            <div class="stop-name"><svg class="cat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/></svg>ริเวอร์โฮมสเตย์</div>
+            <div class="stop-chips">
+              <span class="chip dwell">อยู่ 60 น.</span>
+              <span class="chip warn">⚠ ช่วงดี 12:00–13:00</span>
+            </div>
+          </div>
+          <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12L2 4l4 8-4 8z"/></svg></div>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+      </div>
+      <p class="note">ปัญหา: สีส้มทั้งใบ + ชิป “⚠ ช่วงดี” ไม่บอกว่า<b> ติดอะไร </b>และ<b> ต้องทำอะไร</b> — การ์ดบนสุดส้มเพราะ “ร้านยังไม่เปิด” แต่ผู้ใช้เดาไม่ออกเลย</p>
+    </div>
+
+    <!-- ============ AFTER ============ -->
+    <div class="col after">
+      <h2>ออกแบบใหม่ — บอกเหตุผล + วิธีแก้</h2>
+      <div class="stop-list">
+
+        <!-- 1. CLOSED (red = problem) -->
+        <div class="stop-card bad">
+          <div class="stop-rail"><div class="stop-arr mono">09:00</div><div class="stop-dep mono">→09:30</div></div>
+          <div class="stop-body">
+            <div class="stop-name"><svg class="cat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/></svg>Rayong Royal Peak 2</div>
+            <div class="stop-chips"><span class="chip dwell">อยู่ 30 น.</span></div>
+            <div class="flag-note bad">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>
+              <span><b>ยังไม่เปิด</b>ตอนไปถึง · เปิด 10:00 <span class="fix">เลื่อนสตอปนี้ไปช่วงสาย</span></span>
+            </div>
+          </div>
+          <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12L2 4l4 8-4 8z"/></svg></div>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+        <div class="travel-leg"><span class="leg-line"></span><span class="leg mono">🚗 203 นาที</span><span class="leg-dist">· 135.1 กม.</span></div>
+
+        <!-- 2. GOOD -->
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr mono">12:53</div><div class="stop-dep mono">→13:53</div></div>
+          <div class="stop-body">
+            <div class="stop-name"><svg class="cat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/></svg>Phlio Waterfall</div>
+            <div class="stop-chips"><span class="chip dwell">อยู่ 60 น.</span></div>
+          </div>
+          <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12L2 4l4 8-4 8z"/></svg></div>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+        <div class="travel-leg"><span class="leg-line"></span><span class="leg mono">🚗 48 นาที</span><span class="leg-dist">· 31.8 กม.</span></div>
+
+        <!-- 3. OFF-WINDOW -->
+        <div class="stop-card warn">
+          <div class="stop-rail"><div class="stop-arr mono">14:41</div><div class="stop-dep mono">→15:41</div></div>
+          <div class="stop-body">
+            <div class="stop-name"><svg class="cat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/></svg>ริเวอร์โฮมสเตย์</div>
+            <div class="stop-chips"><span class="chip dwell">อยู่ 60 น.</span></div>
+            <div class="flag-note">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <span>ไปถึง<b>หลังช่วงแนะนำ</b> · ช่วงเหมาะ 12:00–13:00 <span class="fix">เลื่อนสตอปนี้ขึ้นก่อนหน้า</span></span>
+            </div>
+          </div>
+          <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12L2 4l4 8-4 8z"/></svg></div>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+        <div class="travel-leg"><span class="leg-line"></span><span class="leg mono">🚗 92 นาที</span><span class="leg-dist">· 60.4 กม.</span></div>
+
+        <!-- 4. OVERFLOW (red = problem) -->
+        <div class="stop-card bad">
+          <div class="stop-rail"><div class="stop-arr mono">00:20</div><div class="stop-dep mono">→01:20</div></div>
+          <div class="stop-body">
+            <div class="stop-name"><svg class="cat" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.2 7 13 7 13s7-7.8 7-13c0-3.9-3.1-7-7-7z"/></svg>จุดชมวิวเขาแหลมหญ้า</div>
+            <div class="stop-chips"><span class="chip dwell">อยู่ 60 น.</span></div>
+            <div class="flag-note bad">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg>
+              <span>แผนวันนี้<b>ยาวข้ามเที่ยงคืน</b> (ถึง 00:20) <span class="fix">ตัดจุดแวะออก หรือเริ่มวันให้เร็วขึ้น</span></span>
+            </div>
+          </div>
+          <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12L2 4l4 8-4 8z"/></svg></div>
+          <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        </div>
+
+      </div>
+
+      <div class="legend">
+        <h3>2 โทนสีตามความหนัก · 3 ไอคอนตามเหตุผล</h3>
+        <div class="legend-row"><span class="ic bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></span> <b>แดง = ปัญหา</b> · ร้านปิด / ยังไม่เปิด ตอนไปถึง</div>
+        <div class="legend-row"><span class="ic bad"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z"/></svg></span> <b>แดง = ปัญหา</b> · แผนวันยาวข้ามเที่ยงคืน</div>
+        <div class="legend-row"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span> <b>ส้ม = น่าปรับ</b> · ไปถึงนอกช่วงเวลาที่แนะนำ</div>
+      </div>
+      <p class="note">แนวคิด: สแกนปุ๊บ แดง=ต้องแก้ ส้ม=น่าปรับ ไม่มีป้าย=เวลาโอเค · ไอคอน+คำบอก “ติดอะไร + ทำอะไรต่อ” ให้ครบโดยไม่ต้องจำสี</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

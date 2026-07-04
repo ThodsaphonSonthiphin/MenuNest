@@ -60,6 +60,14 @@ the glossary wins until the glossary is deliberately changed.
 - **Smart Schedule** — the per-day itinerary view that cascades arrival/leave times
   from the day start through **Dwell** + **Leg** travel time, and flags each Stop
   against its best-time window and opening hours (see ADR-008).
+- **Timing flag** — a warning shown on a **Stop** in the **Smart Schedule** when its
+  computed arrival is problematic, stating the reason and a suggested fix in words
+  (ADR-019). Three types by **reason** — **closed** (place shut at arrival),
+  **off-window** (arrival outside the place's best-time window), **overflow** (the day
+  runs past midnight) — and two **severities** by colour — **problem** (red: closed,
+  overflow) vs **suggestion** (amber: off-window) (ADR-020, ADR-021). Only the single
+  most-severe flag shows per Stop (priority overflow > closed > off-window); a
+  well-timed Stop shows **no** flag. _Avoid_: warning, alert, "amber" as a noun.
 - **Capture** — bringing a Place into a Trip from Google Maps. The MVP-primary paths
   are **live search** (type a name → Google Places autocomplete suggestions → pick one)
   and **map-tap** (tap a place on the in-app map), both handled client-side (ADR-014,

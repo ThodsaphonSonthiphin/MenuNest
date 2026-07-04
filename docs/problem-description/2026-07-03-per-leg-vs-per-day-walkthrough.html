@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>per-leg หรือ per-day — ยิง Routes API อย่างไร (MenuNest Trips)</title>
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#1a2330; --surface:#0f1722; --surface-2:#0f1419;
+    --border:#2a3441; --border-dim:#3d4a5f; --surface-active:#233040;
+    --text:#e0e6ed; --text-dim:#b8c4cf; --muted:#6b7785; --muted-2:#8a96a3;
+    --accent:#5fb4ff; --accent-bright:#7ed4ff;
+    --amber:#ffd479; --warn:#ffaa00; --warn-text:#ffaa44;
+    --magic:#b070ff; --magic-text:#d4a4ff; --magic-bg:#2a1a3a;
+    --success:#4ade80; --success-text:#a3e8b9;
+    --error:#ff5757; --error-text:#ff8888; --conflict:#ff3030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 22px; margin: 0 0 4px; }
+  h2 { color: var(--text-dim); font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: var(--amber); font-size: 0.9em; }
+
+  /* progress dots */
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: var(--panel); color: var(--muted);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: var(--accent); }
+  .step-dot.current { background: var(--accent); color: var(--bg); transform: scale(1.2); }
+
+  /* narration — the canonical NESTED shape (badge+title+body inside #narration) */
+  .narration {
+    background: var(--panel); padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid var(--accent); margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: var(--warn);    background: #2a2018; }
+  .narration.error   { border-color: var(--error);   background: #2a1818; }
+  .narration.success { border-color: var(--success); background: #182a1f; }
+  .narration.magic   { border-color: var(--magic);   background: #1f1830; }
+  .narration .step-badge { background: var(--accent); color: var(--bg);
+                           padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                           font-weight: 700; display: inline-block; margin-right: 8px; }
+  .narration .step-title { color: var(--accent); font-weight: 700; font-size: 16px;
+                           display: block; margin: 8px 0 6px; }
+  .narration.warn    .step-title { color: var(--amber); }
+  .narration.error   .step-title { color: var(--error-text); }
+  .narration.success .step-title { color: var(--success-text); }
+  .narration.magic   .step-title { color: var(--magic-text); }
+
+  /* shared hidden panel (replaces the old .extra-panel/.toggleable/.key-question) */
+  .wt-panel { background: var(--panel); border-radius: 6px; padding: 14px 18px;
+              margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .wt-panel .wt-panel-title { font-weight: 700; margin-bottom: 6px; }
+  .wt-panel.question { background: #1f1830; border: 2px solid var(--magic); }
+  .wt-panel.question .wt-panel-title { color: var(--magic-text); }
+  .wt-panel.race     { background: #2a1818; border: 2px solid var(--error); }
+  .wt-panel.race .wt-panel-title { color: var(--error-text); }
+  .wt-panel.summary  { background: #182a1f; border: 2px solid var(--success); }
+  .wt-panel.summary .wt-panel-title { color: var(--success-text); }
+
+  /* controls */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button { background: var(--accent); color: var(--bg); border: none;
+           padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 700;
+           cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover:not(:disabled)  { background: var(--accent-bright); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: var(--border); color: var(--text); }
+  button.tertiary:hover:not(:disabled) { background: var(--border-dim); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hidden { display: none !important; }
+  
+  .diagram-wrapper { background: var(--surface-2); border: 1px solid var(--panel);
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .comp rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .comp .comp-title { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: var(--text-dim); transition: fill 0.4s; }
+  .comp .comp-sub { font-family: 'Consolas', monospace; font-size: 11px; fill: var(--muted); transition: fill 0.4s; }
+  .comp .comp-val { font-family: 'Consolas', monospace; font-size: 12px; fill: var(--amber); transition: fill 0.4s; }
+  .comp.active rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .comp.active .comp-title { fill: var(--accent-bright); }
+  .comp.active .comp-sub { fill: var(--text-dim); }
+  .comp.firing rect { fill: #2a2818; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 8px #ffd47988); animation: pulse-fire 1.2s ease-in-out infinite; }
+  .comp.firing .comp-title { fill: var(--amber); }
+  @keyframes pulse-fire { 0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); } 50% { filter: drop-shadow(0 0 16px #ffd479dd); } }
+  .comp.locked rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3; filter: drop-shadow(0 0 10px #b070ff88); }
+  .comp.locked .comp-title { fill: var(--magic-text); }
+  .comp.locked .comp-val { fill: var(--magic-text); }
+  .comp.blocked rect { fill: #2a1f10; stroke: var(--warn); stroke-width: 2; animation: blink-block 1s ease-in-out infinite alternate; }
+  .comp.blocked .comp-title { fill: var(--warn-text); }
+  @keyframes blink-block { from { opacity: 0.55; } to { opacity: 0.9; } }
+  .comp.done rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .comp.done .comp-title { fill: var(--success-text); }
+  .comp.done .comp-val { fill: var(--success-text); }
+  .comp.error rect { fill: #2a1818; stroke: var(--error); stroke-width: 3; filter: drop-shadow(0 0 10px #ff575788); }
+  .comp.error .comp-title { fill: var(--error-text); }
+  .comp.dimmed { opacity: 0.35; }
+  .arrow { fill: none; stroke: var(--border-dim); stroke-width: 2; transition: stroke 0.3s, stroke-width 0.3s; }
+  .arrow.active { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.magic { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.done { stroke: var(--success); stroke-width: 2.5; }
+  .arrow.error { stroke: var(--error); stroke-width: 3; }
+  .arrow.dimmed { opacity: 0.2; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .flow-label { fill: var(--amber); font-family: 'Consolas', monospace; font-size: 12px; font-weight: 700; pointer-events: none; }
+  .flow-label-bg { fill: #2a2818; stroke: var(--amber); stroke-width: 1.5; }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label { fill: var(--magic-text); }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: var(--magic); }
+  .flow-label-group.error .flow-label { fill: var(--error-text); }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: var(--error); }
+  
+  /* Colors are engine :root tokens (var(--token)), so a palette change in the engine
+     propagates here too; the standalone demo's :root above supplies them when opened raw. */
+  .term { border-bottom: 1px dotted var(--accent); color: var(--accent); cursor: help; }
+  .term:hover { color: var(--accent-bright); }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 86vw;
+    background: var(--panel); border-left: 2px solid var(--accent);
+    box-shadow: -8px 0 24px #00000088;
+    padding: 18px 20px; overflow-y: auto; z-index: 50;
+  }
+  .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .drawer-term { color: var(--accent-bright); font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .drawer-source { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                   letter-spacing: 0.5px; margin: 2px 0 12px; }
+  .drawer-def { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+  .drawer-seealso-title { font-size: 11px; color: var(--muted-2); text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 8px; }
+  .seealso-chip {
+    display: inline-block; background: var(--panel); border: 1px solid var(--border);
+    color: var(--accent); border-radius: 14px; padding: 4px 12px;
+    margin: 0 6px 6px 0; font-size: 13px; cursor: pointer;
+  }
+  .seealso-chip:hover { background: var(--surface-active); border-color: var(--accent); }
+  .drawer-btns { display: flex; gap: 8px; margin-top: 18px; }
+  
+</style></head>
+<body>
+<div class="container">
+  <h1>per-leg หรือ per-day — ยิง Routes API อย่างไร (MenuNest Trips)</h1>
+  <h2>กด <strong>ถัดไป →</strong> เพื่อดูทีละ step</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">เริ่มต้น</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <!-- ===== MODE CONTENT — assembly inserts the chosen mode pack's §HTML here ===== -->
+<div class="diagram-wrapper">
+  <svg class="diagram" viewBox="0 0 1000 350" xmlns="http://www.w3.org/2000/svg">
+    <!-- three Legs of the Chanthaburi day -->
+    <g class="comp" id="compLeg1">
+      <rect x="30" y="20" width="250" height="66" rx="10"/>
+      <text class="comp-title" x="155" y="48" text-anchor="middle">Leg 1 · 🚗 Drive</text>
+      <text class="comp-sub"   x="155" y="68" text-anchor="middle">homestay → น้ำตกพลิ้ว</text>
+    </g>
+    <g class="comp" id="compLeg2">
+      <rect x="30" y="112" width="250" height="66" rx="10"/>
+      <text class="comp-title" x="155" y="140" text-anchor="middle">Leg 2 · 🚗 Drive</text>
+      <text class="comp-sub"   x="155" y="160" text-anchor="middle">พลิ้ว → ริมน้ำจันทบูร</text>
+    </g>
+    <g class="comp" id="compLeg3">
+      <rect x="30" y="204" width="250" height="66" rx="10"/>
+      <text class="comp-title" x="155" y="232" text-anchor="middle">Leg 3 · 🚶 Walk</text>
+      <text class="comp-sub"   x="155" y="252" text-anchor="middle">ริมน้ำ → อาสนวิหาร</text>
+    </g>
+    <!-- route service + cache -->
+    <g class="comp" id="compSvc">
+      <rect x="420" y="95" width="220" height="120" rx="10"/>
+      <text class="comp-title" x="530" y="130" text-anchor="middle">⚙️ Route service</text>
+      <text class="comp-sub"   x="530" y="153" text-anchor="middle">cache 12 ชม./leg</text>
+      <text class="comp-val"   x="530" y="185" text-anchor="middle" id="svcVal">cache: ว่าง</text>
+    </g>
+    <!-- google computeRoutes -->
+    <g class="comp" id="compGoogle">
+      <rect x="740" y="95" width="235" height="120" rx="10"/>
+      <text class="comp-title" x="857" y="130" text-anchor="middle">🌐 computeRoutes</text>
+      <text class="comp-sub"   x="857" y="153" text-anchor="middle">1 mode / route</text>
+      <text class="comp-val"   x="857" y="185" text-anchor="middle" id="gVal">calls: 0</text>
+    </g>
+    <!-- Leg → service arrows -->
+    <path class="arrow" id="arrL1" d="M 280 53 L 420 130" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrL2" d="M 280 145 L 420 150" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrL3" d="M 280 237 L 420 175" marker-end="url(#arrowhead)"/>
+    <!-- service ↔ google -->
+    <path class="arrow" id="arrSG" d="M 640 140 L 740 140" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrGS" d="M 740 180 Q 690 245 640 185" marker-end="url(#arrowhead)"/>
+    <!-- flow labels -->
+    <g class="flow-label-group" id="lblL1">
+      <rect class="flow-label-bg" x="298" y="72" width="86" height="22" rx="5"/>
+      <text class="flow-label"    x="341" y="88" text-anchor="middle">🚗 Drive</text>
+    </g>
+    <g class="flow-label-group" id="lblL2">
+      <rect class="flow-label-bg" x="300" y="150" width="86" height="22" rx="5"/>
+      <text class="flow-label"    x="343" y="166" text-anchor="middle">🚗 Drive</text>
+    </g>
+    <g class="flow-label-group" id="lblL3">
+      <rect class="flow-label-bg" x="300" y="196" width="86" height="22" rx="5"/>
+      <text class="flow-label"    x="343" y="212" text-anchor="middle">🚶 Walk</text>
+    </g>
+    <g class="flow-label-group" id="lblSG">
+      <rect class="flow-label-bg" x="648" y="106" width="126" height="22" rx="5"/>
+      <text class="flow-label"    x="711" y="122" text-anchor="middle">computeRoutes</text>
+    </g>
+    <g class="flow-label-group" id="lblGS">
+      <rect class="flow-label-bg" x="636" y="232" width="160" height="22" rx="5"/>
+      <text class="flow-label"    x="716" y="248" text-anchor="middle">dist + time + polyline</text>
+    </g>
+  </svg>
+</div>
+
+<!-- step panels (clear() hides all .wt-panel each render; scenes show() one) -->
+<div class="wt-panel question hidden" id="panelQ">
+  <div class="wt-panel-title">❓ คิดก่อนกดต่อ</div>
+  <div><code>computeRoutes</code> รับ <strong>travelMode ค่าเดียวต่อ 1 route</strong>. วันนี้ Leg 1–2 เป็น Drive แต่ Leg 3 เป็น Walk — ถ้ายิง <strong>ทั้งวันในคอลเดียว (per-day)</strong> ต้องเลือก mode เดียว แล้ว <strong>Leg 3 (Walk)</strong> จะถูกคิดเป็นอะไร?</div>
+</div>
+<div class="wt-panel race hidden" id="panelRace">
+  <div class="wt-panel-title">⚠️ per-day mode เดียว → Leg 3 เพี้ยน</div>
+  <div>ถ้า per-day ส่ง <code>DRIVE</code> ทั้ง route: Leg 3 ที่ควร <strong>เดิน 0.3 กม.</strong> ข้ามสะพานคนเดิน จะถูกคิดเป็น <strong>ขับรถอ้อมหลายกิโล</strong> (รถข้ามสะพานคนเดินไม่ได้) → ระยะ + เวลา + เส้นทางผิด. วัน mixed-mode จึงต้องแตกเป็น per-leg อยู่ดี.</div>
+</div>
+<div class="wt-panel summary hidden" id="panelSum">
+  <div class="wt-panel-title">✅ สรุป — เลือก per-leg</div>
+  <div>
+    ✓ <strong>mode-safe</strong>: Leg 3 ได้ระยะ <em>เดินจริง</em> · ✓ <strong>reuse cache เดิม</strong> (แก้ Stop เดียวไม่ miss ทั้งวัน) · ✓ ไม่ต้องรื้อ handler · ✓ ต้นทุน <strong>$0</strong> ใน free tier<br>
+    Trade-off: วัน cold-cache = N call — แต่ cache 12 ชม. + free tier ซับได้. per-day batching เก็บเป็น Phase 2 เฉพาะวัน single-mode.
+  </div>
+</div>
+  
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← ย้อนกลับ</button>
+    <button id="nextBtn">ถัดไป →</button>
+    <button id="resetBtn" class="tertiary">↻ เริ่มใหม่</button>
+  </div>
+
+    <aside id="termDrawer" class="drawer hidden" aria-label="term definition">
+    <div class="drawer-head">
+      <span class="drawer-term" id="drawerTerm"></span>
+      <button class="tertiary" id="drawerClose" title="ปิด">✕</button>
+    </div>
+    <div class="drawer-source" id="drawerSource"></div>
+    <div class="drawer-def" id="drawerDef"></div>
+    <div class="drawer-seealso-title hidden" id="drawerSeeAlsoTitle">ดูเพิ่ม</div>
+    <div id="drawerSeeAlso"></div>
+    <div class="drawer-btns">
+      <button class="tertiary hidden" id="drawerBack">← ย้อน</button>
+    </div>
+  </aside>
+  
+</div>
+
+<!-- The engine owns the fixed 5 markerheads; SVG modes select from them (ADR 0022). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/></marker>
+  <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/></marker>
+  <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b070ff"/></marker>
+  <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ade80"/></marker>
+  <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5757"/></marker>
+</defs></svg>
+<script>
+let currentStep = 0;
+let TOTAL = 0;                 // the authored bootstrap sets TOTAL = scenes.length - 1
+let MODE = null;              // the authored bootstrap sets MODE = '<mode name>'
+const RENDER_HOOKS = [];      // cross-cutting per-render actions; capabilities self-register (e.g. drawer pushes closeDrawer)
+const modeRenderers = {};     // modes self-register: modeRenderers['<name>'] = { registry, clear, <setters> }
+
+function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+// canonical 3-arg narration (nested shape). setSceneTitle kept for scenes that set only the title.
+function setNarration(cls, title, bodyHTML) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = bodyHTML || '';
+}
+function setSceneTitle(text) { document.getElementById('sceneTitle').textContent = text; }
+
+function buildProgressDots() {
+  const p = document.getElementById('stepProgress');
+  p.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot'; d.textContent = i; d.id = 'dot' + i;
+    p.appendChild(d);
+  }
+}
+
+function render(step) {
+  RENDER_HOOKS.forEach(h => h());                 // runs FIRST (drawer closes here), before any paint
+  const R = modeRenderers[MODE];
+  if (R && R.clear) R.clear(R.registry);          // engine calls the mode's reset generically
+  if (typeof scenes !== 'undefined' && scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = 'Step ' + step + ' / ' + TOTAL;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+
+/* GLOSSARY is provided by the generated walkthrough's authored bootstrap (inlined from
+   CONTEXT.md at authoring time): an object keyed by slug -> {term, short, seeAlso, source}
+   where source is 'CONTEXT.md' | 'authored'. The §JS below only READS it; the standalone
+   demo declares a demo GLOSSARY in its DEMO-ONLY block at the bottom of this file. */
+
+let drawerStack = [];   // GLOSSARY keys visited this open, for ← back
+
+function renderTerm(key) {
+  const entry = GLOSSARY[key];
+  if (!entry) return;
+  document.getElementById('drawerTerm').textContent = entry.term;
+  document.getElementById('drawerSource').textContent =
+    entry.source === 'CONTEXT.md' ? 'จาก CONTEXT.md' : 'อธิบายเพิ่มเติม';
+  document.getElementById('drawerDef').textContent = entry.short;
+  const wrap = document.getElementById('drawerSeeAlso');
+  wrap.innerHTML = '';
+  const related = (entry.seeAlso || []).filter(k => GLOSSARY[k]);
+  if (related.length) {
+    document.getElementById('drawerSeeAlsoTitle').classList.remove('hidden');
+    related.forEach(k => {
+      const chip = document.createElement('span');
+      chip.className = 'seealso-chip';
+      chip.textContent = GLOSSARY[k].term;
+      chip.dataset.hop = k;
+      wrap.appendChild(chip);
+    });
+  } else {
+    document.getElementById('drawerSeeAlsoTitle').classList.add('hidden');
+  }
+  document.getElementById('drawerBack').classList.toggle('hidden', drawerStack.length <= 1);
+}
+
+function openTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+  document.getElementById('termDrawer').classList.remove('hidden');
+}
+
+function hopTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+}
+
+function backTerm() {
+  if (drawerStack.length <= 1) return;
+  drawerStack.pop();
+  renderTerm(drawerStack[drawerStack.length - 1]);
+}
+
+function closeDrawer() {
+  drawerStack = [];
+  document.getElementById('termDrawer').classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  const termEl = e.target.closest('[data-term]');
+  if (termEl) { openTerm(termEl.dataset.term); return; }
+  const hopEl = e.target.closest('[data-hop]');
+  if (hopEl) { hopTerm(hopEl.dataset.hop); return; }
+});
+document.getElementById('drawerClose').onclick = closeDrawer;
+document.getElementById('drawerBack').onclick  = backTerm;
+
+// Self-register with the walkthrough engine so stepping closes the drawer
+// (Phase 2 RENDER_HOOKS model). Guarded so this file still runs standalone.
+if (typeof RENDER_HOOKS !== 'undefined' && RENDER_HOOKS.indexOf(closeDrawer) === -1) RENDER_HOOKS.push(closeDrawer);
+
+modeRenderers['diagram'] = {
+  registry: {
+    COMPONENTS: ['compLeg1', 'compLeg2', 'compLeg3', 'compSvc', 'compGoogle'],
+    ARROWS: ['arrL1', 'arrL2', 'arrL3', 'arrSG', 'arrGS'],
+    LABELS: ['lblL1', 'lblL2', 'lblL3', 'lblSG', 'lblGS'],
+    LIVE: { svcVal: 'cache: ว่าง', gVal: 'calls: 0' },
+  },
+  clear(reg) {
+    reg.COMPONENTS.forEach(id => this.setComp(id, ''));
+    reg.ARROWS.forEach(id => this.setArrow(id, ''));
+    reg.LABELS.forEach(id => this.setLabel(id, false));
+    Object.keys(reg.LIVE).forEach(id => this.setText(id, reg.LIVE[id]));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setComp(id, state) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : '')); },
+  setArrow(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+    const m = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)', magic: 'url(#arrowhead-magic)', done: 'url(#arrowhead-done)', error: 'url(#arrowhead-error)' };
+    el.setAttribute('marker-end', m[state] || 'url(#arrowhead)');
+  },
+  setLabel(id, show, variant) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : '')); },
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+  assertRegistryComplete() {
+    const got = { comp: '.comp', arrow: '.arrow', flow: '.flow-label-group' };
+    const lists = { comp: this.registry.COMPONENTS, arrow: this.registry.ARROWS, flow: this.registry.LABELS };
+    const miss = [];
+    Object.keys(got).forEach(k => [].forEach.call(document.querySelectorAll(got[k]), e => { if (e.id && !lists[k].includes(e.id)) miss.push(e.id); }));
+    [].concat(this.registry.COMPONENTS, this.registry.ARROWS, this.registry.LABELS, Object.keys(this.registry.LIVE))
+      .forEach(id => { if (!document.getElementById(id)) miss.push(id); });
+    if (miss.length) throw new Error('diagram registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+
+MODE = 'diagram';
+const { setComp, setArrow, setLabel, setText } = modeRenderers[MODE];
+
+const GLOSSARY = {
+  'leg': { term: 'Leg', short: 'ช่วงการเดินทางระหว่าง Stop สองจุดที่ติดกัน; เวลาเดินทางมาจาก Google Routes API ไม่ใช่ค่าประมาณ (CONTEXT.md / ADR-007).', seeAlso: ['travel-mode', 'compute-routes', 'smart-schedule'], source: 'CONTEXT.md' },
+  'travel-mode': { term: 'Travel mode', short: 'วิธีเดินทางของ Leg (walk / transit / drive) เลือกต่อ Leg แล้วส่งให้ Routes API; Trip มี default mode ที่ Leg ใหม่สืบทอด.', seeAlso: ['leg', 'compute-routes'], source: 'CONTEXT.md' },
+  'compute-routes': { term: 'computeRoutes', short: 'เมธอดของ Routes API ที่คืน distance + duration + geometry (encodedPolyline) ของ 1 เส้นทาง — รับ travelMode ค่าเดียวต่อการเรียก.', seeAlso: ['compute-route-matrix', 'encoded-polyline', 'essentials-tier'], source: 'authored' },
+  'compute-route-matrix': { term: 'computeRouteMatrix', short: 'เมธอด Routes API ที่คืนแค่ระยะ/เวลาเป็น matrix ของคู่ origin×destination — ไม่มี geometry. เป็นตัวที่ MenuNest ใช้ก่อน ADR-016.', seeAlso: ['compute-routes'], source: 'authored' },
+  'encoded-polyline': { term: 'encodedPolyline', short: 'สตริงบีบอัดที่เข้ารหัสเส้นทางตามถนนจริง; แผนที่ decode แล้ววาดเส้นโค้งตามถนนแทนเส้นตรง.', seeAlso: ['compute-routes'], source: 'authored' },
+  'smart-schedule': { term: 'Smart Schedule', short: 'มุมมอง itinerary รายวันที่ cascade เวลา arrival/leave จาก day start ผ่าน Dwell + เวลาเดินทางของ Leg และ flag แต่ละ Stop กับ best-time + เวลาเปิด.', seeAlso: ['leg'], source: 'CONTEXT.md' },
+  'essentials-tier': { term: 'Essentials tier', short: 'เทียร์ราคาถูกสุดของ Google Maps Platform — ฟรี 10,000 calls/เดือน; computeRoutes แบบไม่เปิด traffic-aware อยู่เทียร์นี้.', seeAlso: ['compute-routes'], source: 'authored' }
+};
+
+const scenes = [
+  // 0 — overview
+  () => {
+    setNarration('', 'ภาพรวม — วันจันทบุรี มี 3 Leg (2 ขับ + 1 เดิน)',
+      'วันนี้มี 4 Stop → <strong>3 <span class="term" data-term="leg">Leg</span></strong>. Leg 1–2 <span class="term" data-term="travel-mode">โหมด</span> 🚗 Drive, Leg 3 เป็น 🚶 Walk (เดินข้ามสะพานจากชุมชนริมน้ำไปอาสนวิหาร). ' +
+      'เราจะเทียบ 2 วิธีเรียก Routes API เพื่อได้ระยะ+เส้นทางจริง: <strong>per-leg</strong> (ต่อ Leg) กับ <strong>per-day</strong> (ทั้งวันคอลเดียว) — ทั้งคู่เปลี่ยนจาก <span class="term" data-term="compute-route-matrix">computeRouteMatrix</span> เดิม มาเป็น <span class="term" data-term="compute-routes">computeRoutes</span>.');
+  },
+  // 1 — trigger
+  () => {
+    setNarration('warn', 'Step 1 — เปิดหน้า Trips → getItinerary ต้อง resolve ทั้ง 3 Leg',
+      '<span class="term" data-term="smart-schedule">Smart Schedule</span> ต้องรู้ <strong>ระยะ + เวลา</strong> ของทุก <span class="term" data-term="leg">Leg</span> ก่อน ถึงจะ cascade เวลา arrival/leave ของแต่ละ Stop ได้ → handler จึงต้อง resolve ครบทั้ง 3 Leg.');
+    setComp('compLeg1', 'active'); setComp('compLeg2', 'active'); setComp('compLeg3', 'active');
+    setComp('compSvc', 'active'); setText('svcVal', 'resolve: 3 legs');
+  },
+  // 2 — per-leg Leg 1
+  () => {
+    setNarration('', 'Step 2 — per-leg · Leg 1 → cache MISS → computeRoutes(DRIVE) #1',
+      'Leg 1 มี <span class="term" data-term="travel-mode">travelMode</span> = Drive. cache ยังว่าง → เรียก <span class="term" data-term="compute-routes">computeRoutes</span> ด้วย DRIVE ได้ distance + duration + <span class="term" data-term="encoded-polyline">encodedPolyline</span> (เส้นถนนจริงไว้วาดบนแผนที่).');
+    setComp('compLeg1', 'firing');
+    setArrow('arrL1', 'active'); setLabel('lblL1', true);
+    setComp('compSvc', 'active'); setText('svcVal', 'Leg 1: MISS');
+    setArrow('arrSG', 'active'); setLabel('lblSG', true);
+    setComp('compGoogle', 'firing'); setText('gVal', 'call #1 · DRIVE');
+    setArrow('arrGS', 'active'); setLabel('lblGS', true);
+  },
+  // 3 — per-leg Leg 2
+  () => {
+    setNarration('', 'Step 3 — per-leg · Leg 2 → computeRoutes(DRIVE) #2',
+      'Leg 2 ก็ Drive → เรียกอีก 1 call. แต่ละ <span class="term" data-term="leg">Leg</span> เป็น call แยกกัน แต่ <strong>โหมดถูกของใครของมัน</strong>.');
+    setComp('compLeg1', 'done'); setArrow('arrL1', 'done');
+    setComp('compLeg2', 'firing');
+    setArrow('arrL2', 'active'); setLabel('lblL2', true);
+    setComp('compSvc', 'active'); setText('svcVal', 'Leg 2: MISS');
+    setArrow('arrSG', 'active'); setLabel('lblSG', true);
+    setComp('compGoogle', 'firing'); setText('gVal', 'call #2 · DRIVE');
+    setArrow('arrGS', 'active'); setLabel('lblGS', true);
+  },
+  // 4 — per-leg Leg 3 (WALK — the key mode difference)
+  () => {
+    setNarration('magic', 'Step 4 — per-leg · Leg 3 → computeRoutes(WALK) #3 ← โหมดต่าง!',
+      'Leg 3 เป็น 🚶 Walk. per-leg ส่ง <span class="term" data-term="travel-mode">mode</span> ต่อ Leg → ได้ <strong>ระยะเดินจริง 0.3 กม.</strong> ข้ามสะพานคนเดิน ไม่ใช่ขับรถอ้อม. รวม 3 Leg = 3 call แต่ละอันโหมดถูกต้อง.');
+    setComp('compLeg1', 'done'); setArrow('arrL1', 'done');
+    setComp('compLeg2', 'done'); setArrow('arrL2', 'done');
+    setComp('compLeg3', 'firing');
+    setArrow('arrL3', 'active'); setLabel('lblL3', true, 'magic');
+    setComp('compSvc', 'active'); setText('svcVal', 'Leg 3: MISS');
+    setArrow('arrSG', 'magic'); setLabel('lblSG', true, 'magic');
+    setComp('compGoogle', 'locked'); setText('gVal', 'call #3 · WALK');
+    setArrow('arrGS', 'active'); setLabel('lblGS', true);
+  },
+  // 5 — KEY QUESTION
+  () => {
+    setNarration('magic', 'Step 5 — ❓ ถ้ารวมเป็น per-day คอลเดียว mode จะเป็นอะไร?',
+      '<span class="term" data-term="compute-routes">computeRoutes</span> รับ <span class="term" data-term="travel-mode">travelMode</span> <strong>ค่าเดียวต่อ 1 route</strong>. วันนี้ Drive + Walk ปนกัน — ลองคิดก่อนกดต่อว่าถ้ายิงทั้งวันคอลเดียว Leg 3 (Walk) จะถูกคิดเป็นอะไร?');
+    setComp('compLeg1', 'done'); setComp('compLeg2', 'done'); setComp('compLeg3', 'done');
+    setComp('compGoogle', 'locked'); setText('gVal', '1 mode / route ?');
+    show('panelQ');
+  },
+  // 6 — per-day conflict
+  () => {
+    setNarration('error', 'Step 6 — per-day · เลือก DRIVE ทั้ง route → Leg 3 (Walk) เพี้ยน',
+      'ถ้า per-day ส่ง DRIVE เดียวทั้ง route: Leg 3 ที่ควร <strong>เดิน 0.3 กม.</strong> จะถูกคิดเป็น <strong>ขับรถอ้อมหลายกิโล</strong> (รถข้ามสะพานคนเดินไม่ได้) → ระยะ+เวลา+เส้นทางผิด. วัน mixed-mode ต้องแตกเป็น per-leg อยู่ดี → per-day ไม่ได้ลด call จริง.');
+    setComp('compLeg1', 'done'); setComp('compLeg2', 'done');
+    setComp('compLeg3', 'error'); setArrow('arrL3', 'error');
+    setComp('compGoogle', 'error'); setText('gVal', 'DRIVE ⚠ Leg 3');
+    show('panelRace');
+  },
+  // 7 — per-day cache fragility
+  () => {
+    setNarration('warn', 'Step 7 — per-day · cache ทั้งวันเปราะ — แก้ Stop เดียว miss ทั้งก้อน',
+      'per-day ต้อง cache เป็นก้อนทั้งวัน (key = ลำดับ + mode ของทุก Stop). แก้ dwell / ลำดับ / เพิ่ม Stop เดียว → key เปลี่ยน → <strong>miss ทั้งวัน ยิงใหม่หมด</strong>. ส่วน per-leg cache แยกราย origin→dest→mode: แก้ Stop เดียวกระทบแค่ 1–2 Leg ข้างเคียง.');
+    setComp('compLeg1', 'active'); setArrow('arrL1', 'active');
+    setComp('compLeg2', 'active'); setArrow('arrL2', 'active');
+    setComp('compLeg3', 'active'); setArrow('arrL3', 'active');
+    setComp('compSvc', 'error'); setText('svcVal', 'key: ทั้งวัน');
+    setArrow('arrSG', 'active'); setLabel('lblSG', true);
+    setComp('compGoogle', 'firing'); setText('gVal', 'ยิงใหม่หมด');
+  },
+  // 8 — cache reveal (economic payoff)
+  () => {
+    setNarration('success', 'Step 8 — ✓ เปิดซ้ำใน 12 ชม. · per-leg = cache HIT ทั้ง 3 → 0 call',
+      'ครั้งที่ 2 ที่เปิดทริปเดิมภายใน 12 ชม. ทุก Leg <strong>hit cache</strong> → ยิง Google <strong>0 call</strong>. นี่คือเหตุผลว่า "N call" ไม่ใช่ต้นทุนจริง — steady-state ≈ 0 ทั้ง per-leg และ per-day. ต้นทุนที่เหลืออยู่ใน <span class="term" data-term="essentials-tier">Essentials tier</span> (ฟรี 10,000/เดือน) → $0.');
+    setComp('compLeg1', 'done'); setArrow('arrL1', 'done');
+    setComp('compLeg2', 'done'); setArrow('arrL2', 'done');
+    setComp('compLeg3', 'done'); setArrow('arrL3', 'done');
+    setComp('compSvc', 'done'); setText('svcVal', 'cache: 3 HIT');
+    setArrow('arrSG', 'dimmed');
+    setComp('compGoogle', 'dimmed'); setText('gVal', 'calls: 0');
+  },
+  // 9 — summary
+  () => {
+    setNarration('success', 'Step 9 — สรุป — เลือก per-leg',
+      'per-leg ชนะเพราะ mode-safe + reuse cache เดิม + ไม่ต้องรื้อ handler + ต้นทุน $0 ใน free tier. รายละเอียดในแผงสรุปด้านล่าง.');
+    setComp('compLeg1', 'done'); setComp('compLeg2', 'done'); setComp('compLeg3', 'done');
+    setComp('compSvc', 'done'); setText('svcVal', 'cache: ราย leg');
+    setComp('compGoogle', 'done'); setText('gVal', 'Essentials · ฟรี');
+    show('panelSum');
+  }
+];
+
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();
+buildProgressDots();
+render(0);
+
+</script>
+</body></html>

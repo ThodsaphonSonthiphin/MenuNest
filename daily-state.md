@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-03T16:54:37+07:00'
+updated: '2026-07-04T01:33:17+07:00'
 ---
 
 ## Log
@@ -180,3 +180,95 @@ Captures the grill-then-plan design record for editing a Day's start time
 inline on the itinerary summary bar (ADR-012 affordance, ADR-013 commit-on-change).
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-03T23:18:41+07:00 — docs(trips): ADR-016 + design spec, plan & mock for add-place search (grounded vs google-maps-platform)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-03T23:20:39+07:00 — (commit)
+- 2026-07-03T23:22:37+07:00 — $(cat <<'EOF'
+feat(trips): categorizePlace â€” Google types â†’ PlaceCategory
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T23:33:22+07:00 — $(cat <<'EOF'
+test(trips): cover extended place-type vocabulary; cite ADR filename
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T23:38:28+07:00 — $(cat <<'EOF'
+feat(trips): toResolvedPlace snapshot mapper + field mask
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T23:45:41+07:00 — $(cat <<'EOF'
+feat(trips): add addMode slice state (alongside addPlaceOpen)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-03T23:52:32+07:00 — feat(trips): usePlaceSearch â€” client-side Places autocomplete + details
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-04T00:00:04+07:00 — fix(trips): invalidate stale autocomplete on clear; reset session token on error; declare @types/google.maps — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-04T00:05:36+07:00 — $(cat <<'EOF'
+feat(trips): AddPlacePreviewCard preview component
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:12:18+07:00 — $(cat <<'EOF'
+feat(trips): PlaceLinkFallbackDialog â€” hidden paste-a-link path
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:16:11+07:00 — $(cat <<'EOF'
+feat(trips): AddPlaceSearchBar â€” floating search + live suggestions
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:22:18+07:00 — $(cat <<'EOF'
+feat(trips): AddPlaceMode orchestrator (search + tap + preview + add)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:31:00+07:00 — $(cat <<'EOF'
+fix(trips): resolve each POI tap once (drop unstable effect dep + cancelled-flag race)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:36:32+07:00 — $(cat <<'EOF'
+feat(trips): TripMap renders AddPlaceMode + captures POI taps in add-mode
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:41:48+07:00 — $(cat <<'EOF'
+feat(trips): arm map-centric add-mode from TripDetailPage; drop AddPlaceSheet usage
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T00:47:01+07:00 — $(cat <<'EOF'
+style(trips): add-mode search bar, suggestions & preview styles
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-04T01:03:15+07:00 — feat(trips): remove AddPlaceSheet; align add-mode CSS to mock; finalize add-place search
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-04T01:27:21+07:00 — fix(trips): add-mode exit control + correct opening-hours snapshot shape + tap hint (final review)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-04T01:33:17+07:00 — $(cat <<'EOF'
+test(trips): make opening-hours getter test a real regression guard (non-enumerable getters)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
