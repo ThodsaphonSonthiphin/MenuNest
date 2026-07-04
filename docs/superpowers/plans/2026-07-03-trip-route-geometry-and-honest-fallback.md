@@ -9,7 +9,7 @@
 **Tech Stack:** .NET (C#, xUnit + FluentAssertions, System.Text.Json, `IMemoryCache`); React 19 + TypeScript + Vite + RTK Query + `@vis.gl/react-google-maps`; Vitest.
 
 **Spec:** `docs/superpowers/specs/2026-07-03-trip-route-geometry-and-honest-fallback-design.md`
-**ADRs:** 016–020. **Mock:** `docs/mocks/route-estimate-treatment-mock.html`.
+**ADRs:** 017, 018, 023, 024, 025. **Mock:** `docs/mocks/route-estimate-treatment-mock.html`.
 
 ## Global Constraints
 
@@ -284,7 +284,7 @@ private async Task<LegTime> ComputeOneAsync(RoutePoint o, RoutePoint d, TravelMo
     var client = _http.CreateClient();
     using var req = new HttpRequestMessage(HttpMethod.Post, "https://routes.googleapis.com/directions/v2:computeRoutes");
     req.Headers.Add("X-Goog-Api-Key", _opts.ApiKey);
-    // Essentials-tier field mask: geometry + distance + time only. Do NOT widen (ADR-016/020).
+    // Essentials-tier field mask: geometry + distance + time only. Do NOT widen (ADR-023/017).
     req.Headers.Add("X-Goog-FieldMask", "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline");
     req.Headers.Add("X-Goog-Maps-Solution-ID", "gmp_git_agentskills_v1");
     req.Content = JsonContent.Create(new
@@ -569,7 +569,7 @@ Replace the `RoutePolyline` component (lines 29-49, including the leading commen
 ```tsx
 // Per-leg route lines. Routed legs draw the decoded encodedPolyline (road-following,
 // solid teal); Estimated legs draw a dashed, faded, straight line between the two stops
-// — an honest "we're guessing this segment" signal (ADR-016/019). @vis.gl/react-google-maps
+// — an honest "we're guessing this segment" signal (ADR-023/024). @vis.gl/react-google-maps
 // has no <Polyline>, so create google.maps.Polyline imperatively and dispose ALL of them.
 const DASH = {path: 'M 0,-1 0,1', strokeOpacity: 0.55, strokeColor: '#0e8f9e', scale: 3}
 

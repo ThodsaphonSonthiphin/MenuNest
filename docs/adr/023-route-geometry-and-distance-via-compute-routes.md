@@ -1,4 +1,4 @@
-# ADR-016: Leg geometry and distance come from Routes API `computeRoutes` on the backend, replacing `computeRouteMatrix`
+# ADR-023: Leg geometry and distance come from Routes API `computeRoutes` on the backend, replacing `computeRouteMatrix`
 
 **Date:** 2026-07-03
 **Status:** Accepted

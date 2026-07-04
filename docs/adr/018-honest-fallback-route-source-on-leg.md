@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-03
 **Status:** Accepted
-**Relates to:** ADR-016 (computeRoutes), ADR-017 (per-leg resolution), ADR-007 (Google Maps Platform)
+**Relates to:** ADR-023 (computeRoutes), ADR-017 (per-leg resolution), ADR-007 (Google Maps Platform)
 **Amends:** CONTEXT.md — the **Leg** glossary definition
 
 ```mermaid

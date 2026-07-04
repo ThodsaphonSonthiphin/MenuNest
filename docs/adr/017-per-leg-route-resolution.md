@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-03
 **Status:** Accepted
-**Relates to:** ADR-016 (computeRoutes for geometry + distance), ADR-011 (single travel mode per Maps link)
+**Relates to:** ADR-023 (computeRoutes for geometry + distance), ADR-011 (single travel mode per Maps link)
 
 ```mermaid
 flowchart TD
@@ -14,7 +14,7 @@ flowchart TD
 
 ## Context
 
-ADR-016 moves Leg resolution to Routes API `computeRoutes`. That leaves *how many
+ADR-023 moves Leg resolution to Routes API `computeRoutes`. That leaves *how many
 calls per day*: one call per Leg (**per-leg**), or one call per day with the
 Stops as intermediate waypoints (**per-day**).
 
@@ -46,7 +46,7 @@ day is correct by construction.
 Cost is not a factor at this scale: `computeRoutes` (Essentials tier, no
 traffic-aware routing) gives 10,000 free calls/month, and the 12-hour cache makes
 steady-state resolution ~0 calls — a personal planner never approaches the cap
-(see ADR-016). **Constraint:** do **not** enable traffic-aware routing, which would
+(see ADR-023). **Constraint:** do **not** enable traffic-aware routing, which would
 move the call to the Pro tier; static duration is sufficient for planning.
 
 Per-day batching for **single-mode** days is explicitly deferred to Phase 2 as a
