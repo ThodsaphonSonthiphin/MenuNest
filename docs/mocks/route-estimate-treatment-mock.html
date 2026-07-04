@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>Mock — Routed vs Estimated Leg treatment</title>
+<style>
+  :root{
+    --teal:#0e8f9e; --teal-ink:#0a6b76; --ink:#1f2733; --muted:#6b7785;
+    --line:#e2e7ec; --amber:#e08a1e; --paper:#ffffff; --map:#e8efe6;
+    --estink:#8a7a4a; --est-chip-bg:#fbf1d9; --est-chip-ink:#9a7b25; --est-chip-bd:#e8d6a3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px;background:#f4f6f8;color:var(--ink);
+       font-family:'Segoe UI','Sukhumvit Set','Tahoma',sans-serif;}
+  h1{font-size:19px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  .mono{font-family:'Spline Sans Mono','Consolas','Menlo',monospace}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:1040px}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:12px;
+        padding:16px;box-shadow:0 1px 3px #0000000d}
+  .card h3{margin:0 0 12px;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
+  .full{grid-column:1/-1}
+
+  /* map */
+  .map{background:var(--map);border-radius:10px;overflow:hidden;position:relative}
+  svg{display:block;width:100%;height:auto}
+  .legend{display:flex;gap:18px;margin-top:10px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+  .legend b{color:var(--ink);font-weight:600}
+  .swatch{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:6px}
+  .sw-routed{border-top:4px solid var(--teal)}
+  .sw-est{border-top:4px dashed var(--teal);opacity:.55}
+
+  /* pins */
+  .pin-dot{fill:var(--teal);stroke:#fff;stroke-width:2.5}
+  .pin-num{fill:#fff;font:700 13px 'Segoe UI',sans-serif;text-anchor:middle}
+
+  /* itinerary pill (mirrors .travel-leg) */
+  .legrow{display:flex;align-items:center;gap:10px;padding:10px 0}
+  .leg-pill{display:inline-flex;align-items:center;gap:6px;background:#f0f4f5;color:var(--teal-ink);
+            border:1px solid #d7e4e6;border-radius:999px;padding:5px 12px;font-size:13.5px;font-weight:600}
+  .leg-pill.est{background:#fbf7ee;border-color:var(--est-chip-bd);color:var(--estink)}
+  .leg-line{flex:0 0 26px;height:2px;background:var(--line)}
+  .leg-dist{font-size:13.5px;color:var(--muted)}
+  .leg-dist.est{color:var(--estink)}
+  .chip-approx{font-size:11px;font-weight:700;color:var(--est-chip-ink);background:var(--est-chip-bg);
+               border:1px solid var(--est-chip-bd);border-radius:6px;padding:2px 7px;letter-spacing:.02em}
+  .stopname{font-size:14px;font-weight:600}
+  .stopname .cat{color:var(--teal)}
+
+  /* day summary bar (mirrors dark .day-summary) */
+  .daybar{display:flex;align-items:center;gap:14px;background:#12303a;color:#eaf3f4;
+          border-radius:10px;padding:12px 16px;font-size:14px}
+  .daybar .lbl{font-weight:700}
+  .daybar .val{color:#bfe0e4}
+  .daybar .approx{margin-left:auto;font-size:12px;font-weight:700;color:#ffe08a;
+                  background:#3a3218;border:1px solid #6b5a1f;border-radius:6px;padding:3px 9px}
+  .note{font-size:12.5px;color:var(--muted);margin-top:14px;line-height:1.6}
+  .note b{color:var(--ink)}
+</style></head>
+<body>
+  <h1>Trip route — <span style="color:var(--teal)">Routed</span> vs <span style="color:var(--estink)">Estimated</span> treatment</h1>
+  <p class="sub">Mock สำหรับ ADR-018/019 · เส้นแผนที่ราย Leg + pill ในลิสต์ + summary รายวัน · ธีมจริง (teal #0e8f9e)</p>
+
+  <div class="grid">
+    <!-- MAP: mixed day (leg1 routed, leg2 estimated) -->
+    <div class="card full">
+      <h3>แผนที่ — วันที่มีทั้งสองแบบ (Leg 1 routed · Leg 2 estimated)</h3>
+      <div class="map">
+        <svg viewBox="0 0 900 340" xmlns="http://www.w3.org/2000/svg">
+          <!-- faint "roads" backdrop -->
+          <g stroke="#cdd8cd" stroke-width="2" fill="none" opacity=".7">
+            <path d="M0 250 Q 200 240 360 150 T 900 90"/>
+            <path d="M120 340 L 150 120 L 320 40"/>
+            <path d="M500 340 L 560 160 L 780 120 L 900 200"/>
+          </g>
+          <!-- LEG 1: routed = solid, road-following curve -->
+          <path d="M120 250 C 190 210, 210 150, 300 140 S 380 120, 440 120"
+                fill="none" stroke="#0e8f9e" stroke-width="5" stroke-linecap="round"/>
+          <!-- LEG 2: estimated = straight, dashed, faded -->
+          <path d="M440 120 L 760 240"
+                fill="none" stroke="#0e8f9e" stroke-width="4" stroke-linecap="round"
+                stroke-dasharray="3 9" opacity="0.5"/>
+          <!-- pins -->
+          <g><circle class="pin-dot" cx="120" cy="250" r="17"/><text class="pin-num" x="120" y="255">1</text></g>
+          <g><circle class="pin-dot" cx="440" cy="120" r="17"/><text class="pin-num" x="440" y="125">2</text></g>
+          <g><circle class="pin-dot" cx="760" cy="240" r="17"/><text class="pin-num" x="760" y="245">3</text></g>
+        </svg>
+      </div>
+      <div class="legend">
+        <span><i class="swatch sw-routed"></i><b>Routed</b> — เส้นทึบ โค้งตามถนนจริง (มี encodedPolyline)</span>
+        <span><i class="swatch sw-est"></i><b>Estimated</b> — เส้นประ ตรง จาง (Haversine fallback)</span>
+      </div>
+    </div>
+
+    <!-- ITINERARY pills -->
+    <div class="card">
+      <h3>ลิสต์ — Leg แบบ Routed</h3>
+      <div class="legrow"><span class="stopname"><span class="cat">◍</span> น้ำตกพลิ้ว</span></div>
+      <div class="legrow">
+        <span class="leg-pill">🚗 48 นาที</span>
+        <span class="leg-line"></span>
+        <span class="leg-dist mono">31.8 กม.</span>
+      </div>
+      <div class="legrow"><span class="stopname"><span class="cat">◍</span> ชุมชนริมน้ำจันทบูร</span></div>
+    </div>
+
+    <div class="card">
+      <h3>ลิสต์ — Leg แบบ Estimated</h3>
+      <div class="legrow"><span class="stopname"><span class="cat">◍</span> ชุมชนริมน้ำจันทบูร</span></div>
+      <div class="legrow">
+        <span class="leg-pill est">🚶 ~6 นาที</span>
+        <span class="leg-line"></span>
+        <span class="leg-dist est mono">~0.3 กม.</span>
+        <span class="chip-approx">ประมาณ</span>
+      </div>
+      <div class="legrow"><span class="stopname"><span class="cat">◍</span> อาสนวิหารพระนางมารีอา</span></div>
+    </div>
+
+    <!-- DAY SUMMARY bar -->
+    <div class="card full">
+      <h3>Summary รายวัน (แถบเข้ม)</h3>
+      <div class="daybar" style="margin-bottom:12px">
+        <span class="lbl">วัน 1</span>
+        <span class="val mono">2 จุด · 31.8 กม · ~2ชม 48น</span>
+      </div>
+      <div class="daybar">
+        <span class="lbl">วัน 1</span>
+        <span class="val mono">2 จุด · ~31.8 กม · ~2ชม 48น</span>
+        <span class="approx">ระยะโดยประมาณ</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    <b>สถานะจริงตอนนี้</b> (billing ปิด) = ทุก Leg เป็น <span style="color:var(--estink)">Estimated</span> → ทั้งแผนที่เป็นเส้นประ + summary ขึ้น "ระยะโดยประมาณ".
+    <b>หลังเปิด billing</b> = ทุก Leg เป็น <span style="color:var(--teal)">Routed</span> → เส้นทึบตามถนน, ไม่มีป้าย.
+    วัน mixed จะเห็นทั้งสองแบบในแผนที่เดียว (ตามภาพบน). Emoji 🚗🚶 คงไว้ตาม pill เดิม (เป็น debt แยก — ไม่แก้ scope นี้).
+  </p>
+</body></html>
