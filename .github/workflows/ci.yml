@@ -85,7 +85,13 @@ jobs:
         run: npx tsc --noEmit
         working-directory: frontend
 
-      # Step 5: Build production — ดูว่า build สำเร็จ
+      # Step 5: Unit tests — รัน vitest (pure logic: reducers + hooks ใน src/**/*.test.ts)
+      # npm run test = cwd frontend → โหลด vite.config.ts → เก็บเฉพาะ src (ไม่แตะ e2e/)
+      - name: Test
+        run: npm run test
+        working-directory: frontend
+
+      # Step 6: Build production — ดูว่า build สำเร็จ
       - name: Build
         run: npm run build
         working-directory: frontend
