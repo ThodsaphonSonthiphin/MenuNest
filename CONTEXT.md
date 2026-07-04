@@ -81,5 +81,11 @@ the glossary wins until the glossary is deliberately changed.
   leaves the app. The whole-day route starts from the device's current location
   through the day's Stops in order (see ADR-011).
   _Avoid_: Directions, Routing (that is the Routes API / **Leg** travel time).
+- **Itinerary map band** — the collapsible in-app **map** strip (~188px, expanded by
+  default) at the top of the **Itinerary** view on mobile/tablet, showing the active
+  **Day**'s numbered **Stops** and **Leg** polylines. It can be collapsed to a thin strip
+  to give the stop list more room, and re-expanded. Distinct from the desktop split's
+  full-height right-pane map (same data, different container). See ADR-026.
+  _Avoid_: peek, mini-map (informal).
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
