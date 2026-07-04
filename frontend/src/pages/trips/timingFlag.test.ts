@@ -1,6 +1,6 @@
 // frontend/src/pages/trips/timingFlag.test.ts
 import {describe, it, expect} from 'vitest'
-import {flagText} from './timingFlag'
+import {flagText, severityWord} from './timingFlag'
 import type {TimingFlag} from './hooks/useSchedule'
 
 describe('flagText', () => {
@@ -31,5 +31,12 @@ describe('flagText', () => {
   it('off-window before', () => {
     const f: TimingFlag = {reason: 'off-window', severity: 'suggestion', windowDir: 'before', bestStart: '17:30', bestEnd: '18:30'}
     expect(flagText(f)).toEqual({reasonLine: 'ไปถึงก่อนช่วงแนะนำ · ช่วงเหมาะ 17:30–18:30', fixLine: 'เลื่อนสตอปนี้ไปช่วงหลัง'})
+  })
+})
+
+describe('severityWord', () => {
+  it('maps severity to a Thai word', () => {
+    expect(severityWord('problem')).toBe('ต้องแก้')
+    expect(severityWord('suggestion')).toBe('น่าปรับ')
   })
 })

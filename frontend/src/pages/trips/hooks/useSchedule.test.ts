@@ -188,4 +188,15 @@ describe('composeFlags', () => {
     const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
     expect(composed[0].flag).toBeNull()
   })
+  it('overflow outranks a same-stop closed flag', () => {
+    // 2026-11-14 is Saturday (dow 6); this place opens only Tuesday → closed on Sat.
+    // Day starts 22:00 so stop 2 is reached at 00:30 (after midnight) AND is closed.
+    const p = mkPlace({openingHoursJson: mkHours([{open: {day: 2, hour: 9}, close: {day: 2, hour: 17}}])})
+    const day: ItineraryDayDto = {
+      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00',
+      stops: [stop('1', 0, 120, null), stop('2', 1, 60, 30 * 60)],
+    }
+    const composed = composeFlags(computeSchedule(day), {p1: p, p2: p}, dayOfWeek(day.date))
+    expect(composed[1].flag).toMatchObject({reason: 'overflow'}) // overflow wins over closed on the same stop
+  })
 })
