@@ -1,8 +1,30 @@
 // frontend/src/pages/trips/components/ItineraryStopCard.tsx
 import type {TripPlaceDto} from '../../../shared/api/api'
-import type {StopFlag} from '../hooks/useSchedule'
+import type {FlagReason, FlagSeverity, StopFlag, TimingFlag} from '../hooks/useSchedule'
 import {catEmoji} from '../placeCategory'
+import {flagText} from '../timingFlag'
 import {NavIcon} from './NavIcon'
+import {ClockIcon, LockIcon, MoonIcon} from './FlagIcons'
+
+// Reason → icon component. `typeof LockIcon` avoids naming the JSX namespace.
+const REASON_ICON: Record<FlagReason, typeof LockIcon> = {
+  overflow: MoonIcon,
+  closed: LockIcon,
+  'off-window': ClockIcon,
+}
+// Severity → CSS class. NEVER interpolate the raw severity string (enum ≠ class name).
+const CARD_CLASS: Record<FlagSeverity, string> = {problem: 'bad', suggestion: 'warn'}
+
+function FlagNote({flag}: {flag: TimingFlag}) {
+  const Icon = REASON_ICON[flag.reason]
+  const {reasonLine, fixLine} = flagText(flag)
+  return (
+    <div className={`flag-note${flag.severity === 'problem' ? ' bad' : ''}`}>
+      <Icon />
+      <span><b>{reasonLine}</b> <span className="fix">{fixLine}</span></span>
+    </div>
+  )
+}
 
 export function ItineraryStopCard({
   place,
@@ -10,13 +32,11 @@ export function ItineraryStopCard({
   depart,
   dwell,
   flag,
-  bestLabel,
   onEdit,
   onUp,
   onDown,
   canUp,
   canDown,
-  overnight = false,
   navUrl,
   onNavigate,
 }: {
@@ -25,18 +45,16 @@ export function ItineraryStopCard({
   depart: string
   dwell: number
   flag: StopFlag
-  bestLabel: string | null
   onEdit: () => void
   onUp: () => void
   onDown: () => void
   canUp: boolean
   canDown: boolean
-  overnight?: boolean
   navUrl: string | null
   onNavigate?: () => void
 }) {
   return (
-    <div className={`stop-card${flag === 'amber' ? ' warn' : ''}`}>
+    <div className={`stop-card${flag ? ' ' + CARD_CLASS[flag.severity] : ''}`}>
       <div className="stop-rail">
         <div className="stop-arr">{arrival}</div>
         <div className="stop-dep">→{depart}</div>
@@ -45,13 +63,8 @@ export function ItineraryStopCard({
         <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
         <div className="stop-chips">
           <span className="chip dwell">⏱ อยู่ {dwell} น.</span>
-          {overnight && <span className="chip warn">+1วัน</span>}
-          {bestLabel && (
-            <span className={`chip ${flag === 'amber' ? 'warn' : 'good'}`}>
-              {flag === 'amber' ? '⚠' : '✓'} {bestLabel}
-            </span>
-          )}
         </div>
+        {flag && <FlagNote flag={flag} />}
       </button>
       {navUrl ? (
         <a

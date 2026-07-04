@@ -9,6 +9,8 @@ import {useGetItineraryQuery, useListTripPlacesQuery} from '../../../shared/api/
 import type {ItineraryDayDto, RouteSource} from '../../../shared/api/api'
 import {useAppSelector} from '../../../store/index'
 import {useSchedule} from './useSchedule'
+import type {FlagSeverity} from './useSchedule'
+import {flagText} from '../timingFlag'
 
 export interface RouteStop {
   id: string
@@ -17,7 +19,8 @@ export interface RouteStop {
   name: string
   arrival: string // "HH:MM"
   order: number // 1-based
-  amber: boolean // bad-timing / closed → amber pin
+  severity: FlagSeverity | null // pin colour: problem=red, suggestion=amber, null=teal
+  flagNote: string | null       // reason line for the marker's accessible name
 }
 
 export interface RouteSegment {
@@ -98,7 +101,8 @@ export function useDayRoute(tripId: string) {
             name: p.name,
             arrival: s.arrival,
             order: i + 1,
-            amber: s.flag === 'amber',
+            severity: s.flag?.severity ?? null,
+            flagNote: s.flag ? flagText(s.flag).reasonLine : null,
           }
         })
         .filter((r): r is RouteStop => r !== null),

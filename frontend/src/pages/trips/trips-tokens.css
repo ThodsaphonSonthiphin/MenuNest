@@ -15,8 +15,6 @@
   --surface:   #fff;
   --border:    #eef2f6;
   --muted:     #94a3b8;
-  --good:      #1f9d76;
-  --good-bg:   #eafaf3;
   --warn:      #b4791f;
   --warn-bg:   #fff4e0;
   --warn-ink:  #7a5310;   /* darker amber for small text — passes WCAG AA on --warn-bg */
@@ -225,8 +223,6 @@
 /* ── Chips ── */
 .chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .chip.dwell { background: var(--teal-soft); color: var(--teal-deep); }
-.chip.good  { background: var(--good-bg); color: var(--good); }
-.chip.warn  { background: var(--warn-bg); color: var(--warn); }
 
 /* ── Timing-flag reason line (one inset banner below the chips) ── */
 .flag-note {
