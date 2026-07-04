@@ -554,3 +554,62 @@
 .stop-editor-dialog .se-save:hover { background: var(--se-accent-deep); }
 .stop-editor-dialog .se-save:active { transform: translateY(1px); }
 .stop-editor-dialog .se-save:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
+
+/* -------- Mobile/tablet itinerary route-map band (ADR-026, issue #8) -------- */
+/* Scoped to .itinerary-tab so it never matches the mobile places->map (.trip-places)
+   or the desktop right-pane map (.trip-detail-col-right). min-height:0 is REQUIRED —
+   the base .trip-map carries min-height 320px (280 <=479px) which would floor the box. */
+.itinerary-tab .itin-map-band {
+  position: relative;
+  flex: none;
+  height: 188px;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  transition: height 0.2s ease;
+}
+.itinerary-tab .itin-map-band.collapsed { height: 44px; }
+.itinerary-tab .itin-map-band .trip-map {
+  height: 100%;
+  min-height: 0;
+}
+/* Collapse affordance (expanded state) — small round icon button, top-right over the map */
+.itinerary-tab .itin-map-collapse {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 2;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.itinerary-tab .itin-map-collapse svg { width: 18px; height: 18px; }
+/* Expand affordance (collapsed state) — opaque full-band strip over the clipped map */
+.itinerary-tab .itin-map-strip {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--teal-deep);
+}
+.itinerary-tab .itin-map-strip span { flex: 1; text-align: left; }
+.itinerary-tab .itin-map-strip svg { width: 16px; height: 16px; flex: none; }
+.itinerary-tab .itin-map-strip-chev { color: var(--muted); }

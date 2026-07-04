@@ -104,3 +104,31 @@ export function MinusIcon({className}: IconProps) {
     </svg>
   )
 }
+
+/** Chevron up — collapse the itinerary map band. */
+export function ChevronUpIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 15l6-6 6 6" />
+    </svg>
+  )
+}
+
+/** Chevron down — expand the collapsed itinerary map band. */
+export function ChevronDownIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  )
+}
+
+/** Folded map — lead glyph on the collapsed "show route map" strip. */
+export function MapRouteIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 4 4 6v14l5-2 6 2 5-2V4l-5 2-6-2z" />
+      <path d="M9 4v14M15 6v14" />
+    </svg>
+  )
+}

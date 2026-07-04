@@ -10,7 +10,7 @@ import {
 } from '../../../shared/api/api'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../../store/index'
-import {setActiveDay, setStopEditor} from '../tripsSlice'
+import {setActiveDay, setStopEditor, setItineraryMapCollapsed} from '../tripsSlice'
 import {useSchedule} from '../hooks/useSchedule'
 import {SegmentedTabs} from './SegmentedTabs'
 import {ItineraryStopCard} from './ItineraryStopCard'
@@ -18,6 +18,9 @@ import {TravelLeg} from './TravelLeg'
 import {StopEditorDialog} from './StopEditorDialog'
 import {DayStartEditor} from './DayStartEditor'
 import {NavIcon} from './NavIcon'
+import {TripMap} from './TripMap'
+import {ChevronUpIcon, ChevronDownIcon, MapRouteIcon} from './TripFormIcons'
+import type {DayRoute} from '../hooks/useDayRoute'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {appInsights} from '../../../shared/telemetry/appInsights'
 
@@ -87,10 +90,11 @@ function AddStopPicker({
   )
 }
 
-export function ItineraryTab({tripId}: {tripId: string}) {
+export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: DayRoute}) {
   const dispatch = useAppDispatch()
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
   const editorStopId = useAppSelector((s) => s.trips.stopEditorStopId)
+  const mapCollapsed = useAppSelector((s) => s.trips.itineraryMapCollapsed)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -158,6 +162,40 @@ export function ItineraryTab({tripId}: {tripId: string}) {
         onChange={(v) => dispatch(setActiveDay(v))}
         options={dayList.map((d, i) => ({label: `วัน ${i + 1}`, value: d.id}))}
       />
+
+      {dayRoute && (
+        <div className={`itin-map-band${mapCollapsed ? ' collapsed' : ''}`}>
+          <TripMap
+            places={places ?? []}
+            route={dayRoute.route}
+            segments={dayRoute.segments}
+            gestureHandling="cooperative"
+          />
+          {mapCollapsed ? (
+            <button
+              type="button"
+              className="itin-map-strip"
+              aria-label="แสดงแผนที่เส้นทาง"
+              aria-expanded={false}
+              onClick={() => dispatch(setItineraryMapCollapsed(false))}
+            >
+              <MapRouteIcon className="itin-map-strip-lead" />
+              <span>แสดงแผนที่เส้นทาง</span>
+              <ChevronDownIcon className="itin-map-strip-chev" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="itin-map-collapse"
+              aria-label="ย่อแผนที่"
+              aria-expanded={true}
+              onClick={() => dispatch(setItineraryMapCollapsed(true))}
+            >
+              <ChevronUpIcon />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="day-summary">
         <div className="day-stats">
