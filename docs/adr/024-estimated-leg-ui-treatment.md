@@ -1,4 +1,4 @@
-# ADR-019: An `Estimated` Leg is visually distinct — dashed straight line, "ประมาณ" badge, and a day-summary flag
+# ADR-024: An `Estimated` Leg is visually distinct — dashed straight line, "ประมาณ" badge, and a day-summary flag
 
 **Date:** 2026-07-03
 **Status:** Accepted

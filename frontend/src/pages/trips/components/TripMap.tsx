@@ -34,7 +34,7 @@ const BKK_CENTER = {lat: 13.7563, lng: 100.5018}
 
 // Per-leg route lines. Routed legs draw the decoded encodedPolyline (road-following,
 // solid teal); Estimated legs draw a dashed, faded, straight line between the two stops
-// — an honest "we're guessing this segment" signal (ADR-016/019). @vis.gl/react-google-maps
+// — an honest "we're guessing this segment" signal (ADR-023/024). @vis.gl/react-google-maps
 // has no <Polyline>, so create google.maps.Polyline imperatively and dispose ALL of them.
 const DASH = {path: 'M 0,-1 0,1', strokeOpacity: 0.55, strokeColor: '#0e8f9e', scale: 3}
 

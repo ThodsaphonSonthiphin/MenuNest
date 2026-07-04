@@ -1,8 +1,8 @@
-# ADR-020: Route-fallback observability relies on App Insights' auto-collected dependency telemetry — no bespoke logging or metric
+# ADR-025: Route-fallback observability relies on App Insights' auto-collected dependency telemetry — no bespoke logging or metric
 
 **Date:** 2026-07-03
 **Status:** Accepted
-**Relates to:** ADR-018 (RouteSource), ADR-016 (computeRoutes)
+**Relates to:** ADR-018 (RouteSource), ADR-023 (computeRoutes)
 
 ```mermaid
 flowchart TD

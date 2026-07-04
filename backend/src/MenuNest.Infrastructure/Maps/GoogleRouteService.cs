@@ -64,7 +64,7 @@ public sealed class GoogleRouteService : IRouteService
         var client = _http.CreateClient();
         using var req = new HttpRequestMessage(HttpMethod.Post, "https://routes.googleapis.com/directions/v2:computeRoutes");
         req.Headers.Add("X-Goog-Api-Key", _opts.ApiKey);
-        // Essentials-tier field mask: geometry + distance + time only. Do NOT widen (ADR-016/020).
+        // Essentials-tier field mask: geometry + distance + time only. Do NOT widen (ADR-023/017).
         req.Headers.Add("X-Goog-FieldMask", "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline");
         req.Headers.Add("X-Goog-Maps-Solution-ID", "gmp_git_agentskills_v1");
         req.Content = JsonContent.Create(new

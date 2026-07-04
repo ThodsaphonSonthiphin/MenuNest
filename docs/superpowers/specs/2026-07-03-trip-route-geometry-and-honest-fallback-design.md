@@ -2,11 +2,11 @@
 
 **Date:** 2026-07-03
 **Status:** Draft for approval
-**ADRs:** [016](../../adr/016-route-geometry-and-distance-via-compute-routes.md) ·
+**ADRs:** [023](../../adr/023-route-geometry-and-distance-via-compute-routes.md) ·
 [017](../../adr/017-per-leg-route-resolution.md) ·
 [018](../../adr/018-honest-fallback-route-source-on-leg.md) ·
-[019](../../adr/019-estimated-leg-ui-treatment.md) ·
-[020](../../adr/020-fallback-observability-via-existing-dependency-telemetry.md)
+[024](../../adr/024-estimated-leg-ui-treatment.md) ·
+[025](../../adr/025-fallback-observability-via-existing-dependency-telemetry.md)
 **Mock:** `docs/mocks/route-estimate-treatment-mock.html` (owner-confirmed)
 **Walkthrough:** `docs/problem-description/2026-07-03-per-leg-vs-per-day-walkthrough.html`
 
@@ -174,7 +174,7 @@ it propagates through the shared RTK cache untouched.
 - **No change**: `useSchedule.ts` (cascade reads only `seconds`; `ScheduledStop`
   carries the full leg — must not be reshaped), `ItineraryTab.tsx` (already passes the
   whole `legToReach`), `ItineraryStopCard.tsx`, and `StopEditorDialog.tsx:59-61`
-  (a third leg readout — additive-safe; per ADR-019 the marker is scoped to pill + map,
+  (a third leg readout — additive-safe; per ADR-024 the marker is scoped to pill + map,
   so it is deliberately left untouched).
 
 ## Complete touchpoint inventory (grep-verified)
