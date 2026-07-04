@@ -10,7 +10,7 @@ import type {ItineraryDayDto, RouteSource} from '../../../shared/api/api'
 import {useAppSelector} from '../../../store/index'
 import {useSchedule} from './useSchedule'
 import type {FlagSeverity} from './useSchedule'
-import {flagText} from '../timingFlag'
+import {flagText, severityWord} from '../timingFlag'
 
 export interface RouteStop {
   id: string
@@ -102,7 +102,7 @@ export function useDayRoute(tripId: string) {
             arrival: s.arrival,
             order: i + 1,
             severity: s.flag?.severity ?? null,
-            flagNote: s.flag ? flagText(s.flag).reasonLine : null,
+            flagNote: s.flag ? `${flagText(s.flag).reasonLine} (${severityWord(s.flag.severity)})` : null,
           }
         })
         .filter((r): r is RouteStop => r !== null),

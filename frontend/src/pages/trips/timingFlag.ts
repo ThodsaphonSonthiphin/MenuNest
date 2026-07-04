@@ -2,7 +2,7 @@
 // Single source of truth for a timing flag's Thai reason + suggested-fix wording.
 // Data-only (no JSX) — mirrors placeCategory.ts. Copy is verbatim from the design
 // spec §5. The dash between best-window times is EN DASH (–, U+2013).
-import type {TimingFlag} from './hooks/useSchedule'
+import type {FlagSeverity, TimingFlag} from './hooks/useSchedule'
 
 export function flagText(flag: TimingFlag): {reasonLine: string; fixLine: string} {
   switch (flag.reason) {
@@ -21,4 +21,9 @@ export function flagText(flag: TimingFlag): {reasonLine: string; fixLine: string
         default:            return {reasonLine: 'ร้านปิดทั้งวันนี้', fixLine: 'ย้ายไปวันอื่น หรือเอาออก'}
       }
   }
+}
+
+/** Short Thai severity word for accessible names / summaries. */
+export function severityWord(severity: FlagSeverity): string {
+  return severity === 'problem' ? 'ต้องแก้' : 'น่าปรับ'
 }
