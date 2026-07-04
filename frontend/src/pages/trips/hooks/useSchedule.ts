@@ -6,7 +6,7 @@ export interface ScheduledStop {
   stop: StopDto; arrival: string; depart: string; overnight: boolean
   arrivedAfterMidnight: boolean // raw arrival >= 1440 (this stop is reached after midnight)
 }
-export type StopFlag = 'green' | 'amber'
+export type StopFlag = TimingFlag | null
 
 export type FlagReason = 'overflow' | 'closed' | 'off-window'
 export type FlagSeverity = 'problem' | 'suggestion'
@@ -144,27 +144,9 @@ export function computeSchedule(day: ItineraryDayDto): ScheduledStop[] {
   return result
 }
 
-/** Green when the arrival falls inside the place's best-time window (when one is set); amber otherwise. */
-export function flagStop(place: TripPlaceDto, arrival: string, _depart: string): StopFlag {
-  if (!place.bestTimeStart || !place.bestTimeEnd) return 'green'
-  const a = toMin(arrival)
-  return a >= toMin(place.bestTimeStart) && a <= toMin(place.bestTimeEnd) ? 'green' : 'amber'
-}
-
 export function useSchedule(day: ItineraryDayDto, placesById: Record<string, TripPlaceDto>) {
   return useMemo(() => {
-    const dow = dayOfWeek(day.date)
-    const scheduled = computeSchedule(day).map(s => ({
-      ...s,
-      flag: ((): StopFlag => {
-        if (s.overnight) return 'amber'
-        const place = placesById[s.stop.tripPlaceId]
-        if (!place) return 'green'
-        // Amber if the place is closed at arrival (ADR-008: flag against opening hours too).
-        if (isOpenAt(place.openingHoursJson, dow, toMin(s.arrival)) === false) return 'amber'
-        return flagStop(place, s.arrival, s.depart)
-      })(),
-    }))
+    const scheduled = composeFlags(computeSchedule(day), placesById, dayOfWeek(day.date))
     const totalTravelSeconds = day.stops.reduce((sum, st) => sum + (st.legToReach?.seconds ?? 0), 0)
     const dayEnd = scheduled.length ? scheduled[scheduled.length - 1].depart : day.dayStartTime.slice(0, 5)
     return {scheduled, dayEnd, totalTravelSeconds}

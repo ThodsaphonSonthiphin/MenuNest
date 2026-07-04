@@ -21,11 +21,6 @@ import {NavIcon} from './NavIcon'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {appInsights} from '../../../shared/telemetry/appInsights'
 
-function bestLabel(p: TripPlaceDto): string | null {
-  if (!p.bestTimeStart || !p.bestTimeEnd) return null
-  return `ช่วงดี ${p.bestTimeStart.slice(0, 5)}–${p.bestTimeEnd.slice(0, 5)}`
-}
-
 /** Inline add-stop picker shown below the stop list. */
 function AddStopPicker({
   tripId,
@@ -234,13 +229,11 @@ export function ItineraryTab({tripId}: {tripId: string}) {
                   depart={s.depart}
                   dwell={s.stop.dwellMinutes}
                   flag={s.flag}
-                  bestLabel={bestLabel(place)}
                   onEdit={() => dispatch(setStopEditor(s.stop.id))}
                   onUp={() => move(i, -1)}
                   onDown={() => move(i, 1)}
                   canUp={i > 0}
                   canDown={i < scheduled.length - 1}
-                  overnight={s.overnight}
                   navUrl={stopNav}
                   onNavigate={() =>
                     appInsights.trackEvent(

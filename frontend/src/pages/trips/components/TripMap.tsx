@@ -4,10 +4,15 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import {APIProvider, Map, AdvancedMarker, Pin, useMap, useMapsLibrary} from '@vis.gl/react-google-maps'
 import type {TripPlaceDto} from '../../../shared/api/api'
 import type {RouteStop, RouteSegment} from '../hooks/useDayRoute'
+import type {FlagSeverity} from '../hooks/useSchedule'
 import {trackGoogleMapsError} from '../../../shared/telemetry/googleMapsTelemetry'
 import {AddPlaceMode} from './AddPlaceMode'
 
 type LatLng = {lat: number; lng: number}
+
+// Severity → route-pin CSS modifier. NEVER interpolate the raw severity string
+// (`.route-pin.suggestion` does not exist).
+const PIN_CLASS: Record<FlagSeverity, string> = {problem: 'problem', suggestion: 'amber'}
 
 const CAT_COLOR: Record<string, string> = {
   Stay:  '#6d5ae6',
@@ -161,7 +166,10 @@ export function TripMap({
                   title={r.name}
                   zIndex={r.order}
                 >
-                  <div className={`route-pin${r.amber ? ' amber' : ''}`}>
+                  <div
+                    className={`route-pin${r.severity ? ' ' + PIN_CLASS[r.severity] : ''}`}
+                    aria-label={r.flagNote ? `${r.name} — ${r.flagNote}` : undefined}
+                  >
                     <div className="route-callout">{r.arrival} · {r.name}</div>
                     <div className="route-dot">{r.order}</div>
                   </div>
