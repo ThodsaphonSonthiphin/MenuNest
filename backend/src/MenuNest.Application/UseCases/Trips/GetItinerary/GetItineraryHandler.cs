@@ -59,7 +59,12 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
             for (var i = 0; i < dayStops.Count; i++)
             {
                 var s = dayStops[i];
-                LegDto? leg = i == 0 ? null : new LegDto(legByKey[(day.Id, i)].Seconds, legByKey[(day.Id, i)].Meters);
+                LegDto? leg = null;
+                if (i > 0)
+                {
+                    var l = legByKey[(day.Id, i)];
+                    leg = new LegDto(l.Seconds, l.Meters, l.EncodedPolyline, l.Source);
+                }
                 stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg));
             }
             result.Add(new ItineraryDayDto(day.Id, day.Date, day.DayStartTime, stopDtos));
