@@ -62,45 +62,47 @@ function RouteSegments({segments}: {segments: RouteSegment[]}) {
 }
 
 // Frame all stops. LatLngBounds lives in the 'core' library, not 'maps' (CF6).
-function FitBounds({path}: {path: LatLng[]}) {
+// fitPadding keeps the route off the container edges; the itinerary map band is
+// only 188px tall, so it passes a small, top-weighted padding (route pins hang
+// ABOVE their coordinate — callout + numbered dot — so the top needs the most room)
+// instead of the desktop default 64 which would over-zoom-out the route at that height.
+//
+// Re-fits on container resize too: when the band expands from its collapsed strip the
+// container grows, and @vis.gl/react-google-maps (v1.8.3) ships no ResizeObserver of
+// its own — without a re-fit the newly-revealed tiles stay grey and the route keeps
+// the zoom it had at strip height. Re-running fitBounds provably changes the viewport,
+// so it both repaints the tiles and reframes for the new size (a stronger, more certain
+// remedy than a no-op camera nudge, which may not force a repaint).
+function FitBounds({path, fitPadding = 64}: {path: LatLng[]; fitPadding?: number | google.maps.Padding}) {
   const map = useMap()
   const core = useMapsLibrary('core')
   useEffect(() => {
     if (!map || !core || path.length === 0) return
-    if (path.length === 1) {
-      map.setCenter(path[0])
-      map.setZoom(14)
-      return
+    const fit = () => {
+      if (path.length === 1) {
+        map.setCenter(path[0])
+        map.setZoom(14)
+        return
+      }
+      const bounds = new core.LatLngBounds()
+      path.forEach((p) => bounds.extend(p))
+      map.fitBounds(bounds, fitPadding)
     }
-    const bounds = new core.LatLngBounds()
-    path.forEach((p) => bounds.extend(p))
-    map.fitBounds(bounds, 64)
-  }, [map, core, path])
-  return null
-}
-
-// @vis.gl/react-google-maps (v1.8.3) ships no ResizeObserver, and its moveCamera
-// re-layout self-heal only runs under `reuseMaps` (which we do not enable). So when the
-// map container is resized — e.g. the itinerary band collapsing/expanding — nothing
-// repaints the newly-revealed tiles and they stay grey. Observe the container and force a
-// no-op camera move (the library's own documented re-layout remedy) which keeps the view.
-function MapAutoResize() {
-  const map = useMap()
-  useEffect(() => {
-    if (!map || typeof ResizeObserver === 'undefined') return
+    fit()
+    if (typeof ResizeObserver === 'undefined') return
     const el = map.getDiv()
     if (!el) return
     let raf = 0
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => map.moveCamera({}))
+      raf = requestAnimationFrame(fit)
     })
     ro.observe(el)
     return () => {
       ro.disconnect()
       cancelAnimationFrame(raf)
     }
-  }, [map])
+  }, [map, core, path, fitPadding])
   return null
 }
 
@@ -112,6 +114,7 @@ export function TripMap({
   summaryText,
   addMode = false,
   gestureHandling = 'greedy',
+  fitPadding,
   tripId,
   onExitAddMode,
 }: {
@@ -122,6 +125,7 @@ export function TripMap({
   summaryText?: string
   addMode?: boolean
   gestureHandling?: string
+  fitPadding?: number | google.maps.Padding
   tripId?: string
   onExitAddMode?: () => void
 }) {
@@ -182,11 +186,10 @@ export function TripMap({
             }
           }}
         >
-          <MapAutoResize />
           {routeMode ? (
             <>
               <RouteSegments segments={segments ?? []} />
-              <FitBounds path={path} />
+              <FitBounds path={path} fitPadding={fitPadding} />
               {routeStops.map((r) => (
                 <AdvancedMarker
                   key={r.id}
