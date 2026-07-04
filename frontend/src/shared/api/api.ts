@@ -489,6 +489,7 @@ export interface CoverOverspendingRequest {
 
 // -------------------- Trips --------------------
 export type TravelMode = 'Drive' | 'Walk' | 'Transit'
+export type RouteSource = 'Routed' | 'Estimated'
 export type PlaceCategory = 'Stay' | 'Eat' | 'See' | 'Cafe' | 'Shop' | 'Other'
 
 export interface TripDto { id: string; name: string; destination: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode }
@@ -498,7 +499,7 @@ export interface TripPlaceDto {
     bestTimeStart: string | null; bestTimeEnd: string | null; openingHoursJson: string | null
     feeNote: string | null; notes: string | null
 }
-export interface LegDto { seconds: number; meters: number }
+export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null }
 export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
