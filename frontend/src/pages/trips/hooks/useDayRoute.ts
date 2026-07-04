@@ -152,3 +152,5 @@ export function useDayRoute(tripId: string) {
     summaryText,
   }
 }
+
+export type DayRoute = ReturnType<typeof useDayRoute>
