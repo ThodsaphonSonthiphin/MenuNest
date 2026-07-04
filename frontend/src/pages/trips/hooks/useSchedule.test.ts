@@ -1,6 +1,6 @@
 // frontend/src/pages/trips/hooks/useSchedule.test.ts
 import {describe, it, expect} from 'vitest'
-import {computeSchedule, dayOfWeek, flagStop, isOpenAt} from './useSchedule'
+import {computeSchedule, dayOfWeek, flagStop, isOpenAt, offWindowFlag, closedFlag, composeFlags} from './useSchedule'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 
 const stop = (id: string, seq: number, dwell: number, legSec: number | null) => ({
@@ -104,5 +104,106 @@ describe('computeSchedule overnight', () => {
     const s = computeSchedule(day)
     expect(s[0].overnight).toBe(false)
     expect(s[1].overnight).toBe(false)
+  })
+})
+
+const mkPlace = (over: Partial<TripPlaceDto> = {}): TripPlaceDto => ({
+  id: 'p', tripId: 't', googlePlaceId: null, name: 'x', lat: 0, lng: 0, address: null,
+  category: 'See', priceLevel: null, photoUrl: null, bestTimeStart: null, bestTimeEnd: null,
+  openingHoursJson: null, feeNote: null, notes: null, ...over,
+})
+const mkHours = (periods: unknown) => JSON.stringify({periods})
+
+describe('computeSchedule arrivedAfterMidnight', () => {
+  it('true only when the raw arrival crosses midnight', () => {
+    const day: ItineraryDayDto = {
+      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00',
+      stops: [stop('1', 0, 120, null), stop('2', 1, 60, 30 * 60)],
+    }
+    const s = computeSchedule(day)
+    expect(s[0].arrivedAfterMidnight).toBe(false) // arrival 22:00 < 1440 (only depart crosses)
+    expect(s[1].arrivedAfterMidnight).toBe(true)  // arrival 00:30 >= 1440
+  })
+})
+
+describe('offWindowFlag', () => {
+  it('null inside window (bounds inclusive)', () => {
+    const p = mkPlace({bestTimeStart: '08:00:00', bestTimeEnd: '10:00:00'})
+    expect(offWindowFlag(p, '09:00')).toBeNull()
+    expect(offWindowFlag(p, '08:00')).toBeNull()
+    expect(offWindowFlag(p, '10:00')).toBeNull()
+  })
+  it('after window → suggestion, windowDir after', () => {
+    const p = mkPlace({bestTimeStart: '12:00:00', bestTimeEnd: '13:00:00'})
+    expect(offWindowFlag(p, '14:41')).toMatchObject({
+      reason: 'off-window', severity: 'suggestion', windowDir: 'after', bestStart: '12:00', bestEnd: '13:00',
+    })
+  })
+  it('before window → windowDir before', () => {
+    const p = mkPlace({bestTimeStart: '17:30:00', bestTimeEnd: '18:30:00'})
+    expect(offWindowFlag(p, '13:50')).toMatchObject({windowDir: 'before'})
+  })
+  it('null when no window set', () => {
+    expect(offWindowFlag(mkPlace(), '13:50')).toBeNull()
+  })
+})
+
+describe('closedFlag', () => {
+  it('before-open: opens later today, not opened yet', () => {
+    const j = mkHours([{open: {day: 1, hour: 10}, close: {day: 1, hour: 18}}])
+    expect(closedFlag(j, 1, 9 * 60)).toMatchObject({reason: 'closed', severity: 'problem', closedKind: 'before-open', reopenAt: '10:00'})
+  })
+  it('on-break: split hours, arrive during the gap', () => {
+    const j = mkHours([{open: {day: 1, hour: 11}, close: {day: 1, hour: 14}}, {open: {day: 1, hour: 17}, close: {day: 1, hour: 22}}])
+    expect(closedFlag(j, 1, 15 * 60)).toMatchObject({closedKind: 'on-break', reopenAt: '17:00'})
+  })
+  it('after-close: opened earlier, now past last close', () => {
+    const j = mkHours([{open: {day: 1, hour: 9}, close: {day: 1, hour: 17}}])
+    const f = closedFlag(j, 1, 18 * 60)
+    expect(f).toMatchObject({closedKind: 'after-close'})
+    expect(f?.reopenAt).toBeUndefined()
+  })
+  it('all-day: no period this weekday', () => {
+    const j = mkHours([{open: {day: 2, hour: 9}, close: {day: 2, hour: 17}}]) // only Tuesday
+    expect(closedFlag(j, 1, 12 * 60)).toMatchObject({closedKind: 'all-day'})
+  })
+  it('null when hours unknown', () => {
+    expect(closedFlag(null, 1, 12 * 60)).toBeNull()
+  })
+})
+
+describe('composeFlags', () => {
+  it('overflow fires once, on the first stop reached after midnight', () => {
+    const day: ItineraryDayDto = {
+      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00',
+      stops: [stop('1', 0, 120, null), stop('2', 1, 60, 30 * 60), stop('3', 2, 60, 30 * 60)],
+    }
+    const composed = composeFlags(computeSchedule(day), {}, dayOfWeek(day.date))
+    expect(composed.filter(c => c.flag?.reason === 'overflow')).toHaveLength(1)
+    expect(composed[1].flag).toMatchObject({reason: 'overflow', severity: 'problem', arrival: '00:30'})
+    expect(composed[2].flag).toBeNull()
+  })
+  it('no overflow when only the departure crosses midnight', () => {
+    const day: ItineraryDayDto = {
+      id: 'd', date: '2026-11-14', dayStartTime: '23:00:00',
+      stops: [stop('1', 0, 90, null)], // arrival 23:00, depart 00:30
+    }
+    const composed = composeFlags(computeSchedule(day), {}, dayOfWeek(day.date))
+    expect(composed.some(c => c.flag?.reason === 'overflow')).toBe(false)
+  })
+  it('closed outranks off-window on the same stop', () => {
+    const p = mkPlace({
+      bestTimeStart: '12:00:00', bestTimeEnd: '13:00:00',
+      openingHoursJson: mkHours([{open: {day: 6, hour: 10}, close: {day: 6, hour: 11}}]), // Sat 10–11
+    })
+    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '14:00:00', stops: [stop('1', 0, 30, null)]}
+    const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
+    expect(composed[0].flag?.reason).toBe('closed')
+  })
+  it('null flag for a well-timed open stop with no window', () => {
+    const p = mkPlace({openingHoursJson: mkHours([{open: {day: 6, hour: 8}, close: {day: 6, hour: 20}}])})
+    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', stops: [stop('1', 0, 30, null)]}
+    const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
+    expect(composed[0].flag).toBeNull()
   })
 })

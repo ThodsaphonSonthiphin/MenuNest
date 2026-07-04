@@ -2,8 +2,27 @@
 import {useMemo} from 'react'
 import type {ItineraryDayDto, StopDto, TripPlaceDto} from '../../../shared/api/api'
 
-export interface ScheduledStop { stop: StopDto; arrival: string; depart: string; overnight: boolean }
+export interface ScheduledStop {
+  stop: StopDto; arrival: string; depart: string; overnight: boolean
+  arrivedAfterMidnight: boolean // raw arrival >= 1440 (this stop is reached after midnight)
+}
 export type StopFlag = 'green' | 'amber'
+
+export type FlagReason = 'overflow' | 'closed' | 'off-window'
+export type FlagSeverity = 'problem' | 'suggestion'
+export type ClosedKind = 'before-open' | 'on-break' | 'after-close' | 'all-day'
+
+export interface TimingFlag {
+  reason: FlagReason
+  severity: FlagSeverity
+  closedKind?: ClosedKind
+  reopenAt?: string             // 'HH:MM' — before-open | on-break
+  bestStart?: string            // 'HH:MM' — off-window
+  bestEnd?: string              // 'HH:MM' — off-window
+  windowDir?: 'before' | 'after'
+  arrival?: string              // 'HH:MM' (post-midnight) — overflow
+}
+export type ScheduledStopWithFlag = ScheduledStop & {flag: TimingFlag | null}
 
 const toMin = (hhmm: string) => { const [h, m] = hhmm.slice(0, 5).split(':').map(Number); return h * 60 + m }
 const fromMin = (min: number) => `${String(Math.floor((min % 1440) / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
@@ -42,6 +61,76 @@ export function isOpenAt(openingHoursJson: string | null | undefined, dow: numbe
   return false
 }
 
+const pointMin = (p: OhPoint) => p.hour * 60 + (p.minute ?? 0)
+
+function parsePeriods(json: string | null | undefined): OhPeriod[] | null {
+  if (!json) return null
+  try {
+    const periods = (JSON.parse(json) as {periods?: OhPeriod[]}).periods
+    return periods && periods.length ? periods : null
+  } catch { return null }
+}
+
+/** Classify why a place is closed at `minutes` on weekday `dow` — call only when isOpenAt(...) === false. Null when hours unknown. */
+export function closedFlag(openingHoursJson: string | null | undefined, dow: number, minutes: number): TimingFlag | null {
+  const periods = parsePeriods(openingHoursJson)
+  if (!periods) return null
+  let reopen: number | null = null // earliest open later today
+  let openedEarlier = false        // opened OR closed earlier today (incl. overnight close)
+  for (const p of periods) {
+    if (p.open && p.open.day === dow) {
+      const om = pointMin(p.open)
+      if (om > minutes) reopen = reopen === null ? om : Math.min(reopen, om)
+      else openedEarlier = true
+    }
+    if (p.close && p.close.day === dow && pointMin(p.close) <= minutes) openedEarlier = true
+  }
+  const closedKind: ClosedKind =
+    reopen !== null ? (openedEarlier ? 'on-break' : 'before-open')
+                    : (openedEarlier ? 'after-close' : 'all-day')
+  return {reason: 'closed', severity: 'problem', closedKind, reopenAt: reopen !== null ? fromMin(reopen) : undefined}
+}
+
+/** Flag when arrival is outside the place's best-time window; null when inside (bounds inclusive) or no window set. */
+export function offWindowFlag(place: TripPlaceDto, arrival: string): TimingFlag | null {
+  if (!place.bestTimeStart || !place.bestTimeEnd) return null
+  const a = toMin(arrival)
+  const start = toMin(place.bestTimeStart)
+  const end = toMin(place.bestTimeEnd)
+  if (a >= start && a <= end) return null
+  return {
+    reason: 'off-window',
+    severity: 'suggestion',
+    bestStart: place.bestTimeStart.slice(0, 5),
+    bestEnd: place.bestTimeEnd.slice(0, 5),
+    windowDir: a < start ? 'before' : 'after',
+  }
+}
+
+/** Select one most-severe flag per stop: overflow (once, first stop reached after midnight) > closed > off-window; null when none. */
+export function composeFlags(
+  scheduled: ScheduledStop[],
+  placesById: Record<string, TripPlaceDto>,
+  dow: number,
+): ScheduledStopWithFlag[] {
+  let overflowShown = false
+  return scheduled.map(s => {
+    let flag: TimingFlag | null = null
+    if (!overflowShown && s.arrivedAfterMidnight) {
+      flag = {reason: 'overflow', severity: 'problem', arrival: s.arrival}
+      overflowShown = true
+    } else {
+      const place = placesById[s.stop.tripPlaceId]
+      if (place) {
+        const arr = toMin(s.arrival)
+        if (isOpenAt(place.openingHoursJson, dow, arr) === false) flag = closedFlag(place.openingHoursJson, dow, arr)
+        if (!flag) flag = offWindowFlag(place, s.arrival)
+      }
+    }
+    return {...s, flag}
+  })
+}
+
 /** Forward cascade: arrival[0] = dayStart; depart = arrival + dwell; arrival[i+1] = depart + leg (ADR-008). */
 export function computeSchedule(day: ItineraryDayDto): ScheduledStop[] {
   const result: ScheduledStop[] = []
@@ -49,7 +138,7 @@ export function computeSchedule(day: ItineraryDayDto): ScheduledStop[] {
   for (const stop of [...day.stops].sort((a, b) => a.sequence - b.sequence)) {
     const arrival = cursor + (stop.legToReach ? Math.round(stop.legToReach.seconds / 60) : 0)
     const depart = arrival + stop.dwellMinutes
-    result.push({stop, arrival: fromMin(arrival), depart: fromMin(depart), overnight: arrival >= 1440 || depart >= 1440})
+    result.push({stop, arrival: fromMin(arrival), depart: fromMin(depart), overnight: arrival >= 1440 || depart >= 1440, arrivedAfterMidnight: arrival >= 1440})
     cursor = depart
   }
   return result
