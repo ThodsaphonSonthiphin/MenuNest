@@ -123,7 +123,11 @@ export function useDayRoute(tripId: string) {
     [scheduled, placesById],
   )
 
-  const anyEstimated = scheduled.some((s) => s.stop.legToReach?.source === 'Estimated')
+  // Mirror the point-mapper's `?? 'Estimated'` rule: a present leg whose source is
+  // missing/undefined (stale/partial payload) counts as Estimated too, so the summary
+  // flag never disagrees with what `segments` renders. `legToReach === null` (e.g. the
+  // first stop) still doesn't count.
+  const anyEstimated = scheduled.some((s) => !!s.stop.legToReach && s.stop.legToReach.source !== 'Routed')
 
   const totalKm =
     scheduled.reduce((m, s) => m + (s.stop.legToReach?.meters ?? 0), 0) / 1000

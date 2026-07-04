@@ -28,6 +28,8 @@ describe('buildSegments', () => {
     expect(segs).toHaveLength(2)
     expect(segs[0].from.lat).toBe(1)
     expect(segs[0].to.lat).toBe(2)
+    expect(segs[1].from.lat).toBe(2)
+    expect(segs[1].to.lat).toBe(3)
   })
 
   it('carries polyline+Routed when the pair is consecutive', () => {
