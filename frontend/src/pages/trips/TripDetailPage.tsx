@@ -120,6 +120,7 @@ export function TripDetailPage() {
           <TripMap
             places={places ?? []}
             route={tab === 'itinerary' ? dayRoute.route : undefined}
+            segments={tab === 'itinerary' ? dayRoute.segments : undefined}
             summaryLabel={dayRoute.dayLabel}
             summaryText={dayRoute.summaryText}
             addMode={tab === 'places' && addMode}

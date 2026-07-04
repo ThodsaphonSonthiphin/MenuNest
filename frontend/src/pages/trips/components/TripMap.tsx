@@ -3,7 +3,7 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {APIProvider, Map, AdvancedMarker, Pin, useMap, useMapsLibrary} from '@vis.gl/react-google-maps'
 import type {TripPlaceDto} from '../../../shared/api/api'
-import type {RouteStop} from '../hooks/useDayRoute'
+import type {RouteStop, RouteSegment} from '../hooks/useDayRoute'
 import {trackGoogleMapsError} from '../../../shared/telemetry/googleMapsTelemetry'
 import {AddPlaceMode} from './AddPlaceMode'
 
@@ -27,25 +27,32 @@ const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) |
 // Bangkok city-centre fallback when no places are loaded yet.
 const BKK_CENTER = {lat: 13.7563, lng: 100.5018}
 
-// Straight teal line through the day's stops in order. @vis.gl/react-google-maps
-// has no <Polyline>, so create google.maps.Polyline imperatively and clean it up.
-// (Road-accurate geometry would need the Routes API; the per-leg distance/time
-// shown in the itinerary already comes from the backend, so straight legs here.)
-function RoutePolyline({path}: {path: LatLng[]}) {
+// Per-leg route lines. Routed legs draw the decoded encodedPolyline (road-following,
+// solid teal); Estimated legs draw a dashed, faded, straight line between the two stops
+// — an honest "we're guessing this segment" signal (ADR-016/019). @vis.gl/react-google-maps
+// has no <Polyline>, so create google.maps.Polyline imperatively and dispose ALL of them.
+const DASH = {path: 'M 0,-1 0,1', strokeOpacity: 0.55, strokeColor: '#0e8f9e', scale: 3}
+
+function RouteSegments({segments}: {segments: RouteSegment[]}) {
   const map = useMap()
   const maps = useMapsLibrary('maps')
+  const geometry = useMapsLibrary('geometry')
   useEffect(() => {
-    if (!map || !maps || path.length < 2) return
-    const line = new maps.Polyline({
-      path,
-      geodesic: true,
-      strokeColor: '#0e8f9e',
-      strokeOpacity: 0.9,
-      strokeWeight: 4,
+    if (!map || !maps || !geometry || segments.length === 0) return
+    const lines = segments.map((seg) => {
+      const routed = seg.source === 'Routed' && !!seg.encodedPolyline
+      const path = routed
+        ? geometry.encoding.decodePath(seg.encodedPolyline as string)
+        : [seg.from, seg.to]
+      const opts = routed
+        ? {path, strokeColor: '#0e8f9e', strokeOpacity: 0.9, strokeWeight: 4}
+        : {path, strokeOpacity: 0, icons: [{icon: DASH, offset: '0', repeat: '12px'}]}
+      const line = new maps.Polyline(opts)
+      line.setMap(map)
+      return line
     })
-    line.setMap(map)
-    return () => line.setMap(null)
-  }, [map, maps, path])
+    return () => lines.forEach((l) => l.setMap(null))
+  }, [map, maps, geometry, segments])
   return null
 }
 
@@ -70,6 +77,7 @@ function FitBounds({path}: {path: LatLng[]}) {
 export function TripMap({
   places,
   route,
+  segments,
   summaryLabel,
   summaryText,
   addMode = false,
@@ -78,6 +86,7 @@ export function TripMap({
 }: {
   places: TripPlaceDto[]
   route?: RouteStop[]
+  segments?: RouteSegment[]
   summaryLabel?: string
   summaryText?: string
   addMode?: boolean
@@ -143,7 +152,7 @@ export function TripMap({
         >
           {routeMode ? (
             <>
-              <RoutePolyline path={path} />
+              <RouteSegments segments={segments ?? []} />
               <FitBounds path={path} />
               {routeStops.map((r) => (
                 <AdvancedMarker
