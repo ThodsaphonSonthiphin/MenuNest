@@ -6,7 +6,7 @@
 // so the map on the right and the stop list on the left never drift apart.
 import {useMemo} from 'react'
 import {useGetItineraryQuery, useListTripPlacesQuery} from '../../../shared/api/api'
-import type {ItineraryDayDto} from '../../../shared/api/api'
+import type {ItineraryDayDto, RouteSource} from '../../../shared/api/api'
 import {useAppSelector} from '../../../store/index'
 import {useSchedule} from './useSchedule'
 
@@ -18,6 +18,41 @@ export interface RouteStop {
   arrival: string // "HH:MM"
   order: number // 1-based
   amber: boolean // bad-timing / closed → amber pin
+}
+
+export interface RouteSegment {
+  from: {lat: number; lng: number}
+  to: {lat: number; lng: number}
+  encodedPolyline: string | null
+  source: RouteSource
+}
+
+export interface LegPoint {
+  lat: number
+  lng: number
+  alive: boolean // coords finite & place resolved
+  encodedPolyline: string | null // the leg that REACHES this point
+  source: RouteSource
+}
+
+// Connect consecutive SURVIVING points. A segment keeps the incoming leg's real
+// geometry only when its two endpoints are adjacent in the original order; a dropped
+// point in between invalidates that geometry, so we render a straight Estimated line.
+export function buildSegments(points: LegPoint[]): RouteSegment[] {
+  const alive = points.map((p, i) => ({...p, i})).filter((p) => p.alive)
+  const segs: RouteSegment[] = []
+  for (let k = 1; k < alive.length; k++) {
+    const a = alive[k - 1]
+    const b = alive[k]
+    const adjacent = b.i === a.i + 1
+    segs.push({
+      from: {lat: a.lat, lng: a.lng},
+      to: {lat: b.lat, lng: b.lng},
+      encodedPolyline: adjacent ? b.encodedPolyline : null,
+      source: adjacent ? b.source : 'Estimated',
+    })
+  }
+  return segs
 }
 
 // Always pass a real day to useSchedule so its hook count is stable (Rules of Hooks).
@@ -70,6 +105,26 @@ export function useDayRoute(tripId: string) {
     [scheduled, placesById],
   )
 
+  const segments = useMemo<RouteSegment[]>(
+    () =>
+      buildSegments(
+        scheduled.map((s) => {
+          const p = placesById[s.stop.tripPlaceId]
+          const alive = !!p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
+          return {
+            lat: alive ? p.lat : 0,
+            lng: alive ? p.lng : 0,
+            alive,
+            encodedPolyline: s.stop.legToReach?.encodedPolyline ?? null,
+            source: s.stop.legToReach?.source ?? 'Estimated', // missing source → treat as Estimated
+          }
+        }),
+      ),
+    [scheduled, placesById],
+  )
+
+  const anyEstimated = scheduled.some((s) => s.stop.legToReach?.source === 'Estimated')
+
   const totalKm =
     scheduled.reduce((m, s) => m + (s.stop.legToReach?.meters ?? 0), 0) / 1000
 
@@ -79,11 +134,12 @@ export function useDayRoute(tripId: string) {
     spanMin >= 60 ? `~${Math.floor(spanMin / 60)}ชม ${spanMin % 60}น` : `~${spanMin}น`
 
   const summaryText = route.length
-    ? `${route.length} จุด · ${totalKm.toFixed(1)} กม · ${spanText}`
+    ? `${route.length} จุด · ${anyEstimated ? '~' : ''}${totalKm.toFixed(1)} กม · ${spanText}${anyEstimated ? ' · ระยะโดยประมาณ' : ''}`
     : ''
 
   return {
     route,
+    segments,
     dayLabel: dayIndex >= 0 ? `วัน ${dayIndex + 1}` : '',
     summaryText,
   }
