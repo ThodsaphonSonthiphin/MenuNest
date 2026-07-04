@@ -19,6 +19,9 @@
   --good-bg:   #eafaf3;
   --warn:      #b4791f;
   --warn-bg:   #fff4e0;
+  --warn-ink:  #7a5310;   /* darker amber for small text — passes WCAG AA on --warn-bg */
+  --bad:       #b42318;   /* problem-severity text/border — ~5.75:1 on --bad-bg */
+  --bad-bg:    #fdeceb;
   background: var(--page);
   color: var(--ink);
 }
@@ -127,6 +130,7 @@
   overflow: hidden;
 }
 .stop-card.warn { background: #fffdf7; border-color: #f3e2c2; }
+.stop-card.bad { background: #fffbfb; border-color: #f4d0cc; }
 
 /* left rail — arrival time (mono) over depart */
 .stop-rail {
@@ -141,6 +145,7 @@
   background: #f1f8f9;
 }
 .stop-card.warn .stop-rail { background: #fdf3e0; }
+.stop-card.bad .stop-rail { background: #fbe3e0; }
 .stop-arr { font-size: 15px; font-weight: 700; color: var(--ink); line-height: 1.1; }
 .stop-dep { font-size: 10px; font-weight: 500; color: var(--muted); line-height: 1.1; }
 
@@ -223,6 +228,27 @@
 .chip.good  { background: var(--good-bg); color: var(--good); }
 .chip.warn  { background: var(--warn-bg); color: var(--warn); }
 
+/* ── Timing-flag reason line (one inset banner below the chips) ── */
+.flag-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 7px 10px;
+  background: var(--warn-bg);   /* amber = suggestion (base) */
+  color: var(--warn-ink);
+  border-radius: 9px;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+.flag-note svg { width: 14px; height: 14px; flex: none; margin-top: 1px; }
+.flag-note b { font-weight: 700; }
+.flag-note .fix { color: #8a5e14; font-weight: 600; }
+.flag-note .fix::before { content: "— "; color: #c9a24a; }
+.flag-note.bad { background: var(--bad-bg); color: var(--bad); }  /* red = problem */
+.flag-note.bad .fix { color: #8f2318; }
+.flag-note.bad .fix::before { color: #d08a84; }
+
 /* ── Travel leg (between stops) ── */
 .travel-leg {
   display: flex;
@@ -279,6 +305,11 @@
 .route-pin.amber .route-dot {
   background: #e9a23b;
   box-shadow: 0 4px 12px rgba(233, 162, 59, 0.5);
+}
+.route-pin.problem .route-callout { color: var(--bad); }
+.route-pin.problem .route-dot {
+  background: #d64027;
+  box-shadow: 0 4px 12px rgba(214, 64, 39, 0.5);
 }
 
 /* ── Day-summary card pinned bottom-right of the map ── */
