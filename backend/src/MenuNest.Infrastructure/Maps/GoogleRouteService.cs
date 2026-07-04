@@ -7,12 +7,12 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-// Routes API: POST https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix
-// Headers: X-Goog-Api-Key, X-Goog-FieldMask
-// Duration field in response is a Duration string, e.g. "120s" — parsed via TrimEnd('s').
-// travelMode: DRIVE | WALK | TRANSIT  (Routes API GA, not legacy Distance Matrix API)
-// Cache TTL: 12 h per leg — well within the 30-day ToS caching limit.
-// Data is never used for ML training. No prohibited territory routing.
+// Routes API: POST https://routes.googleapis.com/directions/v2:computeRoutes  (one call per leg)
+// Headers: X-Goog-Api-Key, X-Goog-FieldMask (mandatory), X-Goog-Maps-Solution-ID
+// FieldMask: routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline (Essentials tier — no traffic).
+// Response: { "routes":[{ "duration":"120s", "distanceMeters":N, "polyline":{ "encodedPolyline":"..." } }] }.
+// Duration is a Duration string ("120s") parsed via TrimEnd('s'). travelMode: DRIVE | WALK | TRANSIT.
+// Cache TTL 12 h per leg — well within the ToS 30-day caching limit. Data never used for ML training.
 namespace MenuNest.Infrastructure.Maps;
 
 public sealed class GoogleRouteService : IRouteService
@@ -40,7 +40,7 @@ public sealed class GoogleRouteService : IRouteService
 
         try
         {
-            // computeRouteMatrix over the missing (origin,dest) pairs.
+            // computeRoutes over each missing (origin,dest) pair.
             foreach (var i in misses)
             {
                 var leg = await ComputeOneAsync(pts[i], pts[i + 1], mode, ct);
@@ -62,15 +62,17 @@ public sealed class GoogleRouteService : IRouteService
     private async Task<LegTime> ComputeOneAsync(RoutePoint o, RoutePoint d, TravelMode mode, CancellationToken ct)
     {
         var client = _http.CreateClient();
-        using var req = new HttpRequestMessage(HttpMethod.Post, "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix");
+        using var req = new HttpRequestMessage(HttpMethod.Post, "https://routes.googleapis.com/directions/v2:computeRoutes");
         req.Headers.Add("X-Goog-Api-Key", _opts.ApiKey);
-        req.Headers.Add("X-Goog-FieldMask", "originIndex,destinationIndex,duration,distanceMeters,condition");
+        // Essentials-tier field mask: geometry + distance + time only. Do NOT widen (ADR-016/020).
+        req.Headers.Add("X-Goog-FieldMask", "routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline");
         req.Headers.Add("X-Goog-Maps-Solution-ID", "gmp_git_agentskills_v1");
         req.Content = JsonContent.Create(new
         {
-            origins = new[] { Wp(o) },
-            destinations = new[] { Wp(d) },
+            origin = Wp(o),
+            destination = Wp(d),
             travelMode = mode switch { TravelMode.Walk => "WALK", TravelMode.Transit => "TRANSIT", _ => "DRIVE" },
+            // No routingPreference: omission = TRAFFIC_UNAWARE (Essentials) and is required for WALK/TRANSIT.
         });
         // Bound each Google call so one slow upstream cannot stall the whole itinerary response.
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -78,12 +80,15 @@ public sealed class GoogleRouteService : IRouteService
         var resp = await client.SendAsync(req, timeoutCts.Token);
         resp.EnsureSuccessStatusCode();
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(timeoutCts.Token));
-        var el = doc.RootElement.EnumerateArray().First();
-        var seconds = ParseDuration(el.GetProperty("duration").GetString());
-        var meters = el.TryGetProperty("distanceMeters", out var m) ? m.GetInt32() : 0;
-        return new LegTime(seconds, meters, null, RouteSource.Routed);
+        var route = doc.RootElement.GetProperty("routes").EnumerateArray().First();
+        var seconds = ParseDuration(route.GetProperty("duration").GetString());
+        var meters = route.TryGetProperty("distanceMeters", out var m) ? m.GetInt32() : 0;
+        var polyline = route.TryGetProperty("polyline", out var p) && p.TryGetProperty("encodedPolyline", out var e)
+            ? e.GetString()
+            : null;
+        return new LegTime(seconds, meters, polyline, RouteSource.Routed);
 
-        static object Wp(RoutePoint p) => new { waypoint = new { location = new { latLng = new { latitude = p.Lat, longitude = p.Lng } } } };
+        static object Wp(RoutePoint p) => new { location = new { latLng = new { latitude = p.Lat, longitude = p.Lng } } };
         static int ParseDuration(string? s) =>
             s is not null && double.TryParse(s.TrimEnd('s'), NumberStyles.Any, CultureInfo.InvariantCulture, out var v)
                 ? (int)Math.Round(v) : 0;
