@@ -198,7 +198,7 @@ export function TripDetailPage() {
         </div>
       )}
 
-      {tab === 'itinerary' && <ItineraryTab tripId={tripId} />}
+      {tab === 'itinerary' && <ItineraryTab tripId={tripId} dayRoute={dayRoute} />}
     </section>
   )
 }
