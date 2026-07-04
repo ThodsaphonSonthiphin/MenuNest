@@ -79,6 +79,31 @@ function FitBounds({path}: {path: LatLng[]}) {
   return null
 }
 
+// @vis.gl/react-google-maps (v1.8.3) ships no ResizeObserver, and its moveCamera
+// re-layout self-heal only runs under `reuseMaps` (which we do not enable). So when the
+// map container is resized — e.g. the itinerary band collapsing/expanding — nothing
+// repaints the newly-revealed tiles and they stay grey. Observe the container and force a
+// no-op camera move (the library's own documented re-layout remedy) which keeps the view.
+function MapAutoResize() {
+  const map = useMap()
+  useEffect(() => {
+    if (!map || typeof ResizeObserver === 'undefined') return
+    const el = map.getDiv()
+    if (!el) return
+    let raf = 0
+    const ro = new ResizeObserver(() => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(() => map.moveCamera({}))
+    })
+    ro.observe(el)
+    return () => {
+      ro.disconnect()
+      cancelAnimationFrame(raf)
+    }
+  }, [map])
+  return null
+}
+
 export function TripMap({
   places,
   route,
@@ -86,6 +111,7 @@ export function TripMap({
   summaryLabel,
   summaryText,
   addMode = false,
+  gestureHandling = 'greedy',
   tripId,
   onExitAddMode,
 }: {
@@ -95,6 +121,7 @@ export function TripMap({
   summaryLabel?: string
   summaryText?: string
   addMode?: boolean
+  gestureHandling?: string
   tripId?: string
   onExitAddMode?: () => void
 }) {
@@ -139,7 +166,7 @@ export function TripMap({
           mapId={MAP_ID}
           defaultCenter={center}
           defaultZoom={12}
-          gestureHandling="greedy"
+          gestureHandling={gestureHandling}
           disableDefaultUI
           internalUsageAttributionIds={['gmp_git_agentskills_v1']}
           onClick={(ev) => {
@@ -155,6 +182,7 @@ export function TripMap({
             }
           }}
         >
+          <MapAutoResize />
           {routeMode ? (
             <>
               <RouteSegments segments={segments ?? []} />
