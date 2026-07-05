@@ -1286,9 +1286,12 @@ export const api = createApi({
             query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'DELETE'}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),
-        getItinerary: build.query<ItineraryDayDto[], string>({
-            query: (tripId) => `/api/trips/${tripId}/itinerary`,
-            providesTags: (_r, _e, id) => [{type: 'TripItinerary', id}],
+        getItinerary: build.query<ItineraryDayDto[], {tripId: string; lat?: number; lng?: number}>({
+            query: ({tripId, lat, lng}) => {
+                const qs = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : ''
+                return `/api/trips/${tripId}/itinerary${qs}`
+            },
+            providesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
         }),
         addStop: build.mutation<StopDto, {tripId: string; dayId: string; tripPlaceId: string; dwellMinutes: number; travelModeToReach: TravelMode}>({
             query: ({tripId, dayId, ...b}) => ({url: `/api/trips/${tripId}/days/${dayId}/stops`, method: 'POST', body: b}),

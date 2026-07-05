@@ -20,6 +20,17 @@ describe('computeSchedule', () => {
     expect(s[1].arrival).toBe('10:25'); expect(s[1].depart).toBe('11:10')
     expect(s[2].arrival).toBe('11:40'); expect(s[2].depart).toBe('13:10')
   })
+
+  it('includes a populated leg on the first stop (Approach leg) in the cascade', () => {
+    const day: ItineraryDayDto = {
+      id: 'd1', date: '2026-11-14', dayStartTime: '09:00:00',
+      stops: [stop('1', 0, 60, 10 * 60), stop('2', 1, 45, 25 * 60)],
+    }
+    const s = computeSchedule(day)
+    expect(s[0].arrival).toBe('09:10') // dayStart + 10-minute Approach leg
+    expect(s[0].depart).toBe('10:10')
+    expect(s[1].arrival).toBe('10:35')
+  })
 })
 
 describe('dayOfWeek', () => {

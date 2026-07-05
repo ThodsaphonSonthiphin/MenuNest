@@ -68,9 +68,13 @@ const toMin = (hhmm: string) => {
 
 export function useDayRoute(tripId: string) {
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
+  const viewerLocation = useAppSelector((s) => s.trips.viewerLocation)
   // skip on empty tripId: this hook is called before TripDetailPage's not-found
   // guard, so without skip an empty id would fire GET /api/trips//itinerary.
-  const {data: days} = useGetItineraryQuery(tripId, {skip: !tripId})
+  const {data: days} = useGetItineraryQuery(
+    {tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng},
+    {skip: !tripId},
+  )
   const {data: places} = useListTripPlacesQuery(tripId, {skip: !tripId})
 
   const dayList = days ?? []
