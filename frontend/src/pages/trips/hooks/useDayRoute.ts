@@ -68,9 +68,13 @@ const toMin = (hhmm: string) => {
 
 export function useDayRoute(tripId: string) {
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
+  const viewerLocation = useAppSelector((s) => s.trips.viewerLocation)
   // skip on empty tripId: this hook is called before TripDetailPage's not-found
   // guard, so without skip an empty id would fire GET /api/trips//itinerary.
-  const {data: days} = useGetItineraryQuery(tripId, {skip: !tripId})
+  const {data: days} = useGetItineraryQuery(
+    {tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng},
+    {skip: !tripId},
+  )
   const {data: places} = useListTripPlacesQuery(tripId, {skip: !tripId})
 
   const dayList = days ?? []
@@ -109,23 +113,31 @@ export function useDayRoute(tripId: string) {
     [scheduled, placesById],
   )
 
-  const segments = useMemo<RouteSegment[]>(
-    () =>
-      buildSegments(
-        scheduled.map((s) => {
-          const p = placesById[s.stop.tripPlaceId]
-          const alive = !!p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
-          return {
-            lat: alive ? p.lat : 0,
-            lng: alive ? p.lng : 0,
-            alive,
-            encodedPolyline: s.stop.legToReach?.encodedPolyline ?? null,
-            source: s.stop.legToReach?.source ?? 'Estimated', // missing source → treat as Estimated
-          }
-        }),
-      ),
-    [scheduled, placesById],
-  )
+  const segments = useMemo<RouteSegment[]>(() => {
+    const points: LegPoint[] = []
+    if (viewerLocation) {
+      // Nothing "reaches" this point — it's the start of the route, not a Stop —
+      // so its own encodedPolyline/source are unused by buildSegments (which reads
+      // only the DESTINATION point's fields per segment). Stop 1's own legToReach
+      // (the Approach leg, once Task 1's backend change resolves it) supplies the
+      // real polyline/source for the viewer→Stop-1 segment.
+      points.push({lat: viewerLocation.lat, lng: viewerLocation.lng, alive: true, encodedPolyline: null, source: 'Estimated'})
+    }
+    points.push(
+      ...scheduled.map((s) => {
+        const p = placesById[s.stop.tripPlaceId]
+        const alive = !!p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
+        return {
+          lat: alive ? p.lat : 0,
+          lng: alive ? p.lng : 0,
+          alive,
+          encodedPolyline: s.stop.legToReach?.encodedPolyline ?? null,
+          source: s.stop.legToReach?.source ?? 'Estimated',
+        }
+      }),
+    )
+    return buildSegments(points)
+  }, [scheduled, placesById, viewerLocation])
 
   // Mirror the point-mapper's `?? 'Estimated'` rule: a present leg whose source is
   // missing/undefined (stale/partial payload) counts as Estimated too, so the summary
@@ -150,6 +162,7 @@ export function useDayRoute(tripId: string) {
     segments,
     dayLabel: dayIndex >= 0 ? `วัน ${dayIndex + 1}` : '',
     summaryText,
+    viewerLocation,
   }
 }
 
