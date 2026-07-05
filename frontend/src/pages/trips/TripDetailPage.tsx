@@ -1,4 +1,5 @@
 // frontend/src/pages/trips/TripDetailPage.tsx
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
@@ -9,26 +10,10 @@ import { SegmentedTabs } from './components/SegmentedTabs'
 import { PlaceCard } from './components/PlaceCard'
 import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
+import { TripDateEditor } from './components/TripDateEditor'
 import { useDayRoute } from './hooks/useDayRoute'
 import './trips-tokens.css'
 import './TripDetailPage.css'
-
-const TH_MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
-
-/** "14–18 พ.ย." from startDate (ISO DateOnly) + dayCount. endDate is derived
- *  (no explicit field). Returns '' when there is no usable start date. */
-function formatTripDates(startDate?: string | null, dayCount?: number | null): string {
-  if (!startDate) return ''
-  const start = new Date(`${startDate.slice(0, 10)}T00:00:00`)
-  if (Number.isNaN(start.getTime())) return ''
-  const days = Math.max(1, dayCount ?? 1)
-  const end = new Date(start)
-  end.setDate(start.getDate() + days - 1)
-  if (days <= 1) return `${start.getDate()} ${TH_MONTHS[start.getMonth()]}`
-  return start.getMonth() === end.getMonth()
-    ? `${start.getDate()}–${end.getDate()} ${TH_MONTHS[end.getMonth()]}`
-    : `${start.getDate()} ${TH_MONTHS[start.getMonth()]} – ${end.getDate()} ${TH_MONTHS[end.getMonth()]}`
-}
 
 export function TripDetailPage() {
   const { tripId = '' } = useParams()
@@ -37,6 +22,8 @@ export function TripDetailPage() {
   const placesView = useAppSelector((s) => s.trips.placesView)
   const addMode = useAppSelector((s) => s.trips.addMode)
   const bp = useBreakpoint()
+  // Error surfaced by the inline trip-date edit (rescheduling failed).
+  const [dateError, setDateError] = useState<string | null>(null)
 
   const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
   const { data: places } = useListTripPlacesQuery(tripId, { skip: !tripId })
@@ -58,19 +45,18 @@ export function TripDetailPage() {
 
   // ── Desktop split: dark top-bar + two-pane grid ───────────────────────────
   if (isDesktop) {
-    const metaText = [
-      trip?.destination,
-      formatTripDates(trip?.startDate, trip?.dayCount),
-      trip?.dayCount != null ? `${trip.dayCount} วัน` : '',
-    ]
-      .filter(Boolean)
-      .join(' · ')
-
     return (
       <section className="trip-detail desktop">
         <header className="trip-topbar">
           <span className="trip-topbar-name">🗺️ {trip?.name ?? '…'}</span>
-          {metaText && <span className="trip-topbar-meta">{metaText}</span>}
+          {trip && (
+            <span className="trip-topbar-meta">
+              {trip.destination && <>{trip.destination} · </>}
+              <TripDateEditor trip={trip} onError={setDateError} />
+              {trip.dayCount != null && <> · {trip.dayCount} วัน</>}
+            </span>
+          )}
+          {dateError && <span className="trip-topbar-error">{dateError}</span>}
         </header>
 
         <div className="trip-detail-body">
@@ -138,11 +124,14 @@ export function TripDetailPage() {
     <section className="trip-detail">
       <header className="trip-detail-header">
         <div className="trip-detail-name">{trip?.name ?? '…'}</div>
-        <div className="trip-detail-meta">
-          {trip?.destination}
-          {trip?.destination ? ' · ' : ''}
-          {trip?.dayCount != null ? `${trip.dayCount} วัน` : ''}
-        </div>
+        {trip && (
+          <div className="trip-detail-meta">
+            {trip.destination && <>{trip.destination} · </>}
+            <TripDateEditor trip={trip} onError={setDateError} />
+            {trip.dayCount != null && <> · {trip.dayCount} วัน</>}
+          </div>
+        )}
+        {dateError && <p className="trips-field-error">{dateError}</p>}
       </header>
 
       <SegmentedTabs
