@@ -1,0 +1,15 @@
+{
+  "enabledPlugins": {
+    "dev-workflows@workflow-daily-work": true,
+    "github-backlog@workflow-daily-work": true,
+    "react-workflows@workflow-daily-work": true
+  },
+  "extraKnownMarketplaces": {
+    "workflow-daily-work": {
+      "source": {
+        "source": "git",
+        "url": "https://github.com/ThodsaphonSonthiphin/workflow-daily-work.git"
+      }
+    }
+  }
+}
