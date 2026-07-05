@@ -474,6 +474,66 @@
 .day-summary .day-start-picker .sf-time-icon,
 .day-summary .day-start-picker .sf-input-group-icon { color: #9fb0c4; }
 
+/* ── Editable trip start date in the detail header (ADR-012 / ADR-013) ── */
+/* Reuses the day-start editor treatment: neutralize the Syncfusion DatePicker
+   chrome so the field reads as header text at rest and opens on tap. The React
+   package emits sf-* classes (not the legacy ej2 .e-*). The base rules are
+   context-neutral; the dark top-bar and the light mobile header each tint it. */
+.trip-date-edit { display: inline-flex; align-items: center; gap: 6px; vertical-align: middle; }
+.trip-date-end { white-space: nowrap; }
+
+.trip-date-picker.sf-input-group,
+.trip-date-picker {
+  width: auto;
+  display: inline-flex;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+/* remove the animated focus underline */
+.trip-date-picker.sf-input-group::before,
+.trip-date-picker.sf-input-group::after { display: none; }
+
+.trip-date-picker .sf-input {
+  width: auto;
+  min-width: 9ch;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Dark top-bar (desktop) — blend into the ink bar. */
+.trip-topbar .trip-date-picker {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+}
+.trip-topbar .trip-date-picker:hover,
+.trip-topbar .trip-date-picker:focus-within {
+  border-color: var(--teal);
+  background: rgba(14, 143, 158, 0.18);
+}
+.trip-topbar .trip-date-picker .sf-input { color: #fff; font-weight: 600; }
+.trip-topbar .trip-date-picker .sf-date-icon,
+.trip-topbar .trip-date-picker .sf-input-group-icon { color: #9fb0c4; }
+.trip-topbar-error { font-size: 12px; color: #ffb4a2; }
+
+/* Light mobile / tablet header — blend into the muted meta line. */
+.trip-detail-meta .trip-date-picker { border-color: var(--trp-border); }
+.trip-detail-meta .trip-date-picker:hover,
+.trip-detail-meta .trip-date-picker:focus-within {
+  border-color: var(--teal);
+  background: rgba(14, 143, 158, 0.08);
+}
+.trip-detail-meta .trip-date-picker .sf-input { color: var(--trp-text); font-weight: 600; }
+.trip-detail-meta .trip-date-picker .sf-date-icon,
+.trip-detail-meta .trip-date-picker .sf-input-group-icon { color: var(--trp-text-muted); }
+
 /* ── Add-place add-mode: search bar + suggestions + preview (ADR-016) ── */
 .add-search-wrap { position: absolute; top: 14px; left: 14px; right: 14px; z-index: 6; }
 .add-search-box {

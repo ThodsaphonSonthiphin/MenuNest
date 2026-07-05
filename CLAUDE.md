@@ -57,3 +57,20 @@ AZURE_TOKEN_CREDENTIALS=AzureCliCredential dotnet ef database update \
 
 (Requires the terminal `az` session to be `thodsaphonSP@hotmail.co.th`, who is the SQL Entra admin.
  Prefer `dotnet ef migrations script --idempotent` to preview SQL before applying to prod.)
+
+## Commit messages — ALWAYS reference the tracking ticket
+Every commit MUST reference the GitHub issue it belongs to, so the code is
+traceable back to the tracker. Keep the conventional-commit style already in the
+log (`type(scope): summary`) and add the issue reference:
+
+- **Closes the issue** → end the subject with `(closes #<n>)` (or a `Closes #<n>`
+  body line). GitHub auto-closes the issue when the commit merges to `main`.
+- **Only relates** (partial work, follow-up, or one of several commits) → use
+  `(#<n>)` in the subject or a `Refs #<n>` body line — no auto-close.
+
+Examples (from real history):
+- `fix(trips): show route-map band on mobile/tablet itinerary (closes #8)`
+- `docs(trips): ADR-026 + design spec/plan for map band (#8)`
+
+If a change genuinely has no ticket, open the issue first — the default
+expectation is that every commit maps to exactly one tracked item.
