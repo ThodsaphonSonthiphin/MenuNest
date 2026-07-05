@@ -1,10 +1,10 @@
 // frontend/src/pages/trips/TripDetailPage.tsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
-import { setActiveTab, setPlacesView, setAddMode } from './tripsSlice'
+import { setActiveTab, setPlacesView, setAddMode, setViewerLocation } from './tripsSlice'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
 import { SegmentedTabs } from './components/SegmentedTabs'
 import { PlaceCard } from './components/PlaceCard'
@@ -24,6 +24,25 @@ export function TripDetailPage() {
   const bp = useBreakpoint()
   // Error surfaced by the inline trip-date edit (rescheduling failed).
   const [dateError, setDateError] = useState<string | null>(null)
+
+  // Capture the viewer's live location once per trip-detail visit — feeds the
+  // Approach leg into each Day's first Stop (ADR-027). Denied, unsupported, or a
+  // failed/timed-out read leave viewerLocation null: identical to today's
+  // no-Approach-leg rendering (ADR-027 decision 4), no error surfaced here.
+  useEffect(() => {
+    if (!('geolocation' in navigator)) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        dispatch(setViewerLocation({
+          // Rounded to ~11m so repeated reads at the same spot keep hitting the
+          // same RTK Query cache entry instead of refetching on float jitter.
+          lat: Math.round(pos.coords.latitude * 10000) / 10000,
+          lng: Math.round(pos.coords.longitude * 10000) / 10000,
+        }))
+      },
+      () => {},
+    )
+  }, [dispatch])
 
   const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
   const { data: places } = useListTripPlacesQuery(tripId, { skip: !tripId })
