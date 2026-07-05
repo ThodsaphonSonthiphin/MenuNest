@@ -176,6 +176,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             places={places ?? []}
             route={dayRoute.route}
             segments={dayRoute.segments}
+            viewerLocation={dayRoute.viewerLocation}
             gestureHandling="cooperative"
             fitPadding={BAND_FIT_PADDING}
           />

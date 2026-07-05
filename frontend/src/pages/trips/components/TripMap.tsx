@@ -116,6 +116,7 @@ export function TripMap({
   gestureHandling = 'greedy',
   fitPadding,
   tripId,
+  viewerLocation,
   onExitAddMode,
 }: {
   places: TripPlaceDto[]
@@ -127,15 +128,16 @@ export function TripMap({
   gestureHandling?: string
   fitPadding?: number | google.maps.Padding
   tripId?: string
+  viewerLocation?: {lat: number; lng: number} | null
   onExitAddMode?: () => void
 }) {
   const routeStops = route ?? []
   // `route` is a stable reference from useDayRoute (memoised), so depending on it
   // directly memoises path correctly without rebuilding the polyline each render.
-  const path = useMemo<LatLng[]>(
-    () => (route ?? []).map((r) => ({lat: r.lat, lng: r.lng})),
-    [route],
-  )
+  const path = useMemo<LatLng[]>(() => {
+    const pts = (route ?? []).map((r) => ({lat: r.lat, lng: r.lng}))
+    return viewerLocation ? [{lat: viewerLocation.lat, lng: viewerLocation.lng}, ...pts] : pts
+  }, [route, viewerLocation])
 
   // The POI place_id most recently tapped on the map (add-mode only). Pushed down
   // to AddPlaceMode, which resolves it once and clears it via onTapConsumed.
@@ -190,6 +192,15 @@ export function TripMap({
             <>
               <RouteSegments segments={segments ?? []} />
               <FitBounds path={path} fitPadding={fitPadding} />
+              {viewerLocation && (
+                <AdvancedMarker
+                  position={{lat: viewerLocation.lat, lng: viewerLocation.lng}}
+                  title="คุณอยู่ที่นี่"
+                  zIndex={0}
+                >
+                  <div className="viewer-pin" aria-label="ตำแหน่งปัจจุบันของคุณ" />
+                </AdvancedMarker>
+              )}
               {routeStops.map((r) => (
                 <AdvancedMarker
                   key={r.id}
