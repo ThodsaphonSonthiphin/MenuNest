@@ -128,6 +128,7 @@ export function TripDetailPage() {
             segments={tab === 'itinerary' ? dayRoute.segments : undefined}
             summaryLabel={dayRoute.dayLabel}
             summaryText={dayRoute.summaryText}
+            viewerLocation={tab === 'itinerary' ? dayRoute.viewerLocation : undefined}
             addMode={tab === 'places' && addMode}
             tripId={tripId}
             onExitAddMode={() => dispatch(setAddMode(false))}
