@@ -101,10 +101,11 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
   const editorStopId = useAppSelector((s) => s.trips.stopEditorStopId)
   const mapCollapsed = useAppSelector((s) => s.trips.itineraryMapCollapsed)
+  const viewerLocation = useAppSelector((s) => s.trips.viewerLocation)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const {data: days} = useGetItineraryQuery(tripId)
+  const {data: days} = useGetItineraryQuery({tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
   const {data: trips} = useListTripsQuery()
   const [reorder] = useReorderStopsMutation()
@@ -175,6 +176,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             places={places ?? []}
             route={dayRoute.route}
             segments={dayRoute.segments}
+            viewerLocation={dayRoute.viewerLocation}
             gestureHandling="cooperative"
             fitPadding={BAND_FIT_PADDING}
           />

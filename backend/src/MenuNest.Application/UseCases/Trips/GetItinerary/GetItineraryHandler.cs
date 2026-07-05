@@ -47,6 +47,15 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
                 var dest = new RoutePoint(places[dayStops[li].TripPlaceId].Lat, places[dayStops[li].TripPlaceId].Lng);
                 legTasks.Add(ResolveLegAsync(day.Id, li, origin, dest, dayStops[li].TravelModeToReach, ct));
             }
+            // Approach leg (ADR-027): only when the caller supplied the viewer's live
+            // location AND the Day has a first Stop to reach. Keyed at index 0, the same
+            // slot the DTO-assembly loop below already looks up generically.
+            if (q.ViewerLat is { } viewerLat && q.ViewerLng is { } viewerLng && dayStops.Count > 0)
+            {
+                var origin = new RoutePoint(viewerLat, viewerLng);
+                var dest = new RoutePoint(places[dayStops[0].TripPlaceId].Lat, places[dayStops[0].TripPlaceId].Lng);
+                legTasks.Add(ResolveLegAsync(day.Id, 0, origin, dest, dayStops[0].TravelModeToReach, ct));
+            }
         }
         var legResults = await Task.WhenAll(legTasks);
         var legByKey = legResults.ToDictionary(x => (x.DayId, x.Index), x => x.Leg);
@@ -59,12 +68,9 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
             for (var i = 0; i < dayStops.Count; i++)
             {
                 var s = dayStops[i];
-                LegDto? leg = null;
-                if (i > 0)
-                {
-                    var l = legByKey[(day.Id, i)];
-                    leg = new LegDto(l.Seconds, l.Meters, l.EncodedPolyline, l.Source);
-                }
+                LegDto? leg = legByKey.TryGetValue((day.Id, i), out var l)
+                    ? new LegDto(l.Seconds, l.Meters, l.EncodedPolyline, l.Source)
+                    : null;
                 stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg));
             }
             result.Add(new ItineraryDayDto(day.Id, day.Date, day.DayStartTime, stopDtos));
