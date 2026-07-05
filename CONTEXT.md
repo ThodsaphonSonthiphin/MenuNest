@@ -53,6 +53,11 @@ the glossary wins until the glossary is deliberately changed.
 - **Leg** — the travel segment between two consecutive **Stops**; its travel time
   comes from the Google **Routes API**, not an estimate (see ADR-007).
   _Avoid_: Segment, Hop.
+- **Approach leg** — the travel segment from the viewer's live location (captured
+  when they open the **Day**) to that Day's first **Stop**. Resolved the same way as
+  a **Leg** (Google Routes API, honest fallback), but not a Leg itself: it has no
+  origin Stop, is not persisted, and can differ every time the Day is viewed (see
+  ADR-027). _Avoid_: First leg, opening leg, Leg 0.
 - **Dwell** — how long the user plans to stay at a Stop, in minutes. Distinct from
   **Leg** travel time.
 - **Travel mode** — how a **Leg** is travelled (walk / transit / drive); chosen per
