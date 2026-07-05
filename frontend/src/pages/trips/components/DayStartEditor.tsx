@@ -29,10 +29,16 @@ export function DayStartEditor({
   const [setDayStart] = useSetDayStartTimeMutation()
 
   // True while mounted — guards the async resolution from touching parent state
-  // after a day switch unmounts this instance (key={dayId}).
+  // after a day switch unmounts this instance (key={dayId}). Set in the effect body
+  // (not just via useRef's initial value) so it is restored to true on StrictMode's
+  // dev mount→unmount→remount; otherwise the cleanup leaves it false and the
+  // post-await onError/revert never run.
   const mounted = useRef(true)
-  useEffect(() => () => {
-    mounted.current = false
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
   }, [])
 
   // Re-sync the displayed value to the server value after a refetch. Between a

@@ -43,10 +43,16 @@ export function TripDateEditor({
   const [updateTrip] = useUpdateTripMutation()
 
   // True while mounted — guards the async resolution from touching parent state
-  // after the component unmounts (e.g. navigating away mid-request).
+  // after the component unmounts (e.g. navigating away mid-request). Set in the
+  // effect body (not just via useRef's initial value) so it is restored to true on
+  // StrictMode's dev mount→unmount→remount; otherwise the cleanup leaves it false
+  // and the post-await onError/revert never run.
   const mounted = useRef(true)
-  useEffect(() => () => {
-    mounted.current = false
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+    }
   }, [])
 
   // Re-sync to the server value after the mutation's TripDetail refetch. Between a
