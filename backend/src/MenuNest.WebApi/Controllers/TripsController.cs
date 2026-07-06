@@ -6,6 +6,7 @@ using MenuNest.Application.UseCases.Trips.CreateTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
 using MenuNest.Application.UseCases.Trips.GetItinerary;
+using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Application.UseCases.Trips.GetTrip;
 using MenuNest.Application.UseCases.Trips.ListTripPlaces;
 using MenuNest.Application.UseCases.Trips.ListTrips;
@@ -94,6 +95,10 @@ public sealed class TripsController : ControllerBase
     [HttpPatch("api/trips/{id:guid}/days/{dayId:guid}")]
     public async Task<IActionResult> SetDayStart(Guid id, Guid dayId, [FromBody] SetDayStartBody b, CancellationToken ct)
     { await _mediator.Send(new SetDayStartTimeCommand(id, dayId, b.StartTime), ct); return NoContent(); }
+
+    [HttpPost("api/trips/weather")]
+    public async Task<ActionResult<IReadOnlyList<WeatherReadingDto>>> Weather([FromBody] GetStopWeatherQuery q, CancellationToken ct)
+        => Ok(await _mediator.Send(q, ct));
 }
 
 public sealed record UpdateTripBody(
