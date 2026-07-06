@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip Weather — per-Stop, both readings (issue #10)</title>
+<style>
+  /* Tokens copied verbatim from frontend/src/pages/trips/trips-tokens.css */
+  :root, .trip-detail {
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a; --page:#f8fafc; --surface:#fff; --border:#eef2f6; --muted:#94a3b8;
+    --warn:#b4791f; --warn-bg:#fff4e0; --warn-ink:#7a5310;
+    --bad:#b42318; --bad-bg:#fdeceb;
+    --now:#0b7a87; --now-bg:#e3f5f6; --arr:#1863b7; --arr-bg:#e9f1fb;
+    --arr-rain:#0f5bb0; --arr-rain-bg:#dbe9fb;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--page); color:var(--ink);
+    font-family:'Segoe UI',system-ui,'Noto Sans Thai',sans-serif; padding:24px 16px 60px; }
+  .wrap { max-width:640px; margin:0 auto; }
+  h1 { font-size:19px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:13px; margin:0 0 22px; line-height:1.55; }
+  .panel-label { font-size:12px; font-weight:700; color:var(--teal-deep); margin:22px 0 10px;
+    text-transform:uppercase; letter-spacing:.04em; }
+  .note { font-size:12px; color:var(--muted); margin:8px 0 0; line-height:1.5; }
+
+  .itinerary-tab { display:flex; flex-direction:column; gap:8px; }
+  .day-summary { display:flex; align-items:center; gap:12px;
+    background:var(--ink); color:#9fb0c4; border-radius:12px; padding:11px 15px; font-size:12px; }
+  .day-summary b { color:#fff; font-weight:700; font-family:'Spline Sans Mono',ui-monospace,monospace; }
+
+  .stop-card { display:flex; align-items:stretch; background:var(--surface);
+    border:1px solid var(--border); border-radius:13px; overflow:hidden; }
+  .stop-rail { flex:none; width:58px; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:1px; padding:6px 4px; background:#f1f8f9; }
+  .stop-arr { font-size:15px; font-weight:700; color:var(--ink); line-height:1.1;
+    font-family:'Spline Sans Mono',ui-monospace,monospace; }
+  .stop-dep { font-size:10px; font-weight:500; color:var(--muted); line-height:1.1;
+    font-family:'Spline Sans Mono',ui-monospace,monospace; }
+  .stop-body { flex:1; min-width:0; padding:11px 13px; }
+  .stop-name { font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; }
+  .stop-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center; }
+  .chip { font-size:10px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:5px; }
+  .chip.dwell { background:var(--teal-soft); color:var(--teal-deep); }
+
+  /* weather chips — TWO per stop: "ตอนนี้" (now) + "ไปถึง" (arrival) */
+  .chip.wx { font-size:11px; padding:2px 9px 2px 5px; }
+  .chip.wx .lab { font-size:9px; font-weight:700; opacity:.72; text-transform:uppercase; letter-spacing:.03em; }
+  .chip.wx img { width:18px; height:18px; display:block; }
+  .chip.wx .t { font-weight:700; }
+  .chip.wx .r { display:inline-flex; align-items:center; gap:1px; font-weight:700; }
+  .chip.wx .r svg { width:9px; height:11px; }
+  .chip.wx.now { background:var(--now-bg); color:var(--now); }
+  .chip.wx.arr { background:var(--arr-bg); color:var(--arr); }
+  .chip.wx.arr.rainy { background:var(--arr-rain-bg); color:var(--arr-rain); }
+  .chip.wx.nodata { background:#f1f5f9; color:#94a3b8; }
+  .chip.wx.nodata svg { width:15px; height:15px; }
+
+  .stop-nav { flex:none; display:flex; align-items:center; justify-content:center; width:44px;
+    border-left:1px solid var(--border); color:var(--teal); }
+  .stop-nav svg { width:17px; height:17px; }
+  .legend { margin-top:26px; font-size:12px; color:var(--muted); line-height:1.7;
+    border-top:1px solid var(--border); padding-top:16px; }
+  .legend b { color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap trip-detail">
+  <h1>สภาพอากาศราย Stop — แสดงสองค่าพร้อมกัน (issue #10)</h1>
+  <p class="sub">
+    ทุก stop แสดง <b>2 chip พร้อมกัน</b>: <b>ตอนนี้</b> (สภาพอากาศปัจจุบันที่พิกัด stop — ไม่อิงเวลาทริป)
+    และ <b>ไปถึง</b> (พยากรณ์รายชั่วโมงที่พิกัด stop ณ เวลา arrival). ไม่มี checkbox สลับ.
+    ไอคอนจาก Google Weather API. พยากรณ์มีแค่ 10 วันข้างหน้า → เกินนั้น chip "ไปถึง" = ไม่มีข้อมูล.
+  </p>
+
+  <p class="panel-label">วัน 1 · 12 ก.ค. (อีก 7 วัน)</p>
+  <div class="itinerary-tab">
+    <div class="day-summary"><span>เริ่ม <b>09:00</b></span><span>เสร็จ <b>16:20</b></span></div>
+
+    <!-- stop 1 -->
+    <div class="stop-card">
+      <div class="stop-rail"><div class="stop-arr">09:30</div><div class="stop-dep">→11:00</div></div>
+      <div class="stop-body">
+        <div class="stop-name">วัดพระแก้ว</div>
+        <div class="stop-chips">
+          <span class="chip dwell">อยู่ 90 น.</span>
+          <span class="chip wx now"><span class="lab">ตอนนี้</span><img src="https://maps.gstatic.com/weather/v1/partly_cloudy.svg" alt=""><span class="t">29°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>15%</span></span>
+          <span class="chip wx arr"><span class="lab">ไปถึง</span><img src="https://maps.gstatic.com/weather/v1/mostly_sunny.svg" alt=""><span class="t">31°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>10%</span></span>
+        </div>
+      </div>
+      <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
+    </div>
+
+    <!-- stop 2 -->
+    <div class="stop-card">
+      <div class="stop-rail"><div class="stop-arr">12:00</div><div class="stop-dep">→13:30</div></div>
+      <div class="stop-body">
+        <div class="stop-name">เยาวราช (มื้อเที่ยง)</div>
+        <div class="stop-chips">
+          <span class="chip dwell">อยู่ 90 น.</span>
+          <span class="chip wx now"><span class="lab">ตอนนี้</span><img src="https://maps.gstatic.com/weather/v1/partly_cloudy.svg" alt=""><span class="t">30°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>15%</span></span>
+          <span class="chip wx arr"><span class="lab">ไปถึง</span><img src="https://maps.gstatic.com/weather/v1/cloudy.svg" alt=""><span class="t">32°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>40%</span></span>
+        </div>
+      </div>
+      <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
+    </div>
+
+    <!-- stop 3 -->
+    <div class="stop-card">
+      <div class="stop-rail"><div class="stop-arr">14:30</div><div class="stop-dep">→16:00</div></div>
+      <div class="stop-body">
+        <div class="stop-name">ไอคอนสยาม</div>
+        <div class="stop-chips">
+          <span class="chip dwell">อยู่ 90 น.</span>
+          <span class="chip wx now"><span class="lab">ตอนนี้</span><img src="https://maps.gstatic.com/weather/v1/cloudy.svg" alt=""><span class="t">29°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>20%</span></span>
+          <span class="chip wx arr rainy"><span class="lab">ไปถึง</span><img src="https://maps.gstatic.com/weather/v1/isolated_tstorms.svg" alt=""><span class="t">29°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>75%</span></span>
+        </div>
+      </div>
+      <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
+    </div>
+  </div>
+  <p class="note">→ เทียบได้ทันที: บ่ายที่ไอคอนสยาม “ตอนนี้” แค่มีเมฆ แต่ “ไปถึง” 14:30 มีพายุฝน 75%</p>
+
+  <p class="panel-label">วัน 5 · 20 ก.ย. (อีก 77 วัน) — เกินพยากรณ์ 10 วัน</p>
+  <div class="itinerary-tab">
+    <div class="stop-card">
+      <div class="stop-rail"><div class="stop-arr">10:00</div><div class="stop-dep">→12:00</div></div>
+      <div class="stop-body">
+        <div class="stop-name">ดอยสุเทพ</div>
+        <div class="stop-chips">
+          <span class="chip dwell">อยู่ 120 น.</span>
+          <span class="chip wx now"><span class="lab">ตอนนี้</span><img src="https://maps.gstatic.com/weather/v1/drizzle.svg" alt=""><span class="t">24°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>60%</span></span>
+          <span class="chip wx nodata"><span class="lab">ไปถึง</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.4-1.5"/><path d="M4 4l16 16"/></svg>ไม่มีข้อมูล</span>
+        </div>
+      </div>
+      <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
+    </div>
+    <div class="stop-card">
+      <div class="stop-rail"><div class="stop-arr">13:00</div><div class="stop-dep">→15:00</div></div>
+      <div class="stop-body">
+        <div class="stop-name">นิมมานฯ</div>
+        <div class="stop-chips">
+          <span class="chip dwell">อยู่ 120 น.</span>
+          <span class="chip wx now"><span class="lab">ตอนนี้</span><img src="https://maps.gstatic.com/weather/v1/cloudy.svg" alt=""><span class="t">26°</span><span class="r"><svg viewBox="0 0 8 11" fill="currentColor"><path d="M4 0C4 0 0 5 0 7.5A4 4 0 0 0 8 7.5C8 5 4 0 4 0Z"/></svg>45%</span></span>
+          <span class="chip wx nodata"><span class="lab">ไปถึง</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.4-1.5"/><path d="M4 4l16 16"/></svg>ไม่มีข้อมูล</span>
+        </div>
+      </div>
+      <div class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></div>
+    </div>
+  </div>
+  <p class="note">→ ไกลเกิน 10 วัน: “ไปถึง” = ไม่มีข้อมูล แต่ “ตอนนี้” ยังดูสภาพอากาศปัจจุบันของสถานที่ได้เสมอ</p>
+
+  <div class="legend">
+    <b>2 chip ต่อ stop:</b>
+    <span style="color:var(--now)">■ ตอนนี้</span> = currentConditions ที่พิกัด stop (เวลาปัจจุบัน ไม่อิงทริป) ·
+    <span style="color:var(--arr)">■ ไปถึง</span> = forecast/hours ที่พิกัด stop ณ เวลา arrival.<br>
+    แต่ละ chip = [ไอคอน Google] + อุณหภูมิ°C + 💧โอกาสฝน%. chip "ไปถึง" เป็นโทนน้ำเงินเข้มเมื่อฝนสูง.<br>
+    <b>ไม่มีข้อมูล</b> (ไอคอนเมฆขีดฆ่า): arrival เกิน 10 วัน / เป็นอดีต / API ล้มเหลว.
+  </div>
+</div>
+</body>
+</html>
