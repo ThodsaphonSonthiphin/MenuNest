@@ -107,4 +107,61 @@ public class GoogleWeatherServiceTests
         request.RequestUri!.ToString().Should().Contain("unitsSystem=METRIC");
         request.RequestUri!.ToString().Should().Contain("languageCode=th");
     }
+
+    private const string ForecastJson =
+        "{\"forecastHours\":[" +
+        "{\"displayDateTime\":{\"year\":2026,\"month\":7,\"day\":12,\"hours\":13}," +
+        "\"weatherCondition\":{\"iconBaseUri\":\"https://maps.gstatic.com/weather/v1/cloudy\",\"description\":{\"text\":\"มีเมฆมาก\"},\"type\":\"CLOUDY\"}," +
+        "\"temperature\":{\"degrees\":31.0},\"precipitation\":{\"probability\":{\"percent\":30}}}," +
+        "{\"displayDateTime\":{\"year\":2026,\"month\":7,\"day\":12,\"hours\":14}," +
+        "\"weatherCondition\":{\"iconBaseUri\":\"https://maps.gstatic.com/weather/v1/drizzle\",\"description\":{\"text\":\"ฝนตกเบาบาง\"},\"type\":\"LIGHT_RAIN\"}," +
+        "\"temperature\":{\"degrees\":30.0},\"precipitation\":{\"probability\":{\"percent\":55}}}" +
+        "]}";
+
+    [Fact]
+    public async Task OnArrival_picks_the_hour_bucket_matching_the_arrival_hour()
+    {
+        var svc = Build(new StubHandler(HttpStatusCode.OK, ForecastJson));
+        var pts = new List<WeatherPoint> { new("s1", 13.7563, 100.5018, new DateTime(2026, 7, 12, 14, 30, 0)) };
+
+        var r = (await svc.GetReadingsAsync(pts, WeatherReadingKind.OnArrival, CancellationToken.None))[0];
+
+        r.HasData.Should().BeTrue();
+        r.ConditionType.Should().Be("LIGHT_RAIN"); // the 14:00 bucket, not the 13:00 one
+        r.TempC.Should().Be(30.0);
+        r.RainPct.Should().Be(55);
+    }
+
+    [Fact]
+    public async Task OnArrival_with_no_matching_bucket_is_no_data()
+    {
+        var svc = Build(new StubHandler(HttpStatusCode.OK, ForecastJson));
+        var pts = new List<WeatherPoint> { new("s1", 13.7563, 100.5018, new DateTime(2026, 7, 12, 20, 0, 0)) };
+
+        var r = (await svc.GetReadingsAsync(pts, WeatherReadingKind.OnArrival, CancellationToken.None))[0];
+
+        r.HasData.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OnArrival_failure_degrades_to_no_data()
+    {
+        var svc = Build(new StubHandler(HttpStatusCode.InternalServerError));
+        var pts = new List<WeatherPoint> { new("s1", 13.7563, 100.5018, new DateTime(2026, 7, 12, 14, 0, 0)) };
+
+        var r = (await svc.GetReadingsAsync(pts, WeatherReadingKind.OnArrival, CancellationToken.None))[0];
+
+        r.HasData.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task OnArrival_with_null_arrival_is_no_data() // tolerance: missing/late arrival ⇒ No-data, not an error (ADR-032)
+    {
+        var svc = Build(new StubHandler(HttpStatusCode.OK, ForecastJson));
+        var pts = new List<WeatherPoint> { new("s1", 13.7563, 100.5018, null) };
+
+        var r = (await svc.GetReadingsAsync(pts, WeatherReadingKind.OnArrival, CancellationToken.None))[0];
+
+        r.HasData.Should().BeFalse();
+    }
 }
