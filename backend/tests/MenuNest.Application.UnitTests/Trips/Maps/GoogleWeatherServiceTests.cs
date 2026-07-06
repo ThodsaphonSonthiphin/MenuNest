@@ -23,6 +23,20 @@ public class GoogleWeatherServiceTests
             { Content = new StringContent(_json, Encoding.UTF8, "application/json") });
     }
 
+    private sealed class RecordingHandler : HttpMessageHandler
+    {
+        private readonly HttpStatusCode _status;
+        private readonly string _json;
+        public HttpRequestMessage? LastRequest { get; private set; }
+        public RecordingHandler(HttpStatusCode status, string json = "") { _status = status; _json = json; }
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            LastRequest = request;
+            return Task.FromResult(new HttpResponseMessage(_status)
+            { Content = new StringContent(_json, Encoding.UTF8, "application/json") });
+        }
+    }
+
     private sealed class StubFactory : IHttpClientFactory
     {
         private readonly HttpMessageHandler _handler;
@@ -70,5 +84,27 @@ public class GoogleWeatherServiceTests
         r.StopId.Should().Be("s1");
         r.ConditionType.Should().BeNull();
         r.TempC.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Now_request_sends_no_field_mask_and_hits_current_conditions()
+    {
+        const string json =
+            "{\"weatherCondition\":{\"iconBaseUri\":\"https://maps.gstatic.com/weather/v1/cloudy\"," +
+            "\"description\":{\"text\":\"มีเมฆมาก\",\"languageCode\":\"th\"},\"type\":\"CLOUDY\"}," +
+            "\"temperature\":{\"unit\":\"CELSIUS\",\"degrees\":29.1}," +
+            "\"precipitation\":{\"probability\":{\"type\":\"RAIN\",\"percent\":20}}}";
+        var handler = new RecordingHandler(HttpStatusCode.OK, json);
+        var svc = Build(handler);
+
+        await svc.GetReadingsAsync(OnePoint, WeatherReadingKind.Now, CancellationToken.None);
+
+        var request = handler.LastRequest;
+        request.Should().NotBeNull();
+        request!.Headers.Contains("X-Goog-FieldMask").Should().BeFalse();
+        request.Headers.Contains("X-Goog-Api-Key").Should().BeTrue();
+        request.RequestUri!.ToString().Should().Contain("currentConditions:lookup");
+        request.RequestUri!.ToString().Should().Contain("unitsSystem=METRIC");
+        request.RequestUri!.ToString().Should().Contain("languageCode=th");
     }
 }
