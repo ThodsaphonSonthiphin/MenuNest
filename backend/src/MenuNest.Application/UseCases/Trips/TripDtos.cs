@@ -24,3 +24,8 @@ public sealed record ItineraryDayDto(
 public sealed record ResolvedPlaceDto(
     string? GooglePlaceId, string Name, double Lat, double Lng, string? Address,
     PlaceCategory Category, int? PriceLevel, string? PhotoUrl, string? OpeningHoursJson);
+
+public sealed record WeatherPointDto(string StopId, double Lat, double Lng, DateTime? ArrivalIso);
+public sealed record WeatherReadingDto(
+    string StopId, bool HasData, string? ConditionType, string? IconBaseUri,
+    double? TempC, int? RainPct, string? Description);
