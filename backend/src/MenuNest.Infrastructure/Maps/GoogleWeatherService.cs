@@ -72,8 +72,22 @@ public sealed class GoogleWeatherService : IWeatherService
     }
 
     // OnArrival: pick the forecast hour whose location-local displayDateTime matches the arrival
-    // wall-clock hour. Implemented fully in Task B3; Now never reaches this.
-    private static JsonElement? PickHour(JsonElement root, DateTime? arrival) => null;
+    // wall-clock hour (arrival is day.date + scheduled HH:MM). No match (out of the 240h horizon
+    // that slipped past the client gate, or a gap) => null => No-data.
+    private static JsonElement? PickHour(JsonElement root, DateTime? arrival)
+    {
+        if (arrival is not { } a || !root.TryGetProperty("forecastHours", out var hours)) return null;
+        foreach (var h in hours.EnumerateArray())
+        {
+            if (!h.TryGetProperty("displayDateTime", out var dt)) continue;
+            var y = dt.TryGetProperty("year", out var yy) ? yy.GetInt32() : 0;
+            var mo = dt.TryGetProperty("month", out var mm) ? mm.GetInt32() : 0;
+            var d = dt.TryGetProperty("day", out var dd) ? dd.GetInt32() : 0;
+            var hr = dt.TryGetProperty("hours", out var hh) ? hh.GetInt32() : -1;
+            if (y == a.Year && mo == a.Month && d == a.Day && hr == a.Hour) return h;
+        }
+        return null;
+    }
 
     private static WeatherReading ParseReading(JsonElement el, string stopId)
     {
