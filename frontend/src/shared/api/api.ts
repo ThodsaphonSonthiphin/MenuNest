@@ -503,6 +503,11 @@ export interface LegDto { seconds: number; meters: number; encodedPolyline: stri
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null }
 export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
+export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
+export interface WeatherReadingDto {
+    stopId: string; hasData: boolean; conditionType: string | null; iconBaseUri: string | null
+    tempC: number | null; rainPct: number | null; description: string | null
+}
 
 // ----------------------------------------------------------------------
 const rawBaseQuery = fetchBaseQuery({
@@ -1310,6 +1315,25 @@ export const api = createApi({
             query: ({tripId, dayId, startTime}) => ({url: `/api/trips/${tripId}/days/${dayId}`, method: 'PATCH', body: {startTime}}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
         }),
+        // -------------------- Trip weather --------------------
+        getStopWeather: build.query<
+            WeatherReadingDto[],
+            {kind: 'Now' | 'OnArrival'; points: WeatherPointDto[]}
+        >({
+            query: ({kind, points}) => ({
+                url: '/api/trips/weather',
+                method: 'POST',
+                body: {kind, points: [...points].sort((a, b) => a.stopId.localeCompare(b.stopId))},
+            }),
+            // Cache key must not depend on point order (the schedule can produce the same set
+            // in any order). Weather is ephemeral, so no providesTags and a short retention.
+            serializeQueryArgs: ({endpointName, queryArgs}) => ({
+                endpointName,
+                kind: queryArgs.kind,
+                points: [...queryArgs.points].sort((a, b) => a.stopId.localeCompare(b.stopId)),
+            }),
+            keepUnusedDataFor: 300,
+        }),
     }),
 })
 
@@ -1448,6 +1472,7 @@ export const {
     useRemoveStopMutation,
     useReorderStopsMutation,
     useSetDayStartTimeMutation,
+    useGetStopWeatherQuery,
 } = api
 
 export const {
