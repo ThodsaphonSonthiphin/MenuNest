@@ -1,10 +1,11 @@
 // frontend/src/pages/trips/components/ItineraryStopCard.tsx
-import type {TripPlaceDto} from '../../../shared/api/api'
+import type {TripPlaceDto, WeatherReadingDto} from '../../../shared/api/api'
 import type {FlagReason, FlagSeverity, StopFlag, TimingFlag} from '../hooks/useSchedule'
 import {catEmoji} from '../placeCategory'
 import {flagText} from '../timingFlag'
 import {NavIcon} from './NavIcon'
 import {ClockIcon, LockIcon, MoonIcon} from './FlagIcons'
+import {WeatherChip} from './WeatherChip'
 
 // Reason → icon component. `typeof LockIcon` avoids naming the JSX namespace.
 const REASON_ICON: Record<FlagReason, typeof LockIcon> = {
@@ -39,6 +40,9 @@ export function ItineraryStopCard({
   canDown,
   navUrl,
   onNavigate,
+  nowReading,
+  arrivalReading,
+  weatherLoading = false,
 }: {
   place: TripPlaceDto
   arrival: string
@@ -52,6 +56,9 @@ export function ItineraryStopCard({
   canDown: boolean
   navUrl: string | null
   onNavigate?: () => void
+  nowReading?: WeatherReadingDto
+  arrivalReading?: WeatherReadingDto
+  weatherLoading?: boolean
 }) {
   return (
     <div className={`stop-card${flag ? ' ' + CARD_CLASS[flag.severity] : ''}`}>
@@ -63,6 +70,8 @@ export function ItineraryStopCard({
         <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
         <div className="stop-chips">
           <span className="chip dwell">⏱ อยู่ {dwell} น.</span>
+          <WeatherChip kind="now" reading={nowReading} isLoading={weatherLoading} />
+          <WeatherChip kind="arr" reading={arrivalReading} isLoading={weatherLoading} />
         </div>
         {flag && <FlagNote flag={flag} />}
       </button>
