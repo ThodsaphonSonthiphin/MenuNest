@@ -12,6 +12,7 @@ import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../../store/index'
 import {setActiveDay, setStopEditor, setItineraryMapCollapsed} from '../tripsSlice'
 import {useSchedule} from '../hooks/useSchedule'
+import {useStopWeather} from '../hooks/useStopWeather'
 import {SegmentedTabs} from './SegmentedTabs'
 import {ItineraryStopCard} from './ItineraryStopCard'
 import {TravelLeg} from './TravelLeg'
@@ -121,6 +122,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   // (Rules of Hooks: hook count must be identical on every render).
   const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', stops: []}
   const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
+  const stopWeather = useStopWeather(day ?? EMPTY_DAY, scheduled, placesById)
 
   // Clear any stale start-time error when the active day changes (render-time
   // reset — avoids set-state-in-effect). React re-renders immediately, no extra paint.
@@ -288,6 +290,9 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
                       {scope: 'stop', travelMode: s.stop.travelModeToReach, hasPlaceId: !!place.googlePlaceId},
                     )
                   }
+                  nowReading={stopWeather[s.stop.id]?.now}
+                  arrivalReading={stopWeather[s.stop.id]?.arrival}
+                  weatherLoading={(stopWeather[s.stop.id]?.nowLoading ?? false) || (stopWeather[s.stop.id]?.arrivalLoading ?? false)}
                 />
               )}
             </div>
