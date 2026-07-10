@@ -1,8 +1,8 @@
-# ADR-030: Beyond the 10-day forecast horizon (or past/failure), a Stop shows an honest "no weather data" state
+# ADR-031: Beyond the 10-day forecast horizon (or past/failure), a Stop shows an honest "no weather data" state
 
 **Date:** 2026-07-05
 **Status:** Accepted
-**Relates to:** ADR-018 (honest fallback route source — same honesty ethos), ADR-029 (Google Weather API provider)
+**Relates to:** ADR-018 (honest fallback route source — same honesty ethos), ADR-030 (Google Weather API provider)
 
 ```mermaid
 flowchart TD
@@ -13,7 +13,7 @@ flowchart TD
 
 ## Context
 
-ADR-029 builds Trip weather on the **Google Weather API** (`currentConditions:lookup` for
+ADR-030 builds Trip weather on the **Google Weather API** (`currentConditions:lookup` for
 "Now", `forecast/hours:lookup` for "On-arrival"), proxied through the backend per ADR-007.
 That forecast has a hard **10-day horizon**: verified live, `hours=241` and `days=11` both
 return **HTTP 400 `INVALID_ARGUMENT`**, while `hours<=240` (10 days) / `days<=10` return 200.
@@ -51,7 +51,7 @@ a Stop says "no data" rather than fabricating a forecast.
 **Positive:** The user can always distinguish **"clear weather"** from **"we don't know"** —
 no silent gaps, no invented precision. One consistent chip covers every unavailable case, and
 it matches the fallback-honesty pattern already established for routing (ADR-018) and the no-op
-`IWeatherService` fallback (ADR-029), so the app never lies about data it does not have.
+`IWeatherService` fallback (ADR-030), so the app never lies about data it does not have.
 
 **Negative:** Far-future trips (arrivals >10 days out) and already-past trips will show the
 No-data chip on **most or all** Stops — the On-arrival value is only meaningful inside the

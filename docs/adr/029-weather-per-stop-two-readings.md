@@ -1,4 +1,4 @@
-# ADR-028: Weather shows per-Stop as two simultaneous readings (Now + On-arrival), not a live/trip toggle
+# ADR-029: Weather shows per-Stop as two simultaneous readings (Now + On-arrival), not a live/trip toggle
 
 **Date:** 2026-07-05
 **Status:** Accepted
@@ -67,7 +67,7 @@ forecast), raising call volume and making batching, caching, and an honest fallb
 important — these are settled in the sibling ADRs (029 provider/proxy, 030 no-data
 fallback, 031 chip presentation, 032 batch endpoint). "On-arrival" is only meaningful
 inside the forecast horizon; a scheduled arrival in the past or beyond the horizon has no
-answer and must degrade honestly rather than show a stale or fabricated value (ADR-030).
+answer and must degrade honestly rather than show a stale or fabricated value (ADR-031).
 Because arrival is derived client-side, editing the schedule shifts the arrival instant and
 therefore the on-arrival reading — the forecast must be re-fetched when the schedule
 changes.

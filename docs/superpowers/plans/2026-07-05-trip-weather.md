@@ -8,18 +8,18 @@
 
 **Tech Stack:** .NET 10 (Clean Architecture, **Mediator** source-gen library — *not* MediatR, FluentValidation, xUnit + FluentAssertions), React 19 + TypeScript + Vite, Redux Toolkit Query, Vitest (node env), Google Weather API (`weather.googleapis.com/v1`).
 
-**Spec:** [docs/superpowers/specs/2026-07-05-trip-weather-design.md](../specs/2026-07-05-trip-weather-design.md) · **ADRs:** [027](../../adr/027-weather-display-only-no-push.md)–[032](../../adr/032-weather-backend-batch-endpoint-no-persistence.md) · **Mock:** [docs/mocks/trip-weather-mock.html](../../mocks/trip-weather-mock.html)
+**Spec:** [docs/superpowers/specs/2026-07-05-trip-weather-design.md](../specs/2026-07-05-trip-weather-design.md) · **ADRs:** [027](../../adr/028-weather-display-only-no-push.md)–[032](../../adr/033-weather-backend-batch-endpoint-no-persistence.md) · **Mock:** [docs/mocks/trip-weather-mock.html](../../mocks/trip-weather-mock.html)
 
 ## Global Constraints
 
 Every task's requirements implicitly include these:
 
 - **Languages:** code/comments/commits/docs → **English**; user-visible UI strings → **Thai** (frontend-guidelines §5).
-- **Icons:** UI icons are inline-SVG components, **never emoji** (frontend-guidelines §2). The **only** exception is the weather *condition* icon, sourced from Google's `iconBaseUri` as `.svg` / `_dark.svg` (ADR-031). The rain-drop and slashed-cloud glyphs are hand-authored inline SVG.
+- **Icons:** UI icons are inline-SVG components, **never emoji** (frontend-guidelines §2). The **only** exception is the weather *condition* icon, sourced from Google's `iconBaseUri` as `.svg` / `_dark.svg` (ADR-032). The rain-drop and slashed-cloud glyphs are hand-authored inline SVG.
 - **Frontend API:** exactly **one authenticated** `createApi` instance `api` at `frontend/src/shared/api/api.ts`. Add endpoints inside its single `endpoints: (build) => ({...})` block; **never** `injectEndpoints` from a feature folder. Export the generated hook in the `= api` destructure block.
 - **Backend CQRS:** use the **Mediator** library (`using Mediator;`): `IQuery<T>`/`IQueryHandler<Q,T>`, handler method `public async ValueTask<T> Handle(Q q, CancellationToken ct)`. Controllers inject `IMediator` and `await _mediator.Send(x, ct)`. Cancellation param is always named `ct`.
 - **No persistence:** no entity, no `DbSet`, no EF migration — so the manual prod-DB migration step in the project instructions does **not** apply here.
-- **Weather API rules:** 10-day / 240-hour horizon (`hours=241`/`days=11` → HTTP 400); GET with `location.latitude`/`location.longitude`, `unitsSystem=METRIC`, `languageCode=th`; key via `X-Goog-Api-Key` **header**; **do NOT send `X-Goog-FieldMask`** (the Weather API returns the full document without one — a wrong mask 400s; verified live). On any failure a point degrades to `HasData=false`, never throws (ADR-030).
+- **Weather API rules:** 10-day / 240-hour horizon (`hours=241`/`days=11` → HTTP 400); GET with `location.latitude`/`location.longitude`, `unitsSystem=METRIC`, `languageCode=th`; key via `X-Goog-Api-Key` **header**; **do NOT send `X-Goog-FieldMask`** (the Weather API returns the full document without one — a wrong mask 400s; verified live). On any failure a point degrades to `HasData=false`, never throws (ADR-031).
 - **Tests:** backend = xUnit + FluentAssertions, Maps services faked with hand-rolled `StubHandler : HttpMessageHandler` + `StubFactory : IHttpClientFactory` (no Moq). Frontend = **Vitest, `environment: 'node'`** — pure-logic tests only, no DOM/component rendering; component & CSS tasks are gated by `tsc -b` + visual check against the mock.
 - **Commits:** conventional `type(scope): summary`, each referencing the ticket — `(#10)` for partial work, `(closes #10)` on the final task (CLAUDE.md commit rule).
 
@@ -94,7 +94,7 @@ public sealed record WeatherReading(string StopId, bool HasData, string? Conditi
 public interface IWeatherService
 {
     /// <summary>Resolve a weather reading of the given kind for each point. Any failure degrades a
-    /// single point to HasData=false rather than throwing (ADR-030).</summary>
+    /// single point to HasData=false rather than throwing (ADR-031).</summary>
     Task<IReadOnlyList<WeatherReading>> GetReadingsAsync(IReadOnlyList<WeatherPoint> points, WeatherReadingKind kind, CancellationToken ct);
 }
 ```
@@ -147,7 +147,7 @@ Expected: FAIL — `MissingConfigWeatherService` does not exist (compile error).
 
 - [ ] **Step 6: Implement the no-op fallback**
 
-`backend/src/MenuNest.Infrastructure/Maps/MissingConfigWeatherService.cs` (mirrors `MissingConfigPlaceResolver`, but **returns** No-data instead of throwing — ADR-030/032):
+`backend/src/MenuNest.Infrastructure/Maps/MissingConfigWeatherService.cs` (mirrors `MissingConfigPlaceResolver`, but **returns** No-data instead of throwing — ADR-031/032):
 
 ```csharp
 using MenuNest.Application.Abstractions;
@@ -155,7 +155,7 @@ using MenuNest.Domain.Enums;
 namespace MenuNest.Infrastructure.Maps;
 
 /// <summary>Registered when no Maps API key is configured — every point degrades to No-data
-/// (never throws), so the itinerary still renders (ADR-030 / ADR-032).</summary>
+/// (never throws), so the itinerary still renders (ADR-031 / ADR-033).</summary>
 public sealed class MissingConfigWeatherService : IWeatherService
 {
     public Task<IReadOnlyList<WeatherReading>> GetReadingsAsync(
@@ -297,7 +297,7 @@ using Microsoft.Extensions.Options;
 // OnArrival -> GET forecast/hours:lookup?hours=240 then pick the hour bucket matching arrival.
 // No X-Goog-FieldMask: the Weather API returns the full document without one (verified live);
 // a wrong mask 400s. Key via X-Goog-Api-Key header. On ANY failure a point degrades to
-// HasData=false (ADR-030) — never throws. Cache: Now 30 min, OnArrival 3 h.
+// HasData=false (ADR-031) — never throws. Cache: Now 30 min, OnArrival 3 h.
 namespace MenuNest.Infrastructure.Maps;
 
 public sealed class GoogleWeatherService : IWeatherService
@@ -466,7 +466,7 @@ Append to `GoogleWeatherServiceTests.cs` (inside the class). The forecast JSON c
     }
 
     [Fact]
-    public async Task OnArrival_with_null_arrival_is_no_data() // tolerance: missing/late arrival ⇒ No-data, not an error (ADR-032)
+    public async Task OnArrival_with_null_arrival_is_no_data() // tolerance: missing/late arrival ⇒ No-data, not an error (ADR-033)
     {
         var svc = Build(new StubHandler(HttpStatusCode.OK, ForecastJson));
         var pts = new List<WeatherPoint> { new("s1", 13.7563, 100.5018, null) };
@@ -586,7 +586,7 @@ public class GetStopWeatherValidatorTests
     }
 
     [Fact]
-    public void Accepts_null_arrivalIso_on_on_arrival_points() // tolerance: arrivalIso is optional; a null yields No-data downstream, not a validation error (ADR-032)
+    public void Accepts_null_arrivalIso_on_on_arrival_points() // tolerance: arrivalIso is optional; a null yields No-data downstream, not a validation error (ADR-033)
     {
         var q = new GetStopWeatherQuery(WeatherReadingKind.OnArrival,
             new List<WeatherPointDto> { new("s1", 13.7, 100.5, null) });
@@ -829,7 +829,7 @@ In `backend/src/MenuNest.Infrastructure/DependencyInjection.cs`, immediately **a
 
 ```csharp
         // Weather service — Google Weather API when the key is present; otherwise a no-op that
-        // returns No-data for every point (weather degrades honestly, never blocks the page). ADR-032.
+        // returns No-data for every point (weather degrades honestly, never blocks the page). ADR-033.
         if (!string.IsNullOrWhiteSpace(mapsKey))
             services.AddScoped<IWeatherService, GoogleWeatherService>();
         else
@@ -1044,7 +1044,7 @@ export function weatherWindow(arrivalMs: number, nowMs: number): WeatherWindow {
   return 'ok'
 }
 
-/** Google weather condition icon URL: light `.svg`, dark `_dark.svg` (ADR-031). */
+/** Google weather condition icon URL: light `.svg`, dark `_dark.svg` (ADR-032). */
 export function iconUrl(iconBaseUri: string, isDark: boolean): string {
   return `${iconBaseUri}${isDark ? '_dark' : ''}.svg`
 }
@@ -1253,7 +1253,7 @@ In `frontend/src/pages/trips/trips-tokens.css`, add the weather tokens inside th
 Append to `trips-tokens.css`, right after the existing `.chip.dwell` rule (so the weather chips sit in the same `.stop-chips` row):
 
 ```css
-/* ── Weather chips (per-Stop: "ตอนนี้" + "ไปถึง") — ADR-028/030/031 ── */
+/* ── Weather chips (per-Stop: "ตอนนี้" + "ไปถึง") — ADR-029/030/031 ── */
 .chip.wx { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 2px 9px 2px 5px; }
 .chip.wx .lab { font-size: 9px; font-weight: 700; opacity: 0.72; text-transform: uppercase; letter-spacing: 0.03em; }
 .chip.wx img { width: 18px; height: 18px; display: block; }
@@ -1319,7 +1319,7 @@ export function useStopWeather(
   placesById: Record<string, TripPlaceDto>,
 ): Record<string, StopWeather> {
   // Recomputed on every render (NOT memoised on a captured clock) so the horizon gate is
-  // re-evaluated on read — a Stop flips data<->No-data as its arrival crosses now+240h (ADR-030).
+  // re-evaluated on read — a Stop flips data<->No-data as its arrival crosses now+240h (ADR-031).
   // RTK Query collapses the batch args to a stable cache key via the endpoint's serializeQueryArgs,
   // so passing fresh arrays each render does not cause refetch churn.
   const stops = scheduled

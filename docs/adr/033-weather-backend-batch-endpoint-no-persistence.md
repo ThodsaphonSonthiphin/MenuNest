@@ -1,8 +1,8 @@
-# ADR-032: Weather is fetched through a backend batch endpoint (IWeatherService, Google impl + no-op fallback); nothing is persisted
+# ADR-033: Weather is fetched through a backend batch endpoint (IWeatherService, Google impl + no-op fallback); nothing is persisted
 
 **Date:** 2026-07-05
 **Status:** Accepted
-**Relates to:** ADR-007 (Google Maps Platform + backend proxy), ADR-029 (Google Weather API provider)
+**Relates to:** ADR-007 (Google Maps Platform + backend proxy), ADR-030 (Google Weather API provider)
 
 ```mermaid
 flowchart TD
@@ -17,7 +17,7 @@ flowchart TD
 ## Context
 
 The Trip itinerary needs two weather readings per Stop ("Now" and "On-arrival"; see
-ADR-029 for the provider and ADR-030 for the honest fallback). This ADR decides *where*
+ADR-030 for the provider and ADR-031 for the honest fallback). This ADR decides *where*
 the Google Weather call is made and *whether* the result is stored.
 
 Three constraints, all inherited from the existing Trip module, force the shape:
@@ -49,7 +49,7 @@ the backend resolves every point and returns a **per-Stop** result keyed by `sto
   with the `X-Goog-Api-Key` and `X-Goog-Maps-Solution-ID` (`gmp_git_agentskills_v1`)
   headers (**no** `X-Goog-FieldMask` — unlike Routes, the Weather API returns the full
   document without one, and a wrong mask 400s), results cached in **`IMemoryCache`**, and
-  graceful degradation to No-data on any provider failure (per ADR-030).
+  graceful degradation to No-data on any provider failure (per ADR-031).
 - **No-op fallback when the key is absent.** When `GoogleMaps:ApiKey` config is missing,
   DI wires a no-op `IWeatherService` — the exact shape of `MissingConfigPlaceResolver` —
   so the endpoint returns No-data chips instead of throwing at composition time.

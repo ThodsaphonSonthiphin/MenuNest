@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-05
 **Status:** Draft (awaiting approval)
-**Related:** ADR-027 · ADR-028 · ADR-029 · ADR-030 · ADR-031 · ADR-032 (this feature), ADR-007 (Google Maps Platform + backend proxy), ADR-008 (Smart Schedule → arrival times), ADR-018 (honest fallback route source), ADR-026 (itinerary UI / stop card), GitHub issue [#10](https://github.com/ThodsaphonSonthiphin/MenuNest/issues/10)
+**Related:** ADR-028 · ADR-029 · ADR-030 · ADR-031 · ADR-032 · ADR-033 (this feature), ADR-007 (Google Maps Platform + backend proxy), ADR-008 (Smart Schedule → arrival times), ADR-018 (honest fallback route source), ADR-026 (itinerary UI / stop card), GitHub issue [#10](https://github.com/ThodsaphonSonthiphin/MenuNest/issues/10)
 **Mock:** [docs/mocks/trip-weather-mock.html](../../mocks/trip-weather-mock.html) — confirmed with the owner
 
 ---
@@ -12,12 +12,12 @@
 GitHub issue [#10](https://github.com/ThodsaphonSonthiphin/MenuNest/issues/10) ("add
 whether notification functionality" — a typo for *weather*) asks for weather on the trip
 itinerary. Grilling with the owner (2026-07-05) settled it as a **display-only** feature
-(ADR-027): weather is shown inline on the itinerary and nowhere else — no push, no
+(ADR-028): weather is shown inline on the itinerary and nowhere else — no push, no
 pre-trip alerts, no background delivery. The Health module's `WebPushSubscription` entity
 is intentionally left untouched.
 
 **Goal.** Every **Stop** on the active itinerary **Day** shows **two weather readings side
-by side** (ADR-028), never a toggle:
+by side** (ADR-029), never a toggle:
 
 - **Now** — current conditions at the Stop's coordinates at the **real present moment**,
   independent of the Trip's dates.
@@ -28,9 +28,9 @@ by side** (ADR-028), never a toggle:
 Each reading renders as a chip: **[condition icon] + temperature (°C) + rain probability
 (%)**. When On-arrival cannot be answered — arrival is in the past, more than 10 days
 ahead, or the provider fails — the Stop shows an honest **"No weather data"** chip rather
-than hiding the value (ADR-030). Weather is fetched through a **backend batch endpoint**
+than hiding the value (ADR-031). Weather is fetched through a **backend batch endpoint**
 that proxies the **Google Weather API** with the server-side key and caches in memory;
-**nothing is persisted** (ADR-029, ADR-032), so there is **no entity, no migration, and no
+**nothing is persisted** (ADR-030, ADR-033), so there is **no entity, no migration, and no
 prod-DB step**.
 
 This diagram shows the whole shape end to end — the itinerary stop cards gather coordinates
@@ -57,27 +57,27 @@ flowchart TD
 
 ---
 
-## 2. Decisions (ADR-027 … ADR-032)
+## 2. Decisions (ADR-028 … ADR-033)
 
 The six ADRs written for this feature each settle one axis; this spec implements them.
 
-- **[ADR-027](../../adr/027-weather-display-only-no-push.md)** — Trip weather is **display-only**;
+- **[ADR-028](../../adr/028-weather-display-only-no-push.md)** — Trip weather is **display-only**;
   no push / pre-trip alerts, and the Health `WebPushSubscription` is not touched.
-- **[ADR-028](../../adr/028-weather-per-stop-two-readings.md)** — weather is **per-Stop** and shows
+- **[ADR-029](../../adr/029-weather-per-stop-two-readings.md)** — weather is **per-Stop** and shows
   **both** readings (**Now** + **On-arrival**) at once as two labelled chips — no checkbox/toggle
   (supersedes the issue's "pick one" wording).
-- **[ADR-029](../../adr/029-weather-provider-google-weather-api.md)** — the provider is the **Google
+- **[ADR-030](../../adr/030-weather-provider-google-weather-api.md)** — the provider is the **Google
   Weather API** (`currentConditions:lookup`, `forecast/hours:lookup` on
   `https://weather.googleapis.com/v1`), extending ADR-007 and reusing the existing
   `GoogleMaps:ApiKey`; Open-Meteo and OpenWeatherMap rejected.
-- **[ADR-030](../../adr/030-weather-no-data-beyond-forecast-horizon.md)** — beyond the **10-day**
+- **[ADR-031](../../adr/031-weather-no-data-beyond-forecast-horizon.md)** — beyond the **10-day**
   forecast horizon, in the **past**, or on any **failure**, the Stop shows an honest **"No weather
   data"** chip (slashed-cloud + ไม่มีข้อมูลอากาศ); never hidden. "Now" shows No-data only on failure.
-- **[ADR-031](../../adr/031-weather-icons-google-iconbaseuri-svg.md)** — condition icons come from Google's
+- **[ADR-032](../../adr/032-weather-icons-google-iconbaseuri-svg.md)** — condition icons come from Google's
   `weatherCondition.iconBaseUri` (`.svg` / `_dark.svg`), an **allowed exception** to
   frontend-guidelines §2 (Syncfusion has no weather-icon set; these are SVG, not emoji) — on the
   same footing as the `@vis.gl/react-google-maps` map exception.
-- **[ADR-032](../../adr/032-weather-backend-batch-endpoint-no-persistence.md)** — weather is fetched via a
+- **[ADR-033](../../adr/033-weather-backend-batch-endpoint-no-persistence.md)** — weather is fetched via a
   **backend batch endpoint** → `IWeatherService` (Google impl + no-op fallback) → `IMemoryCache`;
   **nothing is persisted**. SPA-direct-to-Google and DB persistence rejected.
 
@@ -124,7 +124,7 @@ reuses the row already rendered at `ItineraryStopCard.tsx:64`.
 Each data chip's content, left→right: the **Google condition icon** (`<img>` from
 `iconBaseUri`, 18×18), **temperature** (`29°`), then a small **rain-drop** glyph + **rain %**.
 
-**Icon sourcing.** Only the *condition* icon comes from Google (ADR-031). The **rain-drop** and
+**Icon sourcing.** Only the *condition* icon comes from Google (ADR-032). The **rain-drop** and
 **slashed-cloud** glyphs are **hand-authored inline SVG**, following the trips module's existing
 inline-SVG icon convention ([`FlagIcons.tsx`](../../../frontend/src/pages/trips/components/FlagIcons.tsx),
 [`TripFormIcons.tsx`](../../../frontend/src/pages/trips/components/TripFormIcons.tsx)) — no emoji.
@@ -158,7 +158,7 @@ flowchart TD
 
 **Now → `currentConditions:lookup`.** The batch request supplies each Stop's `lat,lng`; `arrivalIso`
 is irrelevant. Now has **no horizon constraint** and shows No-data **only** on provider failure
-(ADR-030). A trip planned for next month still shows what that place is doing today.
+(ADR-031). A trip planned for next month still shows what that place is doing today.
 
 **On-arrival → `forecast/hours:lookup`.** The arrival instant is `ItineraryDay.date` + the
 `useSchedule` `.arrival` (`"HH:MM"`) as a **local wall-clock** date-time (e.g. `2026-07-12T14:30`).
@@ -168,7 +168,7 @@ requested with `hours=240` (the max — see horizon below).
 
 **Forecast horizon and the exact No-data conditions.** Verified live, the provider caps the forecast
 at **10 days / 240 hours**: `hours=241` and `days=11` both return HTTP 400 `INVALID_ARGUMENT`, while
-`hours<=240` / `days<=10` return 200 (ADR-029). Therefore On-arrival is **No weather data** when:
+`hours<=240` / `days<=10` return 200 (ADR-030). Therefore On-arrival is **No weather data** when:
 
 1. **In the past** — arrival instant `< now`.
 2. **Beyond the horizon** — arrival instant `> now + 240h` (the boundary is inclusive: exactly
@@ -176,7 +176,7 @@ at **10 days / 240 hours**: `hours=241` and `days=11` both return HTTP 400 `INVA
 3. **Provider failure** — network/quota error, a 400 from the provider, no matching hour bucket, or
    the no-op fallback is active (key absent).
 
-Per ADR-030, checks **(1)** and **(2)** are evaluated **client-side against the live clock** and the
+Per ADR-031, checks **(1)** and **(2)** are evaluated **client-side against the live clock** and the
 Stop renders No-data **without a request**; check **(3)** surfaces from the backend batch call. Both
 paths funnel to the identical No-data chip. Because the gate uses the live clock, a Stop can flip
 data↔No-data as its arrival crosses the boundary, so the horizon check is re-evaluated on every render,
@@ -231,7 +231,7 @@ public interface IWeatherService
   **hour bucket**. TTLs per kind: **Now ≈ 30 min** (short — a stale "Now" must not linger), **On-arrival
   ≈ 3 h** (a forecast hour is stable for longer). A per-call timeout (as in `GoogleRouteService`, ~8 s)
   bounds one slow upstream.
-- **Graceful degradation (ADR-030).** On any provider failure — a non-success status (incl. the 400
+- **Graceful degradation (ADR-031).** On any provider failure — a non-success status (incl. the 400
   for an out-of-range request that slips past the client gate), a timeout, or no matching bucket — the
   point degrades to `HasData=false` rather than throwing. Honest No-data, mirroring the Estimated-vs-Routed
   honesty of ADR-018.
@@ -252,7 +252,7 @@ else
 **One deliberate difference from `MissingConfigPlaceResolver`:** that stub *throws* a `DomainException`
 (link resolving is a user action that should surface an error). The weather no-op instead **returns
 `HasData=false` for every point** — it never throws — because weather degrades honestly to No-data
-chips rather than failing the page (ADR-030 / ADR-032). DI bootstrap still succeeds with no key.
+chips rather than failing the page (ADR-031 / ADR-033). DI bootstrap still succeeds with no key.
 
 ### 6.4 CQRS use-case + WebApi endpoint
 
@@ -289,13 +289,13 @@ public async Task<ActionResult<IReadOnlyList<WeatherReadingDto>>> Weather(
 | Response | `stopId` | string | Echoes the request; the SPA keys results by it. |
 | Response | `hasData` | bool | `false` → render the No-data chip. |
 | Response | `conditionType` | string? | Google `weatherCondition.type` (diagnostic / future use). |
-| Response | `iconBaseUri` | string? | Base URI; the SPA appends `.svg` / `_dark.svg` (ADR-031). |
+| Response | `iconBaseUri` | string? | Base URI; the SPA appends `.svg` / `_dark.svg` (ADR-032). |
 | Response | `tempC` | number? | Degrees Celsius. |
 | Response | `rainPct` | number? | Rain probability %, drives the rainy tint. |
 | Response | `description` | string? | Thai condition text → chip `alt`. |
 
 The validator rejects an empty `points` list and out-of-range `lat`/`lng`; a missing/late `arrivalIso`
-on an OnArrival point is tolerated and returns a No-data reading rather than erroring (ADR-032).
+on an OnArrival point is tolerated and returns a No-data reading rather than erroring (ADR-033).
 
 This sequence traces one batch call through the handler, showing the cache-first path and the honest
 degradation on failure.
@@ -363,7 +363,7 @@ getStopWeather: build.query<
 Weather is ephemeral, so the endpoint declares **no `providesTags`** and adds no `tagType`. It does not
 need explicit invalidation: editing dwell / day-start / order invalidates `TripItinerary`, which
 refetches the itinerary → new legs → new `useSchedule` arrivals → new `arrivalIso` → a new query key →
-automatic refetch. This satisfies ADR-028's "re-fetch the forecast when the schedule changes". Export
+automatic refetch. This satisfies ADR-029's "re-fetch the forecast when the schedule changes". Export
 `useGetStopWeatherQuery` in the hooks block.
 
 The wire types (`WeatherPointDto`, `WeatherReadingDto`) are added to the Trips DTO section of `api.ts`
@@ -418,7 +418,7 @@ A new `components/WeatherChip.tsx` renders one chip from `{ kind, reading, isLoa
   `29°`, and the rain-drop glyph + `rainPct%`. For the On-arrival chip, add `.rainy` when
   `rainPct >= 60`.
 
-**Icon URL (ADR-031 exception).** The `<img>` `src` is `iconBaseUri + suffix`, where `suffix` is
+**Icon URL (ADR-032 exception).** The `<img>` `src` is `iconBaseUri + suffix`, where `suffix` is
 `_dark.svg` when the app is in dark theme and `.svg` otherwise (both verified 200 across the condition
 set). The suffix is derived from the active theme signal the app already uses (theme token /
 `prefers-color-scheme`); `alt` is the Thai `description`. This is the documented, narrow exception to
@@ -433,7 +433,7 @@ renders exactly as today, so the change is additive.
 ## 8. Edge cases
 
 - **Today / near-term overlap.** For a Stop today, "Now" and "On-arrival" can read almost the same —
-  kept deliberately (ADR-028): both chips still show, so the UI is consistent and the comparison is
+  kept deliberately (ADR-029): both chips still show, so the UI is consistent and the comparison is
   explicit rather than special-cased.
 - **Arrival in the past.** Viewing a trip whose dates have passed → every On-arrival is No-data; "Now"
   still shows the place's current weather (mock's second panel).
@@ -445,7 +445,7 @@ renders exactly as today, so the change is additive.
 - **Provider / billing off.** No `GoogleMaps:ApiKey` → DI wires the no-op `IWeatherService` → the batch
   returns `hasData=false` for all points → every chip is No-data. No throw, page renders normally.
 - **Icon 404.** If Google renames/retires an `iconBaseUri`, only the `<img>` breaks; the chip's text
-  (temperature, rain %) still renders (ADR-031). A true lookup failure is already No-data.
+  (temperature, rain %) still renders (ADR-032). A true lookup failure is already No-data.
 - **Language.** All Google calls pass `languageCode=th` so `description` (and thus chip `alt`) is Thai,
   matching the UI.
 - **Schedule edit re-fetch.** Reorder/dwell/day-start edits change arrivals → new `arrivalIso` → new
@@ -485,11 +485,11 @@ as in [`GoogleRouteServiceTests.cs`](../../../backend/tests/MenuNest.Application
 
 ## 10. Out of scope / Phase 2
 
-- **Push / pre-trip weather alerts** — explicitly rejected (ADR-027); would revisit the Health
+- **Push / pre-trip weather alerts** — explicitly rejected (ADR-028); would revisit the Health
   `WebPushSubscription` deliberately, as a separate decision.
 - **Per-Day weather rollup** — a single "day looks rainy" summary on the day tab / day-summary bar.
-  Rejected as too coarse for the per-Stop question (ADR-028); could be layered on later using the same
+  Rejected as too coarse for the per-Stop question (ADR-029); could be layered on later using the same
   batch data.
 - **Weather on the map pins** — tinting or badging the `TripMap` route pins by condition. The map band
   (ADR-026) is untouched here; weather lives only in the stop cards for now.
-- **Persisted / historical weather** — never (ADR-032); weather stays ephemeral cache-only.
+- **Persisted / historical weather** — never (ADR-033); weather stays ephemeral cache-only.

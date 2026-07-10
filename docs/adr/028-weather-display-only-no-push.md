@@ -1,4 +1,4 @@
-# ADR-027: Trip weather is a display-only feature — no push notifications
+# ADR-028: Trip weather is a display-only feature — no push notifications
 
 **Date:** 2026-07-05
 **Status:** Accepted

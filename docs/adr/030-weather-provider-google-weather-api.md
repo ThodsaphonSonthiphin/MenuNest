@@ -1,4 +1,4 @@
-# ADR-029: Trip weather uses the Google Weather API, extending the Google Maps Platform adoption
+# ADR-030: Trip weather uses the Google Weather API, extending the Google Maps Platform adoption
 
 **Date:** 2026-07-05
 **Status:** Accepted
@@ -13,8 +13,8 @@ flowchart TD
 
 ## Context
 
-GitHub issue #10 asks for on-screen weather on the trip itinerary (display-only; see ADR-028
-for the presentation and ADR-030 for the fallback behaviour). Each Stop shows both current
+GitHub issue #10 asks for on-screen weather on the trip itinerary (display-only; see ADR-029
+for the presentation and ADR-031 for the fallback behaviour). Each Stop shows both current
 conditions and the forecast for its scheduled arrival, so we need one provider that serves
 **both** current-conditions and an hourly forecast at arbitrary lat/lng coordinates.
 
@@ -30,7 +30,7 @@ service-seam pattern we already run — no new vendor relationship, no second ke
 **Billing is now enabled:** the deployed backend key returns HTTP 200 on both Routes and
 Weather (verified live). ADR-007 governs place **data** — only `place_id` may be stored
 indefinitely, other content has caching limits. Weather is **ephemeral** and is never
-persisted (see ADR-032), so the ADR-007 storage rule does not bind it; but the same
+persisted (see ADR-033), so the ADR-007 storage rule does not bind it; but the same
 backend-proxy + own-key approach ADR-007 established does apply.
 
 ## Decision
@@ -68,4 +68,4 @@ billing — a personal-volume trip planner should sit within the free tier, but 
 add to Google Cloud usage. The Google Weather API also caps the forecast at **10 days /
 240 hours** ahead (`days<=10` / `hours<=240`; `days=11` and `hours=241` both return HTTP 400
 `INVALID_ARGUMENT`, verified), which constrains the on-arrival reading and is handled by the
-honest "No weather data" fallback in ADR-030.
+honest "No weather data" fallback in ADR-031.
