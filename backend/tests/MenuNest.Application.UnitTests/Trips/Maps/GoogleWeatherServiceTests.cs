@@ -108,6 +108,29 @@ public class GoogleWeatherServiceTests
         request.RequestUri!.ToString().Should().Contain("languageCode=th");
     }
 
+    [Fact]
+    public async Task Now_duplicate_coordinates_in_one_batch_each_keep_their_own_StopId()
+    {
+        const string json =
+            "{\"weatherCondition\":{\"iconBaseUri\":\"https://maps.gstatic.com/weather/v1/cloudy\"," +
+            "\"description\":{\"text\":\"มีเมฆมาก\",\"languageCode\":\"th\"},\"type\":\"CLOUDY\"}," +
+            "\"temperature\":{\"unit\":\"CELSIUS\",\"degrees\":29.1}," +
+            "\"precipitation\":{\"probability\":{\"type\":\"RAIN\",\"percent\":20}}}";
+        var svc = Build(new StubHandler(HttpStatusCode.OK, json));
+        var pts = new List<WeatherPoint>
+        {
+            new("s1", 13.7563, 100.5018, null),
+            new("s2", 13.7563, 100.5018, null),
+        };
+
+        var readings = await svc.GetReadingsAsync(pts, WeatherReadingKind.Now, CancellationToken.None);
+
+        readings[0].StopId.Should().Be("s1");
+        readings[0].HasData.Should().BeTrue();
+        readings[1].StopId.Should().Be("s2"); // cache-hit path (same coords) must re-stamp, not reuse s1's cached reading
+        readings[1].HasData.Should().BeTrue();
+    }
+
     private const string ForecastJson =
         "{\"forecastHours\":[" +
         "{\"displayDateTime\":{\"year\":2026,\"month\":7,\"day\":12,\"hours\":13}," +
