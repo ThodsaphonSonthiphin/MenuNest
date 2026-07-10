@@ -4,6 +4,13 @@
 **Status:** Awaiting approval
 **Scope:** Meal planning domain only (Recipes, Ingredients, MealPlan, Stock, ShoppingLists, Budget)
 
+> **Update 2026-07-10 — scope extended.** The "meal planning domain only" scope below is
+> superseded for **Trips**: the Trip Planner (17 tools) is now exposed via a `TripTools`
+> class in this same server. See **[ADR-034](../../adr/034-trips-exposed-via-mcp-server.md)**,
+> **[ADR-035](../../adr/035-mcp-place-capture-via-resolve-place.md)**, and the
+> [Trip Planner over MCP design spec](./2026-07-10-trip-planner-mcp-tools-design.md). Health/migraine
+> and Chat remain out of scope.
+
 ---
 
 ## Goals
