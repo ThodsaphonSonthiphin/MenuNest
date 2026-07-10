@@ -15,6 +15,7 @@ using MenuNest.Application.UseCases.Trips.UpdateStop;
 using MenuNest.Application.UseCases.Trips.RemoveStop;
 using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
+using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Domain.Enums;
 
 namespace MenuNest.McpServer.Tools;
@@ -158,4 +159,11 @@ public sealed class TripTools(IMediator mediator)
         [Description("Day start time, HH:mm (24h)")] TimeOnly startTime,
         CancellationToken ct)
         => await mediator.Send(new SetDayStartTimeCommand(tripId, dayId, startTime), ct);
+
+    [McpServerTool, Description("Batch weather for stops. kind=Now returns current conditions; kind=OnArrival returns the forecast at each point's arrivalIso. Assemble points from list_trip_places (lat/lng — StopDto has none) + get_itinerary (arrival times). Out-of-range/past/no-coord points return hasData=false, not an error.")]
+    public async Task<IReadOnlyList<WeatherReadingDto>> get_stop_weather(
+        [Description("Reading kind: Now or OnArrival")] WeatherReadingKind kind,
+        [Description("Points to read: each { stopId, lat, lng, arrivalIso? }. arrivalIso is the stop's local wall-clock arrival (ISO-8601), used only for OnArrival.")] WeatherPointDto[] points,
+        CancellationToken ct)
+        => await mediator.Send(new GetStopWeatherQuery(kind, points), ct);
 }
