@@ -30,7 +30,7 @@ public sealed class GoogleWeatherService : IWeatherService
         {
             var p = points[i];
             var key = CacheKey(p, kind);
-            if (_cache.TryGetValue(key, out WeatherReading? hit) && hit is not null) { result[i] = hit; continue; }
+            if (_cache.TryGetValue(key, out WeatherReading? hit) && hit is not null) { result[i] = hit with { StopId = p.StopId }; continue; }
             var reading = await FetchAsync(p, kind, ct);
             if (reading.HasData)
                 _cache.Set(key, reading, kind == WeatherReadingKind.Now ? TimeSpan.FromMinutes(30) : TimeSpan.FromHours(3));
