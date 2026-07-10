@@ -20,6 +20,12 @@
   --warn-ink:  #7a5310;   /* darker amber for small text — passes WCAG AA on --warn-bg */
   --bad:       #b42318;   /* problem-severity text/border — ~5.75:1 on --bad-bg */
   --bad-bg:    #fdeceb;
+  --now:        #0b7a87;
+  --now-bg:     #e3f5f6;
+  --arr:        #1863b7;
+  --arr-bg:     #e9f1fb;
+  --arr-rain:   #0f5bb0;
+  --arr-rain-bg:#dbe9fb;
   background: var(--page);
   color: var(--ink);
 }
@@ -223,6 +229,20 @@
 /* ── Chips ── */
 .chip { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
 .chip.dwell { background: var(--teal-soft); color: var(--teal-deep); }
+
+/* ── Weather chips (per-Stop: "ตอนนี้" + "ไปถึง") — ADR-028/030/031 ── */
+.chip.wx { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 2px 9px 2px 5px; }
+.chip.wx .lab { font-size: 9px; font-weight: 700; opacity: 0.72; text-transform: uppercase; letter-spacing: 0.03em; }
+.chip.wx img { width: 18px; height: 18px; display: block; }
+.chip.wx .t { font-weight: 700; }
+.chip.wx .r { display: inline-flex; align-items: center; gap: 1px; font-weight: 700; }
+.chip.wx .r svg { width: 9px; height: 11px; }
+.chip.wx.now { background: var(--now-bg); color: var(--now); }
+.chip.wx.arr { background: var(--arr-bg); color: var(--arr); }
+.chip.wx.arr.rainy { background: var(--arr-rain-bg); color: var(--arr-rain); }
+.chip.wx.nodata { background: #f1f5f9; color: var(--muted); }
+.chip.wx.nodata svg { width: 15px; height: 15px; }
+.chip.wx.loading { background: #f1f5f9; color: transparent; min-width: 64px; }
 
 /* ── Timing-flag reason line (one inset banner below the chips) ── */
 .flag-note {
