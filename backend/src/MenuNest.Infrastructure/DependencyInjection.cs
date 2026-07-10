@@ -117,6 +117,13 @@ public static class DependencyInjection
         else
             services.AddScoped<IRouteService, HaversineRouteService>();
 
+        // Weather service — Google Weather API when the key is present; otherwise a no-op that
+        // returns No-data for every point (weather degrades honestly, never blocks the page). ADR-032.
+        if (!string.IsNullOrWhiteSpace(mapsKey))
+            services.AddScoped<IWeatherService, GoogleWeatherService>();
+        else
+            services.AddScoped<IWeatherService, MissingConfigWeatherService>();
+
         return services;
     }
 }

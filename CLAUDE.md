@@ -74,3 +74,14 @@ Examples (from real history):
 
 If a change genuinely has no ticket, open the issue first — the default
 expectation is that every commit maps to exactly one tracked item.
+
+## Committing — a pre-commit hook runs the FULL suite; stage narrowly
+
+`frontend/.husky/pre-commit` (`set -e`) runs, on **every** commit: backend
+`dotnet build` + `dotnet test` (Release) and frontend `tsc --noEmit` +
+`npm run build` (~40s). The commit fails if anything is red — expect the wait;
+do **not** `--no-verify` to skip it.
+
+Always `git add <explicit paths>` — **never** `git add -A` / `git add .`.
+`daily-state.md` (tracked, usually dirty) and `AGENTS.md` (untracked) are
+working files that must never be swept into a feature commit.
