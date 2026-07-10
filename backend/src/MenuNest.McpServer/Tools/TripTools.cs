@@ -4,6 +4,11 @@ using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.GetTrip;
 using MenuNest.Application.UseCases.Trips.ListTrips;
 using MenuNest.Application.UseCases.Trips.UpdateTrip;
+using MenuNest.Application.UseCases.Trips.ResolvePlace;
+using MenuNest.Application.UseCases.Trips.ListTripPlaces;
+using MenuNest.Application.UseCases.Trips.AddTripPlace;
+using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
+using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
 using MenuNest.Domain.Enums;
 
 namespace MenuNest.McpServer.Tools;
@@ -47,4 +52,54 @@ public sealed class TripTools(IMediator mediator)
         [Description("Trip ID")] Guid tripId,
         CancellationToken ct)
         => await mediator.Send(new DeleteTripCommand(tripId), ct);
+
+    [McpServerTool, Description("Resolve a Google Maps link to an authoritative place snapshot from Google (place_id, coordinates, address, opening hours). To search by name, build the URL as https://www.google.com/maps/place/<url-encoded name and city>/. Feed the result into add_trip_place; never fabricate coordinates yourself.")]
+    public async Task<ResolvedPlaceDto> resolve_place(
+        [Description("A Google Maps URL. To search by name, use https://www.google.com/maps/place/<url-encoded name and city>/")] string url,
+        CancellationToken ct)
+        => await mediator.Send(new ResolvePlaceCommand(url), ct);
+
+    [McpServerTool, Description("List all saved places of a trip")]
+    public async Task<IReadOnlyList<TripPlaceDto>> list_trip_places(
+        [Description("Trip ID")] Guid tripId,
+        CancellationToken ct)
+        => await mediator.Send(new ListTripPlacesQuery(tripId), ct);
+
+    [McpServerTool, Description("Add a saved place to a trip. Use lat/lng/googlePlaceId from resolve_place — do not invent coordinates. resolve_place returns category Other, so choose the real category here. bestTime/feeNote/notes are not set here — use update_trip_place afterward.")]
+    public async Task<TripPlaceDto> add_trip_place(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place name")] string name,
+        [Description("Latitude from resolve_place")] double lat,
+        [Description("Longitude from resolve_place")] double lng,
+        [Description("Category: Stay, Eat, See, Cafe, Shop, or Other")] PlaceCategory category,
+        [Description("Google place_id from resolve_place (optional)")] string? googlePlaceId,
+        [Description("Formatted address (optional)")] string? address,
+        [Description("Price level 0-4 (optional)")] int? priceLevel,
+        [Description("Photo URL (optional; resolve_place returns none)")] string? photoUrl,
+        [Description("Raw opening-hours JSON from resolve_place (optional)")] string? openingHoursJson,
+        CancellationToken ct)
+        => await mediator.Send(new AddTripPlaceCommand(
+            tripId, name, lat, lng, category, googlePlaceId, address, priceLevel, photoUrl, openingHoursJson), ct);
+
+    [McpServerTool, Description("Update a saved place's editable fields (name, category, address, fee note, notes, best-visit window)")]
+    public async Task<TripPlaceDto> update_trip_place(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place ID")] Guid placeId,
+        [Description("Place name")] string name,
+        [Description("Category: Stay, Eat, See, Cafe, Shop, or Other")] PlaceCategory category,
+        [Description("Address (optional)")] string? address,
+        [Description("Fee/ticket note (optional)")] string? feeNote,
+        [Description("Free-form notes (optional)")] string? notes,
+        [Description("Best-visit window start, HH:mm (optional)")] TimeOnly? bestTimeStart,
+        [Description("Best-visit window end, HH:mm (optional)")] TimeOnly? bestTimeEnd,
+        CancellationToken ct)
+        => await mediator.Send(new UpdateTripPlaceCommand(
+            tripId, placeId, name, category, address, feeNote, notes, bestTimeStart, bestTimeEnd), ct);
+
+    [McpServerTool, Description("Delete a saved place from a trip by ID")]
+    public async Task delete_trip_place(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place ID")] Guid placeId,
+        CancellationToken ct)
+        => await mediator.Send(new DeleteTripPlaceCommand(tripId, placeId), ct);
 }
