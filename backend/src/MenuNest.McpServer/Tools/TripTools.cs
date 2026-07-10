@@ -43,7 +43,7 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new CreateTripCommand(name, destination, startDate, dayCount, defaultTravelMode), ct);
 
-    [McpServerTool, Description("Update a trip's fields. WARNING: lowering dayCount deletes the trailing itinerary days AND their stops (cascade).")]
+    [McpServerTool, Description("Update a trip's fields (full replace — passing null for destination CLEARS it). WARNING: lowering dayCount deletes the trailing itinerary days AND their stops (cascade).")]
     public async Task<TripDto> update_trip(
         [Description("Trip ID")] Guid tripId,
         [Description("Trip name")] string name,
@@ -72,7 +72,7 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new ListTripPlacesQuery(tripId), ct);
 
-    [McpServerTool, Description("Add a saved place to a trip. Use lat/lng/googlePlaceId from resolve_place — do not invent coordinates. resolve_place returns category Other, so choose the real category here. bestTime/feeNote/notes are not set here — use update_trip_place afterward.")]
+    [McpServerTool, Description("Add a saved place to a trip. Use lat/lng/googlePlaceId/priceLevel/openingHoursJson from resolve_place — do not invent coordinates. resolve_place returns category Other, so choose the real category here. bestTime/feeNote/notes are not set here — use update_trip_place afterward.")]
     public async Task<TripPlaceDto> add_trip_place(
         [Description("Trip ID")] Guid tripId,
         [Description("Place name")] string name,
@@ -88,7 +88,7 @@ public sealed class TripTools(IMediator mediator)
         => await mediator.Send(new AddTripPlaceCommand(
             tripId, name, lat, lng, category, googlePlaceId, address, priceLevel, photoUrl, openingHoursJson), ct);
 
-    [McpServerTool, Description("Update a saved place's editable fields (name, category, address, fee note, notes, best-visit window)")]
+    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, and the best-visit window (bestTimeStart/bestTimeEnd) are overwritten — omitting or passing null for one CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places).")]
     public async Task<TripPlaceDto> update_trip_place(
         [Description("Trip ID")] Guid tripId,
         [Description("Place ID")] Guid placeId,
@@ -160,7 +160,7 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new SetDayStartTimeCommand(tripId, dayId, startTime), ct);
 
-    [McpServerTool, Description("Batch weather for stops. kind=Now returns current conditions; kind=OnArrival returns the forecast at each point's arrivalIso. Assemble points from list_trip_places (lat/lng — StopDto has none) + get_itinerary (arrival times). Out-of-range/past/no-coord points return hasData=false, not an error.")]
+    [McpServerTool, Description("Batch weather for stops. kind=Now returns current conditions; kind=OnArrival returns the forecast at each point's arrivalIso. Assemble points from list_trip_places (lat/lng — StopDto has none) + get_itinerary (arrival times). Points outside the forecast window / in the past / with no coords return hasData=false rather than erroring (but lat/lng outside valid ranges are rejected).")]
     public async Task<IReadOnlyList<WeatherReadingDto>> get_stop_weather(
         [Description("Reading kind: Now or OnArrival")] WeatherReadingKind kind,
         [Description("Points to read: each { stopId, lat, lng, arrivalIso? }. arrivalIso is the stop's local wall-clock arrival (ISO-8601), used only for OnArrival.")] WeatherPointDto[] points,
