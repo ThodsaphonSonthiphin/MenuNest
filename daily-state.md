@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-10T16:53:43+07:00'
+updated: '2026-07-10T20:17:50+07:00'
 ---
 
 ## Log
@@ -323,3 +323,24 @@ in the spec, plan, and CONTEXT.md glossary. Docs-only; no code change.
 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 - 2026-07-10T16:53:43+07:00 — (commit)
+- 2026-07-10T19:39:48+07:00 — docs(trips): ADR-034/035 + spec + plan for Trip Planner over MCP (#18) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-10T19:44:51+07:00 — feat(trips): TripTools MCP class + Trips CRUD tools (#18) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-10T19:51:37+07:00 — feat(trips): MCP place tools incl resolve-place capture flow (#18) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-10T19:57:31+07:00 — $(cat <<'EOF'
+feat(trips): MCP itinerary + stop tools (#18)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-10T20:03:05+07:00 — $(cat <<'EOF'
+feat(trips): MCP stop-weather batch tool (closes #18)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-10T20:17:50+07:00 — $(cat <<'EOF'
+fix(trips): honest replace-semantics + weather wording in MCP tool descriptions (#18)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
