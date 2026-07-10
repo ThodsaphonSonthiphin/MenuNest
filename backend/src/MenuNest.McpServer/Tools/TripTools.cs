@@ -9,6 +9,12 @@ using MenuNest.Application.UseCases.Trips.ListTripPlaces;
 using MenuNest.Application.UseCases.Trips.AddTripPlace;
 using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
+using MenuNest.Application.UseCases.Trips.GetItinerary;
+using MenuNest.Application.UseCases.Trips.AddStop;
+using MenuNest.Application.UseCases.Trips.UpdateStop;
+using MenuNest.Application.UseCases.Trips.RemoveStop;
+using MenuNest.Application.UseCases.Trips.ReorderStops;
+using MenuNest.Application.UseCases.Trips.SetDayStartTime;
 using MenuNest.Domain.Enums;
 
 namespace MenuNest.McpServer.Tools;
@@ -102,4 +108,54 @@ public sealed class TripTools(IMediator mediator)
         [Description("Place ID")] Guid placeId,
         CancellationToken ct)
         => await mediator.Send(new DeleteTripPlaceCommand(tripId, placeId), ct);
+
+    [McpServerTool, Description("Get the trip's itinerary: each day's start time and ordered stops, with each stop's dwell, travel mode, and resolved leg-to-reach (seconds/meters/source). Arrival/leave times and timing flags are NOT included — compute arrivals as dayStart + running sum of (previous leg seconds + previous dwell). viewerLat/viewerLng are for the app's live location and are normally omitted.")]
+    public async Task<IReadOnlyList<ItineraryDayDto>> get_itinerary(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Viewer latitude for the approach leg (optional; usually omit)")] double? viewerLat,
+        [Description("Viewer longitude for the approach leg (optional; usually omit)")] double? viewerLng,
+        CancellationToken ct)
+        => await mediator.Send(new GetItineraryQuery(tripId, viewerLat, viewerLng), ct);
+
+    [McpServerTool, Description("Add a stop to a specific itinerary day. tripPlaceId must be a place already saved on the trip (see list_trip_places / add_trip_place). dayId comes from get_itinerary.")]
+    public async Task<StopDto> add_stop(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Itinerary day ID (from get_itinerary)")] Guid dayId,
+        [Description("Saved place ID to visit")] Guid tripPlaceId,
+        [Description("Dwell — minutes planned at the stop")] int dwellMinutes,
+        [Description("Travel mode to reach this stop: Drive, Walk, or Transit")] TravelMode travelModeToReach,
+        CancellationToken ct)
+        => await mediator.Send(new AddStopCommand(tripId, dayId, tripPlaceId, dwellMinutes, travelModeToReach), ct);
+
+    [McpServerTool, Description("Update a stop's dwell and/or travel mode. Omit a field to leave it unchanged.")]
+    public async Task update_stop(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Stop ID")] Guid stopId,
+        [Description("New dwell in minutes (optional)")] int? dwellMinutes,
+        [Description("New travel mode to reach: Drive, Walk, or Transit (optional)")] TravelMode? travelModeToReach,
+        CancellationToken ct)
+        => await mediator.Send(new UpdateStopCommand(tripId, stopId, dwellMinutes, travelModeToReach), ct);
+
+    [McpServerTool, Description("Remove a stop from its day by ID")]
+    public async Task remove_stop(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Stop ID")] Guid stopId,
+        CancellationToken ct)
+        => await mediator.Send(new RemoveStopCommand(tripId, stopId), ct);
+
+    [McpServerTool, Description("Reorder all stops in a day. Provide every stop ID of that day in the desired order (get the current set from get_itinerary).")]
+    public async Task reorder_stops(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Itinerary day ID")] Guid dayId,
+        [Description("All stop IDs of the day, in the new order")] Guid[] orderedStopIds,
+        CancellationToken ct)
+        => await mediator.Send(new ReorderStopsCommand(tripId, dayId, orderedStopIds), ct);
+
+    [McpServerTool, Description("Set an itinerary day's start time, from which the schedule cascades. Time is HH:mm (24h).")]
+    public async Task set_day_start_time(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Itinerary day ID")] Guid dayId,
+        [Description("Day start time, HH:mm (24h)")] TimeOnly startTime,
+        CancellationToken ct)
+        => await mediator.Send(new SetDayStartTimeCommand(tripId, dayId, startTime), ct);
 }
