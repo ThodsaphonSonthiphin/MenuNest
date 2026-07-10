@@ -1,8 +1,8 @@
-# ADR-031: Weather-condition icons come from Google iconBaseUri SVGs — an allowed exception to the Syncfusion-only icon rule
+# ADR-032: Weather-condition icons come from Google iconBaseUri SVGs — an allowed exception to the Syncfusion-only icon rule
 
 **Date:** 2026-07-05
 **Status:** Accepted
-**Relates to:** frontend-guidelines section 2 (Icons — Syncfusion icons, never emoji), ADR-029 (Google Weather API via the backend proxy), GitHub issue #10
+**Relates to:** frontend-guidelines section 2 (Icons — Syncfusion icons, never emoji), ADR-030 (Google Weather API via the backend proxy), GitHub issue #10
 **Mock:** `docs/mocks/trip-weather-mock.html` (confirmed with the owner)
 
 ```mermaid
@@ -16,7 +16,7 @@ flowchart TD
 
 ## Context
 
-The Trip Weather feature (issue #10, provider decided in ADR-029) renders a per-Stop
+The Trip Weather feature (issue #10, provider decided in ADR-030) renders a per-Stop
 weather chip whose leading element is a condition icon — sun, cloud, rain, thunderstorm,
 and so on. Google's Weather API classifies conditions into roughly **40**
 `weatherCondition.type` values, so any icon strategy must cover that whole enum, including
@@ -47,7 +47,7 @@ has no equivalent icon set and the assets are SVG rather than emoji.
 - **Alt text** comes from `weatherCondition.description`, requested with `languageCode=th`
   so the accessible label matches the Thai UI.
 - The icon URL is derived on the frontend from the `iconBaseUri` returned by the backend
-  batch response (ADR-029 / ADR-032); the enum-to-icon mapping is Google's, not ours.
+  batch response (ADR-030 / ADR-033); the enum-to-icon mapping is Google's, not ours.
 
 Rejected alternatives:
 - **Hand-built SVG set** mapping the ~40 `weatherCondition.type` values — a real drawing and
@@ -67,5 +67,5 @@ narrow and precedented, so it does not erode the Syncfusion-only rule elsewhere.
 rendering is subject to that host's availability and adds a cross-origin image request per
 distinct condition (mitigated by browser caching, since conditions repeat across Stops). If
 Google renames or retires an `iconBaseUri`, the icon could 404 — the chip's text (temperature
-and rain probability) still renders, and the honest "No weather data" fallback (ADR-030)
+and rain probability) still renders, and the honest "No weather data" fallback (ADR-031)
 covers the case where the weather lookup itself fails.

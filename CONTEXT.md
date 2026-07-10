@@ -94,16 +94,16 @@ the glossary wins until the glossary is deliberately changed.
   _Avoid_: peek, mini-map (informal).
 - **Weather reading** — a per-**Stop** indication of sky/precipitation conditions, shown as a
   small chip on the Stop. Each Stop carries two readings side by side — **Now** and
-  **On-arrival** — never a toggle between them (ADR-028). _Avoid_: forecast (names only one
+  **On-arrival** — never a toggle between them (ADR-029). _Avoid_: forecast (names only one
   reading), alert.
 - **Now (weather)** — the current conditions at a **Stop**'s coordinates at the real present
   moment, independent of the **Trip**'s dates. _Avoid_: live (informal, the issue-#10 word).
 - **On-arrival (weather)** — the forecast at a **Stop**'s coordinates for that Stop's scheduled
   **arrival** time in the **Smart Schedule** (ADR-008). _Avoid_: trip-date weather, departure weather.
 - **Forecast horizon** — the 10-day window ahead of now that the weather provider can forecast;
-  an **On-arrival** reading outside it resolves to **No weather data** (ADR-030).
+  an **On-arrival** reading outside it resolves to **No weather data** (ADR-031).
 - **No weather data** — the state a **weather reading** shows when it is unavailable: an
   **On-arrival** reading beyond the **forecast horizon** or already in the past, or a provider
-  failure. Rendered as a slashed-cloud chip, never hidden silently (ADR-030). _Avoid_: unknown, error.
+  failure. Rendered as a slashed-cloud chip, never hidden silently (ADR-031). _Avoid_: unknown, error.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
