@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-04T01:33:17+07:00'
+updated: '2026-07-10T16:53:43+07:00'
 ---
 
 ## Log
@@ -272,3 +272,54 @@ test(trips): make opening-hours getter test a real regression guard (non-enumera
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )
+- 2026-07-06T09:08:30+07:00 — docs(trips): weather design â€” ADRs 027-032, spec, plan, glossary (#10)
+
+Grill-then-plan output for GitHub issue #10 (per-Stop weather on the itinerary):
+CONTEXT glossary terms (Weather reading / Now / On-arrival / Forecast horizon /
+No weather data), ADRs 027-032, design spec, UI mock, and the 11-task TDD
+implementation plan. Google billing verified enabled; Weather API works on the
+deployed key.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-06T09:13:55+07:00 — feat(trips): add IWeatherService seam + no-op fallback (#10)
+- 2026-07-06T09:20:38+07:00 — feat(trips): GoogleWeatherService current-conditions lookup (#10)
+- 2026-07-06T09:27:23+07:00 — $(cat <<'EOF'
+test(trips): guard GoogleWeatherService sends no field mask (#10)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-06T09:33:11+07:00 — feat(trips): GoogleWeatherService on-arrival hourly bucket (#10)
+- 2026-07-06T09:40:46+07:00 — feat(trips): GetStopWeather query+handler+validator (#10)
+- 2026-07-06T09:47:41+07:00 — feat(trips): wire IWeatherService + POST api/trips/weather (#10)
+- 2026-07-06T09:53:00+07:00 — feat(trips): add getStopWeather RTK endpoint + weather DTOs (#10)
+- 2026-07-10T15:43:40+07:00 — feat(trips): pure weather helpers (window/icon/rainy/chip-state/batches) (#10)
+- 2026-07-10T15:49:34+07:00 — feat(trips): WeatherIcons + WeatherChip component (#10)
+- 2026-07-10T15:54:55+07:00 — feat(trips): weather chip tokens + styles (#10)
+- 2026-07-10T16:00:37+07:00 — feat(trips): useStopWeather hook (Now + On-arrival batches) (#10)
+- 2026-07-10T16:06:44+07:00 — $(cat <<'EOF'
+feat(trips): render per-stop Now + On-arrival weather chips (closes #10)
+EOF
+)
+- 2026-07-10T16:19:31+07:00 — $(cat <<'EOF'
+fix(trips): re-stamp StopId on weather cache hit for duplicate-coord stops (#10)
+EOF
+)
+- 2026-07-10T16:22:32+07:00 — (commit)
+- 2026-07-10T16:44:59+07:00 — docs: document pre-commit hook + scoped-add commit convention
+
+Repo-convention doc from a /reflect session (no feature ticket): the
+frontend/.husky/pre-commit hook runs the full backend+frontend suite on every
+commit, and feature commits must stage explicit paths (never git add -A) to
+avoid sweeping the dirty daily-state.md / untracked AGENTS.md.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-10T16:52:24+07:00 — docs(trips): renumber weather ADRs 027-032 -> 028-033 (#10)
+
+The weather feature was numbered ADR-027..032 on a base predating main's
+concurrent approach-leg feature, which had already claimed ADR-027. Renumber the
+six weather ADRs to 028-033 (approach-leg keeps 027) and update every reference
+in the spec, plan, and CONTEXT.md glossary. Docs-only; no code change.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-10T16:53:43+07:00 — (commit)
