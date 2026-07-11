@@ -9,6 +9,7 @@ export function TravelLeg({leg, mode}: {leg: LegDto; mode: TravelMode}) {
   const prefix = estimated ? '~' : ''
   return (
     <div className="travel-leg">
+      {/* ADR-024 locks this pill's exact text: full word "นาที", never abbreviated. */}
       <span className="leg-pill">{ICON[mode]} {prefix}{Math.round(leg.seconds / 60)} นาที</span>
       <span className="leg-line" />
       <span className="leg-dist">{prefix}{(leg.meters / 1000).toFixed(1)} กม.</span>

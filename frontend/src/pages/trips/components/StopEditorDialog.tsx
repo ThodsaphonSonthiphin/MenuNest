@@ -16,6 +16,7 @@ import {computeSchedule} from '../hooks/useSchedule'
 import {catColor, catLabel} from '../placeCategory'
 import {DwellStepper} from './DwellStepper'
 import {BestTimeBar} from './BestTimeBar'
+import {formatDurationMinutes} from '../utils/time'
 
 const MODES: {label: string; value: TravelMode}[] = [
   {label: '🚗 รถยนต์', value: 'Drive'},
@@ -164,7 +165,7 @@ export function StopEditorDialog({
           />
           {leg && (
             <p className="se-leg">
-              {legMinutes} นาที · {legKm} กม จากจุดก่อนหน้า · คำนวณอัตโนมัติ
+              {formatDurationMinutes(legMinutes!)} · {legKm} กม จากจุดก่อนหน้า · คำนวณอัตโนมัติ
             </p>
           )}
         </section>
