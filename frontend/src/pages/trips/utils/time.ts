@@ -18,3 +18,15 @@ export function dateToHms(date: Date | null): string | null {
   const ss = String(date.getSeconds()).padStart(2, '0')
   return `${hh}:${mm}:${ss}`
 }
+
+/**
+ * Format a duration given in minutes as "Xชม. Yน." once it reaches an hour,
+ * otherwise plain "Yน." Raw double/triple-digit minute counts (e.g. "133 น.")
+ * are hard to read at a glance.
+ */
+export function formatDurationMinutes(totalMinutes: number): string {
+  const m = Math.max(0, Math.round(totalMinutes))
+  const hours = Math.floor(m / 60)
+  const minutes = m % 60
+  return hours > 0 ? `${hours}ชม. ${minutes}น.` : `${minutes}น.`
+}
