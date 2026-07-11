@@ -1,5 +1,6 @@
 {
   "enabledPlugins": {
+    "ado-backlog@workflow-daily-work": true,
     "dev-workflows@workflow-daily-work": true,
     "github-backlog@workflow-daily-work": true,
     "react-workflows@workflow-daily-work": true,
