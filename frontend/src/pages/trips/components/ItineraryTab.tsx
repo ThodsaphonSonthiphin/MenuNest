@@ -24,6 +24,7 @@ import {ChevronUpIcon, ChevronDownIcon, MapRouteIcon} from './TripFormIcons'
 import type {DayRoute} from '../hooks/useDayRoute'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {appInsights} from '../../../shared/telemetry/appInsights'
+import {formatDurationMinutes} from '../utils/time'
 
 // Frame padding for the 188px itinerary map band. Small and top-weighted (route pins
 // hang above their coordinate: callout + numbered dot), so the route fills the short band
@@ -221,7 +222,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             เสร็จ <b>{dayEnd}</b>
           </span>
           <span>
-            เดินทางรวม <b>{Math.round(totalTravelSeconds / 60)} น.</b>
+            เดินทางรวม <b>{formatDurationMinutes(totalTravelSeconds / 60)}</b>
           </span>
         </div>
         {dayNav && (
