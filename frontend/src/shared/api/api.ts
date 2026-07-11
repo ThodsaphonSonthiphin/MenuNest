@@ -501,7 +501,7 @@ export interface TripPlaceDto {
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null }
-export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; stops: StopDto[] }
+export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; useCurrentTimeAsStart: boolean; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
 export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
 export interface WeatherReadingDto {
@@ -1318,6 +1318,10 @@ export const api = createApi({
             query: ({tripId, dayId, startTime}) => ({url: `/api/trips/${tripId}/days/${dayId}`, method: 'PATCH', body: {startTime}}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
         }),
+        setDayUseCurrentTime: build.mutation<void, {tripId: string; dayId: string; useCurrentTime: boolean}>({
+            query: ({tripId, dayId, useCurrentTime}) => ({url: `/api/trips/${tripId}/days/${dayId}/use-current-time`, method: 'PATCH', body: {useCurrentTime}}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
         // -------------------- Trip weather --------------------
         getStopWeather: build.query<
             WeatherReadingDto[],
@@ -1475,6 +1479,7 @@ export const {
     useRemoveStopMutation,
     useReorderStopsMutation,
     useSetDayStartTimeMutation,
+    useSetDayUseCurrentTimeMutation,
     useGetStopWeatherQuery,
 } = api
 

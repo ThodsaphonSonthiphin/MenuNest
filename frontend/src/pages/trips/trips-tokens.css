@@ -526,6 +526,23 @@
   outline: none;
 }
 
+/* "ใช้เวลาปัจจุบันเสมอ" (always use current time) toggle — persists per-Day and
+   makes the backend re-seed dayStartTime from the clock on every itinerary fetch. */
+.day-start-live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9fb0c4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.day-start-live-toggle input { accent-color: var(--teal); cursor: pointer; }
+
+.day-summary .day-start-picker.sf-disabled,
+.day-summary .day-start-picker[aria-disabled='true'] { opacity: 0.55; }
+
 /* ── Editable trip start date in the detail header (ADR-012 / ADR-013) ── */
 /* Reuses the day-start editor treatment: neutralize the Syncfusion DatePicker
    chrome so the field reads as header text at rest and opens on tap. The React

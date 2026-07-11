@@ -73,7 +73,11 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
                     : null;
                 stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg));
             }
-            result.Add(new ItineraryDayDto(day.Id, day.Date, day.DayStartTime, stopDtos));
+            // A Day flagged UseCurrentTimeAsStart tracks the real clock on every read (the
+            // persisted DayStartTime is left untouched as the fallback for when the flag is
+            // later turned off), so the schedule cascade below always seeds from "now".
+            var startTime = day.UseCurrentTimeAsStart ? TimeOnly.FromDateTime(DateTime.Now) : day.DayStartTime;
+            result.Add(new ItineraryDayDto(day.Id, day.Date, startTime, day.UseCurrentTimeAsStart, stopDtos));
         }
         return result;
 
