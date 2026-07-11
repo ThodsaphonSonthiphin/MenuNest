@@ -9,6 +9,7 @@ public sealed class ItineraryDay : Entity
     public Guid TripId { get; private set; }
     public DateOnly Date { get; private set; }
     public TimeOnly DayStartTime { get; private set; }
+    public bool UseCurrentTimeAsStart { get; private set; }
 
     private ItineraryDay() { } // EF
 
@@ -21,6 +22,12 @@ public sealed class ItineraryDay : Entity
     public void SetStartTime(TimeOnly start)
     {
         DayStartTime = start;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetUseCurrentTimeAsStart(bool useCurrentTime)
+    {
+        UseCurrentTimeAsStart = useCurrentTime;
         UpdatedAt = DateTime.UtcNow;
     }
 

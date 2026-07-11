@@ -121,7 +121,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
 
   // EMPTY_DAY is used as a fallback so useSchedule is ALWAYS called unconditionally
   // (Rules of Hooks: hook count must be identical on every render).
-  const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', stops: []}
+  const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', useCurrentTimeAsStart: false, stops: []}
   const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
   const stopWeather = useStopWeather(day ?? EMPTY_DAY, scheduled, placesById)
 
@@ -216,6 +216,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             tripId={tripId}
             dayId={resolvedDayId}
             dayStartTime={resolvedDay.dayStartTime}
+            useCurrentTimeAsStart={resolvedDay.useCurrentTimeAsStart}
             onError={setActionError}
           />
           <span>

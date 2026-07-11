@@ -12,7 +12,7 @@ const stop = (id: string, seq: number, dwell: number, legSec: number | null) => 
 describe('computeSchedule', () => {
   it('cascades arrival = prev depart + leg; depart = arrival + dwell', () => {
     const day: ItineraryDayDto = {
-      id: 'd1', date: '2026-11-14', dayStartTime: '09:00:00',
+      id: 'd1', date: '2026-11-14', dayStartTime: '09:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 60, null), stop('2', 1, 45, 25 * 60), stop('3', 2, 90, 30 * 60)],
     }
     const s = computeSchedule(day)
@@ -23,7 +23,7 @@ describe('computeSchedule', () => {
 
   it('includes a populated leg on the first stop (Approach leg) in the cascade', () => {
     const day: ItineraryDayDto = {
-      id: 'd1', date: '2026-11-14', dayStartTime: '09:00:00',
+      id: 'd1', date: '2026-11-14', dayStartTime: '09:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 60, 10 * 60), stop('2', 1, 45, 25 * 60)],
     }
     const s = computeSchedule(day)
@@ -84,7 +84,7 @@ describe('computeSchedule overnight', () => {
     // stop1: arrival=22:00 (1320min), depart=00:00 (1440min) → overnight on depart
     // stop2: arrival=00:30 (1470min) → overnight
     const day: ItineraryDayDto = {
-      id: 'd1', date: '2026-11-14', dayStartTime: '22:00:00',
+      id: 'd1', date: '2026-11-14', dayStartTime: '22:00:00', useCurrentTimeAsStart: false,
       stops: [
         stop('1', 0, 120, null),          // arrival 1320, depart 1440 → overnight
         stop('2', 1, 60, 30 * 60),        // arrival 1470, depart 1530 → overnight
@@ -97,7 +97,7 @@ describe('computeSchedule overnight', () => {
 
   it('does not mark overnight for normal day stops', () => {
     const day: ItineraryDayDto = {
-      id: 'd2', date: '2026-11-14', dayStartTime: '09:00:00',
+      id: 'd2', date: '2026-11-14', dayStartTime: '09:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 60, null), stop('2', 1, 45, 25 * 60)],
     }
     const s = computeSchedule(day)
@@ -116,7 +116,7 @@ const mkHours = (periods: unknown) => JSON.stringify({periods})
 describe('computeSchedule arrivedAfterMidnight', () => {
   it('true only when the raw arrival crosses midnight', () => {
     const day: ItineraryDayDto = {
-      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00',
+      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 120, null), stop('2', 1, 60, 30 * 60)],
     }
     const s = computeSchedule(day)
@@ -174,7 +174,7 @@ describe('closedFlag', () => {
 describe('composeFlags', () => {
   it('overflow fires once, on the first stop reached after midnight', () => {
     const day: ItineraryDayDto = {
-      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00',
+      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 120, null), stop('2', 1, 60, 30 * 60), stop('3', 2, 60, 30 * 60)],
     }
     const composed = composeFlags(computeSchedule(day), {}, dayOfWeek(day.date))
@@ -184,7 +184,7 @@ describe('composeFlags', () => {
   })
   it('no overflow when only the departure crosses midnight', () => {
     const day: ItineraryDayDto = {
-      id: 'd', date: '2026-11-14', dayStartTime: '23:00:00',
+      id: 'd', date: '2026-11-14', dayStartTime: '23:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 90, null)], // arrival 23:00, depart 00:30
     }
     const composed = composeFlags(computeSchedule(day), {}, dayOfWeek(day.date))
@@ -195,13 +195,13 @@ describe('composeFlags', () => {
       bestTimeStart: '12:00:00', bestTimeEnd: '13:00:00',
       openingHoursJson: mkHours([{open: {day: 6, hour: 10}, close: {day: 6, hour: 11}}]), // Sat 10–11
     })
-    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '14:00:00', stops: [stop('1', 0, 30, null)]}
+    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '14:00:00', useCurrentTimeAsStart: false, stops: [stop('1', 0, 30, null)]}
     const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
     expect(composed[0].flag?.reason).toBe('closed')
   })
   it('null flag for a well-timed open stop with no window', () => {
     const p = mkPlace({openingHoursJson: mkHours([{open: {day: 6, hour: 8}, close: {day: 6, hour: 20}}])})
-    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', stops: [stop('1', 0, 30, null)]}
+    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', useCurrentTimeAsStart: false, stops: [stop('1', 0, 30, null)]}
     const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
     expect(composed[0].flag).toBeNull()
   })
@@ -210,7 +210,7 @@ describe('composeFlags', () => {
     // Day starts 22:00 so stop 2 is reached at 00:30 (after midnight) AND is closed.
     const p = mkPlace({openingHoursJson: mkHours([{open: {day: 2, hour: 9}, close: {day: 2, hour: 17}}])})
     const day: ItineraryDayDto = {
-      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00',
+      id: 'd', date: '2026-11-14', dayStartTime: '22:00:00', useCurrentTimeAsStart: false,
       stops: [stop('1', 0, 120, null), stop('2', 1, 60, 30 * 60)],
     }
     const composed = composeFlags(computeSchedule(day), {p1: p, p2: p}, dayOfWeek(day.date))
@@ -219,7 +219,7 @@ describe('composeFlags', () => {
   it('no flag for a 24/7 place (always-open sentinel) on a weekday', () => {
     const p = mkPlace({openingHoursJson: mkHours([{open: {day: 0, hour: 0, minute: 0}}])})
     // 2026-11-14 is Saturday (dow 6); a 24/7 place must NOT be flagged closed.
-    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', stops: [stop('1', 0, 30, null)]}
+    const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', useCurrentTimeAsStart: false, stops: [stop('1', 0, 30, null)]}
     const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
     expect(composed[0].flag).toBeNull()
   })

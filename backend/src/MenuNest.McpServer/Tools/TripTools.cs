@@ -15,6 +15,7 @@ using MenuNest.Application.UseCases.Trips.UpdateStop;
 using MenuNest.Application.UseCases.Trips.RemoveStop;
 using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
+using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Domain.Enums;
 
@@ -159,6 +160,14 @@ public sealed class TripTools(IMediator mediator)
         [Description("Day start time, HH:mm (24h)")] TimeOnly startTime,
         CancellationToken ct)
         => await mediator.Send(new SetDayStartTimeCommand(tripId, dayId, startTime), ct);
+
+    [McpServerTool, Description("Toggle whether an itinerary day's start time always tracks the current real-world clock time (re-evaluated on every get_itinerary call) instead of a fixed picked time.")]
+    public async Task set_day_use_current_time(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Itinerary day ID")] Guid dayId,
+        [Description("True to always start the day's schedule from the current time; false to use the last picked start time")] bool useCurrentTime,
+        CancellationToken ct)
+        => await mediator.Send(new SetDayUseCurrentTimeCommand(tripId, dayId, useCurrentTime), ct);
 
     [McpServerTool, Description("Batch weather for stops. kind=Now returns current conditions; kind=OnArrival returns the forecast at each point's arrivalIso. Assemble points from list_trip_places (lat/lng — StopDto has none) + get_itinerary (arrival times). Points outside the forecast window / in the past / with no coords return hasData=false rather than erroring (but lat/lng outside valid ranges are rejected).")]
     public async Task<IReadOnlyList<WeatherReadingDto>> get_stop_weather(

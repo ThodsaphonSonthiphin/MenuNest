@@ -504,6 +504,45 @@
 .day-summary .day-start-picker .sf-time-icon,
 .day-summary .day-start-picker .sf-input-group-icon { color: #9fb0c4; }
 
+/* "ตอนนี้" (now) quick-set button — sets the day start to the current time */
+.day-start-now-btn {
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #9fb0c4;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.day-start-now-btn:hover,
+.day-start-now-btn:focus-visible {
+  border-color: var(--teal);
+  background: rgba(14, 143, 158, 0.18);
+  color: #fff;
+  outline: none;
+}
+
+/* "ใช้เวลาปัจจุบันเสมอ" (always use current time) toggle — persists per-Day and
+   makes the backend re-seed dayStartTime from the clock on every itinerary fetch. */
+.day-start-live-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9fb0c4;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.day-start-live-toggle input { accent-color: var(--teal); cursor: pointer; }
+
+.day-summary .day-start-picker.sf-disabled,
+.day-summary .day-start-picker[aria-disabled='true'] { opacity: 0.55; }
+
 /* ── Editable trip start date in the detail header (ADR-012 / ADR-013) ── */
 /* Reuses the day-start editor treatment: neutralize the Syncfusion DatePicker
    chrome so the field reads as header text at rest and opens on tap. The React

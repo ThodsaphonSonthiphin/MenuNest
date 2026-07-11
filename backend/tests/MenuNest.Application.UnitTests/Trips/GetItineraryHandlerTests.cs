@@ -128,4 +128,26 @@ public class GetItineraryHandlerTests
             r => r.GetLegTimesAsync(It.IsAny<IReadOnlyList<RoutePoint>>(), It.IsAny<TravelMode>(), It.IsAny<CancellationToken>()),
             Times.Never);
     }
+
+    [Fact]
+    public async Task Uses_the_current_time_as_start_when_the_day_is_flagged_to_track_it()
+    {
+        using var fx = new HandlerTestFixture();
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1), new TimeOnly(9, 0));
+        day.SetUseCurrentTimeAsStart(true);
+        fx.Db.ItineraryDays.Add(day);
+        await fx.Db.SaveChangesAsync();
+
+        var route = new Mock<IRouteService>();
+
+        var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object)
+            .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None);
+
+        days[0].UseCurrentTimeAsStart.Should().BeTrue();
+        var expectedNow = TimeOnly.FromDateTime(DateTime.Now);
+        days[0].DayStartTime.Should().BeCloseTo(expectedNow, TimeSpan.FromSeconds(5));
+        days[0].DayStartTime.Should().NotBe(new TimeOnly(9, 0));
+    }
 }
