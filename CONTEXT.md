@@ -65,6 +65,12 @@ the glossary wins until the glossary is deliberately changed.
 - **Smart Schedule** — the per-day itinerary view that cascades arrival/leave times
   from the day start through **Dwell** + **Leg** travel time, and flags each Stop
   against its best-time window and opening hours (see ADR-008).
+- **Current-time start** — a per-**Day** mode (flag `UseCurrentTimeAsStart`; UI
+  "ใช้เวลาปัจจุบันเสมอ") that re-seeds the Day's **day start time** to the **viewer's**
+  local "now" on every itinerary fetch, instead of the last picked time. "Now" is
+  wall-clock time in the viewer's own time zone: the caller supplies an IANA
+  time-zone id and the server resolves it against its own **UTC** clock — never the
+  server's local time (see ADR-038). _Avoid_: server time, live start, auto start.
 - **Timing flag** — a warning shown on a **Stop** in the **Smart Schedule** when its
   computed arrival is problematic, stating the reason and a suggested fix in words
   (ADR-019). Three types by **reason** — **closed** (place shut at arrival),
