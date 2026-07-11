@@ -14,6 +14,7 @@ using MenuNest.Application.UseCases.Trips.RemoveStop;
 using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.ResolvePlace;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
+using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.UpdateStop;
 using MenuNest.Application.UseCases.Trips.UpdateTrip;
 using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
@@ -97,6 +98,10 @@ public sealed class TripsController : ControllerBase
     public async Task<IActionResult> SetDayStart(Guid id, Guid dayId, [FromBody] SetDayStartBody b, CancellationToken ct)
     { await _mediator.Send(new SetDayStartTimeCommand(id, dayId, b.StartTime), ct); return NoContent(); }
 
+    [HttpPatch("api/trips/{id:guid}/days/{dayId:guid}/use-current-time")]
+    public async Task<IActionResult> SetDayUseCurrentTime(Guid id, Guid dayId, [FromBody] SetDayUseCurrentTimeBody b, CancellationToken ct)
+    { await _mediator.Send(new SetDayUseCurrentTimeCommand(id, dayId, b.UseCurrentTime), ct); return NoContent(); }
+
     [HttpPost("api/trips/weather")]
     public async Task<ActionResult<IReadOnlyList<WeatherReadingDto>>> Weather([FromBody] GetStopWeatherQuery q, CancellationToken ct)
         => Ok(await _mediator.Send(q, ct));
@@ -123,3 +128,5 @@ public sealed record UpdateStopBody(
 public sealed record ReorderBody(IReadOnlyList<Guid> OrderedStopIds);
 
 public sealed record SetDayStartBody(TimeOnly StartTime);
+
+public sealed record SetDayUseCurrentTimeBody(bool UseCurrentTime);

@@ -19,7 +19,7 @@ public sealed record StopDto(
     TravelMode TravelModeToReach, LegDto? LegToReach);
 
 public sealed record ItineraryDayDto(
-    Guid Id, DateOnly Date, TimeOnly DayStartTime, IReadOnlyList<StopDto> Stops);
+    Guid Id, DateOnly Date, TimeOnly DayStartTime, bool UseCurrentTimeAsStart, IReadOnlyList<StopDto> Stops);
 
 public sealed record ResolvedPlaceDto(
     string? GooglePlaceId, string Name, double Lat, double Lng, string? Address,
