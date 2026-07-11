@@ -6,6 +6,7 @@ import {flagText} from '../timingFlag'
 import {NavIcon} from './NavIcon'
 import {ClockIcon, LockIcon, MoonIcon} from './FlagIcons'
 import {WeatherChip} from './WeatherChip'
+import {formatDurationMinutes} from '../utils/time'
 
 // Reason → icon component. `typeof LockIcon` avoids naming the JSX namespace.
 const REASON_ICON: Record<FlagReason, typeof LockIcon> = {
@@ -69,7 +70,7 @@ export function ItineraryStopCard({
       <button className="stop-body" onClick={onEdit}>
         <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
         <div className="stop-chips">
-          <span className="chip dwell">⏱ อยู่ {dwell} น.</span>
+          <span className="chip dwell">⏱ อยู่ {formatDurationMinutes(dwell)}</span>
           <WeatherChip kind="now" reading={nowReading} isLoading={weatherLoading} />
           <WeatherChip kind="arr" reading={arrivalReading} isLoading={weatherLoading} />
         </div>
