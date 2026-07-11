@@ -20,13 +20,13 @@ export function dateToHms(date: Date | null): string | null {
 }
 
 /**
- * Format a duration given in minutes as "Xชม. Yน." once it reaches an hour,
- * otherwise plain "Yน." Raw double/triple-digit minute counts (e.g. "133 น.")
+ * Format a duration given in minutes as "X ชม. Y น." once it reaches an hour,
+ * otherwise plain "Y น." Raw double/triple-digit minute counts (e.g. "133 น.")
  * are hard to read at a glance.
  */
 export function formatDurationMinutes(totalMinutes: number): string {
   const m = Math.max(0, Math.round(totalMinutes))
   const hours = Math.floor(m / 60)
   const minutes = m % 60
-  return hours > 0 ? `${hours}ชม. ${minutes}น.` : `${minutes}น.`
+  return hours > 0 ? `${hours} ชม. ${minutes} น.` : `${minutes} น.`
 }

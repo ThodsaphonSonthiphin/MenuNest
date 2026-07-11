@@ -34,17 +34,17 @@ describe('dateToHms', () => {
 
 describe('formatDurationMinutes', () => {
   it('formats under an hour as plain minutes', () => {
-    expect(formatDurationMinutes(0)).toBe('0น.')
-    expect(formatDurationMinutes(45)).toBe('45น.')
+    expect(formatDurationMinutes(0)).toBe('0 น.')
+    expect(formatDurationMinutes(45)).toBe('45 น.')
   })
   it('formats an hour or more as hours + minutes', () => {
-    expect(formatDurationMinutes(60)).toBe('1ชม. 0น.')
-    expect(formatDurationMinutes(133)).toBe('2ชม. 13น.')
+    expect(formatDurationMinutes(60)).toBe('1 ชม. 0 น.')
+    expect(formatDurationMinutes(133)).toBe('2 ชม. 13 น.')
   })
   it('rounds fractional minutes', () => {
-    expect(formatDurationMinutes(133.4)).toBe('2ชม. 13น.')
+    expect(formatDurationMinutes(133.4)).toBe('2 ชม. 13 น.')
   })
   it('clamps negative input to 0', () => {
-    expect(formatDurationMinutes(-5)).toBe('0น.')
+    expect(formatDurationMinutes(-5)).toBe('0 น.')
   })
 })
