@@ -23,7 +23,7 @@ flowchart TD
       B3 --> B4["start = 14:43 (7h behind ICT)"]
     end
     subgraph After["After — fix"]
-      A1["caller sends IANA tz id<br/>(SPA: Intl…timeZone · MCP: required arg)"] --> A2["GetItineraryHandler:<br/>ConvertTimeFromUtc(IClock.UtcNow, tz)"]
+      A1["caller sends IANA tz id<br/>(SPA: Intl…timeZone · MCP: optional, only if a flagged Day)"] --> A2["GetItineraryHandler:<br/>ConvertTimeFromUtc(IClock.UtcNow, tz)"]
       A2 --> A3["start = 21:44 (viewer-local ICT)"]
     end
 ```
@@ -168,6 +168,6 @@ The 4 pre-existing non-time tests (ordered stops, leg travel modes, approach leg
 ## 7. Self-review
 
 - No placeholders / TODOs; every named file/line verified against the current tree.
-- Internally consistent with ADR-038 (all five decisions reflected: A1, IANA, required, reject-always, IClock).
+- Internally consistent with ADR-038 (all five decisions reflected: A1, IANA, required-when-flagged, reject-when-used, IClock).
 - Scope matches the recap; non-goals explicit. Transitive weather correctness noted, no extra work claimed.
-- Ambiguity resolved: eager tz validation, required-arg enforcement mechanism, FixedClock Kind, cache-key stability all stated.
+- Ambiguity resolved: when-flagged tz validation, enforcement mechanism, FixedClock Kind, cache-key stability all stated.
