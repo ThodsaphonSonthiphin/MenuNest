@@ -1,4 +1,4 @@
-import {describe, it, expect} from 'vitest'
+import {describe, it, expect, vi} from 'vitest'
 import {hmsToDate, dateToHms, formatDurationMinutes, getViewerTimeZone} from './time'
 
 describe('hmsToDate', () => {
@@ -55,7 +55,9 @@ describe('getViewerTimeZone', () => {
     expect(getViewerTimeZone()).toBe(expected)
   })
 
-  it('is a non-empty string (falls back to UTC)', () => {
-    expect(getViewerTimeZone().length).toBeGreaterThan(0)
+  it("falls back to 'UTC' when Intl resolves an empty time zone", () => {
+    const spy = vi.spyOn(Intl, 'DateTimeFormat').mockReturnValue({resolvedOptions: () => ({timeZone: ''})} as any)
+    expect(getViewerTimeZone()).toBe('UTC')
+    spy.mockRestore()
   })
 })
