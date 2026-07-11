@@ -59,7 +59,7 @@ export function buildSegments(points: LegPoint[]): RouteSegment[] {
 }
 
 // Always pass a real day to useSchedule so its hook count is stable (Rules of Hooks).
-const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', stops: []}
+const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', useCurrentTimeAsStart: false, stops: []}
 
 const toMin = (hhmm: string) => {
   const [h, m] = hhmm.slice(0, 5).split(':').map(Number)
