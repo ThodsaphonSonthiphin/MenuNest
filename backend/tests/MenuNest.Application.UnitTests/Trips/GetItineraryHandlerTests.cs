@@ -32,7 +32,7 @@ public class GetItineraryHandlerTests
             .ReturnsAsync(new List<LegTime> { new(900, 4200, "poly123", RouteSource.Estimated) }); // one leg for two points
 
         var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object, fx.Clock)
-            .Handle(new GetItineraryQuery(trip.Id, "UTC"), CancellationToken.None);
+            .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None);
 
         days.Should().HaveCount(1);
         days[0].Stops.Should().HaveCount(2);
@@ -70,7 +70,7 @@ public class GetItineraryHandlerTests
             .ReturnsAsync(new List<LegTime> { new(600, 2000, null, RouteSource.Routed) });
 
         await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object, fx.Clock)
-            .Handle(new GetItineraryQuery(trip.Id, "UTC"), CancellationToken.None);
+            .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None);
 
         capturedModes.Should().Equal(new[] { TravelMode.Walk, TravelMode.Transit });
     }
@@ -95,7 +95,7 @@ public class GetItineraryHandlerTests
             .ReturnsAsync(new List<LegTime> { new(500, 3000, "approachPoly", RouteSource.Routed) });
 
         var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object, fx.Clock)
-            .Handle(new GetItineraryQuery(trip.Id, "UTC", ViewerLat: 18.81, ViewerLng: 98.90), CancellationToken.None);
+            .Handle(new GetItineraryQuery(trip.Id, ViewerLat: 18.81, ViewerLng: 98.90), CancellationToken.None);
 
         days[0].Stops[0].LegToReach.Should().NotBeNull();
         days[0].Stops[0].LegToReach!.Seconds.Should().Be(500);
@@ -121,7 +121,7 @@ public class GetItineraryHandlerTests
         var route = new Mock<IRouteService>();
 
         var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, route.Object, fx.Clock)
-            .Handle(new GetItineraryQuery(trip.Id, "UTC", ViewerLat: 18.81, ViewerLng: 98.90), CancellationToken.None);
+            .Handle(new GetItineraryQuery(trip.Id, ViewerLat: 18.81, ViewerLng: 98.90), CancellationToken.None);
 
         days.Should().HaveCount(1);
         days[0].Stops.Should().BeEmpty();
@@ -169,7 +169,7 @@ public class GetItineraryHandlerTests
     }
 
     [Fact]
-    public async Task Keeps_the_persisted_start_time_when_the_day_is_not_flagged()
+    public async Task Ignores_a_missing_time_zone_when_no_day_is_flagged()
     {
         using var fx = new HandlerTestFixture();
         fx.Clock.UtcNow = new DateTime(2026, 1, 15, 12, 0, 0, DateTimeKind.Utc);
@@ -180,18 +180,54 @@ public class GetItineraryHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock)
-            .Handle(new GetItineraryQuery(trip.Id, "Asia/Bangkok"), CancellationToken.None);
+            .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None); // no tz supplied
 
         days[0].UseCurrentTimeAsStart.Should().BeFalse();
-        days[0].DayStartTime.Should().Be(new TimeOnly(9, 0)); // untouched, no conversion
+        days[0].DayStartTime.Should().Be(new TimeOnly(9, 0)); // persisted, untouched
     }
 
     [Fact]
-    public async Task Rejects_an_unresolvable_time_zone_even_with_no_flagged_day()
+    public async Task Ignores_an_unresolvable_time_zone_when_no_day_is_flagged()
     {
         using var fx = new HandlerTestFixture();
         var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 1, 15), 1, TravelMode.Drive);
         fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 15), new TimeOnly(9, 0)); // NOT flagged
+        fx.Db.ItineraryDays.Add(day);
+        await fx.Db.SaveChangesAsync();
+
+        var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock)
+            .Handle(new GetItineraryQuery(trip.Id, "Not/AZone"), CancellationToken.None); // bad tz, but unused
+
+        days[0].DayStartTime.Should().Be(new TimeOnly(9, 0)); // no throw; bad tz never validated
+    }
+
+    [Fact]
+    public async Task Rejects_a_missing_time_zone_when_a_day_is_flagged()
+    {
+        using var fx = new HandlerTestFixture();
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 1, 15), 1, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 15), new TimeOnly(9, 0));
+        day.SetUseCurrentTimeAsStart(true);
+        fx.Db.ItineraryDays.Add(day);
+        await fx.Db.SaveChangesAsync();
+        var handler = new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock);
+
+        var act = () => handler.Handle(new GetItineraryQuery(trip.Id), CancellationToken.None).AsTask(); // no tz
+
+        await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task Rejects_an_unresolvable_time_zone_when_a_day_is_flagged()
+    {
+        using var fx = new HandlerTestFixture();
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 1, 15), 1, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 15), new TimeOnly(9, 0));
+        day.SetUseCurrentTimeAsStart(true);
+        fx.Db.ItineraryDays.Add(day);
         await fx.Db.SaveChangesAsync();
         var handler = new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock);
 

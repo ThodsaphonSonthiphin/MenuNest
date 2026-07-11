@@ -45,19 +45,29 @@ var startTime = day.UseCurrentTimeAsStart ? TimeOnly.FromDateTime(DateTime.Now) 
 - **In:** the one `GetItinerary` request path — query contract, handler, HTTP controller, MCP tool, SPA callers, and the mirror test.
 - **Out (non-goals):** storing a time zone per Trip/Day/User (the caller supplies it per request); the "ตอนนี้" button (already correct); the weather endpoints (On-arrival derives from the client cascade that seeds off `dayStartTime`, so it is fixed **transitively** once the seed is correct — no change needed); any server timezone config (the fix removes that dependency entirely).
 
-## 3. Contract change — `GetItinerary` gains a required IANA time zone
+## 3. Contract change — `GetItinerary`'s IANA time zone is optional at the type level, required only when a current-time-start Day exists
+
+**Scrutiny refinement:** the first version of this fix made the tz eagerly required
+for every call, which took down normal itinerary reads for trips with no
+current-time-start Day and broadened the MCP `get_itinerary` contract for every
+trip. The contract below scopes the requirement to when it is actually used.
 
 ```mermaid
 sequenceDiagram
     participant C as Caller (SPA / MCP AI)
     participant H as GetItineraryHandler
     participant K as IClock (UtcNow)
-    C->>H: GetItineraryQuery(tripId, timeZoneId, lat?, lng?)
-    H->>H: resolve tz = FindSystemTimeZoneById(timeZoneId)
-    Note over H: unresolvable → DomainException (reject, no fallback)
-    H->>K: UtcNow
-    K-->>H: 2026-07-11T14:44Z
-    H->>H: flagged day → ConvertTimeFromUtc(UtcNow, tz) → 21:44
+    C->>H: GetItineraryQuery(tripId, timeZoneId?, lat?, lng?)
+    H->>H: load Days
+    alt any Day.UseCurrentTimeAsStart
+        H->>H: resolve tz = FindSystemTimeZoneById(timeZoneId)
+        Note over H: missing/unresolvable → DomainException (reject, no fallback)
+        H->>K: UtcNow
+        K-->>H: 2026-07-11T14:44Z
+        H->>H: flagged day → ConvertTimeFromUtc(UtcNow, tz) → 21:44
+    else no Day flagged
+        Note over H: timeZoneId ignored entirely — missing/bad value is not an error
+    end
     H-->>C: ItineraryDayDto[] (dayStartTime = effective start)
 ```
 
@@ -65,40 +75,48 @@ sequenceDiagram
 
 | File | Change |
 |---|---|
-| `GetItinerary/GetItineraryQuery.cs` | `record GetItineraryQuery(Guid TripId, string TimeZoneId, double? ViewerLat = null, double? ViewerLng = null)` — `TimeZoneId` **required** (non-nullable), placed before the optional viewer params. |
-| `GetItinerary/GetItineraryHandler.cs` | Inject `IClock` (4th ctor arg). Resolve the tz **once, up front** (before the day loop) so a bad id is rejected regardless of whether any day is flagged. Replace line 79 with the converted-local computation. |
+| `GetItinerary/GetItineraryQuery.cs` | `record GetItineraryQuery(Guid TripId, string? TimeZoneId = null, double? ViewerLat = null, double? ViewerLng = null)` — `TimeZoneId` **optional** (nullable, default `null`). |
+| `GetItinerary/GetItineraryHandler.cs` | Inject `IClock` (4th ctor arg). Load `days` first, then resolve the tz **lazily** — only `if (days.Any(d => d.UseCurrentTimeAsStart))` — so a missing/bad id is rejected only when it would actually be used. Replace the old start-time line with the converted-local computation guarded by the same flag. |
 
 Handler shape (illustrative — exact code is the plan's job):
 
 ```csharp
 public GetItineraryHandler(IApplicationDbContext db, IUserProvisioner users, IRouteService routes, IClock clock) { … }
 
-TimeZoneInfo tz;
-try { tz = TimeZoneInfo.FindSystemTimeZoneById(q.TimeZoneId); }
-catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-{ throw new DomainException($"Unknown time zone: {q.TimeZoneId}"); }
+var days = await _db.ItineraryDays.Where(d => d.TripId == trip.Id).OrderBy(d => d.Date).ToListAsync(ct);
+
+TimeZoneInfo? tz = null;
+if (days.Any(d => d.UseCurrentTimeAsStart))
+{
+    if (string.IsNullOrWhiteSpace(q.TimeZoneId))
+        throw new DomainException("Time zone is required for a day that starts from the current time.");
+    try { tz = TimeZoneInfo.FindSystemTimeZoneById(q.TimeZoneId); }
+    catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+    { throw new DomainException($"Unknown time zone: {q.TimeZoneId}"); }
+}
 …
 var startTime = day.UseCurrentTimeAsStart
-    ? TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz))
+    ? TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz!))
     : day.DayStartTime;
 ```
 
 - `IClock.UtcNow` is `DateTime.UtcNow` (Kind = Utc), which `ConvertTimeFromUtc` requires. `SystemClock`/`IClock` is already DI-registered and used by other handlers.
 - `.NET` resolves IANA ids on both Linux and Windows (ICU) on the target runtime.
+- `tz!` is safe: `tz` is only read inside `day.UseCurrentTimeAsStart ? … : …`, and whenever any day is flagged, the guard above has already assigned it or thrown.
 
 ### 3.2 Web API
 
 | File | Change |
 |---|---|
-| `TripsController.cs` (GetItinerary action) | Add `[FromQuery] string tz` **before** `lat`/`lng`; pass to `new GetItineraryQuery(id, tz, lat, lng)`. Non-nullable reference type ⇒ ASP.NET applies implicit required validation (missing `tz` → `400`); reject empty/whitespace as well. |
+| `TripsController.cs` (GetItinerary action) | `[FromQuery] string? tz` **before** `lat`/`lng`; pass to `new GetItineraryQuery(id, tz, lat, lng)`. Nullable ⇒ no model-binding-level requirement; the handler enforces the requirement only when a flagged Day exists. |
 
 ### 3.3 MCP tool
 
 | File | Change |
 |---|---|
-| `TripTools.cs` (`get_itinerary`) | Add required `string timeZoneId` param with a `[Description]` such as *"The user's IANA time zone (e.g. Asia/Bangkok). Required — used to resolve any day set to 'always start from the current time' into the user's local wall-clock."* Pass into `GetItineraryQuery`. Update the tool `[Description]` to mention that `dayStart` for a current-time day is resolved in this zone. |
+| `TripTools.cs` (`get_itinerary`) | `string? timeZoneId` param with a `[Description]` of *"The user's IANA time zone, e.g. Asia/Bangkok. Optional — required ONLY if the trip has a day set to 'always start from the current time'; omit otherwise."* Pass into `GetItineraryQuery`. Update the tool `[Description]` to say `dayStart` for a current-time day is resolved using `timeZoneId` when supplied. |
 
-A non-nullable C# param ⇒ the MCP schema marks `timeZoneId` **required**, so the AI must supply it (no silent UTC path).
+A nullable C# param ⇒ the MCP schema marks `timeZoneId` **optional**; the AI only needs to supply it for trips it knows (from `get_itinerary`'s own prior response, or `get_trip`) contain a current-time-start day.
 
 ### 3.4 Frontend (SPA)
 
@@ -118,9 +136,11 @@ A non-nullable C# param ⇒ the MCP schema marks `timeZoneId` **required**, so t
 |---|---|
 | Flagged day, valid tz (SPA) | `dayStartTime` = viewer-local now (e.g. 21:44 ICT). |
 | Flagged day, MCP with user's tz | Same — Claude receives the correct local start. |
-| Non-flagged day | `dayStartTime` = persisted value, unchanged (tz still validated up front). |
-| Missing `tz` | HTTP `400` (model binding) / MCP required-arg error. No silent default. |
-| Present but unresolvable `tz` | `DomainException("Unknown time zone: …")`, surfaced as an error — **always**, even if no day is flagged. |
+| Non-flagged day, tz present | `dayStartTime` = persisted value, unchanged; tz is not validated (never used). |
+| Non-flagged day, tz missing | `dayStartTime` = persisted value, unchanged; no error — a missing tz is fine when nothing needs it. |
+| Non-flagged day, tz unresolvable (bad id) | `dayStartTime` = persisted value, unchanged; no error — the bad id is never validated because it is never used. |
+| Flagged day, tz missing | `DomainException("Time zone is required for a day that starts from the current time.")`. |
+| Flagged day, tz present but unresolvable | `DomainException("Unknown time zone: …")`, surfaced as an error. |
 | DST zones | Correct for any date via `ConvertTimeFromUtc` (Thailand has no DST; the design is DST-proof regardless). |
 
 ## 5. Testing strategy
@@ -128,10 +148,14 @@ A non-nullable C# param ⇒ the MCP schema marks `timeZoneId` **required**, so t
 **Backend (replaces the mirror test):**
 
 - Extend the test fixture to inject a `FixedClock` (UtcNow with `DateTimeKind.Utc`). Update **every** `new GetItineraryHandler(...)` call in `GetItineraryHandlerTests.cs` for the new ctor arg.
-- `Flagged day + Asia/Bangkok`: FixedClock `2026-11-01T07:44:00Z` → expect `TimeOnly(14, 44)`. Asserts a concrete converted value — cannot mirror the implementation.
-- `Flagged day + America/New_York`: same fixed UTC → a **different** local time, proving the tz is actually applied.
-- `Unknown tz` → `DomainException` (assert thrown), including when **no** day is flagged (eager-validation contract).
-- `Non-flagged day` → `dayStartTime` equals the persisted value regardless of tz.
+- `Resolves_a_current_time_day_start_in_the_supplied_time_zone`: flagged day + `Asia/Bangkok`, FixedClock `2026-01-15T12:00:00Z` → expect `TimeOnly(19, 0)` (12:00 UTC + 7h ICT). Asserts a concrete converted value — cannot mirror the implementation.
+- `Applies_the_time_zone_not_the_server_clock`: flagged day + `America/New_York`, same fixed UTC → `TimeOnly(7, 0)` (12:00 UTC − 5h EST, no DST in January) — a **different** local time than the Bangkok case, proving the tz is actually applied.
+- `Ignores_a_missing_time_zone_when_no_day_is_flagged`: no day flagged, no tz supplied → no throw, `dayStartTime` = persisted value.
+- `Ignores_an_unresolvable_time_zone_when_no_day_is_flagged`: no day flagged, tz = `"Not/AZone"` → no throw, `dayStartTime` = persisted value; the bad id is never validated because it is never used.
+- `Rejects_a_missing_time_zone_when_a_day_is_flagged`: a day is flagged, no tz supplied → `DomainException`.
+- `Rejects_an_unresolvable_time_zone_when_a_day_is_flagged`: a day is flagged, tz = `"Not/AZone"` → `DomainException`.
+
+The 4 pre-existing non-time tests (ordered stops, leg travel modes, approach leg with/without viewer coords) drop the `"UTC"` argument entirely, since `TimeZoneId` is now optional and none of those days are flagged.
 
 **Frontend:** update mocks/tests that reference the `getItinerary` arg/URL for the added `tz`; `tsc --noEmit` must pass with the new required arg (the compiler will flag any caller that forgot `tz`).
 

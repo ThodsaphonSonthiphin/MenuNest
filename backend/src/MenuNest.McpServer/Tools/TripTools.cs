@@ -111,10 +111,10 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new DeleteTripPlaceCommand(tripId, placeId), ct);
 
-    [McpServerTool, Description("Get the trip's itinerary: each day's start time and ordered stops, with each stop's dwell, travel mode, and resolved leg-to-reach (seconds/meters/source). For a day set to 'always start from the current time', dayStart is resolved into the supplied timeZoneId. Arrival/leave times and timing flags are NOT included — compute arrivals as dayStart + running sum of (previous leg seconds + previous dwell). viewerLat/viewerLng are for the app's live location and are normally omitted.")]
+    [McpServerTool, Description("Get the trip's itinerary: each day's start time and ordered stops, with each stop's dwell, travel mode, and resolved leg-to-reach (seconds/meters/source). For a day set to 'always start from the current time', dayStart is resolved using timeZoneId when supplied. Arrival/leave times and timing flags are NOT included — compute arrivals as dayStart + running sum of (previous leg seconds + previous dwell). viewerLat/viewerLng are for the app's live location and are normally omitted.")]
     public async Task<IReadOnlyList<ItineraryDayDto>> get_itinerary(
         [Description("Trip ID")] Guid tripId,
-        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Required — used to resolve any day set to 'always start from the current time' into the user's local wall-clock.")] string timeZoneId,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Optional — required ONLY if the trip has a day set to 'always start from the current time'; omit otherwise.")] string? timeZoneId,
         [Description("Viewer latitude for the approach leg (optional; usually omit)")] double? viewerLat,
         [Description("Viewer longitude for the approach leg (optional; usually omit)")] double? viewerLng,
         CancellationToken ct)
