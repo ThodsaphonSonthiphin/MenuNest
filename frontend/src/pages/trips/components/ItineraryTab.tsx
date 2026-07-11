@@ -107,7 +107,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const {data: days} = useGetItineraryQuery({tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng})
+  const {data: days, isLoading: itineraryLoading, error: itineraryError} = useGetItineraryQuery({tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
   const {data: trips} = useListTripsQuery()
   const [reorder] = useReorderStopsMutation()
@@ -145,7 +145,11 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const mixedMode = scheduled.slice(1).some((s) => s.stop.travelModeToReach !== dayMode)
 
   // Early return is now safe — all hooks have already been called above.
-  if (!dayList.length) return <p className="trips-muted">กำลังโหลดแผน…</p>
+  // A failed fetch must render distinctly from "still loading" — otherwise
+  // any GetItinerary error (e.g. a schema mismatch) looks identical to an
+  // infinite spinner, with no signal that anything went wrong.
+  if (itineraryError) return <p className="trips-field-error">{getErrorMessage(itineraryError)}</p>
+  if (itineraryLoading || !dayList.length) return <p className="trips-muted">กำลังโหลดแผน…</p>
 
   // After the guard above, dayList is non-empty, so dayId and day are defined.
   const resolvedDayId = dayId!
