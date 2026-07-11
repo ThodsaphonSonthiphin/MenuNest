@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {hmsToDate, dateToHms} from './time'
+import {hmsToDate, dateToHms, formatDurationMinutes} from './time'
 
 describe('hmsToDate', () => {
   it('parses "HH:mm:ss" into a local-time Date', () => {
@@ -29,5 +29,22 @@ describe('dateToHms', () => {
   })
   it('round-trips with hmsToDate', () => {
     expect(dateToHms(hmsToDate('22:30:00'))).toBe('22:30:00')
+  })
+})
+
+describe('formatDurationMinutes', () => {
+  it('formats under an hour as plain minutes', () => {
+    expect(formatDurationMinutes(0)).toBe('0น.')
+    expect(formatDurationMinutes(45)).toBe('45น.')
+  })
+  it('formats an hour or more as hours + minutes', () => {
+    expect(formatDurationMinutes(60)).toBe('1ชม. 0น.')
+    expect(formatDurationMinutes(133)).toBe('2ชม. 13น.')
+  })
+  it('rounds fractional minutes', () => {
+    expect(formatDurationMinutes(133.4)).toBe('2ชม. 13น.')
+  })
+  it('clamps negative input to 0', () => {
+    expect(formatDurationMinutes(-5)).toBe('0น.')
   })
 })
