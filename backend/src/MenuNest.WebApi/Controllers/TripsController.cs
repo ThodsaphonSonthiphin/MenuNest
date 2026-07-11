@@ -75,8 +75,8 @@ public sealed class TripsController : ControllerBase
 
     [HttpGet("api/trips/{id:guid}/itinerary")]
     public async Task<ActionResult<IReadOnlyList<ItineraryDayDto>>> GetItinerary(
-        Guid id, [FromQuery] double? lat, [FromQuery] double? lng, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetItineraryQuery(id, lat, lng), ct));
+        Guid id, [FromQuery] string tz, [FromQuery] double? lat, [FromQuery] double? lng, CancellationToken ct)
+        => Ok(await _mediator.Send(new GetItineraryQuery(id, tz, lat, lng), ct));
 
     [HttpPost("api/trips/{id:guid}/days/{dayId:guid}/stops")]
     public async Task<ActionResult<StopDto>> AddStop(Guid id, Guid dayId, [FromBody] AddStopBody b, CancellationToken ct)

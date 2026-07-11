@@ -12,15 +12,23 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly IRouteService _routes;
+    private readonly IClock _clock;
 
-    public GetItineraryHandler(IApplicationDbContext db, IUserProvisioner users, IRouteService routes)
-    { _db = db; _users = users; _routes = routes; }
+    public GetItineraryHandler(IApplicationDbContext db, IUserProvisioner users, IRouteService routes, IClock clock)
+    { _db = db; _users = users; _routes = routes; _clock = clock; }
 
     public async ValueTask<IReadOnlyList<ItineraryDayDto>> Handle(GetItineraryQuery q, CancellationToken ct)
     {
         var user = await _users.GetOrProvisionCurrentAsync(ct);
         var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == q.TripId && t.UserId == user.Id && t.DeletedAt == null, ct)
             ?? throw new DomainException("Trip not found.");
+
+        if (string.IsNullOrWhiteSpace(q.TimeZoneId))
+            throw new DomainException("Time zone is required.");
+        TimeZoneInfo tz;
+        try { tz = TimeZoneInfo.FindSystemTimeZoneById(q.TimeZoneId); }
+        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+        { throw new DomainException($"Unknown time zone: {q.TimeZoneId}"); }
 
         var days = await _db.ItineraryDays.Where(d => d.TripId == trip.Id).OrderBy(d => d.Date).ToListAsync(ct);
         var stops = await _db.Stops
@@ -76,7 +84,9 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
             // A Day flagged UseCurrentTimeAsStart tracks the real clock on every read (the
             // persisted DayStartTime is left untouched as the fallback for when the flag is
             // later turned off), so the schedule cascade below always seeds from "now".
-            var startTime = day.UseCurrentTimeAsStart ? TimeOnly.FromDateTime(DateTime.Now) : day.DayStartTime;
+            var startTime = day.UseCurrentTimeAsStart
+                ? TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz))
+                : day.DayStartTime;
             result.Add(new ItineraryDayDto(day.Id, day.Date, startTime, day.UseCurrentTimeAsStart, stopDtos));
         }
         return result;

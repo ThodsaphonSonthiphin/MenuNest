@@ -18,6 +18,7 @@ public sealed class HandlerTestFixture : IDisposable
     public Mock<IUserProvisioner> UserProvisioner { get; }
     public Family Family { get; }
     public User User { get; }
+    public FixedClock Clock { get; } = new(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
 
     public HandlerTestFixture()
     {
