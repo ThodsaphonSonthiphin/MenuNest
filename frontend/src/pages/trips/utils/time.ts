@@ -30,3 +30,13 @@ export function formatDurationMinutes(totalMinutes: number): string {
   const minutes = m % 60
   return hours > 0 ? `${hours} ชม. ${minutes} น.` : `${minutes} น.`
 }
+
+/**
+ * The viewer's IANA time zone (e.g. "Asia/Bangkok"), sent with the itinerary
+ * fetch so the backend can resolve a Current-time-start day into the viewer's
+ * local wall-clock (ADR-038). Falls back to "UTC" on the rare browser without
+ * Intl time-zone support.
+ */
+export function getViewerTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+}

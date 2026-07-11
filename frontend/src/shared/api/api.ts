@@ -1291,10 +1291,10 @@ export const api = createApi({
             query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'DELETE'}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),
-        getItinerary: build.query<ItineraryDayDto[], {tripId: string; lat?: number; lng?: number}>({
-            query: ({tripId, lat, lng}) => {
-                const qs = lat != null && lng != null ? `?lat=${lat}&lng=${lng}` : ''
-                return `/api/trips/${tripId}/itinerary${qs}`
+        getItinerary: build.query<ItineraryDayDto[], {tripId: string; tz: string; lat?: number; lng?: number}>({
+            query: ({tripId, tz, lat, lng}) => {
+                const coords = lat != null && lng != null ? `&lat=${lat}&lng=${lng}` : ''
+                return `/api/trips/${tripId}/itinerary?tz=${encodeURIComponent(tz)}${coords}`
             },
             providesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
         }),

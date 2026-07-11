@@ -11,6 +11,7 @@ import {useAppSelector} from '../../../store/index'
 import {useSchedule} from './useSchedule'
 import type {FlagSeverity} from './useSchedule'
 import {flagText, severityWord} from '../timingFlag'
+import {getViewerTimeZone} from '../utils/time'
 
 export interface RouteStop {
   id: string
@@ -72,7 +73,7 @@ export function useDayRoute(tripId: string) {
   // skip on empty tripId: this hook is called before TripDetailPage's not-found
   // guard, so without skip an empty id would fire GET /api/trips//itinerary.
   const {data: days} = useGetItineraryQuery(
-    {tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng},
+    {tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng},
     {skip: !tripId},
   )
   const {data: places} = useListTripPlacesQuery(tripId, {skip: !tripId})
