@@ -23,14 +23,22 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
         var trip = await _db.Trips.FirstOrDefaultAsync(t => t.Id == q.TripId && t.UserId == user.Id && t.DeletedAt == null, ct)
             ?? throw new DomainException("Trip not found.");
 
-        if (string.IsNullOrWhiteSpace(q.TimeZoneId))
-            throw new DomainException("Time zone is required.");
-        TimeZoneInfo tz;
-        try { tz = TimeZoneInfo.FindSystemTimeZoneById(q.TimeZoneId); }
-        catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
-        { throw new DomainException($"Unknown time zone: {q.TimeZoneId}"); }
-
         var days = await _db.ItineraryDays.Where(d => d.TripId == trip.Id).OrderBy(d => d.Date).ToListAsync(ct);
+
+        // Resolve the viewer's time zone only when a Day actually needs it (flagged to
+        // start from the current time). A trip with no such Day requires no time zone, so
+        // a missing/unknown id is rejected only when it would actually be used — leaving
+        // normal itinerary reads (and the MCP get_itinerary tool) unaffected. Still no
+        // silent UTC fallback when it IS needed (ADR-038).
+        TimeZoneInfo? tz = null;
+        if (days.Any(d => d.UseCurrentTimeAsStart))
+        {
+            if (string.IsNullOrWhiteSpace(q.TimeZoneId))
+                throw new DomainException("Time zone is required for a day that starts from the current time.");
+            try { tz = TimeZoneInfo.FindSystemTimeZoneById(q.TimeZoneId); }
+            catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
+            { throw new DomainException($"Unknown time zone: {q.TimeZoneId}"); }
+        }
         var stops = await _db.Stops
             .Where(s => _db.ItineraryDays.Any(d => d.Id == s.ItineraryDayId && d.TripId == trip.Id))
             .OrderBy(s => s.Sequence).ToListAsync(ct);
@@ -85,7 +93,7 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
             // persisted DayStartTime is left untouched as the fallback for when the flag is
             // later turned off), so the schedule cascade below always seeds from "now".
             var startTime = day.UseCurrentTimeAsStart
-                ? TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz))
+                ? TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz!))
                 : day.DayStartTime;
             result.Add(new ItineraryDayDto(day.Id, day.Date, startTime, day.UseCurrentTimeAsStart, stopDtos));
         }

@@ -13,9 +13,9 @@ flowchart TD
     W -->|rejected| W2["UTC offset in minutes — simpler + clock-skew-immune,<br/>but a snapshot with no DST rules; user chose DST-proof"]
     W -->|rejected| W3["Client local-time string — trusts the client clock AND<br/>thrashes/stales the RTK Query cache (arg changes every render)"]
     A --> R{"Who supplies it?"}
-    R -->|chosen| R1["REQUIRED of every caller (SPA + MCP/AI).<br/>No silent UTC fallback — the silent fallback IS what caused this bug"]
+    R -->|chosen| R1["REQUIRED/VALIDATED only when the trip has a Day flagged<br/>UseCurrentTimeAsStart (SPA + MCP/AI).<br/>No silent UTC fallback when it IS needed — that silent fallback<br/>IS what caused this bug. A trip with no such Day needs no tz."]
     A --> F{"tz id won't resolve"}
-    F -->|chosen| F1["Reject loudly (DomainException) — always, never fall back"]
+    F -->|chosen| F1["Reject loudly (DomainException) — but only when a flagged<br/>Day is actually present; ignored otherwise (unused input)"]
 ```
 
 ## Context
@@ -42,6 +42,14 @@ per-Day, or per-User stores one. So the "now" must be resolved from information 
 caller provides, the same shape ADR-027 already established for the Approach leg
 (frontend sends viewer coordinates; backend resolves per request).
 
+A scrutiny pass on the first version of this fix found that validating the tz
+**eagerly and unconditionally** overshot the actual need: it took down normal
+itinerary reads for trips with no current-time-start Day (a missing/bad tz on such a
+trip is unused, yet was rejected), and it broadened the MCP `get_itinerary` contract
+to require a tz on every call, not only the calls where a current-time Day exists.
+Decisions 3 and 4 below were refined to scope the requirement to when it is actually
+needed.
+
 ## Decision
 
 1. **Backend-authoritative (A1), not client-seeded (A2).** The caller supplies its
@@ -64,17 +72,25 @@ caller provides, the same shape ADR-027 already established for the Approach leg
    Query caches by argument, a per-render timestamp would either thrash the cache or
    go stale.)
 
-3. **The time zone is REQUIRED of every caller — no silent fallback.** The SPA sends
-   `Intl.DateTimeFormat().resolvedOptions().timeZone`; the MCP `get_itinerary` tool
-   takes a required `timeZoneId` parameter whose description instructs the AI to pass
-   the user's IANA zone. A missing value is a `400` at model binding (HTTP) / a
-   required argument (MCP). The whole point is that there is **no** silent
-   default-to-UTC path left — that default is precisely what produced the bug.
+3. **The time zone is REQUIRED and VALIDATED only when the trip actually needs it —
+   no silent fallback when it IS needed.** `GetItineraryHandler` loads the trip's
+   Days first; only if at least one Day is flagged `UseCurrentTimeAsStart` does it
+   demand a time zone. The SPA sends `Intl.DateTimeFormat().resolvedOptions().timeZone`
+   on every call (harmless when unused); the MCP `get_itinerary` tool's `timeZoneId`
+   parameter is optional, with a description telling the AI it is required only when
+   the trip has a current-time-start day. A trip with **no** such Day ignores the tz
+   entirely — a missing or bad value there is not an error, because nothing would
+   have used it. When a flagged Day **is** present, the missing-value path is still a
+   hard failure: there is **no** silent default-to-UTC path — that default is
+   precisely what produced the original bug.
 
-4. **An unresolvable tz id is rejected loudly, always.** A supplied-but-unknown id
-   (typo, bad value) throws a `DomainException("Unknown time zone: <id>")`, surfaced
-   as an error, rather than falling back to UTC or server-local. A correct SPA/AI
-   never sends one, so a bad id is a caller bug that should fail visibly.
+4. **An unresolvable tz id is rejected loudly, but only when it would actually be
+   used.** A supplied-but-unknown id (typo, bad value) throws a
+   `DomainException("Unknown time zone: <id>")` whenever the trip has a Day flagged
+   `UseCurrentTimeAsStart` — surfaced as an error rather than falling back to UTC or
+   server-local. A correct SPA/AI never sends a bad id, so that is a caller bug that
+   should fail visibly. For a trip with no flagged Day, an unresolvable or missing tz
+   is simply never validated — it was never going to be used.
 
 5. **Resolve "now" through `IClock`.** The handler injects `IClock` and uses
    `_clock.UtcNow` (the same testability seam the rest of the codebase uses), never
@@ -90,7 +106,10 @@ timezone becomes irrelevant to correctness** (no dependency on `WEBSITE_TIME_ZON
 DST is handled for any date. The DTO contract stays honest for both the SPA and MCP.
 The mirror-bug test is replaced by a deterministic one.
 
-**Negative:** `GetItineraryQuery` gains a required field and the HTTP endpoint a
-required `tz` query param — a breaking change to that one request's contract (the
-SPA and the MCP tool are updated in lockstep in the same change). `GetItineraryHandler`
-now depends on `IClock`. No data migration and no server config change are needed.
+**Negative:** `GetItineraryQuery.TimeZoneId` is optional at the type level and the
+HTTP `tz` query param is optional too — this is **non-breaking** for callers/trips
+that use no current-time-start Day (the SPA still always sends `tz`, which is simply
+ignored when unused; the MCP `get_itinerary` tool's `timeZoneId` argument is likewise
+optional and only becomes required, at the handler level, once a trip has a flagged
+Day). `GetItineraryHandler` now depends on `IClock`. No data migration and no server
+config change are needed.
