@@ -10,9 +10,10 @@ import {hmsToDate, dateToHms} from '../utils/time'
  * The active Day's start time, rendered as the `เริ่ม HH:mm` value in the
  * day-summary bar and editable in place. Tapping the value opens a Syncfusion
  * TimePicker (editable=false + openOnFocus make it read as a label that opens on
- * tap); picking a time commits immediately (ADR-013) and the schedule re-cascades
- * via TripItinerary invalidation. The picked value shows optimistically and reverts
- * on failure. Parent passes key={dayId} so each Day gets a fresh instance.
+ * tap); picking a time — or tapping the adjacent "ตอนนี้" (now) button — commits
+ * immediately (ADR-013) and the schedule re-cascades via TripItinerary invalidation.
+ * The picked value shows optimistically and reverts on failure. Parent passes
+ * key={dayId} so each Day gets a fresh instance.
  */
 export function DayStartEditor({
   tripId,
@@ -47,8 +48,7 @@ export function DayStartEditor({
     setValue(dayStartTime)
   }, [dayStartTime])
 
-  const handleChange = async (e: TimePickerChangeEvent) => {
-    const hms = dateToHms(e.value)
+  const commit = async (hms: string | null) => {
     if (!hms || hms === value) return // ignore a cleared / unchanged pick
     setValue(hms) // optimistic
     try {
@@ -61,6 +61,9 @@ export function DayStartEditor({
       }
     }
   }
+
+  const handleChange = (e: TimePickerChangeEvent) => commit(dateToHms(e.value))
+  const handleNow = () => commit(dateToHms(new Date()))
 
   return (
     <span className="day-start-edit">
@@ -75,6 +78,14 @@ export function DayStartEditor({
         openOnFocus
         clearButton={false}
       />
+      <button
+        type="button"
+        className="day-start-now-btn"
+        onClick={handleNow}
+        aria-label="ตั้งเวลาเริ่มเป็นเวลาปัจจุบัน"
+      >
+        ตอนนี้
+      </button>
     </span>
   )
 }
