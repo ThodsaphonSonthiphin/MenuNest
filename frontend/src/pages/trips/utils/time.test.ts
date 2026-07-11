@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {hmsToDate, dateToHms, formatDurationMinutes} from './time'
+import {hmsToDate, dateToHms, formatDurationMinutes, getViewerTimeZone} from './time'
 
 describe('hmsToDate', () => {
   it('parses "HH:mm:ss" into a local-time Date', () => {
@@ -46,5 +46,16 @@ describe('formatDurationMinutes', () => {
   })
   it('clamps negative input to 0', () => {
     expect(formatDurationMinutes(-5)).toBe('0 น.')
+  })
+})
+
+describe('getViewerTimeZone', () => {
+  it("returns the browser's resolved IANA time zone", () => {
+    const expected = Intl.DateTimeFormat().resolvedOptions().timeZone
+    expect(getViewerTimeZone()).toBe(expected)
+  })
+
+  it('is a non-empty string (falls back to UTC)', () => {
+    expect(getViewerTimeZone().length).toBeGreaterThan(0)
   })
 })

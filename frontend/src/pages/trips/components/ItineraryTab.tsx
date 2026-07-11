@@ -24,7 +24,7 @@ import {ChevronUpIcon, ChevronDownIcon, MapRouteIcon} from './TripFormIcons'
 import type {DayRoute} from '../hooks/useDayRoute'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {appInsights} from '../../../shared/telemetry/appInsights'
-import {formatDurationMinutes} from '../utils/time'
+import {formatDurationMinutes, getViewerTimeZone} from '../utils/time'
 
 // Frame padding for the 188px itinerary map band. Small and top-weighted (route pins
 // hang above their coordinate: callout + numbered dot), so the route fills the short band
@@ -107,7 +107,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
-  const {data: days, isLoading: itineraryLoading, error: itineraryError} = useGetItineraryQuery({tripId, lat: viewerLocation?.lat, lng: viewerLocation?.lng})
+  const {data: days, isLoading: itineraryLoading, error: itineraryError} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
   const {data: trips} = useListTripsQuery()
   const [reorder] = useReorderStopsMutation()
