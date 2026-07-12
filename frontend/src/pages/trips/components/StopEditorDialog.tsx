@@ -17,6 +17,8 @@ import {catColor, catLabel} from '../placeCategory'
 import {DwellStepper} from './DwellStepper'
 import {BestTimeBar} from './BestTimeBar'
 import {formatDurationMinutes} from '../utils/time'
+import {ReviewIcon} from './ReviewIcon'
+import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
 
 const MODES: {label: string; value: TravelMode}[] = [
   {label: '🚗 รถยนต์', value: 'Drive'},
@@ -47,6 +49,9 @@ export function StopEditorDialog({
   const [bestStart, setBestStart] = useState<string | null>(place?.bestTimeStart ?? null)
   const [bestEnd, setBestEnd] = useState<string | null>(place?.bestTimeEnd ?? null)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>(
+    (place?.reviewLinks ?? []).map((l) => ({url: l.url, label: l.label ?? ''})),
+  )
 
   const [updateStop, {isLoading: s1}] = useUpdateStopMutation()
   const [updatePlace, {isLoading: s2}] = useUpdateTripPlaceMutation()
@@ -71,12 +76,17 @@ export function StopEditorDialog({
 
   const save = async () => {
     setSaveError(null)
+    if (!draftsValid(reviewDrafts)) {
+      setSaveError(`ลิงก์รีวิวไม่ถูกต้อง หรือเกิน ${MAX_REVIEW_LINKS} ลิงก์`)
+      return
+    }
     try {
       await updateStop({tripId, stopId, dwellMinutes: dwell, travelModeToReach: mode}).unwrap()
-      if (
-        place &&
-        (bestStart !== place.bestTimeStart || bestEnd !== place.bestTimeEnd)
-      ) {
+      const cleaned = sanitizeReviewDrafts(reviewDrafts)
+      const bestTimeChanged = bestStart !== place?.bestTimeStart || bestEnd !== place?.bestTimeEnd
+      const reviewsChanged =
+        JSON.stringify(cleaned) !== JSON.stringify(place?.reviewLinks ?? [])
+      if (place && (bestTimeChanged || reviewsChanged)) {
         await updatePlace({
           tripId,
           placeId: place.id,
@@ -87,7 +97,7 @@ export function StopEditorDialog({
           notes: place.notes,
           bestTimeStart: bestStart,
           bestTimeEnd: bestEnd,
-          reviewLinks: place.reviewLinks ?? [],
+          reviewLinks: cleaned,
         }).unwrap()
       }
       onClose()
@@ -168,6 +178,50 @@ export function StopEditorDialog({
             <p className="se-leg">
               {formatDurationMinutes(legMinutes!)} · {legKm} กม จากจุดก่อนหน้า · คำนวณอัตโนมัติ
             </p>
+          )}
+        </section>
+
+        <section className="se-sec">
+          <div className="se-sec-head">
+            <ReviewIcon />ลิงก์รีวิว (TikTok ฯลฯ)
+          </div>
+          {reviewDrafts.map((d, i) => (
+            <div className="rv-row" key={i}>
+              <input
+                className="rv-url"
+                type="url"
+                placeholder="https://www.tiktok.com/@..."
+                value={d.url}
+                onChange={(e) =>
+                  setReviewDrafts((rows) => rows.map((r, j) => (j === i ? {...r, url: e.target.value} : r)))
+                }
+              />
+              <input
+                className="rv-lab"
+                placeholder="ป้ายกำกับ (ไม่บังคับ)"
+                value={d.label}
+                onChange={(e) =>
+                  setReviewDrafts((rows) => rows.map((r, j) => (j === i ? {...r, label: e.target.value} : r)))
+                }
+              />
+              <button
+                type="button"
+                className="rv-del"
+                aria-label="ลบลิงก์"
+                onClick={() => setReviewDrafts((rows) => rows.filter((_, j) => j !== i))}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+          {reviewDrafts.length < MAX_REVIEW_LINKS && (
+            <button
+              type="button"
+              className="rv-add"
+              onClick={() => setReviewDrafts((rows) => [...rows, {url: '', label: ''}])}
+            >
+              + เพิ่มลิงก์รีวิว
+            </button>
           )}
         </section>
 

@@ -644,3 +644,11 @@
 .rv-menu a svg { width: 15px; height: 15px; flex: none; color: var(--review); }
 .rv-menu a .rv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .rv-menu a .host { margin-left: auto; font-size: 10px; font-weight: 500; color: var(--muted); }
+
+/* Stop editor — review-links section */
+.se-sec .rv-row { display: flex; gap: 7px; margin-bottom: 7px; }
+.se-sec .rv-row .rv-url { flex: 1; min-width: 0; }
+.se-sec .rv-row .rv-lab { width: 120px; }
+.se-sec .rv-row input { border: 1px solid #e2e8f0; border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 12.5px; }
+.se-sec .rv-row .rv-del { flex: none; width: 34px; border: 1px solid #f4d0cc; border-radius: 9px; background: #fff; color: var(--bad); cursor: pointer; }
+.se-sec .rv-add { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; border: 1px dashed #f6cede; background: var(--review-bg); color: var(--review); font-weight: 700; font-size: 12px; border-radius: 9px; padding: 8px 12px; cursor: pointer; }
