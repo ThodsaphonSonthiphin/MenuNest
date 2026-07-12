@@ -1,5 +1,18 @@
 // frontend/src/pages/trips/components/ItineraryTab.tsx
-import {useMemo, useState} from 'react'
+import {Fragment, useMemo, useState} from 'react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy} from '@dnd-kit/sortable'
+import {restrictToVerticalAxis} from '@dnd-kit/modifiers'
+import {computeReorder} from '../lib/reorder'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
@@ -107,12 +120,31 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const viewerLocation = useAppSelector((s) => s.trips.viewerLocation)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+  const [isReordering, setIsReordering] = useState(false)
 
-  const {data: days, isLoading: itineraryLoading, error: itineraryError} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
+  const {data: days, isLoading: itineraryLoading, isFetching: itineraryFetching, error: itineraryError} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
   const {data: trips} = useListTripsQuery()
-  const [reorder] = useReorderStopsMutation()
+  const [reorder, {isLoading: reorderLoading}] = useReorderStopsMutation()
   const [setStopVisited] = useSetStopVisitedMutation()
+
+  // Full-view loading spans BOTH the reorder POST (reorderLoading) and the
+  // invalidation refetch that recomputes Legs/times (itineraryFetching). Once both
+  // settle, drop the flag. `setIsReordering(true)` and the mutation dispatch happen
+  // in the same event handler, so by the time this runs reorderLoading is already
+  // true — no premature clear. Render-time reset (no effect), mirroring the
+  // `lastDayId` pattern below. If a one-render flicker ever appears, switch the drop
+  // handler to `await reorder(...).unwrap(); await refetch().unwrap()` in a finally.
+  if (isReordering && !reorderLoading && !itineraryFetching) {
+    setIsReordering(false)
+  }
+
+  const sensors = useSensors(
+    // A few px of movement before a drag starts, so a tap/scroll is not misread.
+    useSensor(PointerSensor, {activationConstraint: {distance: 6}}),
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates}),
+  )
 
   // Derive stable values used by useSchedule — must run before any early return.
   const dayList = days ?? []
@@ -157,15 +189,20 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const resolvedDayId = dayId!
   const resolvedDay = day!
 
-  const move = async (index: number, dir: -1 | 1) => {
-    const ids = scheduled.map((s) => s.stop.id)
-    const j = index + dir
-    if (j < 0 || j >= ids.length) return
-    ;[ids[index], ids[j]] = [ids[j], ids[index]]
+  const handleDragStart = (e: DragStartEvent) => setActiveDragId(String(e.active.id))
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    setActiveDragId(null)
+    const {active, over} = e
+    if (!over) return
+    const orderedStopIds = computeReorder(scheduled.map((s) => s.stop.id), String(active.id), String(over.id))
+    if (!orderedStopIds) return
+    setIsReordering(true)
     try {
-      await reorder({tripId, dayId: resolvedDayId, orderedStopIds: ids}).unwrap()
+      await reorder({tripId, dayId: resolvedDayId, orderedStopIds}).unwrap()
     } catch (err) {
       setActionError(getErrorMessage(err))
+      setIsReordering(false) // no refetch fires on error — clear the loader now
     }
   }
 
@@ -277,54 +314,72 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
 
       {actionError && <p className="trips-field-error">{actionError}</p>}
 
-      <div className="stop-list">
-        {scheduled.map((s, i) => {
-          const place = placesById[s.stop.tripPlaceId]
-          const stopNav = place ? buildStopNavUrl(place, s.stop.travelModeToReach) : null
-          return (
-            <div key={s.stop.id}>
-              {i > 0 && s.stop.legToReach && (
-                <TravelLeg leg={s.stop.legToReach} mode={s.stop.travelModeToReach} />
-              )}
-              {place && (
-                <ItineraryStopCard
-                  place={place}
-                  arrival={s.arrival}
-                  depart={s.depart}
-                  dwell={s.stop.dwellMinutes}
-                  isVisited={s.stop.isVisited}
-                  onToggleVisited={async (next) => {
-                    try {
-                      await setStopVisited({tripId, stopId: s.stop.id, isVisited: next}).unwrap()
-                    } catch (err) {
-                      setActionError(getErrorMessage(err))
-                    }
-                  }}
-                  flag={s.flag}
-                  onEdit={() => dispatch(setStopEditor(s.stop.id))}
-                  onUp={() => move(i, -1)}
-                  onDown={() => move(i, 1)}
-                  canUp={i > 0}
-                  canDown={i < scheduled.length - 1}
-                  navUrl={stopNav}
-                  onNavigate={() =>
-                    appInsights.trackEvent(
-                      {name: 'TripNavHandoff'},
-                      {scope: 'stop', travelMode: s.stop.travelModeToReach, hasPlaceId: !!place.googlePlaceId},
-                    )
-                  }
-                  nowReading={stopWeather[s.stop.id]?.now}
-                  arrivalReading={stopWeather[s.stop.id]?.arrival}
-                  weatherLoading={(stopWeather[s.stop.id]?.nowLoading ?? false) || (stopWeather[s.stop.id]?.arrivalLoading ?? false)}
-                />
-              )}
-            </div>
-          )
-        })}
-        {scheduled.length === 0 && (
-          <p className="trips-empty">ยังไม่มีจุดแวะ — เพิ่มจากคลังสถานที่</p>
-        )}
-      </div>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        modifiers={[restrictToVerticalAxis]}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        accessibility={{
+          announcements: {
+            onDragStart: () => 'เริ่มลากจุดแวะ ใช้ลูกศรขึ้น–ลงเพื่อย้าย',
+            onDragOver: () => 'กำลังย้ายจุดแวะ',
+            onDragEnd: () => 'วางจุดแวะแล้ว กำลังคำนวณเวลาใหม่',
+            onDragCancel: () => 'ยกเลิกการย้ายจุดแวะ',
+          },
+          screenReaderInstructions: {
+            draggable: 'กดเว้นวรรคเพื่อยกจุดแวะ ใช้ลูกศรขึ้น–ลงเพื่อย้าย แล้วกดเว้นวรรคอีกครั้งเพื่อวาง หรือ Escape เพื่อยกเลิก',
+          },
+        }}
+      >
+        <SortableContext items={scheduled.map((s) => s.stop.id)} strategy={verticalListSortingStrategy}>
+          <div className={`stop-list${activeDragId ? ' dragging' : ''}`}>
+            {scheduled.map((s, i) => {
+              const place = placesById[s.stop.tripPlaceId]
+              const stopNav = place ? buildStopNavUrl(place, s.stop.travelModeToReach) : null
+              return (
+                <Fragment key={s.stop.id}>
+                  {i > 0 && s.stop.legToReach && (
+                    <TravelLeg leg={s.stop.legToReach} mode={s.stop.travelModeToReach} />
+                  )}
+                  {place && (
+                    <ItineraryStopCard
+                      id={s.stop.id}
+                      place={place}
+                      arrival={s.arrival}
+                      depart={s.depart}
+                      dwell={s.stop.dwellMinutes}
+                      isVisited={s.stop.isVisited}
+                      onToggleVisited={async (next) => {
+                        try {
+                          await setStopVisited({tripId, stopId: s.stop.id, isVisited: next}).unwrap()
+                        } catch (err) {
+                          setActionError(getErrorMessage(err))
+                        }
+                      }}
+                      flag={s.flag}
+                      onEdit={() => dispatch(setStopEditor(s.stop.id))}
+                      navUrl={stopNav}
+                      onNavigate={() =>
+                        appInsights.trackEvent(
+                          {name: 'TripNavHandoff'},
+                          {scope: 'stop', travelMode: s.stop.travelModeToReach, hasPlaceId: !!place.googlePlaceId},
+                        )
+                      }
+                      nowReading={stopWeather[s.stop.id]?.now}
+                      arrivalReading={stopWeather[s.stop.id]?.arrival}
+                      weatherLoading={(stopWeather[s.stop.id]?.nowLoading ?? false) || (stopWeather[s.stop.id]?.arrivalLoading ?? false)}
+                    />
+                  )}
+                </Fragment>
+              )
+            })}
+            {scheduled.length === 0 && (
+              <p className="trips-empty">ยังไม่มีจุดแวะ — เพิ่มจากคลังสถานที่</p>
+            )}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {pickerOpen ? (
         <AddStopPicker
@@ -350,6 +405,13 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           placesById={placesById}
           onClose={() => dispatch(setStopEditor(null))}
         />
+      )}
+
+      {isReordering && (
+        <div className="itin-reorder-overlay" role="status" aria-live="polite">
+          <span className="itin-reorder-spinner" aria-hidden="true" />
+          <span>กำลังจัดลำดับใหม่…</span>
+        </div>
       )}
     </div>
   )
