@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MenuNest.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260712132656_AddTripPlaceReviewLinks")]
+    [Migration("20260712140124_AddTripPlaceReviewLinks")]
     partial class AddTripPlaceReviewLinks
     {
         /// <inheritdoc />
@@ -1220,8 +1220,11 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ReviewLinks")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("ReviewLinksJson");
+                        .HasColumnName("ReviewLinksJson")
+                        .HasDefaultValueSql("'[]'");
 
                     b.Property<Guid>("TripId")
                         .HasColumnType("uniqueidentifier");

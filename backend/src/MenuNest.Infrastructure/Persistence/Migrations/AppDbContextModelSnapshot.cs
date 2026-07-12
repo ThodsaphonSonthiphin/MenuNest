@@ -1217,8 +1217,11 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ReviewLinks")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("nvarchar(max)")
-                        .HasColumnName("ReviewLinksJson");
+                        .HasColumnName("ReviewLinksJson")
+                        .HasDefaultValueSql("'[]'");
 
                     b.Property<Guid>("TripId")
                         .HasColumnType("uniqueidentifier");

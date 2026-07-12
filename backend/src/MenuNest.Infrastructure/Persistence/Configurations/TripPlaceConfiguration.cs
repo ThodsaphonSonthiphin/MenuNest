@@ -24,8 +24,8 @@ internal sealed class TripPlaceConfiguration : IEntityTypeConfiguration<TripPlac
         b.Property(p => p.FeeNote).HasMaxLength(200);
         b.Property(p => p.Notes).HasMaxLength(2000);
         var jsonOpts = new JsonSerializerOptions(JsonSerializerDefaults.Web);
-        var reviewConverter = new ValueConverter<IReadOnlyList<ReviewLink>, string?>(
-            v => v.Count == 0 ? null : JsonSerializer.Serialize(v, jsonOpts),
+        var reviewConverter = new ValueConverter<IReadOnlyList<ReviewLink>, string>(
+            v => JsonSerializer.Serialize(v, jsonOpts),
             v => string.IsNullOrEmpty(v)
                 ? new List<ReviewLink>()
                 : JsonSerializer.Deserialize<List<ReviewLink>>(v, jsonOpts) ?? new List<ReviewLink>());
@@ -39,7 +39,7 @@ internal sealed class TripPlaceConfiguration : IEntityTypeConfiguration<TripPlac
             .HasColumnType("nvarchar(max)")
             .HasField("_reviewLinks")
             .UsePropertyAccessMode(PropertyAccessMode.Field)
-            .IsRequired(false);
+            .HasDefaultValueSql("'[]'");
         b.HasIndex(p => p.TripId);
         // dedupe re-pastes of the same Google place within a trip (filtered: only non-null)
         b.HasIndex(p => new { p.TripId, p.GooglePlaceId })

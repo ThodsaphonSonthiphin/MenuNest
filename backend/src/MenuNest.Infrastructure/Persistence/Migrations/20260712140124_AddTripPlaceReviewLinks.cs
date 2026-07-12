@@ -14,7 +14,8 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                 name: "ReviewLinksJson",
                 table: "TripPlaces",
                 type: "nvarchar(max)",
-                nullable: true);
+                nullable: false,
+                defaultValueSql: "'[]'");
         }
 
         /// <inheritdoc />
