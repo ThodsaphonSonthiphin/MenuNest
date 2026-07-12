@@ -5,7 +5,7 @@ import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 
 const stop = (id: string, seq: number, dwell: number, legSec: number | null) => ({
   id, tripPlaceId: `p${id}`, sequence: seq, dwellMinutes: dwell,
-  travelModeToReach: 'Drive' as const,
+  travelModeToReach: 'Drive' as const, isVisited: false,
   legToReach: legSec == null ? null : {seconds: legSec, meters: 1000, encodedPolyline: null, source: 'Estimated' as const},
 })
 
