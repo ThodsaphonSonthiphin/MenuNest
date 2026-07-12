@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-10T20:17:50+07:00'
+updated: '2026-07-12T08:17:28+07:00'
 ---
 
 ## Log
@@ -344,3 +344,51 @@ fix(trips): honest replace-semantics + weather wording in MCP tool descriptions 
 Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 EOF
 )
+- 2026-07-11T22:24:50+07:00 — $(cat <<'EOF'
+docs(trips): ADR-038 + spec/plan for current-time-start timezone fix (#30)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-11T22:30:02+07:00 — $(cat <<'EOF'
+fix(trips): send the viewer's IANA time zone with the itinerary fetch (#30)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-11T22:36:41+07:00 — $(cat <<'EOF'
+test(trips): exercise the getViewerTimeZone UTC fallback (#30)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-11T22:42:37+07:00 — $(cat <<'EOF'
+fix(trips): resolve a current-time day start in the viewer's time zone (closes #30)
+
+DateTime.Now returned the server's UTC clock on Azure; thread a required IANA
+time zone through GetItinerary and convert IClock.UtcNow into it (ADR-038).
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-11T23:07:59+07:00 — $(cat <<'EOF'
+fix(trips): require the itinerary time zone only when a current-time day is present (#30)
+
+Scrutiny found the eager, always-required tz gated the whole itinerary read
+and broadened the MCP get_itinerary contract for every trip. Scope it to trips
+with a UseCurrentTimeAsStart day (ADR-038 decisions 3-4 refined); still no
+silent fallback when it is needed.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-11T23:14:37+07:00 — $(cat <<'EOF'
+docs(trips): align spec overview/self-review with the tz-scope refinement (#30)
+
+The Â§7 self-review and the Overview mermaid still described the pre-scrutiny
+eager/always-required tz; reword to the when-flagged semantics already in Â§3-Â§5.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-12T08:17:28+07:00 — (commit)
