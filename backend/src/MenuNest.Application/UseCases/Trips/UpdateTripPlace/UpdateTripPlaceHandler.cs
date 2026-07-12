@@ -27,7 +27,7 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
 
         place.UpdateDetails(c.Name, c.Category, c.Address, c.FeeNote, c.Notes);
         place.SetBestTime(c.BestTimeStart, c.BestTimeEnd);
-        place.SetReviewLinks(c.ReviewLinks.Select(r => ReviewLink.Create(r.Url, r.Label)));
+        place.SetReviewLinks((c.ReviewLinks ?? Enumerable.Empty<ReviewLinkDto>()).Select(r => ReviewLink.Create(r.Url, r.Label)));
 
         await _db.SaveChangesAsync(ct);
         return AddTripPlaceHandler.ToDto(place);
