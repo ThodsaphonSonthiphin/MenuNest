@@ -84,7 +84,7 @@ public sealed class TripsController : ControllerBase
 
     [HttpPatch("api/trips/{id:guid}/stops/{stopId:guid}")]
     public async Task<IActionResult> UpdateStop(Guid id, Guid stopId, [FromBody] UpdateStopBody b, CancellationToken ct)
-    { await _mediator.Send(new UpdateStopCommand(id, stopId, b.DwellMinutes, b.TravelModeToReach), ct); return NoContent(); }
+    { await _mediator.Send(new UpdateStopCommand(id, stopId, b.DwellMinutes, b.TravelModeToReach, b.IsVisited), ct); return NoContent(); }
 
     [HttpDelete("api/trips/{id:guid}/stops/{stopId:guid}")]
     public async Task<IActionResult> RemoveStop(Guid id, Guid stopId, CancellationToken ct)
@@ -123,7 +123,7 @@ public sealed record AddStopBody(
     Guid TripPlaceId, int DwellMinutes, TravelMode TravelModeToReach);
 
 public sealed record UpdateStopBody(
-    int? DwellMinutes, TravelMode? TravelModeToReach);
+    int? DwellMinutes, TravelMode? TravelModeToReach, bool? IsVisited);
 
 public sealed record ReorderBody(IReadOnlyList<Guid> OrderedStopIds);
 
