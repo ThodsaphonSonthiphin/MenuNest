@@ -84,8 +84,9 @@
   .flag-note .fix::before { content:"— "; color:#d08a84; }
   .stop-nav { flex:none; display:flex; align-items:center; justify-content:center; width:44px; border-left:1px solid var(--border); background:transparent; color:var(--teal); }
   .stop-nav svg { width:17px; height:17px; }
-  .stop-reorder { flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding-right:6px; }
-  .stop-reorder button { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:0; border-radius:6px; background:transparent; color:#cbd5e1; font-size:10px; }
+  /* drag handle (shipped #31 — replaced the ▲▼ column). Only on "ที่เหลือ" cards; done items don't drag. */
+  .stop-drag-handle { flex:none; display:flex; align-items:center; justify-content:center; width:34px; border:0; border-left:1px solid var(--border); background:transparent; color:#cbd5e1; cursor:grab; }
+  .stop-drag-handle svg { width:16px; height:16px; }
 
   /* visited row treatment (from ADR-040) */
   .stop-card.visited { background:#f6f8fa; }
@@ -170,7 +171,7 @@
           <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span><span class="chip wx now">ตอนนี้ 33°</span><span class="chip wx arr">ไปถึง 34°</span></div>
         </button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
       <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 18 นาที</span><span class="leg-dist">· 7.3 กม.</span></div>
       <!-- remaining stop 2, with a real problem flag (kept — computation unchanged) -->
@@ -183,7 +184,7 @@
           <div class="flag-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><span><b>สถานที่ยังไม่เปิด</b> <span class="fix">เปิด 17:00</span></span></div>
         </button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
     </div>
 
@@ -239,7 +240,7 @@
         <div class="stop-rail"><div class="stop-arr">11:48</div><div class="stop-dep">→13:18</div></div>
         <button class="stop-body"><div class="stop-name">🍽 ข้าวซอยแม่สาย</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span><span class="chip wx arr">ไปถึง 34°</span></div></button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
       <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 18 นาที</span><span class="leg-dist">· 7.3 กม.</span></div>
       <div class="stop-card bad">
@@ -248,7 +249,7 @@
         <button class="stop-body"><div class="stop-name">🛍 ไนท์บาซาร์</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม.</span></div>
           <div class="flag-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><span><b>สถานที่ยังไม่เปิด</b> <span class="fix">เปิด 17:00</span></span></div></button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
     </div>
     <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
@@ -277,7 +278,7 @@
         <div class="stop-rail"><div class="stop-arr">11:48</div><div class="stop-dep">→13:18</div></div>
         <button class="stop-body"><div class="stop-name">🍽 ข้าวซอยแม่สาย</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span></div></button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
       <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 18 นาที</span><span class="leg-dist">· 7.3 กม.</span></div>
       <div class="stop-card bad">
@@ -285,7 +286,7 @@
         <div class="stop-rail"><div class="stop-arr">13:36</div><div class="stop-dep">→14:36</div></div>
         <button class="stop-body"><div class="stop-name">🛍 ไนท์บาซาร์</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม.</span></div></button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
 
       <div class="done-divider">มาแล้ว</div>
@@ -295,14 +296,14 @@
         <div class="stop-rail"><div class="stop-arr">09:00</div><div class="stop-dep">→10:00</div></div>
         <button class="stop-body"><div class="stop-name">🍜 ร้านกาแฟเช้า Ristr8to</div><div class="stop-chips"><span class="chip visited"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>มาแล้ว</span></div></button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
       <div class="stop-card visited">
         <label class="stop-check"><input type="checkbox" checked /></label>
         <div class="stop-rail"><div class="stop-arr">10:12</div><div class="stop-dep">→11:42</div></div>
         <button class="stop-body"><div class="stop-name">🏛 วัดพระสิงห์</div><div class="stop-chips"><span class="chip visited"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>มาแล้ว</span></div></button>
         <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
-        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+        <button class="stop-drag-handle" aria-label="ลากเพื่อจัดลำดับ"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button>
       </div>
     </div>
     <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
