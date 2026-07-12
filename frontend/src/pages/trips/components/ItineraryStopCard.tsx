@@ -1,10 +1,13 @@
 // frontend/src/pages/trips/components/ItineraryStopCard.tsx
+import {useSortable} from '@dnd-kit/sortable'
+import {CSS} from '@dnd-kit/utilities'
 import type {TripPlaceDto, WeatherReadingDto} from '../../../shared/api/api'
 import type {FlagReason, FlagSeverity, StopFlag, TimingFlag} from '../hooks/useSchedule'
 import {catEmoji} from '../placeCategory'
 import {flagText} from '../timingFlag'
 import {NavIcon} from './NavIcon'
 import {ClockIcon, LockIcon, MoonIcon, CheckIcon} from './FlagIcons'
+import {GripIcon} from './TripFormIcons'
 import {WeatherChip} from './WeatherChip'
 import {formatDurationMinutes} from '../utils/time'
 
@@ -29,16 +32,13 @@ function FlagNote({flag}: {flag: TimingFlag}) {
 }
 
 export function ItineraryStopCard({
+  id,
   place,
   arrival,
   depart,
   dwell,
   flag,
   onEdit,
-  onUp,
-  onDown,
-  canUp,
-  canDown,
   navUrl,
   onNavigate,
   nowReading,
@@ -47,16 +47,13 @@ export function ItineraryStopCard({
   isVisited,
   onToggleVisited,
 }: {
+  id: string
   place: TripPlaceDto
   arrival: string
   depart: string
   dwell: number
   flag: StopFlag
   onEdit: () => void
-  onUp: () => void
-  onDown: () => void
-  canUp: boolean
-  canDown: boolean
   navUrl: string | null
   onNavigate?: () => void
   nowReading?: WeatherReadingDto
@@ -65,8 +62,18 @@ export function ItineraryStopCard({
   isVisited: boolean
   onToggleVisited: (next: boolean) => void
 }) {
+  const {attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging} =
+    useSortable({id})
+  const style = {transform: CSS.Transform.toString(transform), transition}
+
   return (
-    <div className={`stop-card${flag ? ' ' + CARD_CLASS[flag.severity] : ''}${isVisited ? ' visited' : ''}`}>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`stop-card${flag ? ' ' + CARD_CLASS[flag.severity] : ''}${isVisited ? ' visited' : ''}${isDragging ? ' dragging' : ''}`}
+      data-testid="itin-stop-card"
+      data-stop-id={id}
+    >
       <label className="stop-check">
         <input
           type="checkbox"
@@ -108,10 +115,17 @@ export function ItineraryStopCard({
           <NavIcon />
         </span>
       )}
-      <div className="stop-reorder">
-        <button disabled={!canUp} onClick={onUp} aria-label="ขึ้น">▲</button>
-        <button disabled={!canDown} onClick={onDown} aria-label="ลง">▼</button>
-      </div>
+      <button
+        ref={setActivatorNodeRef}
+        type="button"
+        className="stop-drag-handle"
+        aria-label="ลากเพื่อจัดลำดับ"
+        data-testid="stop-drag-handle"
+        {...attributes}
+        {...listeners}
+      >
+        <GripIcon />
+      </button>
     </div>
   )
 }

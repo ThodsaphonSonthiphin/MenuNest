@@ -205,33 +205,31 @@
 }
 .stop-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 
-/* reorder — subtle ghost arrows (drag-to-reorder is Phase 2) */
-.stop-reorder {
+/* drag handle — grab to reorder Stops (ADR-044) */
+.stop-drag-handle {
   flex: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  padding-right: 6px;
-}
-.stop-reorder button {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 40px;
   border: 0;
-  border-radius: 6px;
   background: transparent;
   color: #cbd5e1;
-  font-size: 10px;
-  line-height: 1;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none; /* hand pointer moves to @dnd-kit, not the browser's scroll */
   transition: background 0.12s ease, color 0.12s ease;
 }
-.stop-reorder button:hover:not(:disabled) { background: var(--teal-soft); color: var(--teal-deep); }
-.stop-reorder button:disabled { opacity: 0.25; cursor: default; }
+.stop-drag-handle:hover { background: var(--teal-soft); color: var(--teal-deep); }
+.stop-drag-handle:focus-visible { outline: 2px solid var(--teal-deep); outline-offset: -2px; }
+.stop-drag-handle:active { cursor: grabbing; }
+.stop-drag-handle svg { width: 18px; height: 18px; }
+
+/* lifted card while dragging */
+.stop-card.dragging { box-shadow: 0 10px 26px rgba(2, 32, 27, 0.18); opacity: 0.97; }
+
+/* during an active drag keep each Leg's space but hide its (now-stale) content —
+   no layout jump, no misleading travel time (ADR-046) */
+.stop-list.dragging .travel-leg { visibility: hidden; }
 
 /* ── Navigate hand-off — per-Stop icon (ADR-011) ── */
 .stop-nav {
@@ -694,3 +692,28 @@
   background: rgba(15, 23, 42, 0.82); color: #e2e8f0;
   font-size: 11.5px; font-weight: 600; padding: 6px 11px; border-radius: 999px;
 }
+
+/* full-view loading while a reorder POST + itinerary refetch settle (ADR-045) */
+.itin-reorder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(1.5px);
+  color: var(--muted);
+  font-size: 14px;
+}
+.itin-reorder-spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--teal-soft);
+  border-top-color: var(--teal-deep);
+  border-radius: 50%;
+  animation: itin-spin 0.7s linear infinite;
+}
+@keyframes itin-spin { to { transform: rotate(360deg); } }

@@ -132,3 +132,17 @@ export function MapRouteIcon({className}: IconProps) {
     </svg>
   )
 }
+
+/** Grip dots — drag handle for reordering Stops (ADR-044). Uses filled dots, not the stroked `base`. */
+export function GripIcon({className}: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor" aria-hidden focusable={false} className={className}>
+      <circle cx="9" cy="5" r="1.6" />
+      <circle cx="15" cy="5" r="1.6" />
+      <circle cx="9" cy="12" r="1.6" />
+      <circle cx="15" cy="12" r="1.6" />
+      <circle cx="9" cy="19" r="1.6" />
+      <circle cx="15" cy="19" r="1.6" />
+    </svg>
+  )
+}
