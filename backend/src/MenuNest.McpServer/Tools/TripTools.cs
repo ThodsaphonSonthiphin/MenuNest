@@ -89,7 +89,7 @@ public sealed class TripTools(IMediator mediator)
         => await mediator.Send(new AddTripPlaceCommand(
             tripId, name, lat, lng, category, googlePlaceId, address, priceLevel, photoUrl, openingHoursJson), ct);
 
-    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, and the best-visit window (bestTimeStart/bestTimeEnd) are overwritten — omitting or passing null for one CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places).")]
+    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, the best-visit window (bestTimeStart/bestTimeEnd), and reviewLinks are overwritten — omitting or passing an empty/null value CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places).")]
     public async Task<TripPlaceDto> update_trip_place(
         [Description("Trip ID")] Guid tripId,
         [Description("Place ID")] Guid placeId,
@@ -100,9 +100,10 @@ public sealed class TripTools(IMediator mediator)
         [Description("Free-form notes (optional)")] string? notes,
         [Description("Best-visit window start, HH:mm (optional)")] TimeOnly? bestTimeStart,
         [Description("Best-visit window end, HH:mm (optional)")] TimeOnly? bestTimeEnd,
+        [Description("Review links (TikTok/YouTube/etc.), each {url,label?}; max 10; FULL REPLACE")] IReadOnlyList<ReviewLinkDto> reviewLinks,
         CancellationToken ct)
         => await mediator.Send(new UpdateTripPlaceCommand(
-            tripId, placeId, name, category, address, feeNote, notes, bestTimeStart, bestTimeEnd), ct);
+            tripId, placeId, name, category, address, feeNote, notes, bestTimeStart, bestTimeEnd, reviewLinks), ct);
 
     [McpServerTool, Description("Delete a saved place from a trip by ID")]
     public async Task delete_trip_place(

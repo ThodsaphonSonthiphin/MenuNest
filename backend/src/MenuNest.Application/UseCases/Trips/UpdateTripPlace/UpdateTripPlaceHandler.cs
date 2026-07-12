@@ -3,6 +3,7 @@ using Mediator;
 using MenuNest.Application.Abstractions;
 using MenuNest.Application.UseCases.Trips.AddTripPlace;
 using MenuNest.Domain.Exceptions;
+using MenuNest.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 namespace MenuNest.Application.UseCases.Trips.UpdateTripPlace;
 
@@ -26,6 +27,7 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
 
         place.UpdateDetails(c.Name, c.Category, c.Address, c.FeeNote, c.Notes);
         place.SetBestTime(c.BestTimeStart, c.BestTimeEnd);
+        place.SetReviewLinks(c.ReviewLinks.Select(r => ReviewLink.Create(r.Url, r.Label)));
 
         await _db.SaveChangesAsync(ct);
         return AddTripPlaceHandler.ToDto(place);
