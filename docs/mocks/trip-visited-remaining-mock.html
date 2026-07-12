@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip — visited ออกจาก "ที่เหลือ" · 3 แนวทาง</title>
+<style>
+  /* Mirrors frontend/src/pages/trips/trips-tokens.css so the mock reads in the real
+     teal design language. NEW rules for this feature are marked  /* NEW */ . */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 28px 18px 60px;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background: #eef2f6; color: #0f172a;
+    display: flex; flex-direction: column; align-items: center; gap: 26px;
+  }
+  .frame { width: 100%; max-width: 430px; }
+  .frame > h2 {
+    font-size: 13px; font-weight: 700; color: #475569; margin: 0 0 10px;
+    text-transform: uppercase; letter-spacing: 0.04em; display:flex; align-items:center; gap:8px;
+  }
+  .frame > h2 .tag { font-size:10px; font-weight:800; padding:2px 8px; border-radius:999px; letter-spacing:.02em; }
+  .tag.rec { background:#e7f6ec; color:#15803d; }
+  .tag.alt { background:#eef2f6; color:#64748b; }
+  .legend {
+    max-width: 430px; font-size: 12.5px; line-height: 1.6; color: #475569;
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 14px 16px;
+  }
+  .legend b { color: #0f172a; }
+  .legend .q { color:#0b7a87; font-weight:700; }
+
+  .trip-detail {
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a; --page:#f8fafc; --surface:#fff; --border:#eef2f6; --muted:#94a3b8;
+    --warn:#b4791f; --warn-bg:#fff4e0; --warn-ink:#7a5310;
+    --bad:#b42318; --bad-bg:#fdeceb; --now:#0b7a87; --now-bg:#e3f5f6;
+    --arr:#1863b7; --arr-bg:#e9f1fb;
+    --visited:#15803d; --visited-bg:#e7f6ec;
+    background: var(--page); border-radius: 18px; padding: 16px 14px 20px;
+    box-shadow: 0 10px 34px rgba(15,23,42,.10);
+  }
+  .stop-arr,.stop-dep,.day-summary b { font-family:'Spline Sans Mono',ui-monospace,monospace; }
+
+  /* segmented day tabs (already exist at top) */
+  .seg-tabs { display:flex; gap:6px; margin-bottom:12px; }
+  .seg-tab { border:1px solid var(--border); background:var(--surface); color:var(--ink); border-radius:999px; padding:6px 14px; font-size:12px; font-weight:600; }
+  .seg-tab.active { background:var(--teal); border-color:var(--teal); color:#fff; }
+
+  /* day summary */
+  .day-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--ink); color:#9fb0c4; border-radius:12px; padding:11px 15px; font-size:12px; margin-bottom:14px; }
+  .day-summary b { color:#fff; font-weight:700; }
+  .day-stats { display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  /* NEW: remaining-travel is the same slot as "เดินทางรวม", relabelled when >0 visited */
+  .stat-remain b { color:#8ef0c0; }
+  .day-visited { display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.14); border-radius:999px; padding:3px 10px; font-size:11px; font-weight:700; color:#dcfce7; }
+  .day-visited .dot { width:7px; height:7px; border-radius:50%; background:#4ade80; }
+
+  .stop-list { display:flex; flex-direction:column; gap:8px; }
+
+  /* stop card */
+  .stop-card { display:flex; align-items:stretch; background:var(--surface); border:1px solid var(--border); border-radius:13px; overflow:hidden; }
+  .stop-card.warn { background:#fffdf7; border-color:#f3e2c2; }
+  .stop-card.bad  { background:#fffbfb; border-color:#f4d0cc; }
+  .stop-check { flex:none; width:40px; display:flex; align-items:center; justify-content:center; border-right:1px solid var(--border); background:#fafdfd; }
+  .stop-check input { width:19px; height:19px; accent-color:var(--visited); cursor:pointer; }
+  .stop-rail { flex:none; width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:6px 4px; background:#f1f8f9; }
+  .stop-card.warn .stop-rail { background:#fdf3e0; }
+  .stop-card.bad  .stop-rail { background:#fbe3e0; }
+  .stop-arr { font-size:15px; font-weight:700; color:var(--ink); line-height:1.1; }
+  .stop-dep { font-size:10px; font-weight:500; color:var(--muted); line-height:1.1; }
+  .stop-body { flex:1; min-width:0; border:0; background:transparent; text-align:left; padding:11px 13px; cursor:pointer; font:inherit; color:inherit; }
+  .stop-name { font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stop-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chip { font-size:10px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+  .chip.dwell { background:var(--teal-soft); color:var(--teal-deep); }
+  .chip.wx { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 9px 2px 7px; }
+  .chip.wx.now { background:var(--now-bg); color:var(--now); }
+  .chip.wx.arr { background:var(--arr-bg); color:var(--arr); }
+  .chip.visited { background:var(--visited-bg); color:var(--visited); display:inline-flex; align-items:center; gap:4px; }
+  .chip.visited svg { width:11px; height:11px; }
+  .flag-note { display:flex; align-items:flex-start; gap:8px; margin-top:8px; padding:7px 10px; background:var(--bad-bg); color:var(--bad); border-radius:9px; font-size:11.5px; line-height:1.45; }
+  .flag-note svg { width:14px; height:14px; flex:none; margin-top:1px; }
+  .flag-note .fix { color:#8f2318; font-weight:600; }
+  .flag-note .fix::before { content:"— "; color:#d08a84; }
+  .stop-nav { flex:none; display:flex; align-items:center; justify-content:center; width:44px; border-left:1px solid var(--border); background:transparent; color:var(--teal); }
+  .stop-nav svg { width:17px; height:17px; }
+  .stop-reorder { flex:none; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; padding-right:6px; }
+  .stop-reorder button { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:0; border-radius:6px; background:transparent; color:#cbd5e1; font-size:10px; }
+
+  /* visited row treatment (from ADR-040) */
+  .stop-card.visited { background:#f6f8fa; }
+  .stop-card.visited .stop-name { text-decoration:line-through; text-decoration-thickness:1.5px; color:#475569; }
+  .stop-card.visited .stop-check { background:var(--visited-bg); border-right-color:#cfe9d7; }
+
+  .travel-leg { display:flex; align-items:center; gap:8px; padding:3px 0 3px 106px; color:var(--teal-deep); font-size:11px; font-weight:600; }
+  .travel-leg.lead { color:var(--teal-deep); font-style:normal; }
+  .travel-leg.lead .from { color:var(--muted); font-weight:500; }
+  .leg-line { flex:none; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.45; }
+  .leg-dist { color:var(--muted); font-weight:500; }
+
+  .btn-add-stop { width:100%; border:1.5px dashed var(--border); border-radius:10px; background:transparent; padding:10px 0; color:var(--teal-deep); font-size:13px; margin-top:10px; }
+
+  /* NEW ── Candidate 1: collapsible "มาแล้ว" drawer at the bottom */
+  .done-drawer { margin-top:12px; border-top:1px dashed #d7dee6; padding-top:10px; }
+  .done-toggle {
+    width:100%; display:flex; align-items:center; gap:9px; background:transparent; border:0;
+    padding:8px 4px; cursor:pointer; font:inherit; color:#475569; font-size:12.5px; font-weight:700;
+  }
+  .done-toggle .chev { transition:transform .15s ease; color:#94a3b8; }
+  .done-toggle[aria-expanded="true"] .chev { transform:rotate(90deg); }
+  .done-toggle .badge { display:inline-flex; align-items:center; justify-content:center; gap:5px; background:var(--visited-bg); color:var(--visited); border-radius:999px; padding:2px 9px; font-size:11px; }
+  .done-toggle .spacer { flex:1; }
+  .done-body { display:flex; flex-direction:column; gap:8px; margin-top:6px; }
+  .done-body.collapsed { display:none; }
+  /* Slim visited card inside the drawer — no rail/nav/reorder, just check + name + time */
+  .done-item { display:flex; align-items:center; gap:10px; background:#f6f8fa; border:1px solid var(--border); border-radius:11px; padding:8px 12px 8px 0; }
+  .done-item .stop-check { width:38px; border-right-color:#cfe9d7; background:var(--visited-bg); border-radius:11px 0 0 11px; align-self:stretch; }
+  .done-item .di-time { font-family:'Spline Sans Mono',ui-monospace,monospace; font-size:12px; color:var(--muted); width:44px; flex:none; }
+  .done-item .di-name { flex:1; min-width:0; font-size:13px; font-weight:600; color:#475569; text-decoration:line-through; text-decoration-thickness:1.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .done-item .di-chip { flex:none; }
+
+  /* NEW ── Candidate 2: nested segmented list-tabs */
+  .list-tabs { display:flex; gap:6px; margin:2px 0 12px; }
+  .list-tab { flex:1; text-align:center; border:1px solid var(--border); background:var(--surface); color:#475569; border-radius:10px; padding:7px 0; font-size:12px; font-weight:700; }
+  .list-tab.active { background:var(--teal-soft); border-color:var(--teal); color:var(--teal-deep); }
+  .list-tab .n { opacity:.7; font-weight:600; }
+
+  /* NEW ── Candidate 3: inline divider */
+  .done-divider { display:flex; align-items:center; gap:10px; margin:6px 2px 2px; color:#94a3b8; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+  .done-divider::before, .done-divider::after { content:""; flex:1; height:1px; background:#e2e8f0; }
+
+  .caption { font-size:11.5px; color:#64748b; margin:8px 2px 0; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Trips — ย้าย "มาแล้ว" ออกจากลิสต์ "ที่เหลือ" (ต่อยอด #24)</b><br />
+  พฤติกรรมร่วมทุกแนวทาง: ติ๊ก <b>มาแล้ว</b> → stop ออกจากลิสต์หลัก (ที่เหลือ) ไปอยู่กลุ่ม "มาแล้ว";
+  <b>untick</b> → เด้งกลับตำแหน่งเดิม. ตัวเลขสรุปเปลี่ยนจาก <b>เดินทางรวม</b> เป็น
+  <b class="q">เหลือเดินทาง</b> = ผลรวม leg ของ stop ที่ยังไม่ได้ไป (24 นาที ในตัวอย่าง =
+  6 + 18). การคำนวณ arrival/depart/flag/weather <b>ไม่เปลี่ยน</b> (ยึด ADR-008/A).<br />
+  <span class="q">คำถาม:</span> เลือกโครงไหน — และ leg ที่นำเข้าจุดแรกที่เหลือ (จากจุดที่เพิ่งไปมา)
+  ควรโชว์เป็นบรรทัดนำไหม?
+</div>
+
+<!-- ═══ Candidate 1 — collapsible "มาแล้ว" drawer (RECOMMENDED) ═══ -->
+<div class="frame">
+  <h2>แนวทาง 1 · ลิ้นชัก "มาแล้ว" พับได้ท้ายลิสต์ <span class="tag rec">แนะนำ</span></h2>
+  <div class="trip-detail">
+    <div class="seg-tabs"><span class="seg-tab active">วัน 1</span><span class="seg-tab">วัน 2</span></div>
+    <div class="day-summary">
+      <div class="day-stats">
+        <span>เริ่ม <b>09:00</b></span>
+        <span>เสร็จ <b>16:20</b></span>
+        <span class="stat-remain">เหลือเดินทาง <b>24 นาที</b></span>
+      </div>
+      <span class="day-visited"><span class="dot"></span>2/4</span>
+    </div>
+
+    <div class="stop-list">
+      <!-- leading leg: from the last visited place to the first remaining stop -->
+      <div class="travel-leg lead"><span class="leg-line"></span><span>เดิน 6 นาที</span><span class="from">· จากจุดที่เพิ่งไป</span></div>
+      <!-- remaining stop 1 -->
+      <div class="stop-card">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">11:48</div><div class="stop-dep">→13:18</div></div>
+        <button class="stop-body">
+          <div class="stop-name">🍽 ข้าวซอยแม่สาย</div>
+          <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span><span class="chip wx now">ตอนนี้ 33°</span><span class="chip wx arr">ไปถึง 34°</span></div>
+        </button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+      <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 18 นาที</span><span class="leg-dist">· 7.3 กม.</span></div>
+      <!-- remaining stop 2, with a real problem flag (kept — computation unchanged) -->
+      <div class="stop-card bad">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">13:36</div><div class="stop-dep">→14:36</div></div>
+        <button class="stop-body">
+          <div class="stop-name">🛍 ไนท์บาซาร์</div>
+          <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม.</span><span class="chip wx now">ตอนนี้ 32°</span><span class="chip wx arr">ไปถึง 31°</span></div>
+          <div class="flag-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><span><b>สถานที่ยังไม่เปิด</b> <span class="fix">เปิด 17:00</span></span></div>
+        </button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+    </div>
+
+    <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
+
+    <!-- collapsible done drawer (shown EXPANDED here; collapsed by default) -->
+    <div class="done-drawer">
+      <button class="done-toggle" aria-expanded="true">
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 6l6 6-6 6"/></svg>
+        <span class="badge"><svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>มาแล้ว 2</span>
+        <span class="spacer"></span>
+      </button>
+      <div class="done-body">
+        <div class="done-item">
+          <label class="stop-check"><input type="checkbox" checked /></label>
+          <span class="di-time">09:00</span>
+          <span class="di-name">🍜 ร้านกาแฟเช้า Ristr8to</span>
+        </div>
+        <div class="done-item">
+          <label class="stop-check"><input type="checkbox" checked /></label>
+          <span class="di-time">10:12</span>
+          <span class="di-name">🏛 วัดพระสิงห์</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="caption">พับไว้โดยดีฟอลต์ (ถ้ายังไม่มี visited จะไม่โผล่เลย). แตะหัวลิ้นชักเพื่อกาง →
+  เห็นการ์ดแบบสลิม แตะ checkbox เพื่อ untick → เด้งกลับขึ้นลิสต์ "ที่เหลือ". สกอลล์เดียว ไม่มี tab ซ้อน tab.</p>
+</div>
+
+<!-- ═══ Candidate 2 — nested segmented list-tabs ═══ -->
+<div class="frame">
+  <h2>แนวทาง 2 · แท็บย่อย ที่เหลือ / มาแล้ว <span class="tag alt">ทางเลือก</span></h2>
+  <div class="trip-detail">
+    <div class="seg-tabs"><span class="seg-tab active">วัน 1</span><span class="seg-tab">วัน 2</span></div>
+    <div class="day-summary">
+      <div class="day-stats">
+        <span>เริ่ม <b>09:00</b></span>
+        <span>เสร็จ <b>16:20</b></span>
+        <span class="stat-remain">เหลือเดินทาง <b>24 นาที</b></span>
+      </div>
+      <span class="day-visited"><span class="dot"></span>2/4</span>
+    </div>
+
+    <div class="list-tabs">
+      <span class="list-tab active">ที่เหลือ <span class="n">2</span></span>
+      <span class="list-tab">มาแล้ว <span class="n">2</span></span>
+    </div>
+
+    <div class="stop-list">
+      <div class="stop-card">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">11:48</div><div class="stop-dep">→13:18</div></div>
+        <button class="stop-body"><div class="stop-name">🍽 ข้าวซอยแม่สาย</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span><span class="chip wx arr">ไปถึง 34°</span></div></button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+      <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 18 นาที</span><span class="leg-dist">· 7.3 กม.</span></div>
+      <div class="stop-card bad">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">13:36</div><div class="stop-dep">→14:36</div></div>
+        <button class="stop-body"><div class="stop-name">🛍 ไนท์บาซาร์</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม.</span></div>
+          <div class="flag-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg><span><b>สถานที่ยังไม่เปิด</b> <span class="fix">เปิด 17:00</span></span></div></button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+    </div>
+    <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
+  </div>
+  <p class="caption">แยกชัดเจน แต่มี <b>2 แถวแท็บ</b> (วัน + ที่เหลือ/มาแล้ว) ซ้อนกันบนมือถือ = หนัก
+  และต้องสลับแท็บถึงจะ untick ของที่มาแล้วได้ (มองไม่เห็นพร้อมกัน).</p>
+</div>
+
+<!-- ═══ Candidate 3 — inline divider (always visible) ═══ -->
+<div class="frame">
+  <h2>แนวทาง 3 · เส้นคั่นในลิสต์เดียว <span class="tag alt">ทางเลือก</span></h2>
+  <div class="trip-detail">
+    <div class="seg-tabs"><span class="seg-tab active">วัน 1</span><span class="seg-tab">วัน 2</span></div>
+    <div class="day-summary">
+      <div class="day-stats">
+        <span>เริ่ม <b>09:00</b></span>
+        <span>เสร็จ <b>16:20</b></span>
+        <span class="stat-remain">เหลือเดินทาง <b>24 นาที</b></span>
+      </div>
+      <span class="day-visited"><span class="dot"></span>2/4</span>
+    </div>
+
+    <div class="stop-list">
+      <div class="stop-card">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">11:48</div><div class="stop-dep">→13:18</div></div>
+        <button class="stop-body"><div class="stop-name">🍽 ข้าวซอยแม่สาย</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span></div></button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+      <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 18 นาที</span><span class="leg-dist">· 7.3 กม.</span></div>
+      <div class="stop-card bad">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">13:36</div><div class="stop-dep">→14:36</div></div>
+        <button class="stop-body"><div class="stop-name">🛍 ไนท์บาซาร์</div><div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม.</span></div></button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+
+      <div class="done-divider">มาแล้ว</div>
+
+      <div class="stop-card visited">
+        <label class="stop-check"><input type="checkbox" checked /></label>
+        <div class="stop-rail"><div class="stop-arr">09:00</div><div class="stop-dep">→10:00</div></div>
+        <button class="stop-body"><div class="stop-name">🍜 ร้านกาแฟเช้า Ristr8to</div><div class="stop-chips"><span class="chip visited"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>มาแล้ว</span></div></button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+      <div class="stop-card visited">
+        <label class="stop-check"><input type="checkbox" checked /></label>
+        <div class="stop-rail"><div class="stop-arr">10:12</div><div class="stop-dep">→11:42</div></div>
+        <button class="stop-body"><div class="stop-name">🏛 วัดพระสิงห์</div><div class="stop-chips"><span class="chip visited"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>มาแล้ว</span></div></button>
+        <span class="stop-nav"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></span>
+        <div class="stop-reorder"><button>▲</button><button>▼</button></div>
+      </div>
+    </div>
+    <button class="btn-add-stop">+ เพิ่มจุดแวะ</button>
+  </div>
+  <p class="caption">ง่ายสุด เห็นทุกอย่าง แต่กองที่มาแล้วยัง <b>กินพื้นที่สกอลล์</b> — สวนกับเป้าหมาย
+  "ให้ลิสต์ที่เหลือโล่ง" เมื่อวันยาว ๆ.</p>
+</div>
+
+</body>
+</html>
