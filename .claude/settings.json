@@ -1,4 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(cat backend/src/MenuNest.Domain/Entities/ItineraryDay.cs)",
+      "Bash(cat backend/src/MenuNest.Infrastructure/Persistence/Configurations/ItineraryDayConfiguration.cs)",
+      "Bash(AZURE_TOKEN_CREDENTIALS=AzureCliCredential dotnet ef database update --project backend/src/MenuNest.Infrastructure --startup-project backend/src/MenuNest.WebApi --connection 'Server=tcp:menunest-sql.database.windows.net,1433;Initial Catalog=MenuNest;Authentication=Active Directory Default;Encrypt=True;')"
+    ]
+  },
   "enabledPlugins": {
     "ado-backlog@workflow-daily-work": true,
     "dev-workflows@workflow-daily-work": true,

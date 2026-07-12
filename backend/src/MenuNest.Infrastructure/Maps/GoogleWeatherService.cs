@@ -52,7 +52,10 @@ public sealed class GoogleWeatherService : IWeatherService
             var lng = p.Lng.ToString(CultureInfo.InvariantCulture);
             var client = _http.CreateClient();
             using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(8));
+            // Now is a single call (8s). OnArrival may walk up to MaxForecastPages sequential requests, so give
+            // the whole walk a larger shared budget (~10 pages at the observed ~1.6s/page + margin) rather than
+            // starving a far-horizon stop into a false No-data — while still bounding total wait per stop.
+            timeoutCts.CancelAfter(kind == WeatherReadingKind.Now ? TimeSpan.FromSeconds(8) : TimeSpan.FromSeconds(20));
 
             if (kind == WeatherReadingKind.Now)
             {

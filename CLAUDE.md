@@ -38,6 +38,21 @@ token and returns the correct subscription. Without it, you silently get the
 - App Service: `menunest` · Application Insights: `menunest` · Static Web App: `MenuNestWeb`
 - SQL: server `menunest-sql.database.windows.net`, database `MenuNest` (Entra-only auth)
 
+## Querying App Insights / logs — it is WORKSPACE-BASED
+The `menunest` Application Insights is workspace-based (`ingestionMode: LogAnalytics`),
+backed by Log Analytics workspace `DefaultWorkspace-01473a32-351a-4cf5-9956-674d68e2ccbf-SEA`
+(RG `DefaultResourceGroup-SEA`, customerId `587ba1f6-9c1c-4c74-9f0e-4581f3f765a2`, 30-day retention).
+
+- `az monitor app-insights query` (the *classic* API) returns **`[]`** here even when data
+  exists — do NOT trust its empty result. Query the workspace directly instead:
+  `az monitor log-analytics query --subscription 01473a32-351a-4cf5-9956-674d68e2ccbf --workspace 587ba1f6-9c1c-4c74-9f0e-4581f3f765a2 --analytics-query "<KQL>"`
+- Use the **workspace-schema** table names: `AppRequests`, `AppPageViews`, `AppDependencies`,
+  `AppExceptions`, `AppTraces`, `AppEvents` (NOT `requests`/`pageViews`/`dependencies`).
+- `log-analytics query` returns a **raw JSON array of rows** — read `-o json` directly; do
+  NOT pass `--query "tables[0].rows"` (yields null, unlike `app-insights query`).
+- Don't use KQL reserved words as column names (`kind` fails to parse — use `sessionKind`).
+- Frontend browser telemetry (SPA `AppPageViews`/`AppDependencies`/`AppExceptions`, via
+  `enableAutoRouteTracking`) AND backend `AppRequests` land in the SAME workspace.
 ## Database migrations are applied MANUALLY
 Neither the app (Program.cs has **no** `db.Database.Migrate()`) nor the CD pipeline
 (`.github/workflows/main_menunest.yml`) applies EF Core migrations. After adding a

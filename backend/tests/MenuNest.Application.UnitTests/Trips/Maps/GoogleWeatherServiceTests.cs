@@ -44,11 +44,15 @@ public class GoogleWeatherServiceTests
         private readonly string _page1;
         private readonly string _page2;
         public int Calls { get; private set; }
+        public string? LastPageToken { get; private set; } // the actual token value the service forwarded
         public PagedForecastHandler(string page1, string page2) { _page1 = page1; _page2 = page2; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
             Calls++;
-            var json = request.RequestUri!.ToString().Contains("pageToken=") ? _page2 : _page1;
+            var url = request.RequestUri!.ToString();
+            var idx = url.IndexOf("pageToken=", StringComparison.Ordinal);
+            if (idx >= 0) LastPageToken = Uri.UnescapeDataString(url[(idx + "pageToken=".Length)..]);
+            var json = idx >= 0 ? _page2 : _page1;
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             { Content = new StringContent(json, Encoding.UTF8, "application/json") });
         }
@@ -231,6 +235,7 @@ public class GoogleWeatherServiceTests
         r.TempC.Should().Be(27.0);
         r.RainPct.Should().Be(10);
         handler.Calls.Should().Be(2); // page 1 (miss) then page 2 (hit)
+        handler.LastPageToken.Should().Be("PAGE2"); // the exact nextPageToken from page 1 was forwarded
     }
 
     [Fact]
