@@ -12,7 +12,7 @@ test.describe('Trips — itinerary reorder', () => {
   test('keyboard reorder moves the first Stop down and persists', async ({authedPage: page}) => {
     await page.goto('/trips')
     // Open the first trip if a trip list is shown; otherwise assume a trip route.
-    const firstTrip = page.locator('.trip-card').first()
+    const firstTrip = page.getByTestId('trip-card').first()
     if (await firstTrip.count()) await firstTrip.click()
 
     const cards = page.getByTestId('itin-stop-card')
