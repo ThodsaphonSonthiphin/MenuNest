@@ -1,11 +1,11 @@
 // frontend/src/pages/trips/hooks/useSchedule.test.ts
 import {describe, it, expect} from 'vitest'
-import {computeSchedule, dayOfWeek, isOpenAt, offWindowFlag, closedFlag, composeFlags} from './useSchedule'
+import {computeSchedule, dayOfWeek, isOpenAt, offWindowFlag, closedFlag, composeFlags, sumTravelSeconds} from './useSchedule'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 
-const stop = (id: string, seq: number, dwell: number, legSec: number | null) => ({
+const stop = (id: string, seq: number, dwell: number, legSec: number | null, visited = false) => ({
   id, tripPlaceId: `p${id}`, sequence: seq, dwellMinutes: dwell,
-  travelModeToReach: 'Drive' as const, isVisited: false,
+  travelModeToReach: 'Drive' as const, isVisited: visited,
   legToReach: legSec == null ? null : {seconds: legSec, meters: 1000, encodedPolyline: null, source: 'Estimated' as const},
 })
 
@@ -222,5 +222,43 @@ describe('composeFlags', () => {
     const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '10:00:00', useCurrentTimeAsStart: false, stops: [stop('1', 0, 30, null)]}
     const composed = composeFlags(computeSchedule(day), {p1: p}, dayOfWeek(day.date))
     expect(composed[0].flag).toBeNull()
+  })
+})
+
+describe('sumTravelSeconds', () => {
+  // A(✓) → B(✓) → C → D. Legs: A=none, B=12m, C=6m (into first remaining), D=18m.
+  const stops = [
+    stop('1', 0, 60, null, true),
+    stop('2', 1, 45, 12 * 60, true),
+    stop('3', 2, 90, 6 * 60, false),
+    stop('4', 3, 60, 18 * 60, false),
+  ]
+
+  it('sums every Leg by default (== เดินทางรวม)', () => {
+    expect(sumTravelSeconds(stops)).toBe((12 + 6 + 18) * 60)
+  })
+
+  it("excludes visited Stops' Legs with {excludeVisited} (== เหลือเดินทาง)", () => {
+    // remaining = C(6) + D(18); the 6-min Leg INTO the first remaining Stop is included
+    expect(sumTravelSeconds(stops, {excludeVisited: true})).toBe((6 + 18) * 60)
+  })
+
+  it('all visited → 0', () => {
+    const allDone = stops.map((s) => ({...s, isVisited: true}))
+    expect(sumTravelSeconds(allDone, {excludeVisited: true})).toBe(0)
+  })
+
+  it('a null Leg contributes 0', () => {
+    expect(sumTravelSeconds([stop('1', 0, 60, null, false)], {excludeVisited: true})).toBe(0)
+  })
+
+  it('computeSchedule ignores isVisited (arrival/depart identical either way)', () => {
+    const base = [stop('1', 0, 60, null), stop('2', 1, 45, 25 * 60)]
+    const day = (v: boolean): ItineraryDayDto => ({
+      id: 'd', date: '2026-11-14', dayStartTime: '09:00:00', useCurrentTimeAsStart: false,
+      stops: base.map((s) => ({...s, isVisited: v})),
+    })
+    expect(computeSchedule(day(true)).map((s) => [s.arrival, s.depart]))
+      .toEqual(computeSchedule(day(false)).map((s) => [s.arrival, s.depart]))
   })
 })
