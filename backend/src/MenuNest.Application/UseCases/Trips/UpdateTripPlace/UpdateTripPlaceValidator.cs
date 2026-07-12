@@ -7,7 +7,9 @@ public sealed class UpdateTripPlaceValidator : AbstractValidator<UpdateTripPlace
         RuleFor(x => x.TripId).NotEmpty();
         RuleFor(x => x.PlaceId).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(300);
-        RuleFor(x => x.ReviewLinks).Must(l => l.Count <= 10)
+        RuleFor(x => x.ReviewLinks).NotNull()
+            .WithMessage("Review links are required (send an empty array for none).");
+        RuleFor(x => x.ReviewLinks).Must(l => l is null || l.Count <= 10)
             .WithMessage("A place can have at most 10 review links.");
         RuleForEach(x => x.ReviewLinks).ChildRules(link =>
         {

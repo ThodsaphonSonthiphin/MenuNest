@@ -76,4 +76,14 @@ public class UpdateTripPlaceHandlerTests
         var act = () => Handler(fx).Handle(Cmd(trip.Id, place.Id, links), CancellationToken.None).AsTask();
         await act.Should().ThrowAsync<FluentValidation.ValidationException>();
     }
+
+    [Fact]
+    public async Task Null_review_links_is_rejected_as_validation_error_not_NRE()
+    {
+        using var fx = new HandlerTestFixture();
+        var (trip, place) = Seed(fx);
+        var cmd = new UpdateTripPlaceCommand(trip.Id, place.Id, "A", PlaceCategory.Eat, null, null, null, null, null, null!);
+        var act = () => Handler(fx).Handle(cmd, CancellationToken.None).AsTask();
+        await act.Should().ThrowAsync<FluentValidation.ValidationException>();
+    }
 }
