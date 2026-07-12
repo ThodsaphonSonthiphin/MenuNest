@@ -14,3 +14,21 @@ export function computeReorder(ids: string[], activeId: string, overId: string):
   next.splice(to, 0, next.splice(from, 1)[0])
   return next
 }
+
+/**
+ * Reorder only the not-visited Stops among themselves; visited ids keep their original
+ * index (ADR-048). Returns the FULL-day ordered ids to send to reorderStops, or `null`
+ * when nothing changes (delegates the change/lookup rules to computeReorder).
+ */
+export function reorderKeepingVisited(
+  fullIds: string[],
+  visitedIds: ReadonlySet<string>,
+  activeId: string,
+  overId: string,
+): string[] | null {
+  const remainingIds = fullIds.filter((id) => !visitedIds.has(id))
+  const nextRemaining = computeReorder(remainingIds, activeId, overId)
+  if (!nextRemaining) return null
+  let ri = 0
+  return fullIds.map((id) => (visitedIds.has(id) ? id : nextRemaining[ri++]))
+}
