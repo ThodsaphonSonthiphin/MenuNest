@@ -28,4 +28,15 @@ public class StopTests
         s.SetDwell(90);
         s.DwellMinutes.Should().Be(90);
     }
+
+    [Fact]
+    public void SetVisited_toggles_flag_and_defaults_false()
+    {
+        var s = Stop.Create(Guid.NewGuid(), Guid.NewGuid(), 0, 60, TravelMode.Drive);
+        s.IsVisited.Should().BeFalse();      // new stop is never visited
+        s.SetVisited(true);
+        s.IsVisited.Should().BeTrue();
+        s.SetVisited(false);
+        s.IsVisited.Should().BeFalse();
+    }
 }

@@ -18,6 +18,7 @@ public sealed class Stop : Entity
     public int DwellMinutes { get; private set; }
     public TravelMode TravelModeToReach { get; private set; }
     public string? Notes { get; private set; }
+    public bool IsVisited { get; private set; }
 
     private Stop() { } // EF
 
@@ -55,6 +56,12 @@ public sealed class Stop : Entity
     public void SetTravelMode(TravelMode mode)
     {
         TravelModeToReach = mode;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetVisited(bool value)
+    {
+        IsVisited = value;
         UpdatedAt = DateTime.UtcNow;
     }
 }
