@@ -34,18 +34,22 @@ by rendering a mock in the real teal design language and having the owner approv
    checkbox (teal/green `accent-color`, matching the existing `.day-start-live-toggle`
    checkbox — **not** an emoji, per the project's icon rule). It sits outside the
    `.stop-body` button so ticking never opens the editor.
-2. **Visited row = dimmed + struck-through, in place.** A `visited` state on the card
-   drops its opacity, strikes through the place name, and adds a green **"มาแล้ว"**
-   chip in the chip row. The Stop **keeps its position** — Visited Stops are not
-   reordered to the bottom or collapsed, so the day's planned shape stays intact.
-   (Rejected — moving/collapsing visited Stops: churns the list and hides structure.)
-3. **No suppression of Timing flags or Weather.** A visited card dims *everything*
-   including its Timing flag and weather chips; there is no conditional logic to hide
-   them. (Rejected — suppressing them when visited: extra branching for a warning that
-   is merely moot, not wrong; dimming already de-emphasises it.)
-4. **Optional day-level rollup.** A small **"X/Y มาแล้ว"** pill on the dark
-   `.day-summary` bar shows how many of the day's Stops are checked. Approved as part
-   of the mock. (Rejected — per-stop only: loses the at-a-glance day progress.)
+2. **Visited row = de-emphasised + struck-through, in place.** A `visited` state on the
+   card de-emphasises the row (struck-through slate name + soft background — see §3 / spec
+   §5.4; not whole-card opacity) and adds a green **"มาแล้ว"** chip in the chip row. The
+   Stop **keeps its position** — Visited Stops are not reordered to the bottom or
+   collapsed, so the day's planned shape stays intact. (Rejected — moving/collapsing
+   visited Stops: churns the list and hides structure.)
+3. **No suppression of Timing flags or Weather.** A visited card de-emphasises the row
+   (struck-through slate name + soft background — the WCAG-AA refinement in the design
+   spec §5.4 that replaced the original whole-card opacity; the checkbox and green chip
+   stay full-strength); there is **no** conditional logic to hide a Timing flag or a
+   weather chip on a visited card. (Rejected — suppressing them when visited: extra
+   branching for a warning that is merely moot, not wrong.)
+4. **Day-level rollup (in scope).** A small **"X/Y มาแล้ว"** pill on the dark
+   `.day-summary` bar shows how many of the day's Stops are checked (rendered only when
+   the day has stops). Approved as part of the mock and built in this feature.
+   (Rejected — per-stop only: loses the at-a-glance day progress.)
 
 ## Consequences
 
