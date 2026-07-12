@@ -17,6 +17,7 @@ internal sealed class StopConfiguration : IEntityTypeConfiguration<Stop>
         b.Property(s => s.DwellMinutes).IsRequired();
         b.Property(s => s.TravelModeToReach).HasConversion<int>();
         b.Property(s => s.Notes).HasMaxLength(2000);
+        b.Property(s => s.IsVisited).HasDefaultValue(false);
         b.HasIndex(s => new { s.ItineraryDayId, s.Sequence });
         b.HasOne<ItineraryDay>().WithMany().HasForeignKey(s => s.ItineraryDayId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<TripPlace>().WithMany().HasForeignKey(s => s.TripPlaceId).OnDelete(DeleteBehavior.NoAction);
