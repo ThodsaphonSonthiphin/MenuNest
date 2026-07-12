@@ -1,6 +1,7 @@
 using MenuNest.Domain.Common;
 using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
+using MenuNest.Domain.ValueObjects;
 
 namespace MenuNest.Domain.Entities;
 
@@ -25,6 +26,9 @@ public sealed class TripPlace : Entity
     public string? OpeningHoursJson { get; private set; }
     public string? FeeNote { get; private set; }
     public string? Notes { get; private set; }
+
+    private readonly List<ReviewLink> _reviewLinks = new();
+    public IReadOnlyList<ReviewLink> ReviewLinks => _reviewLinks;
 
     private TripPlace() { } // EF
 
@@ -69,6 +73,15 @@ public sealed class TripPlace : Entity
         else if (end <= start) throw new DomainException("Best-time end must be after start.");
         BestTimeStart = start;
         BestTimeEnd = end;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetReviewLinks(IEnumerable<ReviewLink> links)
+    {
+        var list = (links ?? Enumerable.Empty<ReviewLink>()).ToList();
+        if (list.Count > 10) throw new DomainException("A place can have at most 10 review links.");
+        _reviewLinks.Clear();
+        _reviewLinks.AddRange(list);
         UpdatedAt = DateTime.UtcNow;
     }
 }

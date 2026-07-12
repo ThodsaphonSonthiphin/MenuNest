@@ -135,5 +135,24 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
                 v => JsonSerializer.Serialize(v, jsonOptions),
                 v => (IReadOnlyList<AssociatedSymptom>)(JsonSerializer.Deserialize<List<AssociatedSymptom>>(v, jsonOptions) ?? new List<AssociatedSymptom>()),
                 assocComparer);
+
+        // ---------- Trip Planner module JSON conversions ----------
+        // Mirror the JSON-list conversion for TripPlace.ReviewLinks so EF can
+        // materialise the get-only list property (backed by _reviewLinks) in the
+        // InMemory store, same as the real Infrastructure TripPlaceConfiguration.
+        var reviewLinksComparer = new ValueComparer<IReadOnlyList<ReviewLink>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            v => v.Aggregate(0, (hash, r) => HashCode.Combine(hash, r.GetHashCode())),
+            v => v.ToList());
+
+        modelBuilder.Entity<TripPlace>()
+            .Property(p => p.ReviewLinks)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<ReviewLink>)(JsonSerializer.Deserialize<List<ReviewLink>>(v, jsonOptions) ?? new List<ReviewLink>()),
+                reviewLinksComparer)
+            .HasField("_reviewLinks")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired(false);
     }
 }

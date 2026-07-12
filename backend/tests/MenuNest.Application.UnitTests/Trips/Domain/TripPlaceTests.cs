@@ -2,6 +2,7 @@ using FluentAssertions;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
+using MenuNest.Domain.ValueObjects;
 using Xunit;
 
 namespace MenuNest.Application.UnitTests.Trips.Domain;
@@ -52,5 +53,39 @@ public class TripPlaceTests
         place.SetBestTime(new TimeOnly(8, 0), new TimeOnly(10, 0));
         place.BestTimeStart.Should().Be(new TimeOnly(8, 0));
         place.BestTimeEnd.Should().Be(new TimeOnly(10, 0));
+    }
+
+    [Fact]
+    public void New_place_has_no_review_links()
+    {
+        var p = TripPlace.Create(Guid.NewGuid(), "A", 0, 0, PlaceCategory.See);
+        p.ReviewLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetReviewLinks_replaces_the_whole_list()
+    {
+        var p = TripPlace.Create(Guid.NewGuid(), "A", 0, 0, PlaceCategory.See);
+        p.SetReviewLinks(new[] { ReviewLink.Create("https://x.com/1", "one") });
+        p.SetReviewLinks(new[] { ReviewLink.Create("https://x.com/2", null), ReviewLink.Create("https://x.com/3", null) });
+        p.ReviewLinks.Select(r => r.Url).Should().Equal("https://x.com/2", "https://x.com/3");
+    }
+
+    [Fact]
+    public void SetReviewLinks_with_empty_clears_the_list()
+    {
+        var p = TripPlace.Create(Guid.NewGuid(), "A", 0, 0, PlaceCategory.See);
+        p.SetReviewLinks(new[] { ReviewLink.Create("https://x.com/1", null) });
+        p.SetReviewLinks(Array.Empty<ReviewLink>());
+        p.ReviewLinks.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void SetReviewLinks_rejects_more_than_ten()
+    {
+        var p = TripPlace.Create(Guid.NewGuid(), "A", 0, 0, PlaceCategory.See);
+        var many = Enumerable.Range(0, 11).Select(i => ReviewLink.Create($"https://x.com/{i}", null));
+        var act = () => p.SetReviewLinks(many);
+        act.Should().Throw<DomainException>();
     }
 }
