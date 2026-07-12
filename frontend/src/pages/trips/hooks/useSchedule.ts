@@ -149,11 +149,22 @@ export function computeSchedule(day: ItineraryDayDto): ScheduledStop[] {
   return result
 }
 
+/** Σ Leg travel time (seconds) over a day's Stops. With {excludeVisited}, Stops already
+ *  marked Visited drop out — the basis for the "เหลือเดินทาง" figure (ADR-047).
+ *  Order-independent (a plain sum), so it never depends on computeSchedule. */
+export function sumTravelSeconds(stops: StopDto[], opts?: {excludeVisited?: boolean}): number {
+  return stops.reduce(
+    (sum, st) => sum + (opts?.excludeVisited && st.isVisited ? 0 : (st.legToReach?.seconds ?? 0)),
+    0,
+  )
+}
+
 export function useSchedule(day: ItineraryDayDto, placesById: Record<string, TripPlaceDto>) {
   return useMemo(() => {
     const scheduled = composeFlags(computeSchedule(day), placesById, dayOfWeek(day.date))
-    const totalTravelSeconds = day.stops.reduce((sum, st) => sum + (st.legToReach?.seconds ?? 0), 0)
+    const totalTravelSeconds = sumTravelSeconds(day.stops)
+    const remainingTravelSeconds = sumTravelSeconds(day.stops, {excludeVisited: true})
     const dayEnd = scheduled.length ? scheduled[scheduled.length - 1].depart : day.dayStartTime.slice(0, 5)
-    return {scheduled, dayEnd, totalTravelSeconds}
+    return {scheduled, dayEnd, totalTravelSeconds, remainingTravelSeconds}
   }, [day, placesById])
 }
