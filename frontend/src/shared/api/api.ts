@@ -500,7 +500,7 @@ export interface TripPlaceDto {
     feeNote: string | null; notes: string | null
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
-export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null }
+export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
 export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; useCurrentTimeAsStart: boolean; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
 export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
@@ -1314,6 +1314,39 @@ export const api = createApi({
             query: ({tripId, stopId, ...b}) => ({url: `/api/trips/${tripId}/stops/${stopId}`, method: 'PATCH', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
         }),
+        setStopVisited: build.mutation<void, {tripId: string; stopId: string; isVisited: boolean}>({
+            query: ({tripId, stopId, isVisited}) => ({
+                url: `/api/trips/${tripId}/stops/${stopId}`, method: 'PATCH', body: {isVisited},
+            }),
+            // Display-only toggle (ADR-039/042): NO invalidatesTags, so getItinerary never
+            // refetches (a refetch re-bills the Google Routes API + re-fetches Weather).
+            // Optimistically patch every live getItinerary cache entry for this trip
+            // (keyed by {tripId,tz,lat,lng} → possibly several), undo on failure.
+            onQueryStarted: async ({tripId, stopId, isVisited}, {dispatch, queryFulfilled, getState}) => {
+                const entries = api.util.selectInvalidatedBy(getState(), [{type: 'TripItinerary', id: tripId}])
+                const patches = entries
+                    .filter((e) => e.endpointName === 'getItinerary')
+                    .map((e) =>
+                        dispatch(
+                            api.util.updateQueryData(
+                                'getItinerary',
+                                e.originalArgs as {tripId: string; tz?: string; lat?: number; lng?: number},
+                                (draft) => {
+                                    for (const day of draft) {
+                                        const s = day.stops.find((x) => x.id === stopId)
+                                        if (s) s.isVisited = isVisited
+                                    }
+                                },
+                            ),
+                        ),
+                    )
+                try {
+                    await queryFulfilled
+                } catch {
+                    patches.forEach((p) => p.undo()) // revert; ItineraryTab surfaces the error (Task 5)
+                }
+            },
+        }),
         removeStop: build.mutation<void, {tripId: string; stopId: string}>({
             query: ({tripId, stopId}) => ({url: `/api/trips/${tripId}/stops/${stopId}`, method: 'DELETE'}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
@@ -1484,6 +1517,7 @@ export const {
     useGetItineraryQuery,
     useAddStopMutation,
     useUpdateStopMutation,
+    useSetStopVisitedMutation,
     useRemoveStopMutation,
     useReorderStopsMutation,
     useSetDayStartTimeMutation,
