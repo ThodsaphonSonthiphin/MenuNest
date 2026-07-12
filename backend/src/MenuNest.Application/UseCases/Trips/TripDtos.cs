@@ -16,7 +16,7 @@ public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, Ro
 
 public sealed record StopDto(
     Guid Id, Guid TripPlaceId, int Sequence, int DwellMinutes,
-    TravelMode TravelModeToReach, LegDto? LegToReach);
+    TravelMode TravelModeToReach, LegDto? LegToReach, bool IsVisited);
 
 public sealed record ItineraryDayDto(
     Guid Id, DateOnly Date, TimeOnly DayStartTime, bool UseCurrentTimeAsStart, IReadOnlyList<StopDto> Stops);

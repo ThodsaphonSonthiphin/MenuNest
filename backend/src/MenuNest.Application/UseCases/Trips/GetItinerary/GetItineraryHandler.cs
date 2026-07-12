@@ -87,7 +87,7 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
                 LegDto? leg = legByKey.TryGetValue((day.Id, i), out var l)
                     ? new LegDto(l.Seconds, l.Meters, l.EncodedPolyline, l.Source)
                     : null;
-                stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg));
+                stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg, s.IsVisited));
             }
             // A Day flagged UseCurrentTimeAsStart tracks the real clock on every read (the
             // persisted DayStartTime is left untouched as the fallback for when the flag is

@@ -31,6 +31,6 @@ public sealed class AddStopHandler : ICommandHandler<AddStopCommand, StopDto>
         var stop = Stop.Create(day.Id, c.TripPlaceId, nextSeq, c.DwellMinutes, c.TravelModeToReach);
         _db.Stops.Add(stop);
         await _db.SaveChangesAsync(ct);
-        return new StopDto(stop.Id, stop.TripPlaceId, stop.Sequence, stop.DwellMinutes, stop.TravelModeToReach, null);
+        return new StopDto(stop.Id, stop.TripPlaceId, stop.Sequence, stop.DwellMinutes, stop.TravelModeToReach, null, stop.IsVisited);
     }
 }

@@ -25,6 +25,8 @@ public sealed class UpdateStopHandler : ICommandHandler<UpdateStopCommand, Unit>
             stop.SetDwell(c.DwellMinutes.Value);
         if (c.TravelModeToReach.HasValue)
             stop.SetTravelMode(c.TravelModeToReach.Value);
+        if (c.IsVisited.HasValue)
+            stop.SetVisited(c.IsVisited.Value);
 
         await _db.SaveChangesAsync(ct);
         return Unit.Value;
