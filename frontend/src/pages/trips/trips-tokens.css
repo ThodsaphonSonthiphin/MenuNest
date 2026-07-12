@@ -26,6 +26,8 @@
   --arr-bg:     #e9f1fb;
   --arr-rain:   #0f5bb0;
   --arr-rain-bg:#dbe9fb;
+  --visited:    #15803d;
+  --visited-bg: #e7f6ec;
   background: var(--page);
   color: var(--ink);
 }
@@ -135,6 +137,31 @@
 }
 .stop-card.warn { background: #fffdf7; border-color: #f3e2c2; }
 .stop-card.bad { background: #fffbfb; border-color: #f4d0cc; }
+
+/* ── Visited ("มาแล้ว") — leading checkbox + de-emphasised row (ADR-040) ── */
+.stop-check {
+  flex: none;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--border);
+  background: #fafdfd;
+}
+.stop-check input { width: 19px; height: 19px; accent-color: var(--visited); cursor: pointer; }
+.stop-card.visited { background: #f6f8fa; }
+.stop-card.visited .stop-check { background: var(--visited-bg); border-right-color: #cfe9d7; }
+/* Struck slate name (AA-safe ≈7.4:1) instead of whole-card opacity, which would push text below AA. */
+.stop-card.visited .stop-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #475569; }
+.chip.visited { background: var(--visited-bg); color: var(--visited); display: inline-flex; align-items: center; gap: 4px; }
+.chip.visited svg { width: 11px; height: 11px; }
+/* Day-level progress pill on the dark day-summary bar */
+.day-visited {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; color: #dcfce7;
+}
+.day-visited .dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; }
 
 /* left rail — arrival time (mono) over depart */
 .stop-rail {

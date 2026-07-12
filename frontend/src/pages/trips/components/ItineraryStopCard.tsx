@@ -4,7 +4,7 @@ import type {FlagReason, FlagSeverity, StopFlag, TimingFlag} from '../hooks/useS
 import {catEmoji} from '../placeCategory'
 import {flagText} from '../timingFlag'
 import {NavIcon} from './NavIcon'
-import {ClockIcon, LockIcon, MoonIcon} from './FlagIcons'
+import {ClockIcon, LockIcon, MoonIcon, CheckIcon} from './FlagIcons'
 import {WeatherChip} from './WeatherChip'
 import {formatDurationMinutes} from '../utils/time'
 
@@ -44,6 +44,8 @@ export function ItineraryStopCard({
   nowReading,
   arrivalReading,
   weatherLoading = false,
+  isVisited,
+  onToggleVisited,
 }: {
   place: TripPlaceDto
   arrival: string
@@ -60,9 +62,19 @@ export function ItineraryStopCard({
   nowReading?: WeatherReadingDto
   arrivalReading?: WeatherReadingDto
   weatherLoading?: boolean
+  isVisited: boolean
+  onToggleVisited: (next: boolean) => void
 }) {
   return (
-    <div className={`stop-card${flag ? ' ' + CARD_CLASS[flag.severity] : ''}`}>
+    <div className={`stop-card${flag ? ' ' + CARD_CLASS[flag.severity] : ''}${isVisited ? ' visited' : ''}`}>
+      <label className="stop-check">
+        <input
+          type="checkbox"
+          checked={isVisited}
+          onChange={(e) => onToggleVisited(e.target.checked)}
+          aria-label={`มาแล้ว: ${place.name}`}
+        />
+      </label>
       <div className="stop-rail">
         <div className="stop-arr">{arrival}</div>
         <div className="stop-dep">→{depart}</div>
@@ -70,6 +82,7 @@ export function ItineraryStopCard({
       <button className="stop-body" onClick={onEdit}>
         <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
         <div className="stop-chips">
+          {isVisited && <span className="chip visited"><CheckIcon />มาแล้ว</span>}
           <span className="chip dwell">⏱ อยู่ {formatDurationMinutes(dwell)}</span>
           <WeatherChip kind="now" reading={nowReading} isLoading={weatherLoading} />
           <WeatherChip kind="arr" reading={arrivalReading} isLoading={weatherLoading} />
