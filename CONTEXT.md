@@ -127,5 +127,14 @@ the glossary wins until the glossary is deliberately changed.
 - **No weather data** — the state a **weather reading** shows when it is unavailable: an
   **On-arrival** reading beyond the **forecast horizon** or already in the past, or a provider
   failure. Rendered as a slashed-cloud chip, never hidden silently (ADR-031). _Avoid_: unknown, error.
+- **Review link** — a per-**Place** (TripPlace) link to an external short-video **review** of that
+  Place — framed around TikTok but accepting any well-formed `http(s)` URL (YouTube, Instagram, etc.,
+  see ADR-050). A Place carries an ordered **list** of Review links, each an entry of `{ url, label? }`
+  where the optional **label** names the reviewer/clip and falls back to a generated "ดูรีวิว N" when
+  blank. Set by the **Trip** owner in the Stop editor and surfaced on the **Stop** card as a
+  click-to-open affordance that opens the review in a **new browser tab** (never in-app), mirroring the
+  **Navigate hand-off** anchor. Reference/display data only — it never feeds the **Smart Schedule**,
+  **Timing flags**, or any computed value (ADR-049). _Avoid_: note (that is the free-text **Notes**
+  field on the Place), attachment, media, embed.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._

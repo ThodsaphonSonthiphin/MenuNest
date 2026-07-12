@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip — Review link (TikTok) stop mock</title>
+<style>
+  /* Mirrors frontend/src/pages/trips/trips-tokens.css + TripDetailPage.css so the mock reads in the
+     real teal design language. Card = current component: check | rail | body(button) | review(NEW) |
+     nav(anchor) | drag-handle.  NEW rules marked  /* NEW */.  CHOSEN treatment: icon + popover. */
+  * { box-sizing: border-box; }
+  body { margin:0; padding:28px 18px 60px; font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; background:#eef2f6; color:#0f172a; display:flex; flex-direction:column; align-items:center; gap:26px; }
+  .frame { width:100%; max-width:430px; }
+  .frame > h2 { font-size:13px; font-weight:700; color:#475569; margin:0 0 10px; text-transform:uppercase; letter-spacing:.04em; }
+  .legend { max-width:430px; font-size:12.5px; line-height:1.6; color:#475569; background:#fff; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; }
+  .legend b { color:#0f172a; } .legend code { background:#eef2f6; padding:1px 5px; border-radius:5px; font-size:11.5px; }
+
+  .trip-detail {
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6; --ink:#0f172a; --page:#f8fafc;
+    --surface:#fff; --border:#eef2f6; --muted:#94a3b8; --now:#0b7a87; --now-bg:#e3f5f6;
+    --arr:#1863b7; --arr-bg:#e9f1fb; --bad:#b42318;
+    --review:#c2255c; --review-bg:#fdeaf1;   /* NEW: TikTok-ish pink review affordance */
+    background:var(--page); border-radius:18px; padding:16px 14px 20px; box-shadow:0 10px 34px rgba(15,23,42,.10);
+  }
+  .stop-arr,.stop-dep { font-family:'Spline Sans Mono',ui-monospace,monospace; }
+  .stop-list { display:flex; flex-direction:column; gap:8px; }
+  .stop-card { display:flex; align-items:stretch; background:var(--surface); border:1px solid var(--border); border-radius:13px; overflow:hidden; }
+  .stop-check { flex:none; width:40px; display:flex; align-items:center; justify-content:center; border-right:1px solid var(--border); background:#fafdfd; }
+  .stop-check input { width:19px; height:19px; accent-color:#15803d; cursor:pointer; }
+  .stop-rail { flex:none; width:58px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px; padding:6px 4px; background:#f1f8f9; }
+  .stop-arr { font-size:15px; font-weight:700; color:var(--ink); line-height:1.1; }
+  .stop-dep { font-size:10px; font-weight:500; color:var(--muted); line-height:1.1; }
+  .stop-body { flex:1; min-width:0; border:0; background:transparent; text-align:left; padding:11px 13px; cursor:pointer; font:inherit; color:inherit; }
+  .stop-name { font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .stop-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chip { font-size:10px; font-weight:600; padding:3px 8px; border-radius:999px; white-space:nowrap; }
+  .chip.dwell { background:var(--teal-soft); color:var(--teal-deep); }
+  .chip.wx { display:inline-flex; align-items:center; gap:5px; font-size:11px; padding:2px 9px 2px 7px; }
+  .chip.wx.now { background:var(--now-bg); color:var(--now); } .chip.wx.arr { background:var(--arr-bg); color:var(--arr); }
+  .stop-nav { flex:none; display:flex; align-items:center; justify-content:center; width:44px; border-left:1px solid var(--border); background:transparent; color:var(--teal); text-decoration:none; }
+  .stop-nav svg { width:17px; height:17px; }
+  .stop-drag-handle { flex:none; width:34px; display:flex; align-items:center; justify-content:center; border:0; background:transparent; color:#cbd5e1; cursor:grab; }
+  .stop-drag-handle svg { width:16px; height:16px; }
+  .travel-leg { display:flex; align-items:center; gap:8px; padding:3px 0 3px 106px; color:var(--teal-deep); font-size:11px; font-weight:600; }
+  .leg-line { flex:none; width:4px; height:4px; border-radius:50%; background:currentColor; opacity:.45; } .leg-dist { color:var(--muted); font-weight:500; }
+
+  /* ===== NEW · CHOSEN: trailing review icon-button + popover ===== */
+  .stop-review-btn { flex:none; width:42px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border); background:var(--review-bg); color:var(--review); border:0; cursor:pointer; position:relative; }
+  .stop-review-btn svg { width:18px; height:18px; }
+  .rv-count { position:absolute; top:6px; right:5px; min-width:15px; height:15px; padding:0 3px; border-radius:999px; background:var(--review); color:#fff; font-size:9px; font-weight:800; line-height:15px; text-align:center; }
+  .rv-menu { margin:6px 0 2px 106px; background:#fff; border:1px solid #f6cede; border-radius:11px; padding:7px; box-shadow:0 8px 24px rgba(194,37,92,.14); max-width:300px; }
+  .rv-menu-title { font-size:10px; font-weight:800; color:var(--review); text-transform:uppercase; letter-spacing:.04em; margin:2px 6px 6px; }
+  .rv-menu a { display:flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink); font-size:12px; font-weight:600; padding:7px 8px; border-radius:8px; }
+  .rv-menu a:hover { background:var(--review-bg); }
+  .rv-menu a svg { width:15px; height:15px; flex:none; color:var(--review); }
+  .rv-menu a .host { margin-left:auto; font-size:10px; font-weight:500; color:var(--muted); }
+
+  /* ===== NEW · editor section in StopEditorDialog ===== */
+  .editor { background:#fff; border-radius:16px; padding:16px; box-shadow:0 10px 34px rgba(15,23,42,.10); }
+  .ed-sec-head { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:800; color:var(--ink); margin-bottom:10px; }
+  .ed-sec-head svg { width:16px; height:16px; color:var(--review); }
+  .rv-row { display:flex; gap:7px; margin-bottom:7px; }
+  .rv-row input { border:1px solid #e2e8f0; border-radius:9px; padding:8px 10px; font:inherit; font-size:12.5px; }
+  .rv-row .url { flex:1; min-width:0; } .rv-row .lab { width:120px; }
+  .rv-row .del { flex:none; width:34px; border:1px solid #f4d0cc; border-radius:9px; background:#fff; color:var(--bad); cursor:pointer; }
+  .rv-add { display:inline-flex; align-items:center; gap:6px; margin-top:2px; border:1px dashed #f6cede; background:var(--review-bg); color:var(--review); font-weight:700; font-size:12px; border-radius:9px; padding:8px 12px; cursor:pointer; }
+  .rv-add svg { width:13px; height:13px; }
+  .ed-hint { font-size:11px; color:var(--muted); margin-top:8px; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Feature — Review link (TikTok) on a Stop · CHOSEN design</b><br />
+  Per-<b>Place</b> list of review links (each <code>{url, label?}</code>). On the card: a trailing
+  <b>pink review icon-button</b> <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fdeaf1;border:1px solid #c2255c;vertical-align:middle"></span>
+  (a Syncfusion video/play SVG — never an emoji), rendered <b>only when the place has ≥1 review</b>,
+  sitting <b>outside</b> the <code>.stop-body</code> button.
+  <b>1 link → opens directly</b> in a new tab; <b>≥2 links → count badge + popover</b> listing them
+  (closes on outside-click / Esc). Every link opens in a <b>new tab</b> like the นำทาง button.
+  Edited in a new section of the StopEditorDialog (bottom).
+</div>
+
+<div class="frame">
+  <h2>บนการ์ด · On the card</h2>
+  <div class="trip-detail">
+    <div class="stop-list">
+
+      <!-- MULTI: 2 reviews → badge + popover open -->
+      <div class="stop-card">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">09:00</div><div class="stop-dep">→10:00</div></div>
+        <button class="stop-body">
+          <div class="stop-name">🍜 ก๋วยเตี๋ยวเรือ พี่มาลี</div>
+          <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม.</span><span class="chip wx now">ตอนนี้ 33°</span></div>
+        </button>
+        <button class="stop-review-btn" aria-label="ดูรีวิว (2)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="14" height="12" rx="2.5"/><path d="M16.5 10l5-3v10l-5-3z" fill="currentColor" stroke="none"/></svg><span class="rv-count">2</span></button>
+        <a class="stop-nav" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></a>
+        <button class="stop-drag-handle"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></button>
+      </div>
+      <div class="rv-menu">
+        <div class="rv-menu-title">รีวิว</div>
+        <a href="#" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>@ก๋วยเตี๋ยวเรือ<span class="host">tiktok.com</span></a>
+        <a href="#" target="_blank"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>รีวิวเจ้าดัง<span class="host">youtube.com</span></a>
+      </div>
+
+      <div class="travel-leg"><span class="leg-line"></span><span>ขับรถ 12 นาที</span><span class="leg-dist">· 4.1 กม.</span></div>
+
+      <!-- SINGLE: 1 review → icon only, opens directly -->
+      <div class="stop-card">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">10:12</div><div class="stop-dep">→11:42</div></div>
+        <button class="stop-body">
+          <div class="stop-name">🏛 วัดพระสิงห์</div>
+          <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span></div>
+        </button>
+        <a class="stop-review-btn" href="#" target="_blank" aria-label="ดูรีวิว"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="14" height="12" rx="2.5"/><path d="M16.5 10l5-3v10l-5-3z" fill="currentColor" stroke="none"/></svg></a>
+        <a class="stop-nav" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></a>
+        <button class="stop-drag-handle"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></a>
+      </div>
+
+      <div class="travel-leg"><span class="leg-line"></span><span>เดิน 6 นาที</span><span class="leg-dist">· 450 ม.</span></div>
+
+      <!-- NONE: no review → review column absent -->
+      <div class="stop-card">
+        <label class="stop-check"><input type="checkbox" /></label>
+        <div class="stop-rail"><div class="stop-arr">11:48</div><div class="stop-dep">→13:18</div></div>
+        <button class="stop-body">
+          <div class="stop-name">🍽 ข้าวซอยแม่สาย</div>
+          <div class="stop-chips"><span class="chip dwell">⏱ อยู่ 1 ชม. 30 นาที</span><span class="chip wx arr">ไปถึง 34°</span></div>
+        </button>
+        <a class="stop-nav" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l19-9-9 19-2-8-8-2z"/></svg></a>
+        <button class="stop-drag-handle"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg></button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="frame">
+  <h2>ในหน้าต่างแก้ไขจุดแวะ · New section in StopEditorDialog</h2>
+  <div class="editor">
+    <div class="ed-sec-head">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="14" height="12" rx="2.5"/><path d="M16.5 10l5-3v10l-5-3z" fill="currentColor" stroke="none"/></svg>
+      ลิงก์รีวิว (TikTok ฯลฯ)
+    </div>
+    <div class="rv-row"><input class="url" value="https://www.tiktok.com/@user/video/123" /><input class="lab" placeholder="ป้ายกำกับ (ไม่บังคับ)" value="@ก๋วยเตี๋ยวเรือ" /><button class="del">✕</button></div>
+    <div class="rv-row"><input class="url" value="https://youtu.be/abc" /><input class="lab" placeholder="ป้ายกำกับ (ไม่บังคับ)" value="รีวิวเจ้าดัง" /><button class="del">✕</button></div>
+    <button class="rv-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>เพิ่มลิงก์รีวิว</button>
+    <p class="ed-hint">แต่ละลิงก์ต้องเป็น URL (http/https). ป้ายกำกับไม่บังคับ — เว้นว่างจะแสดง “ดูรีวิว N”. บันทึกผ่านปุ่ม “บันทึก” เดิม (update_trip_place, full-replace).</p>
+  </div>
+</div>
+
+</body>
+</html>
