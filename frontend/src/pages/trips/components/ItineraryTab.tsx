@@ -7,6 +7,7 @@ import {
   useListTripsQuery,
   useReorderStopsMutation,
   useAddStopMutation,
+  useSetStopVisitedMutation,
 } from '../../../shared/api/api'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../../store/index'
@@ -111,6 +112,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const {data: places} = useListTripPlacesQuery(tripId)
   const {data: trips} = useListTripsQuery()
   const [reorder] = useReorderStopsMutation()
+  const [setStopVisited] = useSetStopVisitedMutation()
 
   // Derive stable values used by useSchedule — must run before any early return.
   const dayList = days ?? []
@@ -168,6 +170,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   }
 
   const existingTripPlaceIds = new Set(scheduled.map((s) => s.stop.tripPlaceId))
+  const visitedCount = scheduled.filter((s) => s.stop.isVisited).length
 
   return (
     <div className="itinerary-tab">
@@ -229,6 +232,12 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           <span>
             เดินทางรวม <b>{formatDurationMinutes(totalTravelSeconds / 60)}</b>
           </span>
+          {scheduled.length > 0 && (
+            <span className="day-visited">
+              <span className="dot" />
+              {visitedCount}/{scheduled.length} มาแล้ว
+            </span>
+          )}
         </div>
         {dayNav && (
           <a
@@ -283,6 +292,14 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
                   arrival={s.arrival}
                   depart={s.depart}
                   dwell={s.stop.dwellMinutes}
+                  isVisited={s.stop.isVisited}
+                  onToggleVisited={async (next) => {
+                    try {
+                      await setStopVisited({tripId, stopId: s.stop.id, isVisited: next}).unwrap()
+                    } catch (err) {
+                      setActionError(getErrorMessage(err))
+                    }
+                  }}
                   flag={s.flag}
                   onEdit={() => dispatch(setStopEditor(s.stop.id))}
                   onUp={() => move(i, -1)}
