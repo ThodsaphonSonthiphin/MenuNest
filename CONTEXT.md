@@ -51,11 +51,14 @@ the glossary wins until the glossary is deliberately changed.
   planned visit time and a **dwell** duration. Ordering Stops produces the route.
   _Avoid_: Visit, Waypoint, Item.
 - **Visited** — a per-**Stop** completion state the **Trip** owner sets by hand to
-  record "I have been to this Place" (issue #24, UI "มาแล้ว"). A **display-only**
-  marker: it changes how the Stop reads in the **Smart Schedule** but never feeds the
-  time cascade, **Timing flags**, **Approach leg**, or **Current-time start** (ADR-039).
-  Persisted as a boolean on the Stop, toggleable both ways. _Avoid_: done, completed,
-  checked-in; **arrived** (that is the computed **arrival** time, a different concept).
+  record "I have been to this Place" (issue #24, UI "มาแล้ว"). Persisted as a boolean on
+  the Stop, toggleable both ways. It **never feeds the time cascade**, **Timing flags**,
+  **Approach leg**, or **Current-time start** — arrival/leave stay derived from the full
+  plan whether or not a Stop is visited (ADR-039, invariant ADR-008). What it *does* drive
+  is **display**: a visited Stop leaves the active itinerary list for the collapsed
+  **มาแล้ว** drawer (ADR-048), and its **Leg** is excluded from **เหลือเดินทาง** (ADR-047).
+  _Avoid_: done, completed, checked-in; **arrived** (that is the computed **arrival** time,
+  a different concept).
 - **Leg** — the travel segment between two consecutive **Stops**; its travel time
   comes from the Google **Routes API**, not an estimate (see ADR-007).
   _Avoid_: Segment, Hop.
@@ -71,6 +74,13 @@ the glossary wins until the glossary is deliberately changed.
 - **Smart Schedule** — the per-day itinerary view that cascades arrival/leave times
   from the day start through **Dwell** + **Leg** travel time, and flags each Stop
   against its best-time window and opening hours (see ADR-008).
+- **เหลือเดินทาง (Remaining travel)** — the day-summary travel figure shown once any
+  **Stop** is **Visited**: the sum of **Leg** travel time over the Stops **not** yet
+  visited, **including** the Leg into the first remaining Stop (the drive still ahead). A
+  derived display re-sum — it does **not** recompute the cascade (ADR-047). With no Stop
+  visited it equals the full-day travel total and is labelled **เดินทางรวม** instead.
+  _Avoid_: total travel (that is the all-Stops **เดินทางรวม** figure); "time left"
+  (ambiguous with **arrival**).
 - **Current-time start** — a per-**Day** mode (flag `UseCurrentTimeAsStart`; UI
   "ใช้เวลาปัจจุบันเสมอ") that re-seeds the Day's **day start time** to the **viewer's**
   local "now" on every itinerary fetch, instead of the last picked time. "Now" is
