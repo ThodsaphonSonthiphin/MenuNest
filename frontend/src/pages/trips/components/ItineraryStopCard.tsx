@@ -1,4 +1,5 @@
 // frontend/src/pages/trips/components/ItineraryStopCard.tsx
+import {useEffect, useRef, useState} from 'react'
 import {useSortable} from '@dnd-kit/sortable'
 import {CSS} from '@dnd-kit/utilities'
 import type {TripPlaceDto, WeatherReadingDto} from '../../../shared/api/api'
@@ -6,6 +7,8 @@ import type {FlagReason, FlagSeverity, StopFlag, TimingFlag} from '../hooks/useS
 import {catEmoji} from '../placeCategory'
 import {flagText} from '../timingFlag'
 import {NavIcon} from './NavIcon'
+import {ReviewIcon} from './ReviewIcon'
+import {reviewHost, reviewLabel} from '../lib/reviewLinks'
 import {ClockIcon, LockIcon, MoonIcon, CheckIcon} from './FlagIcons'
 import {GripIcon} from './TripFormIcons'
 import {WeatherChip} from './WeatherChip'
@@ -66,6 +69,23 @@ export function ItineraryStopCard({
     useSortable({id})
   const style = {transform: CSS.Transform.toString(transform), transition}
 
+  const links = place.reviewLinks ?? []
+  const [reviewOpen, setReviewOpen] = useState(false)
+  const reviewRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!reviewOpen) return
+    const onDown = (e: MouseEvent) => {
+      if (reviewRef.current && !reviewRef.current.contains(e.target as Node)) setReviewOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setReviewOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [reviewOpen])
+
   return (
     <div
       ref={setNodeRef}
@@ -96,6 +116,54 @@ export function ItineraryStopCard({
         </div>
         {flag && <FlagNote flag={flag} />}
       </button>
+      {links.length === 1 && (
+        <a
+          className="stop-review-btn"
+          href={links[0].url}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="ดูรีวิว"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ReviewIcon />
+        </a>
+      )}
+      {links.length >= 2 && (
+        <div className="stop-review-wrap" ref={reviewRef}>
+          <button
+            type="button"
+            className="stop-review-btn"
+            aria-label={`ดูรีวิว (${links.length})`}
+            aria-expanded={reviewOpen}
+            onClick={(e) => {
+              e.stopPropagation()
+              setReviewOpen((v) => !v)
+            }}
+          >
+            <ReviewIcon />
+            <span className="rv-count">{links.length}</span>
+          </button>
+          {reviewOpen && (
+            <div className="rv-menu" role="menu">
+              <div className="rv-menu-title">รีวิว</div>
+              {links.map((l, i) => (
+                <a
+                  key={l.url + i}
+                  href={l.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  role="menuitem"
+                  onClick={() => setReviewOpen(false)}
+                >
+                  <ReviewIcon />
+                  <span className="rv-label">{reviewLabel(l, i)}</span>
+                  <span className="host">{reviewHost(l.url)}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       {navUrl ? (
         <a
           className="stop-nav"

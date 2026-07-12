@@ -28,6 +28,8 @@
   --arr-rain-bg:#dbe9fb;
   --visited:    #15803d;
   --visited-bg: #e7f6ec;
+  --review: #c2255c;
+  --review-bg: #fdeaf1;
   background: var(--page);
   color: var(--ink);
 }
