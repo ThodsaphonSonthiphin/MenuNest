@@ -114,7 +114,7 @@ public sealed class TripTools(IMediator mediator)
     [McpServerTool, Description("Get the trip's itinerary: each day's start time and ordered stops, with each stop's dwell, travel mode, and resolved leg-to-reach (seconds/meters/source). For a day set to 'always start from the current time', dayStart is resolved using timeZoneId when supplied. Arrival/leave times and timing flags are NOT included — compute arrivals as dayStart + running sum of (previous leg seconds + previous dwell). viewerLat/viewerLng are for the app's live location and are normally omitted.")]
     public async Task<IReadOnlyList<ItineraryDayDto>> get_itinerary(
         [Description("Trip ID")] Guid tripId,
-        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Optional — required ONLY if the trip has a day set to 'always start from the current time'; omit otherwise.")] string? timeZoneId,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Prefer to always pass it whenever you know the user's zone; it is strictly required only when a day is set to 'always start from the current time' (a call that omits it then fails, and you cannot tell in advance which trips have such a day).")] string? timeZoneId,
         [Description("Viewer latitude for the approach leg (optional; usually omit)")] double? viewerLat,
         [Description("Viewer longitude for the approach leg (optional; usually omit)")] double? viewerLng,
         CancellationToken ct)
