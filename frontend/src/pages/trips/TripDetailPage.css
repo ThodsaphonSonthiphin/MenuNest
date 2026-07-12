@@ -613,3 +613,34 @@
 .itinerary-tab .itin-map-strip span { flex: 1; text-align: left; }
 .itinerary-tab .itin-map-strip svg { width: 16px; height: 16px; flex: none; }
 .itinerary-tab .itin-map-strip-chev { color: var(--muted); }
+
+/* Review link (TikTok) affordance — trailing icon + popover (ADR-052) */
+.stop-review-wrap { position: relative; display: flex; }
+.stop-review-btn {
+  flex: none; width: 42px; display: flex; align-items: center; justify-content: center;
+  border: 0; border-left: 1px solid var(--border); background: var(--review-bg);
+  color: var(--review); cursor: pointer; position: relative; text-decoration: none;
+}
+.stop-review-btn svg { width: 18px; height: 18px; }
+.rv-count {
+  position: absolute; top: 6px; right: 5px; min-width: 15px; height: 15px; padding: 0 3px;
+  border-radius: 999px; background: var(--review); color: #fff; font-size: 9px; font-weight: 800;
+  line-height: 15px; text-align: center;
+}
+.rv-menu {
+  position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 220px; max-width: 300px;
+  background: #fff; border: 1px solid #f6cede; border-radius: 11px; padding: 7px;
+  box-shadow: 0 8px 24px rgba(194, 37, 92, .14);
+}
+.rv-menu-title {
+  font-size: 10px; font-weight: 800; color: var(--review); text-transform: uppercase;
+  letter-spacing: .04em; margin: 2px 6px 6px;
+}
+.rv-menu a {
+  display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink);
+  font-size: 12px; font-weight: 600; padding: 7px 8px; border-radius: 8px;
+}
+.rv-menu a:hover { background: var(--review-bg); }
+.rv-menu a svg { width: 15px; height: 15px; flex: none; color: var(--review); }
+.rv-menu a .rv-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-menu a .host { margin-left: auto; font-size: 10px; font-weight: 500; color: var(--muted); }
