@@ -1,6 +1,10 @@
+using System.Text.Json;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace MenuNest.Infrastructure.Persistence.Configurations;
 
@@ -19,6 +23,23 @@ internal sealed class TripPlaceConfiguration : IEntityTypeConfiguration<TripPlac
         b.Property(p => p.OpeningHoursJson).HasColumnType("nvarchar(max)");
         b.Property(p => p.FeeNote).HasMaxLength(200);
         b.Property(p => p.Notes).HasMaxLength(2000);
+        var jsonOpts = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var reviewConverter = new ValueConverter<IReadOnlyList<ReviewLink>, string?>(
+            v => v.Count == 0 ? null : JsonSerializer.Serialize(v, jsonOpts),
+            v => string.IsNullOrEmpty(v)
+                ? new List<ReviewLink>()
+                : JsonSerializer.Deserialize<List<ReviewLink>>(v, jsonOpts) ?? new List<ReviewLink>());
+        var reviewComparer = new ValueComparer<IReadOnlyList<ReviewLink>>(
+            (a, b) => JsonSerializer.Serialize(a, jsonOpts) == JsonSerializer.Serialize(b, jsonOpts),
+            v => JsonSerializer.Serialize(v, jsonOpts).GetHashCode(),
+            v => JsonSerializer.Deserialize<List<ReviewLink>>(JsonSerializer.Serialize(v, jsonOpts), jsonOpts)!);
+        b.Property(p => p.ReviewLinks)
+            .HasConversion(reviewConverter, reviewComparer)
+            .HasColumnName("ReviewLinksJson")
+            .HasColumnType("nvarchar(max)")
+            .HasField("_reviewLinks")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired(false);
         b.HasIndex(p => p.TripId);
         // dedupe re-pastes of the same Google place within a trip (filtered: only non-null)
         b.HasIndex(p => new { p.TripId, p.GooglePlaceId })
