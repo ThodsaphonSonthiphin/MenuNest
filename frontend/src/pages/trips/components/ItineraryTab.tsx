@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core'
 import {SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy} from '@dnd-kit/sortable'
 import {restrictToVerticalAxis} from '@dnd-kit/modifiers'
-import {computeReorder} from '../lib/reorder'
+import {reorderKeepingVisited} from '../lib/reorder'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
@@ -29,6 +29,8 @@ import {useSchedule} from '../hooks/useSchedule'
 import {useStopWeather} from '../hooks/useStopWeather'
 import {SegmentedTabs} from './SegmentedTabs'
 import {ItineraryStopCard} from './ItineraryStopCard'
+import {VisitedStopRow} from './VisitedStopRow'
+import {CheckIcon} from './FlagIcons'
 import {TravelLeg} from './TravelLeg'
 import {StopEditorDialog} from './StopEditorDialog'
 import {DayStartEditor} from './DayStartEditor'
@@ -122,6 +124,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const [actionError, setActionError] = useState<string | null>(null)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [isReordering, setIsReordering] = useState(false)
+  const [doneOpen, setDoneOpen] = useState(false)
 
   const {data: days, isLoading: itineraryLoading, error: itineraryError, refetch: refetchItinerary} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
@@ -145,7 +148,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   // EMPTY_DAY is used as a fallback so useSchedule is ALWAYS called unconditionally
   // (Rules of Hooks: hook count must be identical on every render).
   const EMPTY_DAY: ItineraryDayDto = {id: '', date: '', dayStartTime: '09:00:00', useCurrentTimeAsStart: false, stops: []}
-  const {scheduled, dayEnd, totalTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
+  const {scheduled, dayEnd, totalTravelSeconds, remainingTravelSeconds} = useSchedule(day ?? EMPTY_DAY, placesById)
   const stopWeather = useStopWeather(day ?? EMPTY_DAY, scheduled, placesById)
 
   // Clear any stale start-time error when the active day changes (render-time
@@ -184,12 +187,14 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
     setActiveDragId(null)
     const {active, over} = e
     if (!over) return
-    const orderedStopIds = computeReorder(scheduled.map((s) => s.stop.id), String(active.id), String(over.id))
+    const visitedIds = new Set(scheduled.filter((s) => s.stop.isVisited).map((s) => s.stop.id))
+    const orderedStopIds = reorderKeepingVisited(
+      scheduled.map((s) => s.stop.id),
+      visitedIds,
+      String(active.id),
+      String(over.id),
+    )
     if (!orderedStopIds) return
-    // The full-view loader stays up until BOTH the POST and an explicit refetch resolve.
-    // reorderStops no longer invalidates TripItinerary (see api.ts) — refetching here puts the
-    // recomputed Legs/times in the cache before the loader clears, deterministically (no reliance
-    // on RTK dispatching an invalidation refetch in the same tick as the mutation fulfilling).
     setIsReordering(true)
     try {
       await reorder({tripId, dayId: resolvedDayId, orderedStopIds}).unwrap()
@@ -202,7 +207,14 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   }
 
   const existingTripPlaceIds = new Set(scheduled.map((s) => s.stop.tripPlaceId))
-  const visitedCount = scheduled.filter((s) => s.stop.isVisited).length
+  const remaining = scheduled.filter((s) => !s.stop.isVisited)
+  const done = scheduled.filter((s) => s.stop.isVisited)
+  const visitedCount = done.length
+  const allVisited = scheduled.length > 0 && remaining.length === 0
+  // Lead Leg = the drive INTO the first remaining Stop, shown only when a visited Stop
+  // precedes it (i.e. it is not the day's very first Stop). Skipped at zero-visited. ADR-047 §4.
+  const leadLeg =
+    remaining.length > 0 && scheduled.indexOf(remaining[0]) > 0 ? remaining[0].stop.legToReach : null
 
   return (
     <div className="itinerary-tab">
@@ -261,9 +273,15 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           <span>
             เสร็จ <b>{dayEnd}</b>
           </span>
-          <span>
-            เดินทางรวม <b>{formatDurationMinutes(totalTravelSeconds / 60)}</b>
-          </span>
+          {visitedCount > 0 ? (
+            <span className="stat-remain">
+              เหลือเดินทาง <b>{formatDurationMinutes(remainingTravelSeconds / 60)}</b>
+            </span>
+          ) : (
+            <span>
+              เดินทางรวม <b>{formatDurationMinutes(totalTravelSeconds / 60)}</b>
+            </span>
+          )}
           {scheduled.length > 0 && (
             <span className="day-visited">
               <span className="dot" />
@@ -327,9 +345,12 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           },
         }}
       >
-        <SortableContext items={scheduled.map((s) => s.stop.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={remaining.map((s) => s.stop.id)} strategy={verticalListSortingStrategy}>
           <div className={`stop-list${activeDragId ? ' dragging' : ''}`}>
-            {scheduled.map((s, i) => {
+            {leadLeg && (
+              <TravelLeg leg={leadLeg} mode={remaining[0].stop.travelModeToReach} note="จากจุดที่เพิ่งไป" />
+            )}
+            {remaining.map((s, i) => {
               const place = placesById[s.stop.tripPlaceId]
               const stopNav = place ? buildStopNavUrl(place, s.stop.travelModeToReach) : null
               return (
@@ -372,6 +393,9 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             {scheduled.length === 0 && (
               <p className="trips-empty">ยังไม่มีจุดแวะ — เพิ่มจากคลังสถานที่</p>
             )}
+            {allVisited && (
+              <p className="trips-empty"><CheckIcon /> เที่ยวครบทุกจุดแล้ว</p>
+            )}
           </div>
         </SortableContext>
       </DndContext>
@@ -389,6 +413,41 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
         <button className="btn-add-stop" onClick={() => setPickerOpen(true)}>
           + เพิ่มจุดแวะ
         </button>
+      )}
+
+      {done.length > 0 && (
+        <div className="done-drawer">
+          <button
+            type="button"
+            className="done-toggle"
+            aria-expanded={doneOpen}
+            onClick={() => setDoneOpen((v) => !v)}
+          >
+            <ChevronDownIcon className="chev" />
+            <span className="badge"><CheckIcon /> มาแล้ว {done.length}</span>
+          </button>
+          {doneOpen && (
+            <div className="done-body">
+              {done.map((s) => {
+                const place = placesById[s.stop.tripPlaceId]
+                return place ? (
+                  <VisitedStopRow
+                    key={s.stop.id}
+                    place={place}
+                    arrival={s.arrival}
+                    onUnvisit={async () => {
+                      try {
+                        await setStopVisited({tripId, stopId: s.stop.id, isVisited: false}).unwrap()
+                      } catch (err) {
+                        setActionError(getErrorMessage(err))
+                      }
+                    }}
+                  />
+                ) : null
+              })}
+            </div>
+          )}
+        </div>
       )}
 
       {editorStopId && (
