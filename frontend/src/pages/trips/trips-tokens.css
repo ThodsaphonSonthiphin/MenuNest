@@ -296,6 +296,9 @@
   align-items: center;
   gap: 8px;
   padding: 3px 0 3px 66px;
+  /* Cancel the .stop-list flex gap below the leg so it hugs the card it leads into
+     (the leg = travel to reach that card); the 8px gap remains above, between groups. */
+  margin-bottom: -8px;
   color: var(--teal-deep);
   font-size: 11px;
   font-weight: 600;
@@ -697,7 +700,7 @@
 .itin-reorder-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 1200; /* above the app nav/chrome (index.css tops out at 1000) so it is truly full-view */
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -123,22 +123,11 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [isReordering, setIsReordering] = useState(false)
 
-  const {data: days, isLoading: itineraryLoading, isFetching: itineraryFetching, error: itineraryError} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
+  const {data: days, isLoading: itineraryLoading, error: itineraryError, refetch: refetchItinerary} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
   const {data: trips} = useListTripsQuery()
-  const [reorder, {isLoading: reorderLoading}] = useReorderStopsMutation()
+  const [reorder] = useReorderStopsMutation()
   const [setStopVisited] = useSetStopVisitedMutation()
-
-  // Full-view loading spans BOTH the reorder POST (reorderLoading) and the
-  // invalidation refetch that recomputes Legs/times (itineraryFetching). Once both
-  // settle, drop the flag. `setIsReordering(true)` and the mutation dispatch happen
-  // in the same event handler, so by the time this runs reorderLoading is already
-  // true — no premature clear. Render-time reset (no effect), mirroring the
-  // `lastDayId` pattern below. If a one-render flicker ever appears, switch the drop
-  // handler to `await reorder(...).unwrap(); await refetch().unwrap()` in a finally.
-  if (isReordering && !reorderLoading && !itineraryFetching) {
-    setIsReordering(false)
-  }
 
   const sensors = useSensors(
     // A few px of movement before a drag starts, so a tap/scroll is not misread.
@@ -197,12 +186,18 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
     if (!over) return
     const orderedStopIds = computeReorder(scheduled.map((s) => s.stop.id), String(active.id), String(over.id))
     if (!orderedStopIds) return
+    // The full-view loader stays up until BOTH the POST and an explicit refetch resolve.
+    // reorderStops no longer invalidates TripItinerary (see api.ts) — refetching here puts the
+    // recomputed Legs/times in the cache before the loader clears, deterministically (no reliance
+    // on RTK dispatching an invalidation refetch in the same tick as the mutation fulfilling).
     setIsReordering(true)
     try {
       await reorder({tripId, dayId: resolvedDayId, orderedStopIds}).unwrap()
+      await refetchItinerary().unwrap()
     } catch (err) {
       setActionError(getErrorMessage(err))
-      setIsReordering(false) // no refetch fires on error — clear the loader now
+    } finally {
+      setIsReordering(false)
     }
   }
 

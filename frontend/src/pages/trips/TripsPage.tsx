@@ -39,6 +39,7 @@ export function TripsPage() {
           <button
             key={t.id}
             className="trip-card"
+            data-testid="trip-card"
             onClick={() => nav(`/trips/${t.id}`)}
           >
             <div className="trip-card-name">{t.name}</div>

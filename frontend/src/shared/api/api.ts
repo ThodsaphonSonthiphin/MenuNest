@@ -1353,7 +1353,8 @@ export const api = createApi({
         }),
         reorderStops: build.mutation<void, {tripId: string; dayId: string; orderedStopIds: string[]}>({
             query: ({tripId, dayId, orderedStopIds}) => ({url: `/api/trips/${tripId}/days/${dayId}/reorder`, method: 'POST', body: {orderedStopIds}}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+            // No invalidatesTags: the itinerary view refetches explicitly after a reorder so its
+            // full-view loader can span the recompute deterministically (see ItineraryTab handleDragEnd).
         }),
         setDayStartTime: build.mutation<void, {tripId: string; dayId: string; startTime: string}>({
             query: ({tripId, dayId, startTime}) => ({url: `/api/trips/${tripId}/days/${dayId}`, method: 'PATCH', body: {startTime}}),
