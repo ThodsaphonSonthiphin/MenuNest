@@ -6,11 +6,14 @@ public sealed record TripDto(
     Guid Id, string Name, string? Destination,
     DateOnly StartDate, int DayCount, TravelMode DefaultTravelMode);
 
+public sealed record ReviewLinkDto(string Url, string? Label);
+
 public sealed record TripPlaceDto(
     Guid Id, Guid TripId, string? GooglePlaceId, string Name,
     double Lat, double Lng, string? Address, PlaceCategory Category,
     int? PriceLevel, string? PhotoUrl, TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd,
-    string? OpeningHoursJson, string? FeeNote, string? Notes);
+    string? OpeningHoursJson, string? FeeNote, string? Notes,
+    IReadOnlyList<ReviewLinkDto> ReviewLinks);
 
 public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, RouteSource Source);
 

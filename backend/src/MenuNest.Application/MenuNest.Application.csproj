@@ -18,4 +18,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- Tests need access to internal helpers like
+         AddTripPlaceHandler.ToDto so they can be exercised directly
+         without going through the full command handler pipeline. -->
+    <InternalsVisibleTo Include="MenuNest.Application.UnitTests" />
+  </ItemGroup>
+
 </Project>

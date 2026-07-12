@@ -3,6 +3,7 @@ using Mediator;
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
+using MenuNest.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 namespace MenuNest.Application.UseCases.Trips.AddTripPlace;
 
@@ -30,5 +31,6 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
 
     internal static TripPlaceDto ToDto(TripPlace p) => new(
         p.Id, p.TripId, p.GooglePlaceId, p.Name, p.Lat, p.Lng, p.Address, p.Category,
-        p.PriceLevel, p.PhotoUrl, p.BestTimeStart, p.BestTimeEnd, p.OpeningHoursJson, p.FeeNote, p.Notes);
+        p.PriceLevel, p.PhotoUrl, p.BestTimeStart, p.BestTimeEnd, p.OpeningHoursJson, p.FeeNote, p.Notes,
+        p.ReviewLinks.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList());
 }
