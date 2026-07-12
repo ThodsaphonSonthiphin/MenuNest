@@ -50,6 +50,12 @@ the glossary wins until the glossary is deliberately changed.
 - **Stop** — one entry in a Trip's itinerary: a reference to a **Place** plus a
   planned visit time and a **dwell** duration. Ordering Stops produces the route.
   _Avoid_: Visit, Waypoint, Item.
+- **Visited** — a per-**Stop** completion state the **Trip** owner sets by hand to
+  record "I have been to this Place" (issue #24, UI "มาแล้ว"). A **display-only**
+  marker: it changes how the Stop reads in the **Smart Schedule** but never feeds the
+  time cascade, **Timing flags**, **Approach leg**, or **Current-time start** (ADR-039).
+  Persisted as a boolean on the Stop, toggleable both ways. _Avoid_: done, completed,
+  checked-in; **arrived** (that is the computed **arrival** time, a different concept).
 - **Leg** — the travel segment between two consecutive **Stops**; its travel time
   comes from the Google **Routes API**, not an estimate (see ADR-007).
   _Avoid_: Segment, Hop.
