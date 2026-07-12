@@ -87,6 +87,7 @@ export function StopEditorDialog({
           notes: place.notes,
           bestTimeStart: bestStart,
           bestTimeEnd: bestEnd,
+          reviewLinks: place.reviewLinks ?? [],
         }).unwrap()
       }
       onClose()

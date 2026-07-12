@@ -493,11 +493,16 @@ export type RouteSource = 'Routed' | 'Estimated'
 export type PlaceCategory = 'Stay' | 'Eat' | 'See' | 'Cafe' | 'Shop' | 'Other'
 
 export interface TripDto { id: string; name: string; destination: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode }
+export interface ReviewLink {
+    url: string
+    label: string | null
+}
 export interface TripPlaceDto {
     id: string; tripId: string; googlePlaceId: string | null; name: string; lat: number; lng: number
     address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null
     bestTimeStart: string | null; bestTimeEnd: string | null; openingHoursJson: string | null
     feeNote: string | null; notes: string | null
+    reviewLinks: ReviewLink[]
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
@@ -1283,7 +1288,7 @@ export const api = createApi({
             query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),
-        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null}>({
+        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null; reviewLinks: ReviewLink[]}>({
             query: ({tripId, placeId, ...b}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),

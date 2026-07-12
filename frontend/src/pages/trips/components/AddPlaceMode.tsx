@@ -97,6 +97,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
         priceLevel: selected.priceLevel,
         photoUrl: selected.photoUrl,
         openingHoursJson: selected.openingHoursJson,
+        reviewLinks: [],
       }).unwrap()
       clearSelection() // stay armed for the next place (ADR-016)
     } catch { /* surfaced via mutation error state; keep the card open */ }
