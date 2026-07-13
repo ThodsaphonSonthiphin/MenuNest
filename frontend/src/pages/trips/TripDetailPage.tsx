@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
-import { useGetTripQuery, useListTripPlacesQuery, useGetItineraryQuery } from '../../shared/api/api'
+import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
 import { setActiveTab, setPlacesView, setAddMode, setViewerLocation } from './tripsSlice'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
@@ -12,7 +12,6 @@ import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
 import { TripDateEditor } from './components/TripDateEditor'
 import { useDayRoute } from './hooks/useDayRoute'
-import { getViewerTimeZone } from './utils/time'
 import './trips-tokens.css'
 import './TripDetailPage.css'
 
@@ -51,16 +50,6 @@ export function TripDetailPage() {
   // Called unconditionally (before the not-found guard) to keep Rules of Hooks.
   const dayRoute = useDayRoute(tripId)
 
-  // Effective top-bar date. Reads the SAME itinerary query useDayRoute already fires
-  // (identical args -> RTK dedups to one request); for a single-day trip flagged
-  // current-time-start, the server has projected day[0].date to today (ADR-054/056).
-  // MUST stay above the not-found guard below (Rules of Hooks).
-  const viewerLocation = useAppSelector((s) => s.trips.viewerLocation)
-  const { data: itineraryDays } = useGetItineraryQuery(
-    { tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng },
-    { skip: !tripId },
-  )
-
   const isDesktop = bp === 'desktop'
 
   // Not-found / error guard (after all hooks, so Rules of Hooks hold). Covers
@@ -73,8 +62,13 @@ export function TripDetailPage() {
     )
   }
 
-  const currentDay = trip?.dayCount === 1 && itineraryDays?.[0]?.useCurrentTimeAsStart === true
-  const overrideDate = currentDay ? itineraryDays![0].date.slice(0, 10) : undefined
+  // Top-bar date: mirror the backend's OWN projection guard from a single source.
+  // GetItinerary projects day[0].date to today exactly when its day list has one Day
+  // flagged current-time-start (ADR-054/055/056); key on that same list (dayRoute.days —
+  // the itinerary query useDayRoute already fired) so the header and the server can never
+  // disagree, and so no second itinerary subscription is needed.
+  const currentDay = dayRoute.days.length === 1 && dayRoute.days[0]?.useCurrentTimeAsStart === true
+  const overrideDate = currentDay ? dayRoute.days[0].date.slice(0, 10) : undefined
 
   // ── Desktop split: dark top-bar + two-pane grid ───────────────────────────
   if (isDesktop) {
