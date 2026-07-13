@@ -29,8 +29,11 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
         return ToDto(place);
     }
 
-    internal static TripPlaceDto ToDto(TripPlace p) => new(
+    internal static TripPlaceDto ToDto(TripPlace p) => ToDto(p, Array.Empty<PlaceChecklistEntryDto>());
+
+    internal static TripPlaceDto ToDto(TripPlace p, IReadOnlyList<PlaceChecklistEntryDto> checklist) => new(
         p.Id, p.TripId, p.GooglePlaceId, p.Name, p.Lat, p.Lng, p.Address, p.Category,
         p.PriceLevel, p.PhotoUrl, p.BestTimeStart, p.BestTimeEnd, p.OpeningHoursJson, p.FeeNote, p.Notes,
-        p.ReviewLinks.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList());
+        p.ReviewLinks.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList(),
+        checklist);
 }

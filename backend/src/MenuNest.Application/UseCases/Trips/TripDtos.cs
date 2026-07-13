@@ -8,12 +8,17 @@ public sealed record TripDto(
 
 public sealed record ReviewLinkDto(string Url, string? Label);
 
+public sealed record ChecklistItemDto(Guid Id, string Name);
+
+public sealed record PlaceChecklistEntryDto(Guid Id, Guid ChecklistItemId, string Name, bool IsChecked);
+
 public sealed record TripPlaceDto(
     Guid Id, Guid TripId, string? GooglePlaceId, string Name,
     double Lat, double Lng, string? Address, PlaceCategory Category,
     int? PriceLevel, string? PhotoUrl, TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd,
     string? OpeningHoursJson, string? FeeNote, string? Notes,
-    IReadOnlyList<ReviewLinkDto> ReviewLinks);
+    IReadOnlyList<ReviewLinkDto> ReviewLinks,
+    IReadOnlyList<PlaceChecklistEntryDto> Checklist);
 
 public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, RouteSource Source);
 

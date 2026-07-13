@@ -23,6 +23,17 @@ public sealed class ListTripPlacesHandler : IQueryHandler<ListTripPlacesQuery, I
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
 
-        return places.Select(AddTripPlaceHandler.ToDto).ToList();
+        var placeIds = places.Select(p => p.Id).ToList();
+        var entries = await (from e in _db.PlaceChecklistEntries
+                             join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
+                             where placeIds.Contains(e.TripPlaceId)
+                             select new { e.TripPlaceId, Dto = new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked) })
+                            .ToListAsync(ct);
+        var byPlace = entries.GroupBy(x => x.TripPlaceId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<PlaceChecklistEntryDto>)g.Select(x => x.Dto).ToList());
+
+        return places
+            .Select(p => AddTripPlaceHandler.ToDto(p, byPlace.TryGetValue(p.Id, out var l) ? l : Array.Empty<PlaceChecklistEntryDto>()))
+            .ToList();
     }
 }
