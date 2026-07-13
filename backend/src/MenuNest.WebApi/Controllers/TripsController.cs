@@ -22,6 +22,7 @@ using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.UpdateStop;
 using MenuNest.Application.UseCases.Trips.UpdateTrip;
 using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
+using MenuNest.Application.UseCases.Trips.PushPlaceProfile;
 using MenuNest.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
@@ -76,6 +77,10 @@ public sealed class TripsController : ControllerBase
     [HttpDelete("api/trips/{id:guid}/places/{placeId:guid}")]
     public async Task<IActionResult> DeletePlace(Guid id, Guid placeId, CancellationToken ct)
     { await _mediator.Send(new DeleteTripPlaceCommand(id, placeId), ct); return NoContent(); }
+
+    [HttpPost("api/trips/{id:guid}/places/{placeId:guid}/push-to-profile")]
+    public async Task<ActionResult<TripPlaceDto>> PushPlaceProfile(Guid id, Guid placeId, CancellationToken ct)
+        => Ok(await _mediator.Send(new PushPlaceProfileCommand(id, placeId), ct));
 
     [HttpGet("api/checklist-items")]
     public async Task<ActionResult<IReadOnlyList<ChecklistItemDto>>> ListChecklistItems(CancellationToken ct)
