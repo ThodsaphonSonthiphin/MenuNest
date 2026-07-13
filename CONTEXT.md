@@ -142,5 +142,29 @@ the glossary wins until the glossary is deliberately changed.
   **Navigate hand-off** anchor. Reference/display data only — it never feeds the **Smart Schedule**,
   **Timing flags**, or any computed value (ADR-049). _Avoid_: note (that is the free-text **Notes**
   field on the Place), attachment, media, embed.
+- **Checklist item** — a **User**-scoped, reusable label for something to bring/prepare for a
+  visit (e.g. ร่ม, พาสปอร์ต, ครีมกันแดด). Owned by the **User**, *not* a Trip or a Place, so one item
+  is reused across many **Places** and across many **Trips** — that reuse is the whole point
+  (issue #23, and the deliberate divergence from the **Review link** JSON model — ADR-058). Identified
+  by its **name**, unique per User (case-insensitive, trimmed): typing an existing name reuses that
+  item, a new name creates one (implicit — no separate management screen in Phase 1). Reference/display
+  data only — it never feeds the **Smart Schedule**, **Timing flags**, or any computed value.
+  _Avoid_: Item (bare — **Stop** already avoids it), ShoppingListItem / StockItem (the food module),
+  task, to-do.
+- **Place checklist entry** — the attachment of one **Checklist item** to one **Place** (TripPlace),
+  carrying a per-Place **checked** boolean. The junction between a Place and a Checklist item; a
+  Place's **Checklist** is its ordered set of entries, shown in the **Stop editor** modal (issue #23).
+  **Detaching** an entry removes only the entry, never the underlying **Checklist item** (which stays
+  in the **Checklist library**). The same item attached to two Places is **checked independently**
+  (ADR-059). _Avoid_: assignment; "checklist item" (that is the library definition, a different thing).
+- **Checklist library** — the full set of a **User**'s **Checklist items** available for reuse and
+  autocomplete. Persists independently of any **Trip** or **Place**: deleting a Trip/Place removes its
+  **Place checklist entries** but **never** the library items. An item with no current entries stays in
+  the library as a suggestion (Phase 1 has no library-management/delete UI — that is Phase 2).
+  _Avoid_: catalog, inventory.
+- **Checked (checklist)** — the per-**Place checklist entry** boolean the **Trip** owner toggles to
+  record "I have prepared/packed this for this Place" (UI "เตรียมแล้ว"). Toggled optimistically like
+  **Visited**; display-only, it never feeds any computed value (ADR-059). _Avoid_: done; **Visited**
+  (that is the per-**Stop** been-there marker, a different concept).
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._

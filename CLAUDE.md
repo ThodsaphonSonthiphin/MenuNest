@@ -108,6 +108,14 @@ Always `git add <explicit paths>` — **never** `git add -A` / `git add .`.
 `daily-state.md` (tracked, usually dirty) and `AGENTS.md` (untracked) are
 working files that must never be swept into a feature commit.
 
+## Git remote is named `main` (not `origin`)
+
+The single git remote is `main` → `https://github.com/ThodsaphonSonthiphin/MenuNest.git`.
+- `gh` cannot auto-detect the repo (it looks for `origin`) — pass it explicitly:
+  `gh issue create --repo ThodsaphonSonthiphin/MenuNest …`. Bare `gh issue create`
+  fails with `expected the "[HOST/]OWNER/REPO" format, got "MenuNest"`.
+- Push with `git push main HEAD:main` (there is no `origin`).
+
 ## Frontend has NO component/visual test harness
 
 The SPA's vitest runs in `environment: 'node'` (see `frontend/vite.config.ts`) with **no**
