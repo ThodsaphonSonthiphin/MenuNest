@@ -6,6 +6,13 @@
    lived separately in TripsPage.css and TripDetailPage.css.
    ============================================================ */
 
+/* Global fallback so the review-link popover (portaled to document.body,
+   outside .trips-page/.trip-detail scope) still resolves --review/--review-bg. */
+:root {
+  --review: #c2255c;
+  --review-bg: #fdeaf1;
+}
+
 .trips-page, .trip-detail {
   --teal:      #0e8f9e;
   --teal-deep: #0b7a87;

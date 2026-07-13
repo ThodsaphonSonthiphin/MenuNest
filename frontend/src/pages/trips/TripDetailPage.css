@@ -628,7 +628,7 @@
   line-height: 15px; text-align: center;
 }
 .rv-menu {
-  position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; min-width: 220px; max-width: 300px;
+  min-width: 220px; max-width: 300px;
   background: #fff; border: 1px solid #f6cede; border-radius: 11px; padding: 7px;
   box-shadow: 0 8px 24px rgba(194, 37, 92, .14);
 }
