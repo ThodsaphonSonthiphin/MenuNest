@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip - Place checklist modal mock - issue #23</title>
+<style>
+  /* Mirrors frontend/src/pages/trips/TripDetailPage.css .stop-editor-dialog tokens so the mock
+     reads in the REAL warm orange/cream modal language (the screenshot in issue #23), NOT the teal
+     card language. Checklist entries use the green "done" accent from the card check (.stop-check). */
+  * { box-sizing: border-box; }
+  body { margin:0; padding:26px 16px 60px; font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+         background:#e9edf2; color:#0f172a; display:flex; flex-direction:column; align-items:center; gap:22px; }
+  .legend { max-width:460px; font-size:12.5px; line-height:1.65; color:#334155; background:#fff;
+            border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; }
+  .legend b { color:#0f172a; } .legend code { background:#eef2f6; padding:1px 5px; border-radius:5px; font-size:11.5px; }
+  .legend .k { color:#c2632a; font-weight:700; }
+  .frame { width:100%; max-width:460px; }
+  .frame > h2 { font-size:12px; font-weight:800; color:#64748b; margin:0 0 9px; text-transform:uppercase; letter-spacing:.06em; }
+
+  .dlg {
+    --se-accent:#ef6d2d; --se-accent-deep:#d95f22; --se-accent-soft:#fdefe1; --se-accent-line:#f6d9bf;
+    --se-ink:#2b2521; --se-ink-soft:#6b625b; --se-muted:#a99e94; --se-border:#ece4d9;
+    --done:#2e9e57; --done-soft:#e9f6ee;
+    background:#fff; border-radius:22px; overflow:hidden; color:var(--se-ink);
+    box-shadow:0 24px 60px rgba(26,20,14,.28), 0 4px 14px rgba(26,20,14,.12);
+  }
+  .dlg-head { padding:22px 24px 0; }
+  .se-title { font-size:20px; font-weight:700; letter-spacing:-.01em; color:var(--se-ink); }
+  .se-meta { display:flex; align-items:center; gap:10px; margin-top:8px; }
+  .se-cat { display:inline-flex; align-items:center; gap:6px; padding:4px 11px 4px 9px; background:var(--se-accent-soft);
+            border-radius:999px; font-size:12px; font-weight:600; color:#8a6a3a; }
+  .se-cat-dot { width:9px; height:9px; border-radius:50%; background:#3f9d54; }
+  .se-crumb { font-size:12.5px; font-weight:500; color:var(--se-muted); }
+  .dlg-body { padding:8px 24px 20px; }
+
+  .se-sec { margin-top:22px; }
+  .se-sec-head { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; color:var(--se-ink); }
+  .se-sec-head svg { width:17px; height:17px; color:var(--se-accent); }
+  .se-sec-head .se-pill { margin-left:auto; padding:2px 10px; background:var(--done-soft); color:#1f7a45;
+                          border-radius:999px; font-size:11px; font-weight:700; }
+
+  .ck-card { margin-top:12px; border:1.5px solid var(--se-border); border-radius:14px; background:#fff; overflow:hidden; }
+  .ck-row { display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid var(--se-border); }
+  .ck-row:last-child { border-bottom:0; }
+  .ck-row input[type=checkbox] { width:20px; height:20px; flex:none; accent-color:var(--done); cursor:pointer; margin:0; }
+  .ck-name { flex:1; min-width:0; font-size:14.5px; font-weight:600; color:var(--se-ink);
+             white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ck-row.done { background:var(--done-soft); }
+  .ck-row.done .ck-name { color:#7d8a80; text-decoration:line-through; text-decoration-color:#bcd6c5; font-weight:500; }
+  .ck-del { flex:none; width:30px; height:30px; border:0; background:transparent; color:var(--se-muted); border-radius:8px;
+            cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .ck-del:hover { background:#fbeae3; color:#b4543a; }
+  .ck-del svg { width:15px; height:15px; }
+
+  .ck-add-wrap { position:relative; margin-top:11px; }
+  .ck-add-in { display:flex; align-items:center; gap:9px; border:1.5px dashed var(--se-accent-line);
+               background:var(--se-accent-soft); border-radius:13px; padding:11px 14px; }
+  .ck-add-in svg { width:16px; height:16px; color:var(--se-accent); flex:none; }
+  .ck-add-in input { flex:1; border:0; background:transparent; font:inherit; font-size:14px; color:var(--se-ink); outline:none; }
+  .ck-add-in input::placeholder { color:#c2a789; }
+  .ck-ac { position:absolute; left:0; right:0; top:calc(100% + 6px); background:#fff; border:1px solid var(--se-border);
+           border-radius:13px; box-shadow:0 14px 34px rgba(26,20,14,.16); padding:6px; z-index:5; }
+  .ck-ac .ac-h { font-size:10px; font-weight:800; color:var(--se-muted); text-transform:uppercase; letter-spacing:.05em; margin:4px 8px 6px; }
+  .ck-ac button { display:flex; align-items:center; gap:9px; width:100%; border:0; background:transparent; text-align:left;
+                  font:inherit; font-size:13.5px; font-weight:600; color:var(--se-ink); padding:9px 9px; border-radius:9px; cursor:pointer; }
+  .ck-ac button:hover, .ck-ac button.hi { background:var(--se-accent-soft); }
+  .ck-ac button .lib { margin-left:auto; font-size:10px; font-weight:600; color:#3f9d54; background:var(--done-soft); padding:2px 7px; border-radius:999px; }
+  .ck-ac button svg { width:15px; height:15px; color:var(--se-muted); flex:none; }
+  .ck-ac .create { color:var(--se-accent-deep); font-weight:700; }
+  .ck-ac .create svg { color:var(--se-accent); }
+  .ck-ac .create b { font-weight:800; }
+
+  .se-hint { margin-top:10px; font-size:11.5px; line-height:1.55; color:var(--se-muted); }
+
+  .se-foot { display:flex; align-items:center; justify-content:space-between; margin-top:22px; padding-top:16px; border-top:1px solid var(--se-border); }
+  .se-delete { display:inline-flex; align-items:center; gap:7px; border:0; background:transparent; color:var(--se-ink-soft);
+               font:inherit; font-size:14px; font-weight:600; cursor:pointer; padding:8px 6px; border-radius:8px; }
+  .se-delete svg { width:16px; height:16px; }
+  .se-save { border:0; border-radius:13px; background:var(--se-accent); color:#fff; font:inherit; font-size:15px; font-weight:700;
+             padding:12px 30px; cursor:pointer; box-shadow:0 8px 20px rgba(239,109,45,.34); }
+
+  .reuse-note { max-width:460px; font-size:12px; line-height:1.6; color:#475569; background:#fff8f2; border:1px solid #f6d9bf;
+                border-radius:12px; padding:12px 15px; }
+  .reuse-note b { color:#c2632a; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Feature - Place checklist "&#3626;&#3636;&#3656;&#3591;&#3607;&#3637;&#3656;&#3605;&#3657;&#3629;&#3591;&#3648;&#3605;&#3619;&#3637;&#3618;&#3617;" - issue #23 - CHOSEN design</b><br />
+  A <span class="k">Checklist item</span> is a <b>User-scoped, reusable</b> label (ADR-058) - define
+  once, reuse it on any place in any trip. Attaching it to a place creates a
+  <span class="k">Place checklist entry</span> that carries a <b>per-place</b> checkbox (ADR-059).
+  Phase 1 lives <b>only in this modal</b> (ADR-061); write is <code>attach</code>/<code>detach</code>/
+  <code>toggle-check</code>, also on MCP (ADR-060). Type to get <b>autocomplete from your library</b>;
+  an unknown name <b>creates</b> a new library item. Icons are inline-SVG, never emoji.
+</div>
+
+<div class="frame">
+  <h2>&#3651;&#3609;&#3627;&#3609;&#3657;&#3634;&#3605;&#3656;&#3634;&#3591;&#3649;&#3585;&#3657;&#3652;&#3586;&#3592;&#3640;&#3604;&#3649;&#3623;&#3632; - new section, autocomplete open</h2>
+  <div class="dlg">
+    <div class="dlg-head">
+      <div class="se-title">&#3626;&#3623;&#3609;&#3619;&#3640;&#3585;&#3586;&#3594;&#3634;&#3605;&#3636;&#3592;&#3633;&#3591;&#3627;&#3623;&#3633;&#3604;&#3605;&#3619;&#3634;&#3604;</div>
+      <div class="se-meta">
+        <span class="se-cat"><span class="se-cat-dot"></span>&#3607;&#3637;&#3656;&#3648;&#3607;&#3637;&#3656;&#3618;&#3623;</span>
+        <span class="se-crumb">&#3623;&#3633;&#3609; 1 &middot; &#3592;&#3640;&#3604;&#3607;&#3637;&#3656; 1</span>
+      </div>
+    </div>
+    <div class="dlg-body">
+
+      <section class="se-sec">
+        <div class="se-sec-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="M9 13l2 2 4-4"/>
+          </svg>
+          &#3626;&#3636;&#3656;&#3591;&#3607;&#3637;&#3656;&#3605;&#3657;&#3629;&#3591;&#3648;&#3605;&#3619;&#3637;&#3618;&#3617;
+          <span class="se-pill">&#3648;&#3605;&#3619;&#3637;&#3618;&#3617;&#3649;&#3621;&#3657;&#3623; 1/3</span>
+        </div>
+
+        <div class="ck-card">
+          <div class="ck-row done">
+            <input type="checkbox" checked />
+            <span class="ck-name">&#3588;&#3619;&#3637;&#3617;&#3585;&#3633;&#3609;&#3649;&#3604;&#3604;</span>
+            <button class="ck-del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="ck-row">
+            <input type="checkbox" />
+            <span class="ck-name">&#3619;&#3656;&#3617;</span>
+            <button class="ck-del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="ck-row">
+            <input type="checkbox" />
+            <span class="ck-name">&#3627;&#3617;&#3623;&#3585;</span>
+            <button class="ck-del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+        </div>
+
+        <div class="ck-add-wrap">
+          <div class="ck-add-in">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <input value="&#3609;&#3657;&#3635;" placeholder="&#3614;&#3636;&#3617;&#3614;&#3660;&#3586;&#3629;&#3591;&#3607;&#3637;&#3656;&#3605;&#3657;&#3629;&#3591;&#3648;&#3605;&#3619;&#3637;&#3618;&#3617;..." />
+          </div>
+          <div class="ck-ac">
+            <div class="ac-h">&#3592;&#3634;&#3585;&#3588;&#3621;&#3633;&#3591;&#3586;&#3629;&#3591;&#3588;&#3640;&#3603;</div>
+            <button class="hi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>&#3609;&#3657;&#3635;&#3604;&#3639;&#3656;&#3617;<span class="lib">&#3651;&#3609;&#3588;&#3621;&#3633;&#3591;</span></button>
+            <button><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>&#3609;&#3657;&#3635;&#3618;&#3634;&#3621;&#3657;&#3634;&#3591;&#3617;&#3639;&#3629;<span class="lib">&#3651;&#3609;&#3588;&#3621;&#3633;&#3591;</span></button>
+            <button class="create"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>&#3626;&#3619;&#3657;&#3634;&#3591; "<b>&#3609;&#3657;&#3635;</b>" &#3651;&#3627;&#3617;&#3656;</button>
+          </div>
+        </div>
+
+        <p class="se-hint">&#3614;&#3636;&#3617;&#3614;&#3660;&#3648;&#3614;&#3639;&#3656;&#3629;&#3588;&#3657;&#3609;&#3592;&#3634;&#3585;&#3588;&#3621;&#3633;&#3591;&#3586;&#3629;&#3591;&#3588;&#3640;&#3603; &#3627;&#3619;&#3639;&#3629;&#3585;&#3604; Enter &#3648;&#3614;&#3639;&#3656;&#3629;&#3626;&#3619;&#3657;&#3634;&#3591;&#3651;&#3627;&#3617;&#3656; &middot; &#3605;&#3636;&#3655;&#3585; = &#3648;&#3605;&#3619;&#3637;&#3618;&#3617;&#3649;&#3621;&#3657;&#3623; (&#3649;&#3618;&#3585;&#3585;&#3633;&#3609;&#3649;&#3605;&#3656;&#3621;&#3632;&#3626;&#3606;&#3634;&#3609;&#3637;&#3656;) &middot; &#3648;&#3629;&#3634;&#3629;&#3629;&#3585;&#3592;&#3634;&#3585;&#3607;&#3637;&#3656;&#3609;&#3637;&#3657;&#3652;&#3617;&#3656;&#3621;&#3610;&#3629;&#3629;&#3585;&#3592;&#3634;&#3585;&#3588;&#3621;&#3633;&#3591;</p>
+      </section>
+
+      <div class="se-foot">
+        <button class="se-delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>&#3621;&#3610;&#3592;&#3640;&#3604;&#3609;&#3637;&#3657;</button>
+        <button class="se-save">&#3610;&#3633;&#3609;&#3607;&#3638;&#3585;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="reuse-note">
+  <b>Reuse</b> - "&#3619;&#3656;&#3617;" at <b>&#3626;&#3623;&#3609;&#3619;&#3640;&#3585;&#3586;&#3594;&#3634;&#3605;&#3636;</b> is the SAME Checklist item as "&#3619;&#3656;&#3617;" at
+  <b>&#3627;&#3634;&#3604;&#3607;&#3619;&#3634;&#3618;&#3604;&#3635;</b> (different place, maybe different trip). Checking it here checks it HERE only - the beach entry stays unchecked
+  (per-place checked, ADR-059). Detaching "&#3619;&#3656;&#3617;" here removes only this entry - the library item survives for autocomplete everywhere.
+</div>
+
+</body>
+</html>
