@@ -97,6 +97,24 @@ expectation is that every commit maps to exactly one tracked item.
 `npm run build` (~40s). The commit fails if anything is red — expect the wait;
 do **not** `--no-verify` to skip it.
 
+Because the hook runs the **whole** suite, every commit must leave the entire suite
+green — a task's own filtered tests passing is not enough. In particular, adding an
+EF entity/property and its EF configuration/mapping must land in the **same** commit:
+an unmapped collection navigation (or otherwise invalid model) fails EF model
+validation for **every** test that touches the `DbContext`, so an "entity now / mapping
+next commit" split can never pass pre-commit (learned on #33).
+
 Always `git add <explicit paths>` — **never** `git add -A` / `git add .`.
 `daily-state.md` (tracked, usually dirty) and `AGENTS.md` (untracked) are
 working files that must never be swept into a feature commit.
+
+## Frontend has NO component/visual test harness
+
+The SPA's vitest runs in `environment: 'node'` (see `frontend/vite.config.ts`) with **no**
+jsdom / React-Testing-Library — only pure hook/lib/slice `*.test.ts` files exist. So
+`tsc -b` + `npm run build` + the unit suite **cannot** catch rendering, layout, CSS, or
+DOM-interaction bugs. A real example (#33): a popover was clipped invisibly by an
+`overflow:hidden` ancestor — every automated gate passed. **Any UI change MUST be verified
+interactively** (run the app / Chrome DevTools) or against an `docs/mocks/` visual mock
+before it is considered done; extract pure logic into a `lib/` module to get real vitest
+coverage for the parts that can be unit-tested.
