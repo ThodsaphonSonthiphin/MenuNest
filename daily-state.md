@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-13T11:50:22+07:00'
+updated: '2026-07-13T13:55:46+07:00'
 ---
 
 ## Log
@@ -70,5 +70,53 @@ EOF
 - 2026-07-13T11:39:23+07:00 — feat(trips): add PlaceChecklistEntry domain entity (#23)
 - 2026-07-13T11:50:22+07:00 — $(cat <<'EOF'
 feat(trips): persist ChecklistItem + PlaceChecklistEntry (EF config + migration) (#23)
+EOF
+)
+- 2026-07-13T12:02:01+07:00 — $(cat <<'EOF'
+feat(trips): embed Place checklist in TripPlaceDto read model (#23)
+EOF
+)
+- 2026-07-13T12:12:48+07:00 — $(cat <<'EOF'
+feat(trips): add ListChecklistItems query (library autocomplete source) (#23)
+EOF
+)
+- 2026-07-13T12:20:17+07:00 — feat(trips): AttachChecklistItem (create-or-reuse by name) (#23)
+- 2026-07-13T12:27:25+07:00 — $(cat <<'EOF'
+feat(trips): DetachChecklistItem (removes junction, keeps library) (#23)
+EOF
+)
+- 2026-07-13T12:33:20+07:00 — feat(trips): SetChecklistEntryChecked per-place toggle (#23)
+- 2026-07-13T12:40:07+07:00 — $(cat <<'EOF'
+feat(trips): REST endpoints for place checklist (list/attach/detach/toggle) (#23)
+EOF
+)
+- 2026-07-13T12:46:42+07:00 — feat(trips): MCP tools for place checklist (list/attach/detach/toggle) (#23)
+- 2026-07-13T12:51:49+07:00 — $(cat <<'EOF'
+feat(trips): add checklist lib pure helpers (#23)
+EOF
+)
+- 2026-07-13T13:02:42+07:00 — $(cat <<'EOF'
+feat(trips): RTK Query endpoints + types for place checklist (#23)
+EOF
+)
+- 2026-07-13T13:03:49+07:00 — $(cat <<'EOF'
+fix(trips): supply required checklist field at TripPlaceDto call sites (#23)
+
+Task 12 added a required checklist: PlaceChecklistEntry[] field to
+TripPlaceDto. addTripPlace's arg type and the useSchedule test's
+mkPlace fixture both build TripPlaceDto-shaped literals and need the
+new field, same as the existing reviewLinks: [] pattern.
+EOF
+)
+- 2026-07-13T13:09:43+07:00 — $(cat <<'EOF'
+feat(trips): add ChecklistIcon inline SVG (#23)
+EOF
+)
+- 2026-07-13T13:18:53+07:00 — $(cat <<'EOF'
+feat(trips): place checklist section in the stop editor modal (closes #23)
+EOF
+)
+- 2026-07-13T13:55:46+07:00 — $(cat <<'EOF'
+fix(trips): enforce checklist per-place cap + whitespace normalization + deterministic order server-side (#23)
 EOF
 )

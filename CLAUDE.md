@@ -116,6 +116,18 @@ The single git remote is `main` → `https://github.com/ThodsaphonSonthiphin/Men
   fails with `expected the "[HOST/]OWNER/REPO" format, got "MenuNest"`.
 - Push with `git push main HEAD:main` (there is no `origin`).
 
+## Backend tests — Moq (not NSubstitute); three DbContext implementers
+
+`backend/tests/MenuNest.Application.UnitTests` uses **xUnit + Moq + FluentAssertions** —
+`Substitute.For<>` (NSubstitute) will NOT compile. Mock `IUserProvisioner` with
+`var m = new Mock<IUserProvisioner>(); m.Setup(u => u.GetOrProvisionCurrentAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);`
+then pass `m.Object` to the handler.
+
+Relational handler tests use `SqliteAppDbContext` (applies the real EF configs, so unique
+indexes / FK behaviour the InMemory provider silently ignores are exercised). **Three**
+classes implement `IApplicationDbContext`: `AppDbContext` (prod), `SqliteAppDbContext` and
+`InMemoryAppDbContext` (tests) — a new `DbSet<>` must be added to **all three** or the build
+fails `CS0535`.
 ## Frontend has NO component/visual test harness
 
 The SPA's vitest runs in `environment: 'node'` (see `frontend/vite.config.ts`) with **no**
