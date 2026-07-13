@@ -25,8 +25,8 @@ public sealed class AttachChecklistItemHandler : ICommandHandler<AttachChecklist
         var placeExists = await _db.TripPlaces.AnyAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct);
         if (!placeExists) throw new DomainException("Place not found.");
 
-        var name = c.Name.Trim();
-        var normalized = name.ToLower();
+        var name = ChecklistItem.NormalizeName(c.Name);
+        var normalized = name.ToLowerInvariant();
         // Reuse by case-insensitive name (LOWER translates on both SQL Server and SQLite);
         // the (UserId, Name) unique index is the race backstop.
         var item = await _db.ChecklistItems.FirstOrDefaultAsync(i => i.UserId == user.Id && i.Name.ToLower() == normalized, ct);
@@ -40,6 +40,9 @@ public sealed class AttachChecklistItemHandler : ICommandHandler<AttachChecklist
             .FirstOrDefaultAsync(e => e.TripPlaceId == c.PlaceId && e.ChecklistItemId == item.Id, ct);
         if (entry is null)
         {
+            var count = await _db.PlaceChecklistEntries.CountAsync(e => e.TripPlaceId == c.PlaceId, ct);
+            if (count >= PlaceChecklistEntry.MaxPerPlace)
+                throw new DomainException($"A place can have at most {PlaceChecklistEntry.MaxPerPlace} checklist items.");
             entry = PlaceChecklistEntry.Create(c.PlaceId, item.Id);
             _db.PlaceChecklistEntries.Add(entry);
         }

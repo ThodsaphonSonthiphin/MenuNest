@@ -10,6 +10,8 @@ namespace MenuNest.Domain.Entities;
 /// </summary>
 public sealed class PlaceChecklistEntry : Entity
 {
+    public const int MaxPerPlace = 20;
+
     public Guid TripPlaceId { get; private set; }
     public Guid ChecklistItemId { get; private set; }
     public bool IsChecked { get; private set; }

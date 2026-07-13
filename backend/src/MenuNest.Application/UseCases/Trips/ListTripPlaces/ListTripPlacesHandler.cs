@@ -27,6 +27,7 @@ public sealed class ListTripPlacesHandler : IQueryHandler<ListTripPlacesQuery, I
         var entries = await (from e in _db.PlaceChecklistEntries
                              join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
                              where placeIds.Contains(e.TripPlaceId)
+                             orderby e.CreatedAt, e.Id
                              select new { e.TripPlaceId, Dto = new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked) })
                             .ToListAsync(ct);
         var byPlace = entries.GroupBy(x => x.TripPlaceId)

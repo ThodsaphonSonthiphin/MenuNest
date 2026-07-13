@@ -91,5 +91,28 @@ public sealed class AttachChecklistItemRelationalTests : IDisposable
         await act.Should().ThrowAsync<DomainException>();
     }
 
+    [Fact]
+    public async Task Attaching_beyond_max_per_place_throws()
+    {
+        var (tripId, placeId) = Seed();
+        for (var i = 0; i < PlaceChecklistEntry.MaxPerPlace; i++)
+            await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, $"item {i}"), CancellationToken.None);
+
+        var act = () => Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "one too many"), CancellationToken.None).AsTask();
+
+        await act.Should().ThrowAsync<DomainException>();
+        (await _db.PlaceChecklistEntries.CountAsync(e => e.TripPlaceId == placeId)).Should().Be(PlaceChecklistEntry.MaxPerPlace);
+    }
+
+    [Fact]
+    public async Task Whitespace_is_collapsed_and_reused()
+    {
+        var (tripId, placeId) = Seed();
+        var first = await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "  ร่ม   ใหญ่  "), CancellationToken.None);
+        first.Name.Should().Be("ร่ม ใหญ่");
+        await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "ร่ม ใหญ่"), CancellationToken.None);
+        (await _db.ChecklistItems.CountAsync(i => i.UserId == _user.Id)).Should().Be(1);
+    }
+
     public void Dispose() { _db.Dispose(); _conn.Dispose(); }
 }

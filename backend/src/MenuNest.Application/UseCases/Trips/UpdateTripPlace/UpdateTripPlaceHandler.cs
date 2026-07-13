@@ -33,6 +33,7 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
         var checklist = await (from e in _db.PlaceChecklistEntries
                                join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
                                where e.TripPlaceId == place.Id
+                               orderby e.CreatedAt, e.Id
                                select new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked))
                               .ToListAsync(ct);
         return AddTripPlaceHandler.ToDto(place, checklist);
