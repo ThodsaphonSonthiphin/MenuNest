@@ -40,3 +40,10 @@ trips are wholly unaffected (booked dates stay put).
 **Negative:** a flag on a multi-day trip floats the time but not the date — someone who
 expects symmetry may be surprised; the UI copy/spec should make the single-day scope legible.
 Revisit if a real multi-day "evergreen trip" need appears.
+
+**Phase-2 implementation caveat (surfaced by scrutiny 2026-07-13):** `GetItineraryHandler`
+orders days by their **persisted** `Date` (`.OrderBy(d => d.Date)`) *before* the DTO-assembly
+loop projects the date. On a single-day trip this is moot (one Day). Any future multi-day
+date-float must re-establish ordering **after** projection — projecting per-Day dates onto a
+list ordered by the old persisted dates could emit out-of-order days. The single-day scope
+sidesteps this today; whoever opens Phase 2 must handle it.

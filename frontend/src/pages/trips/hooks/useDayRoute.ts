@@ -164,6 +164,10 @@ export function useDayRoute(tripId: string) {
     dayLabel: dayIndex >= 0 ? `วัน ${dayIndex + 1}` : '',
     summaryText,
     viewerLocation,
+    // The fetched itinerary days (same query/cache ItineraryTab uses). Exposed so the
+    // trip header can source the effective top-bar date from this one place instead of
+    // firing a second getItinerary subscription (see TripDetailPage currentDay/overrideDate).
+    days: dayList,
   }
 }
 
