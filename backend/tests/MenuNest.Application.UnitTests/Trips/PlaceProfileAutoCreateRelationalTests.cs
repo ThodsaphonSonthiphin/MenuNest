@@ -79,11 +79,19 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
     }
 
     [Fact]
-    public async Task First_checklist_attach_auto_creates_the_master_with_that_item()
+    public async Task Checklist_attach_alone_does_not_create_a_master_but_a_later_save_does()
     {
         var placeId = AddPlace("places/AC3");
-        var handler = new AttachChecklistItemHandler(_db, Users().Object, new AttachChecklistItemValidator());
-        await handler.Handle(new AttachChecklistItemCommand(_trip.Id, placeId, "passport"), default);
+        await new AttachChecklistItemHandler(_db, Users().Object, new AttachChecklistItemValidator())
+            .Handle(new AttachChecklistItemCommand(_trip.Id, placeId, "passport"), default);
+
+        // Attach alone does NOT mint a master (decoupled from the #23 hot path, ADR-064 post-scrutinize).
+        (await _db.Set<PlaceProfile>().CountAsync(p => p.GooglePlaceId == "places/AC3")).Should().Be(0);
+
+        // A subsequent editor Save creates the master, capturing the already-attached item.
+        await new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator())
+            .Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
+                new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>()), default);
 
         var profile = await _db.Set<PlaceProfile>().FirstOrDefaultAsync(p => p.GooglePlaceId == "places/AC3");
         profile.Should().NotBeNull();

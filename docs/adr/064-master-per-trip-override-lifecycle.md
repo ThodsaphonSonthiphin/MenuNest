@@ -52,3 +52,12 @@ Capture path gains a profile lookup+seed; a new **push** endpoint/handler is nee
 = the Save that first populates **any** of the three fields; an all-empty Save creates no master.
 Concurrency backstop is the unique `(UserId, GooglePlaceId)` index; create-or-update resolves to the
 existing row.
+## Post-scrutinize refinement (2026-07-13)
+
+Auto-create fires on the **editor Save** (`UpdateTripPlace`) and the explicit **push** only — it is
+deliberately **not** wired into the `AttachChecklistItem` handler. Reason: coupling auto-create to the
+checklist-attach path would give the already-shipped #23 checklist feature a silent side effect (minting
+a user-scoped master + an extra `SaveChanges`) on every first attach. Keeping it on Save/push leaves the
+#23 hot path untouched; the common flow (edit best-time/reviews → Save) still captures the current
+checklist item-set into the master. The only case not auto-captured — attaching checklist items and never
+Saving/pushing — is covered by the next Save or the explicit "ดันขึ้น master" button.
