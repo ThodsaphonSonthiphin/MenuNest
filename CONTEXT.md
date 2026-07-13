@@ -86,7 +86,13 @@ the glossary wins until the glossary is deliberately changed.
   local "now" on every itinerary fetch, instead of the last picked time. "Now" is
   wall-clock time in the viewer's own time zone: the caller supplies an IANA
   time-zone id and the server resolves it against its own **UTC** clock — never the
-  server's local time (see ADR-038). _Avoid_: server time, live start, auto start.
+  server's local time (see ADR-038). On a **single-day Trip** the mode also re-seeds
+  the Day's **date** (and therefore the Trip's displayed start date) to the viewer's
+  local **today**, from the same resolved clock — so an evergreen day-plan runs as
+  "today" whenever opened; both projections are **read-time only** (the persisted date
+  and start time stay as the fallback for when the flag is off) and the date float does
+  **not** extend to multi-day Trips (ADR-054, ADR-055, ADR-056). _Avoid_: server time,
+  live start, auto start.
 - **Timing flag** — a warning shown on a **Stop** in the **Smart Schedule** when its
   computed arrival is problematic, stating the reason and a suggested fix in words
   (ADR-019). Three types by **reason** — **closed** (place shut at arrival),
