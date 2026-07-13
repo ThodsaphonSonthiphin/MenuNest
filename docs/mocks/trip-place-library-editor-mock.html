@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Trip — Place-library editor + master profile mock</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; padding:26px 16px 70px; font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+         background:#e9edf2; color:#0f172a; display:flex; flex-direction:column; align-items:center; gap:22px; }
+  .legend { max-width:480px; font-size:12.5px; line-height:1.65; color:#334155; background:#fff;
+            border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; }
+  .legend b { color:#0f172a; } .legend code { background:#eef2f6; padding:1px 5px; border-radius:5px; font-size:11.5px; }
+  .legend .k { color:#c2632a; font-weight:700; }
+  .frame { width:100%; max-width:480px; }
+  .frame > h2 { font-size:12px; font-weight:800; color:#64748b; margin:0 0 9px; text-transform:uppercase; letter-spacing:.06em; }
+  .places { background:#f8fafc; border:1px solid #e2e8f0; border-radius:16px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .place-card { display:flex; align-items:center; gap:11px; width:100%; text-align:left; border:1px solid #e7ebf0; background:#fff;
+                border-radius:12px; padding:12px 14px; cursor:pointer; font:inherit; }
+  .place-card.sel { border-color:#f0a875; box-shadow:0 0 0 3px #fdefe1; }
+  .place-dot { width:11px; height:11px; border-radius:50%; flex:none; }
+  .place-name { font-size:14px; font-weight:700; color:#1e293b; }
+  .place-sub { font-size:12px; color:#94a3b8; margin-top:2px; }
+  .tap { margin-left:auto; font-size:11px; font-weight:700; color:#ef6d2d; }
+  .dlg {
+    --se-accent:#ef6d2d; --se-accent-deep:#d95f22; --se-accent-soft:#fdefe1; --se-accent-line:#f6d9bf;
+    --se-ink:#2b2521; --se-ink-soft:#6b625b; --se-muted:#a99e94; --se-border:#ece4d9;
+    --done:#2e9e57; --done-soft:#e9f6ee; --review:#c2255c; --review-bg:#fdeaf1;
+    background:#fff; border-radius:22px; overflow:hidden; color:var(--se-ink);
+    box-shadow:0 24px 60px rgba(26,20,14,.28), 0 4px 14px rgba(26,20,14,.12);
+  }
+  .dlg-head { padding:22px 24px 0; display:flex; align-items:flex-start; justify-content:space-between; }
+  .se-title { font-size:20px; font-weight:700; letter-spacing:-.01em; color:var(--se-ink); }
+  .se-meta { display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap; }
+  .se-cat { display:inline-flex; align-items:center; gap:6px; padding:4px 11px 4px 9px; background:var(--se-accent-soft);
+            border-radius:999px; font-size:12px; font-weight:600; color:#8a6a3a; }
+  .se-cat-dot { width:9px; height:9px; border-radius:50%; background:#3f9d54; }
+  .se-crumb { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; font-weight:600; color:var(--se-muted); }
+  .se-crumb svg { width:14px; height:14px; }
+  .se-x { border:0; background:transparent; color:#c4b9ad; font-size:22px; line-height:1; cursor:pointer; padding:0 2px; }
+  .dlg-body { padding:8px 24px 20px; }
+  .seed-hint { display:flex; align-items:center; gap:8px; margin-top:14px; padding:9px 13px; border-radius:12px;
+               background:var(--done-soft); border:1px solid #cdead8; color:#1f7a45; font-size:12px; font-weight:600; }
+  .seed-hint svg { width:15px; height:15px; flex:none; }
+  .se-sec { margin-top:22px; }
+  .se-sec-head { display:flex; align-items:center; gap:8px; font-size:15px; font-weight:700; color:var(--se-ink); }
+  .se-sec-head svg { width:17px; height:17px; color:var(--se-accent); }
+  .se-sec-head .se-selfset { margin-left:6px; font-size:11px; font-weight:800; color:var(--se-accent-deep); }
+  .se-sec-head .se-pill { margin-left:auto; padding:2px 10px; background:var(--done-soft); color:#1f7a45;
+                          border-radius:999px; font-size:11px; font-weight:700; }
+  .se-note { margin-top:6px; font-size:11.5px; line-height:1.5; color:var(--se-muted); }
+  .bt-wrap { display:flex; align-items:center; gap:12px; margin-top:12px; }
+  .bt-field { flex:1; border:1.6px solid var(--se-border); border-radius:16px; padding:12px 14px; min-width:0; }
+  .bt-field.active { border-color:var(--se-accent); box-shadow:0 0 0 3px var(--se-accent-soft); }
+  .bt-lab { display:flex; align-items:center; justify-content:space-between; font-size:12px; color:var(--se-ink-soft); }
+  .bt-lab svg { width:15px; height:15px; color:var(--se-accent); }
+  .bt-val { font-family:'Spline Sans Mono',ui-monospace,monospace; font-size:26px; font-weight:700; color:#2b2521; letter-spacing:2px; margin-top:4px; }
+  .bt-dash { color:var(--se-muted); font-weight:700; }
+  .rv-row { display:flex; gap:8px; margin-top:9px; }
+  .rv-row input { border:1.4px solid var(--se-border); border-radius:11px; padding:10px 12px; font:inherit; font-size:12.5px; color:var(--se-ink); }
+  .rv-row .url { flex:1; min-width:0; } .rv-row .lab { width:130px; }
+  .rv-row input::placeholder { color:#c2a789; }
+  .rv-row .del { flex:none; width:38px; border:1.4px solid #f4d0cc; border-radius:11px; background:#fff; color:#b4543a; cursor:pointer; font-size:14px; }
+  .rv-add { display:inline-flex; align-items:center; gap:6px; margin-top:11px; border:1.4px dashed #f6cede; background:var(--review-bg);
+            color:var(--review); font-weight:700; font-size:12.5px; border-radius:11px; padding:9px 14px; cursor:pointer; }
+  .rv-add svg { width:14px; height:14px; }
+  .ck-card { margin-top:12px; border:1.5px solid var(--se-border); border-radius:14px; background:#fff; overflow:hidden; }
+  .ck-row { display:flex; align-items:center; gap:11px; padding:11px 13px; border-bottom:1px solid var(--se-border); }
+  .ck-row:last-child { border-bottom:0; }
+  .ck-row input[type=checkbox] { width:20px; height:20px; flex:none; accent-color:var(--done); cursor:pointer; margin:0; }
+  .ck-name { flex:1; min-width:0; font-size:14.5px; font-weight:600; color:var(--se-ink); }
+  .ck-row.done { background:var(--done-soft); }
+  .ck-row.done .ck-name { color:#7d8a80; text-decoration:line-through; text-decoration-color:#bcd6c5; font-weight:500; }
+  .ck-del { flex:none; width:30px; height:30px; border:0; background:transparent; color:var(--se-muted); border-radius:8px; cursor:pointer; }
+  .ck-del svg { width:15px; height:15px; }
+  .ck-add-in { display:flex; align-items:center; gap:9px; margin-top:11px; border:1.5px dashed var(--se-accent-line);
+               background:var(--se-accent-soft); border-radius:13px; padding:11px 14px; }
+  .ck-add-in svg { width:16px; height:16px; color:var(--se-accent); flex:none; }
+  .ck-add-in input { flex:1; border:0; background:transparent; font:inherit; font-size:14px; color:var(--se-ink); outline:none; }
+  .ck-add-in input::placeholder { color:#c2a789; }
+  .se-foot { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:24px; padding-top:16px; border-top:1px solid var(--se-border); }
+  .se-delete { display:inline-flex; align-items:center; gap:7px; border:0; background:transparent; color:#b4543a;
+               font:inherit; font-size:13.5px; font-weight:600; cursor:pointer; padding:8px 6px; border-radius:8px; }
+  .se-delete svg { width:16px; height:16px; }
+  .se-actions { display:flex; align-items:center; gap:10px; }
+  .se-push { display:inline-flex; align-items:center; gap:7px; border:1.5px solid var(--se-accent-line); border-radius:13px; background:#fff;
+             color:var(--se-accent-deep); font:inherit; font-size:13px; font-weight:700; padding:11px 16px; cursor:pointer; }
+  .se-push svg { width:15px; height:15px; }
+  .se-save { border:0; border-radius:13px; background:var(--se-accent); color:#fff; font:inherit; font-size:15px; font-weight:700;
+             padding:12px 28px; cursor:pointer; box-shadow:0 8px 20px rgba(239,109,45,.34); }
+  .ann { max-width:480px; font-size:12px; line-height:1.6; color:#475569; background:#fff8f2; border:1px solid #f6d9bf; border-radius:12px; padding:12px 15px; }
+  .ann b { color:#c2632a; }
+  .ann ul { margin:8px 0 0; padding-left:18px; } .ann li { margin:5px 0; }
+</style>
+</head>
+<body>
+
+<div class="legend">
+  <b>Feature — คลังสถานที่ + Place profile (master data ข้ามทริป)</b><br />
+  คลิกการ์ดในแท็บ <b>คลังสถานที่</b> → เปิดหน้าต่างนี้ แก้ 3 ฟิลด์ที่เป็นของสถานที่
+  (<span class="k">ช่วงเวลาที่ดีที่สุด</span> · <span class="k">ลิงก์รีวิว</span> · <span class="k">สิ่งที่ต้องเตรียม</span>) —
+  ตัด <code>dwell</code>/การเดินทาง/เวลาถึง-ออก ที่เป็นของ "จุดแวะ".
+  ข้อมูลไหลผ่าน <span class="k">Place profile</span> ระดับผู้ใช้ (master, key = user + Google place_id):
+  capture → <b>seed จาก master</b>, แก้ในทริป = <b>override เฉพาะทริป</b>,
+  enrich ครั้งแรก → สร้าง master อัตโนมัติ, ครั้งถัดไปกด <b>"ดันขึ้น master"</b> เอง.
+</div>
+
+<div class="frame">
+  <h2>1 · แท็บคลังสถานที่ — คลิกการ์ดเพื่อเปิด</h2>
+  <div class="places">
+    <button class="place-card sel">
+      <span class="place-dot" style="background:#3f9d54"></span>
+      <span><span class="place-name">หาดสวนสน</span><br /><span class="place-sub">ที่เที่ยว</span></span>
+      <span class="tap">แตะเพื่อแก้ไข →</span>
+    </button>
+    <button class="place-card">
+      <span class="place-dot" style="background:#e0894f"></span>
+      <span><span class="place-name">ก๋วยเตี๋ยวเรือ พี่มาลี</span><br /><span class="place-sub">ร้านอาหาร · ฿฿</span></span>
+    </button>
+    <button class="place-card">
+      <span class="place-dot" style="background:#1863b7"></span>
+      <span><span class="place-name">วัดพระสิงห์</span><br /><span class="place-sub">ที่เที่ยว</span></span>
+    </button>
+  </div>
+</div>
+
+<div class="frame">
+  <h2>2 · หน้าต่างแก้ไขสถานที่ (เปิดจากคลัง) — seed มาจาก master</h2>
+  <div class="dlg">
+    <div class="dlg-head">
+      <div>
+        <div class="se-title">หาดสวนสน</div>
+        <div class="se-meta">
+          <span class="se-cat"><span class="se-cat-dot"></span>ที่เที่ยว</span>
+          <span class="se-crumb">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+            คลังสถานที่
+          </span>
+        </div>
+      </div>
+      <button class="se-x">&times;</button>
+    </div>
+    <div class="dlg-body">
+
+      <div class="seed-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        เติมจากคลังของคุณ — แก้ในทริปนี้ได้เลย ไม่กระทบทริปอื่น
+      </div>
+
+      <section class="se-sec">
+        <div class="se-sec-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          ช่วงเวลาที่ดีที่สุด
+          <span class="se-selfset">ใส่เอง</span>
+        </div>
+        <div class="bt-wrap">
+          <div class="bt-field active">
+            <div class="bt-lab">เริ่ม <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <div class="bt-val">16 <span class="bt-dash">:</span> 00</div>
+          </div>
+          <span class="bt-dash">–</span>
+          <div class="bt-field">
+            <div class="bt-lab">สิ้นสุด <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+            <div class="bt-val">18 <span class="bt-dash">:</span> 30</div>
+          </div>
+        </div>
+        <p class="se-note">ยังไม่มีข้อมูลความหนาแน่นของคนจาก Places API — กำหนดช่วงที่อยากมาเองได้</p>
+      </section>
+
+      <section class="se-sec">
+        <div class="se-sec-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2.5" y="6" width="14" height="12" rx="2.5"/><path d="M16.5 10l5-3v10l-5-3z" fill="currentColor" stroke="none"/></svg>
+          ลิงก์รีวิว (TikTok ฯลฯ)
+        </div>
+        <div class="rv-row"><input class="url" value="https://www.tiktok.com/@user/video/123" /><input class="lab" placeholder="ป้ายกำกับ (ไม่บังคับ)" value="รีวิวหาดสวย" /><button class="del">&times;</button></div>
+        <button class="rv-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่มลิงก์รีวิว</button>
+      </section>
+
+      <section class="se-sec">
+        <div class="se-sec-head">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5H6a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2"/><path d="M9 13l2 2 4-4"/></svg>
+          สิ่งที่ต้องเตรียม
+          <span class="se-pill">เตรียมแล้ว 1/2</span>
+        </div>
+        <div class="ck-card">
+          <div class="ck-row done">
+            <input type="checkbox" checked />
+            <span class="ck-name">ครีมกันแดด</span>
+            <button class="ck-del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+          <div class="ck-row">
+            <input type="checkbox" />
+            <span class="ck-name">ผ้าเช็ดตัว</span>
+            <button class="ck-del"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          </div>
+        </div>
+        <div class="ck-add-in">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          <input placeholder="พิมพ์ของที่ต้องเตรียม… (autocomplete จากคลังของคุณ)" />
+        </div>
+      </section>
+
+      <div class="se-foot">
+        <button class="se-delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
+          เอาออกจากทริปนี้
+        </button>
+        <div class="se-actions">
+          <button class="se-push">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            ดันขึ้น master
+          </button>
+          <button class="se-save">บันทึก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="ann">
+  <b>โมเดลข้อมูล (master + per-trip override):</b>
+  <ul>
+    <li><b>Place profile</b> (master) — ระดับผู้ใช้ key <code>(UserId, GooglePlaceId)</code> เก็บ best-time + review links + <b>ชุดรายการเช็คลิสต์</b> (ไม่เก็บสถานะ "เตรียมแล้ว")</li>
+    <li><b>capture</b> ทุกทริป → <b>seed</b> ค่าจาก master ลง TripPlace (ถ้ามี master)</li>
+    <li><b>บันทึก</b> = เขียนแค่ TripPlace (override เฉพาะทริป); enrich <b>ครั้งแรกที่ยังไม่มี master</b> → สร้าง master อัตโนมัติ</li>
+    <li><b>ดันขึ้น master</b> = opt-in เอาค่าปัจจุบันของทริปนี้ไปทับ master → capture ครั้งหน้าได้ค่านี้</li>
+    <li><b>เอาออกจากทริปนี้</b> = ลบ TripPlace (เช็คลิสต์ entry cascade) — <b>master ไม่หาย</b> = "soft delete" ที่ต้องการ</li>
+    <li>ไม่มี <code>place_id</code> → ไม่มี master (ทำงานเหมือนเดิม) · MCP: capture ก็ seed จาก master, ปุ่มดันขึ้น master = Phase 2 · หน้าจอจัดการ master ทั้งคลัง = Phase 2</li>
+  </ul>
+</div>
+
+</body>
+</html>

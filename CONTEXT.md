@@ -166,5 +166,21 @@ the glossary wins until the glossary is deliberately changed.
   record "I have prepared/packed this for this Place" (UI "เตรียมแล้ว"). Toggled optimistically like
   **Visited**; display-only, it never feeds any computed value (ADR-059). _Avoid_: done; **Visited**
   (that is the per-**Stop** been-there marker, a different concept).
+- **Place profile** — a **User**-scoped, reusable *master* record of the user's own enrichment for one
+  Google place: its best-time window, **Review link** list, and a **Checklist** item-set. Keyed by
+  (**User**, google **`place_id`**), unique per user (ADR-063). Distinct from a **Place** (TripPlace,
+  the per-trip snapshot): a Place is **seeded** from its Place profile on **Capture**, and per-trip edits
+  are a **Per-trip override** that never changes the profile unless the user does an explicit **Push to
+  master**. Holds no per-trip state — the checklist **Checked** flag is never stored here. Only
+  place_id-anchored Places have one; it survives when a Place is removed from a Trip (ADR-065). Mirrors
+  the ownership of the **Checklist library** (ADR-058). _Avoid_: master place, saved place, global Place.
+- **Seed-on-capture** — copying a **Place profile**'s enrichment into a newly **Captured** **Place**
+  (TripPlace) so the data is present without re-entry (ADR-064). _Avoid_: import, sync.
+- **Per-trip override** — an edit to a **Place**'s enrichment that changes only that Trip's **Place**
+  (TripPlace) and its checklist entries — never the **Place profile** or any other Trip (ADR-064).
+  _Avoid_: local edit (ambiguous).
+- **Push to master** — the explicit, opt-in action (UI "ดันขึ้น master") that overwrites a **Place
+  profile** with the current Trip's enrichment, so future **Captures** start from it. Without it, a
+  **Per-trip override** stays local (ADR-064). _Avoid_: publish, save as default, sync up.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
