@@ -28,6 +28,7 @@ export function PlaceEditorDialog({
     (place.reviewLinks ?? []).map((l) => ({url: l.url, label: l.label ?? ''})),
   )
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [pushed, setPushed] = useState(false)
 
   const [updatePlace, {isLoading: saving}] = useUpdateTripPlaceMutation()
   const [deletePlace] = useDeleteTripPlaceMutation()
@@ -79,9 +80,12 @@ export function PlaceEditorDialog({
       return
     }
     try {
-      // Save what''s on screen first so the master gets the current values.
+      // Save on-screen values first. If no master exists yet, this Save auto-creates it
+      // from those values (ADR-064) — so a separate push is only needed to OVERWRITE an
+      // existing master, avoiding a redundant second write on the first-time path.
       await persist()
-      await pushProfile({tripId, placeId: place.id}).unwrap()
+      if (place.hasProfile) await pushProfile({tripId, placeId: place.id}).unwrap()
+      setPushed(true)
     } catch (err) {
       setSaveError(getErrorMessage(err))
     }
@@ -120,9 +124,9 @@ export function PlaceEditorDialog({
           </div>
         )}
 
-        <BestTimeBar start={bestStart} end={bestEnd} onChange={(s, e) => { setBestStart(s); setBestEnd(e) }} />
+        <BestTimeBar start={bestStart} end={bestEnd} onChange={(s, e) => { setBestStart(s); setBestEnd(e); setPushed(false) }} />
 
-        <ReviewLinksSection drafts={reviewDrafts} onChange={setReviewDrafts} />
+        <ReviewLinksSection drafts={reviewDrafts} onChange={(d) => { setReviewDrafts(d); setPushed(false) }} />
 
         <ChecklistSection tripId={tripId} placeId={place.id} checklist={place.checklist ?? []} />
 
@@ -134,6 +138,7 @@ export function PlaceEditorDialog({
             เอาออกจากทริปนี้
           </button>
           <div className="se-actions">
+            {pushed && <span className="se-pushed">✓ อัปเดตคลังแล้ว</span>}
             {place.googlePlaceId && (
               <button type="button" className="se-push" disabled={saving || pushing} onClick={handlePush}>
                 <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" /></svg>

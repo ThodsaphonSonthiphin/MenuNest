@@ -686,3 +686,4 @@
 .stop-editor-dialog .se-push { display:inline-flex; align-items:center; gap:7px; border:1.5px solid #f6d9bf; border-radius:13px;
   background:#fff; color:#d95f22; font:inherit; font-size:13px; font-weight:700; padding:11px 16px; cursor:pointer; }
 .stop-editor-dialog .se-push:disabled { opacity:.6; cursor:default; }
+.stop-editor-dialog .se-pushed { align-self:center; font-size:12px; font-weight:700; color:#1f7a45; }

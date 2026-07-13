@@ -22,8 +22,8 @@ public sealed class AttachChecklistItemHandler : ICommandHandler<AttachChecklist
         var user = await _users.GetOrProvisionCurrentAsync(ct);
         var owns = await _db.Trips.AnyAsync(t => t.Id == c.TripId && t.UserId == user.Id && t.DeletedAt == null, ct);
         if (!owns) throw new DomainException("Trip not found.");
-        var place = await _db.TripPlaces.FirstOrDefaultAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct)
-            ?? throw new DomainException("Place not found.");
+        var placeExists = await _db.TripPlaces.AnyAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct);
+        if (!placeExists) throw new DomainException("Place not found.");
 
         var name = ChecklistItem.NormalizeName(c.Name);
         var normalized = name.ToLowerInvariant();
@@ -47,11 +47,10 @@ public sealed class AttachChecklistItemHandler : ICommandHandler<AttachChecklist
             _db.PlaceChecklistEntries.Add(entry);
         }
 
+        // NOTE: master-profile auto-create is deliberately NOT wired here (ADR-064, post-scrutinize):
+        // it stays on the editor Save (UpdateTripPlace) + explicit push, so the existing #23 checklist
+        // path keeps its single write and gains no side effects. A later Save captures the item-set.
         await _db.SaveChangesAsync(ct);
-        // First-enrichment auto-create: attaching the first item to a place with no master yet
-        // creates the master (including this just-persisted item). No-op once a master exists.
-        if (await PlaceProfileSync.EnsureCreatedAsync(_db, user.Id, place, ct))
-            await _db.SaveChangesAsync(ct);
         return new PlaceChecklistEntryDto(entry.Id, item.Id, item.Name, entry.IsChecked);
     }
 }
