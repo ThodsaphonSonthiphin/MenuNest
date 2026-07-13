@@ -30,12 +30,13 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
         place.SetReviewLinks((c.ReviewLinks ?? Enumerable.Empty<ReviewLinkDto>()).Select(r => ReviewLink.Create(r.Url, r.Label)));
 
         await _db.SaveChangesAsync(ct);
+        var hasProfile = await PlaceProfileSync.ExistsAsync(_db, user.Id, place.GooglePlaceId, ct);
         var checklist = await (from e in _db.PlaceChecklistEntries
                                join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
                                where e.TripPlaceId == place.Id
                                orderby e.CreatedAt, e.Id
                                select new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked))
                               .ToListAsync(ct);
-        return AddTripPlaceHandler.ToDto(place, checklist);
+        return AddTripPlaceHandler.ToDto(place, checklist, hasProfile);
     }
 }

@@ -18,7 +18,8 @@ public sealed record TripPlaceDto(
     int? PriceLevel, string? PhotoUrl, TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd,
     string? OpeningHoursJson, string? FeeNote, string? Notes,
     IReadOnlyList<ReviewLinkDto> ReviewLinks,
-    IReadOnlyList<PlaceChecklistEntryDto> Checklist);
+    IReadOnlyList<PlaceChecklistEntryDto> Checklist,
+    bool HasProfile);
 
 public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, RouteSource Source);
 
