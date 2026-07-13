@@ -235,4 +235,62 @@ public class GetItineraryHandlerTests
 
         await act.Should().ThrowAsync<DomainException>();
     }
+
+    [Fact]
+    public async Task Projects_the_date_to_today_in_the_viewer_time_zone_for_a_single_day_flagged_trip()
+    {
+        using var fx = new HandlerTestFixture();
+        // 20:00 UTC on Jan 15 is 03:00 on Jan 16 in Bangkok (+7) — a real day-boundary cross.
+        fx.Clock.UtcNow = new DateTime(2026, 1, 15, 20, 0, 0, DateTimeKind.Utc);
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 1, 15), 1, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 15), new TimeOnly(9, 0));
+        day.SetUseCurrentTimeAsStart(true);
+        fx.Db.ItineraryDays.Add(day);
+        await fx.Db.SaveChangesAsync();
+
+        var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock)
+            .Handle(new GetItineraryQuery(trip.Id, "Asia/Bangkok"), CancellationToken.None);
+
+        days[0].Date.Should().Be(new DateOnly(2026, 1, 16));       // viewer-local today, not the persisted Jan 15
+        days[0].DayStartTime.Should().Be(new TimeOnly(3, 0, 0));   // same instant as the date
+    }
+
+    [Fact]
+    public async Task Keeps_the_persisted_date_for_a_single_day_trip_when_the_flag_is_off()
+    {
+        using var fx = new HandlerTestFixture();
+        fx.Clock.UtcNow = new DateTime(2026, 1, 15, 20, 0, 0, DateTimeKind.Utc);
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 1, 15), 1, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 15), new TimeOnly(9, 0)); // NOT flagged
+        fx.Db.ItineraryDays.Add(day);
+        await fx.Db.SaveChangesAsync();
+
+        var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock)
+            .Handle(new GetItineraryQuery(trip.Id), CancellationToken.None);
+
+        days[0].Date.Should().Be(new DateOnly(2026, 1, 15));       // persisted, untouched
+        days[0].DayStartTime.Should().Be(new TimeOnly(9, 0));      // persisted, untouched
+    }
+
+    [Fact]
+    public async Task Does_not_project_the_date_on_a_multi_day_trip_but_still_projects_the_start_time()
+    {
+        using var fx = new HandlerTestFixture();
+        fx.Clock.UtcNow = new DateTime(2026, 1, 15, 20, 0, 0, DateTimeKind.Utc);
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 1, 15), 2, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day1 = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 15), new TimeOnly(9, 0));
+        day1.SetUseCurrentTimeAsStart(true); // flagged day on a MULTI-day trip
+        var day2 = ItineraryDay.Create(trip.Id, new DateOnly(2026, 1, 16), new TimeOnly(9, 0));
+        fx.Db.ItineraryDays.AddRange(day1, day2);
+        await fx.Db.SaveChangesAsync();
+
+        var days = await new GetItineraryHandler(fx.Db, fx.UserProvisioner.Object, new Mock<IRouteService>().Object, fx.Clock)
+            .Handle(new GetItineraryQuery(trip.Id, "Asia/Bangkok"), CancellationToken.None);
+
+        days[0].Date.Should().Be(new DateOnly(2026, 1, 15));       // date NOT projected (multi-day, ADR-055)
+        days[0].DayStartTime.Should().Be(new TimeOnly(3, 0, 0));   // time STILL projects (per-day, ADR-038)
+    }
 }

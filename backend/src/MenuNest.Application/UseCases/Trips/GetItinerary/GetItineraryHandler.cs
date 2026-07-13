@@ -39,6 +39,13 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
             catch (Exception ex) when (ex is TimeZoneNotFoundException or InvalidTimeZoneException)
             { throw new DomainException($"Unknown time zone: {q.TimeZoneId}"); }
         }
+        // The viewer's local "now", resolved once from the tz validated above (null only when
+        // no Day is flagged, in which case it is never read). Both the start time and — on a
+        // single-day trip — the date derive from this SAME instant, so they can never land on
+        // different calendar days across a midnight tick. Date float is read-time only and
+        // scoped to single-day trips (ADR-054/055); the persisted Date stays the fallback.
+        DateTime? nowLocal = tz is null ? null : TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz);
+        var singleDay = days.Count == 1;
         var stops = await _db.Stops
             .Where(s => _db.ItineraryDays.Any(d => d.Id == s.ItineraryDayId && d.TripId == trip.Id))
             .OrderBy(s => s.Sequence).ToListAsync(ct);
@@ -93,9 +100,12 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
             // persisted DayStartTime is left untouched as the fallback for when the flag is
             // later turned off), so the schedule cascade below always seeds from "now".
             var startTime = day.UseCurrentTimeAsStart
-                ? TimeOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz!))
+                ? TimeOnly.FromDateTime(nowLocal!.Value)
                 : day.DayStartTime;
-            result.Add(new ItineraryDayDto(day.Id, day.Date, startTime, day.UseCurrentTimeAsStart, stopDtos));
+            var date = singleDay && day.UseCurrentTimeAsStart
+                ? DateOnly.FromDateTime(nowLocal!.Value)
+                : day.Date;
+            result.Add(new ItineraryDayDto(day.Id, date, startTime, day.UseCurrentTimeAsStart, stopDtos));
         }
         return result;
 
