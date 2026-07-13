@@ -677,3 +677,12 @@
 .stop-editor-dialog .ck-ac button svg { color: var(--se-muted); flex: none; }
 .stop-editor-dialog .ck-ac .create { color: var(--se-accent-deep); font-weight: 700; }
 .stop-editor-dialog .ck-ac .create svg { color: var(--se-accent); }
+
+/* Place-library editor extras (ADR-062/064) */
+.stop-editor-dialog .se-seed-hint { display:flex; align-items:center; gap:8px; margin:2px 0 4px; padding:9px 13px;
+  border-radius:12px; background:#e9f6ee; border:1px solid #cdead8; color:#1f7a45; font-size:12px; font-weight:600; }
+.stop-editor-dialog .se-seed-hint svg { flex:none; }
+.stop-editor-dialog .se-actions { display:flex; align-items:center; gap:10px; }
+.stop-editor-dialog .se-push { display:inline-flex; align-items:center; gap:7px; border:1.5px solid #f6d9bf; border-radius:13px;
+  background:#fff; color:#d95f22; font:inherit; font-size:13px; font-weight:700; padding:11px 16px; cursor:pointer; }
+.stop-editor-dialog .se-push:disabled { opacity:.6; cursor:default; }
