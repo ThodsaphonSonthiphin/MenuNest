@@ -25,15 +25,24 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
         var place = TripPlace.Create(c.TripId, c.Name, c.Lat, c.Lng, c.Category,
             c.GooglePlaceId, c.Address, c.PriceLevel, c.PhotoUrl, c.OpeningHoursJson);
         _db.TripPlaces.Add(place);
+        var seeded = await PlaceProfileSync.SeedIntoAsync(_db, user.Id, place, ct);
         await _db.SaveChangesAsync(ct);
-        return ToDto(place);
+
+        var checklist = seeded
+            ? await (from e in _db.PlaceChecklistEntries
+                     join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
+                     where e.TripPlaceId == place.Id
+                     orderby e.CreatedAt, e.Id
+                     select new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked)).ToListAsync(ct)
+            : (IReadOnlyList<PlaceChecklistEntryDto>)Array.Empty<PlaceChecklistEntryDto>();
+        return ToDto(place, checklist, seeded);
     }
 
-    internal static TripPlaceDto ToDto(TripPlace p) => ToDto(p, Array.Empty<PlaceChecklistEntryDto>());
+    internal static TripPlaceDto ToDto(TripPlace p) => ToDto(p, Array.Empty<PlaceChecklistEntryDto>(), false);
 
-    internal static TripPlaceDto ToDto(TripPlace p, IReadOnlyList<PlaceChecklistEntryDto> checklist) => new(
+    internal static TripPlaceDto ToDto(TripPlace p, IReadOnlyList<PlaceChecklistEntryDto> checklist, bool hasProfile = false) => new(
         p.Id, p.TripId, p.GooglePlaceId, p.Name, p.Lat, p.Lng, p.Address, p.Category,
         p.PriceLevel, p.PhotoUrl, p.BestTimeStart, p.BestTimeEnd, p.OpeningHoursJson, p.FeeNote, p.Notes,
         p.ReviewLinks.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList(),
-        checklist);
+        checklist, hasProfile);
 }

@@ -33,8 +33,16 @@ public sealed class ListTripPlacesHandler : IQueryHandler<ListTripPlacesQuery, I
         var byPlace = entries.GroupBy(x => x.TripPlaceId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<PlaceChecklistEntryDto>)g.Select(x => x.Dto).ToList());
 
+        var profiledIds = (await _db.PlaceProfiles
+            .Where(p => p.UserId == user.Id)
+            .Select(p => p.GooglePlaceId)
+            .ToListAsync(ct)).ToHashSet();
+
         return places
-            .Select(p => AddTripPlaceHandler.ToDto(p, byPlace.TryGetValue(p.Id, out var l) ? l : Array.Empty<PlaceChecklistEntryDto>()))
+            .Select(p => AddTripPlaceHandler.ToDto(
+                p,
+                byPlace.TryGetValue(p.Id, out var l) ? l : Array.Empty<PlaceChecklistEntryDto>(),
+                p.GooglePlaceId != null && profiledIds.Contains(p.GooglePlaceId)))
             .ToList();
     }
 }
