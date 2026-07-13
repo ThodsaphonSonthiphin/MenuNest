@@ -1,5 +1,6 @@
 // frontend/src/pages/trips/components/ItineraryStopCard.tsx
 import {useEffect, useRef, useState} from 'react'
+import {createPortal} from 'react-dom'
 import {useSortable} from '@dnd-kit/sortable'
 import {CSS} from '@dnd-kit/utilities'
 import type {TripPlaceDto, WeatherReadingDto} from '../../../shared/api/api'
@@ -72,17 +73,26 @@ export function ItineraryStopCard({
   const links = place.reviewLinks ?? []
   const [reviewOpen, setReviewOpen] = useState(false)
   const reviewRef = useRef<HTMLDivElement>(null)
+  const reviewBtnRef = useRef<HTMLButtonElement>(null)
+  const reviewMenuRef = useRef<HTMLDivElement>(null)
+  const [menuPos, setMenuPos] = useState<{top: number; right: number} | null>(null)
   useEffect(() => {
     if (!reviewOpen) return
     const onDown = (e: MouseEvent) => {
-      if (reviewRef.current && !reviewRef.current.contains(e.target as Node)) setReviewOpen(false)
+      const t = e.target as Node
+      if (!reviewRef.current?.contains(t) && !reviewMenuRef.current?.contains(t)) setReviewOpen(false)
     }
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setReviewOpen(false)
+    const close = () => setReviewOpen(false)
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
+    window.addEventListener('scroll', close, true)
+    window.addEventListener('resize', close)
     return () => {
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
+      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('resize', close)
     }
   }, [reviewOpen])
 
@@ -131,39 +141,55 @@ export function ItineraryStopCard({
       {links.length >= 2 && (
         <div className="stop-review-wrap" ref={reviewRef}>
           <button
+            ref={reviewBtnRef}
             type="button"
             className="stop-review-btn"
             aria-label={`ดูรีวิว (${links.length})`}
             aria-expanded={reviewOpen}
             onClick={(e) => {
               e.stopPropagation()
-              setReviewOpen((v) => !v)
+              setReviewOpen((v) => {
+                const next = !v
+                if (next && reviewBtnRef.current) {
+                  const r = reviewBtnRef.current.getBoundingClientRect()
+                  setMenuPos({top: r.bottom + 4, right: window.innerWidth - r.right})
+                }
+                return next
+              })
             }}
           >
             <ReviewIcon />
             <span className="rv-count">{links.length}</span>
           </button>
-          {reviewOpen && (
-            <div className="rv-menu" role="menu">
-              <div className="rv-menu-title">รีวิว</div>
-              {links.map((l, i) => (
-                <a
-                  key={l.url + i}
-                  href={l.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  role="menuitem"
-                  onClick={() => setReviewOpen(false)}
-                >
-                  <ReviewIcon />
-                  <span className="rv-label">{reviewLabel(l, i)}</span>
-                  <span className="host">{reviewHost(l.url)}</span>
-                </a>
-              ))}
-            </div>
-          )}
         </div>
       )}
+      {reviewOpen &&
+        menuPos &&
+        createPortal(
+          <div
+            className="rv-menu"
+            ref={reviewMenuRef}
+            role="menu"
+            style={{position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 50}}
+          >
+            <div className="rv-menu-title">รีวิว</div>
+            {links.map((l, i) => (
+              <a
+                key={l.url + i}
+                href={l.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                onClick={() => setReviewOpen(false)}
+              >
+                <ReviewIcon />
+                <span className="rv-label">{reviewLabel(l, i)}</span>
+                <span className="host">{reviewHost(l.url)}</span>
+              </a>
+            ))}
+          </div>,
+          document.body,
+        )}
       {navUrl ? (
         <a
           className="stop-nav"
