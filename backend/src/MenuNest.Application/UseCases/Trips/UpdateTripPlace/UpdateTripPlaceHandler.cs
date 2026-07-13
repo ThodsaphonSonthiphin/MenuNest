@@ -29,7 +29,11 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
         place.SetBestTime(c.BestTimeStart, c.BestTimeEnd);
         place.SetReviewLinks((c.ReviewLinks ?? Enumerable.Empty<ReviewLinkDto>()).Select(r => ReviewLink.Create(r.Url, r.Label)));
 
+        // First-enrichment auto-create: snapshot the place''s current enrichment into a new master
+        // iff none exists yet (ADR-064). No-op once a master exists (per-trip override).
+        await PlaceProfileSync.EnsureCreatedAsync(_db, user.Id, place, ct);
         await _db.SaveChangesAsync(ct);
+
         var hasProfile = await PlaceProfileSync.ExistsAsync(_db, user.Id, place.GooglePlaceId, ct);
         var checklist = await (from e in _db.PlaceChecklistEntries
                                join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id

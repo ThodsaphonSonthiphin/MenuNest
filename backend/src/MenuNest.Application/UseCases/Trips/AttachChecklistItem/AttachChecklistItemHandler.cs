@@ -22,8 +22,8 @@ public sealed class AttachChecklistItemHandler : ICommandHandler<AttachChecklist
         var user = await _users.GetOrProvisionCurrentAsync(ct);
         var owns = await _db.Trips.AnyAsync(t => t.Id == c.TripId && t.UserId == user.Id && t.DeletedAt == null, ct);
         if (!owns) throw new DomainException("Trip not found.");
-        var placeExists = await _db.TripPlaces.AnyAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct);
-        if (!placeExists) throw new DomainException("Place not found.");
+        var place = await _db.TripPlaces.FirstOrDefaultAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct)
+            ?? throw new DomainException("Place not found.");
 
         var name = ChecklistItem.NormalizeName(c.Name);
         var normalized = name.ToLowerInvariant();
@@ -48,6 +48,10 @@ public sealed class AttachChecklistItemHandler : ICommandHandler<AttachChecklist
         }
 
         await _db.SaveChangesAsync(ct);
+        // First-enrichment auto-create: attaching the first item to a place with no master yet
+        // creates the master (including this just-persisted item). No-op once a master exists.
+        if (await PlaceProfileSync.EnsureCreatedAsync(_db, user.Id, place, ct))
+            await _db.SaveChangesAsync(ct);
         return new PlaceChecklistEntryDto(entry.Id, item.Id, item.Name, entry.IsChecked);
     }
 }
