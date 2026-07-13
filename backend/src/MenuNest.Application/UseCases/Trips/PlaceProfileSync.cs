@@ -35,4 +35,40 @@ public static class PlaceProfileSync
     public static async Task<bool> ExistsAsync(IApplicationDbContext db, Guid userId, string? googlePlaceId, CancellationToken ct)
         => !string.IsNullOrEmpty(googlePlaceId)
            && await db.PlaceProfiles.AnyAsync(p => p.UserId == userId && p.GooglePlaceId == googlePlaceId, ct);
+
+    /// <summary>Create the profile from the place''s CURRENT enrichment iff none exists yet
+    /// (first-enrichment auto-create). Returns true iff a profile was created.</summary>
+    public static async Task<bool> EnsureCreatedAsync(IApplicationDbContext db, Guid userId, TripPlace place, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(place.GooglePlaceId)) return false;
+        var exists = await db.PlaceProfiles.AnyAsync(p => p.UserId == userId && p.GooglePlaceId == place.GooglePlaceId, ct);
+        if (exists) return false;
+        await UpsertFromAsync(db, userId, place, ct);
+        return true;
+    }
+
+    /// <summary>Create-or-overwrite the profile from the place''s current best-time, review links,
+    /// and checklist item-SET (push-to-master).</summary>
+    public static async Task UpsertFromAsync(IApplicationDbContext db, Guid userId, TripPlace place, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(place.GooglePlaceId))
+            throw new Domain.Exceptions.DomainException("This place has no Google place to save to your library.");
+
+        var profile = await db.PlaceProfiles.FirstOrDefaultAsync(p => p.UserId == userId && p.GooglePlaceId == place.GooglePlaceId, ct);
+        if (profile is null)
+        {
+            profile = PlaceProfile.Create(userId, place.GooglePlaceId);
+            db.PlaceProfiles.Add(profile);
+        }
+        profile.SetBestTime(place.BestTimeStart, place.BestTimeEnd);
+        profile.SetReviewLinks(place.ReviewLinks);
+
+        var currentItemIds = await db.PlaceChecklistEntries
+            .Where(e => e.TripPlaceId == place.Id).Select(e => e.ChecklistItemId).ToListAsync(ct);
+        var links = await db.PlaceProfileChecklistItems.Where(x => x.PlaceProfileId == profile.Id).ToListAsync(ct);
+        db.PlaceProfileChecklistItems.RemoveRange(links.Where(x => !currentItemIds.Contains(x.ChecklistItemId)));
+        var have = links.Select(x => x.ChecklistItemId).ToHashSet();
+        foreach (var id in currentItemIds.Where(id => !have.Contains(id)))
+            db.PlaceProfileChecklistItems.Add(PlaceProfileChecklistItem.Create(profile.Id, id));
+    }
 }
