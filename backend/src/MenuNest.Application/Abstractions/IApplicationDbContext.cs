@@ -47,6 +47,8 @@ public interface IApplicationDbContext
     DbSet<Stop> Stops { get; }
     DbSet<ChecklistItem> ChecklistItems { get; }
     DbSet<PlaceChecklistEntry> PlaceChecklistEntries { get; }
+    DbSet<PlaceProfile> PlaceProfiles { get; }
+    DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

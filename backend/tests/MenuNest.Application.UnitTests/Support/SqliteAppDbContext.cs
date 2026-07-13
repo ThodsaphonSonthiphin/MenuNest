@@ -54,6 +54,8 @@ public sealed class SqliteAppDbContext : DbContext, IApplicationDbContext
     public DbSet<Stop> Stops => Set<Stop>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
     public DbSet<PlaceChecklistEntry> PlaceChecklistEntries => Set<PlaceChecklistEntry>();
+    public DbSet<PlaceProfile> PlaceProfiles => Set<PlaceProfile>();
+    public DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems => Set<PlaceProfileChecklistItem>();
 
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
