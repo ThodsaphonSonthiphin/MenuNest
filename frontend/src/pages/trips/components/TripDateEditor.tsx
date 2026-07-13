@@ -28,9 +28,13 @@ function fmt(d: Date | null): string {
  */
 export function TripDateEditor({
   trip,
+  overrideDate,
+  locked = false,
   onError,
 }: {
   trip: TripDto
+  overrideDate?: string // "yyyy-MM-dd" server-projected today; present only when locked
+  locked?: boolean      // disable editing while current-time-start is active (single-day)
   onError: (msg: string | null) => void
 }) {
   // Bare identifier for the server start date — the effect below re-syncs local
@@ -85,7 +89,11 @@ export function TripDateEditor({
     }
   }
 
-  const startDt = ymdToDate(startYmd)
+  // While locked (current-time-start), show the server-projected today instead of the
+  // persisted start; the picker is disabled so onChange can never fire (mirrors the
+  // disabled start-time TimePicker in DayStartEditor — ADR-056).
+  const displayYmd = locked && overrideDate ? overrideDate : startYmd
+  const startDt = ymdToDate(displayYmd)
   const end = endDate(startDt, trip.dayCount)
 
   return (
@@ -98,6 +106,7 @@ export function TripDateEditor({
         editable={false}
         openOnFocus
         clearButton={false}
+        disabled={locked}
       />
       {trip.dayCount > 1 && end && <span className="trip-date-end">– {fmt(end)}</span>}
     </span>
