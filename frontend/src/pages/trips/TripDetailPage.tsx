@@ -4,10 +4,11 @@ import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
-import { setActiveTab, setPlacesView, setAddMode, setViewerLocation } from './tripsSlice'
+import { setActiveTab, setPlacesView, setAddMode, setViewerLocation, setPlaceEditor } from './tripsSlice'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
 import { SegmentedTabs } from './components/SegmentedTabs'
 import { PlaceCard } from './components/PlaceCard'
+import { PlaceEditorDialog } from './components/PlaceEditorDialog'
 import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
 import { TripDateEditor } from './components/TripDateEditor'
@@ -21,6 +22,7 @@ export function TripDetailPage() {
   const tab = useAppSelector((s) => s.trips.activeTab)
   const placesView = useAppSelector((s) => s.trips.placesView)
   const addMode = useAppSelector((s) => s.trips.addMode)
+  const placeEditorPlaceId = useAppSelector((s) => s.trips.placeEditorPlaceId)
   const bp = useBreakpoint()
   // Error surfaced by the inline trip-date edit (rescheduling failed).
   const [dateError, setDateError] = useState<string | null>(null)
@@ -46,6 +48,7 @@ export function TripDetailPage() {
 
   const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
   const { data: places } = useListTripPlacesQuery(tripId, { skip: !tripId })
+  const editingPlace = (places ?? []).find((p) => p.id === placeEditorPlaceId)
   // Active day's ordered, time-aware stops → numbered pins + route on the map.
   // Called unconditionally (before the not-found guard) to keep Rules of Hooks.
   const dayRoute = useDayRoute(tripId)
@@ -113,7 +116,7 @@ export function TripDetailPage() {
               {places?.length ? (
                 <div className="place-list">
                   {places.map((p) => (
-                    <PlaceCard key={p.id} place={p} />
+                    <PlaceCard key={p.id} place={p} onClick={() => dispatch(setPlaceEditor(p.id))} />
                   ))}
                 </div>
               ) : (
@@ -143,6 +146,9 @@ export function TripDetailPage() {
           />
         </div>
         </div>
+        {editingPlace && (
+          <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
+        )}
       </section>
     )
   }
@@ -204,7 +210,7 @@ export function TripDetailPage() {
           ) : places?.length ? (
             <div className="place-list">
               {places.map((p) => (
-                <PlaceCard key={p.id} place={p} />
+                <PlaceCard key={p.id} place={p} onClick={() => dispatch(setPlaceEditor(p.id))} />
               ))}
             </div>
           ) : (
@@ -216,6 +222,10 @@ export function TripDetailPage() {
       )}
 
       {tab === 'itinerary' && <ItineraryTab tripId={tripId} dayRoute={dayRoute} />}
+
+      {editingPlace && (
+        <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
+      )}
     </section>
   )
 }
