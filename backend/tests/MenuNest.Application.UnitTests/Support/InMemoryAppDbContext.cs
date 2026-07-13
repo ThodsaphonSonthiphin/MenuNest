@@ -53,6 +53,8 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<TripPlace> TripPlaces => Set<TripPlace>();
     public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
     public DbSet<Stop> Stops => Set<Stop>();
+    public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+    public DbSet<PlaceChecklistEntry> PlaceChecklistEntries => Set<PlaceChecklistEntry>();
 
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
