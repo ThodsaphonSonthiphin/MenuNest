@@ -652,3 +652,28 @@
 .se-sec .rv-row input { border: 1px solid #e2e8f0; border-radius: 9px; padding: 8px 10px; font: inherit; font-size: 12.5px; }
 .se-sec .rv-row .rv-del { flex: none; width: 34px; border: 1px solid #f4d0cc; border-radius: 9px; background: #fff; color: var(--bad); cursor: pointer; }
 .se-sec .rv-add { display: inline-flex; align-items: center; gap: 6px; margin-top: 2px; border: 1px dashed #f6cede; background: var(--review-bg); color: var(--review); font-weight: 700; font-size: 12px; border-radius: 9px; padding: 8px 12px; cursor: pointer; }
+
+/* Stop editor — place checklist section (issue #23, ADR-058..061) */
+.stop-editor-dialog .se-sec-head .se-ck-pill { margin-left: auto; padding: 2px 10px; background: #e9f6ee; color: #1f7a45; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.stop-editor-dialog .ck-card { margin-top: 12px; border: 1.5px solid var(--se-border); border-radius: 14px; background: #fff; overflow: hidden; }
+.stop-editor-dialog .ck-row { display: flex; align-items: center; gap: 11px; padding: 11px 13px; border-bottom: 1px solid var(--se-border); margin: 0; cursor: pointer; }
+.stop-editor-dialog .ck-row:last-child { border-bottom: 0; }
+.stop-editor-dialog .ck-row input[type='checkbox'] { width: 20px; height: 20px; flex: none; accent-color: #2e9e57; cursor: pointer; margin: 0; }
+.stop-editor-dialog .ck-name { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; color: var(--se-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stop-editor-dialog .ck-row.done { background: #e9f6ee; }
+.stop-editor-dialog .ck-row.done .ck-name { color: #7d8a80; text-decoration: line-through; text-decoration-color: #bcd6c5; font-weight: 500; }
+.stop-editor-dialog .ck-del { flex: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--se-muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.stop-editor-dialog .ck-del:hover { background: #fbeae3; color: #b4543a; }
+.stop-editor-dialog .ck-add-wrap { position: relative; margin-top: 11px; }
+.stop-editor-dialog .ck-add-in { display: flex; align-items: center; gap: 9px; border: 1.5px dashed var(--se-accent-line); background: var(--se-accent-soft); border-radius: 13px; padding: 11px 14px; }
+.stop-editor-dialog .ck-add-in svg { color: var(--se-accent); flex: none; }
+.stop-editor-dialog .ck-add-in input { flex: 1; border: 0; background: transparent; font: inherit; font-size: 14px; color: var(--se-ink); outline: none; }
+.stop-editor-dialog .ck-add-in input::placeholder { color: #c2a789; }
+.stop-editor-dialog .ck-ac { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid var(--se-border); border-radius: 13px; box-shadow: 0 14px 34px rgba(26, 20, 14, 0.16); padding: 6px; z-index: 5; }
+.stop-editor-dialog .ck-ac .ac-h { font-size: 10px; font-weight: 800; color: var(--se-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 4px 8px 6px; }
+.stop-editor-dialog .ck-ac button { display: flex; align-items: center; gap: 9px; width: 100%; border: 0; background: transparent; text-align: left; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--se-ink); padding: 9px 9px; border-radius: 9px; cursor: pointer; }
+.stop-editor-dialog .ck-ac button:hover { background: var(--se-accent-soft); }
+.stop-editor-dialog .ck-ac button .lib { margin-left: auto; font-size: 10px; font-weight: 600; color: #3f9d54; background: #e9f6ee; padding: 2px 7px; border-radius: 999px; }
+.stop-editor-dialog .ck-ac button svg { color: var(--se-muted); flex: none; }
+.stop-editor-dialog .ck-ac .create { color: var(--se-accent-deep); font-weight: 700; }
+.stop-editor-dialog .ck-ac .create svg { color: var(--se-accent); }
