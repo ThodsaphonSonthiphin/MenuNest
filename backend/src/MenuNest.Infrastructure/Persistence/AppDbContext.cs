@@ -51,6 +51,8 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<TripPlace> TripPlaces => Set<TripPlace>();
     public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
     public DbSet<Stop> Stops => Set<Stop>();
+    public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+    public DbSet<PlaceChecklistEntry> PlaceChecklistEntries => Set<PlaceChecklistEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

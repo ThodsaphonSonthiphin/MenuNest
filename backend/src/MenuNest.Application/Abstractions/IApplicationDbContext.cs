@@ -45,6 +45,8 @@ public interface IApplicationDbContext
     DbSet<TripPlace> TripPlaces { get; }
     DbSet<ItineraryDay> ItineraryDays { get; }
     DbSet<Stop> Stops { get; }
+    DbSet<ChecklistItem> ChecklistItems { get; }
+    DbSet<PlaceChecklistEntry> PlaceChecklistEntries { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
