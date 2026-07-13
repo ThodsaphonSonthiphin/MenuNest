@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using MenuNest.Domain.Common;
 using MenuNest.Domain.Exceptions;
 
@@ -15,10 +16,13 @@ public sealed class ChecklistItem : Entity
 
     private ChecklistItem() { } // EF
 
+    public static string NormalizeName(string? name) =>
+        Regex.Replace((name ?? string.Empty).Trim(), @"\s+", " ");
+
     public static ChecklistItem Create(Guid userId, string name)
     {
         if (userId == Guid.Empty) throw new DomainException("UserId is required for a checklist item.");
-        var n = (name ?? string.Empty).Trim();
+        var n = NormalizeName(name);
         if (n.Length == 0) throw new DomainException("Checklist item name is required.");
         if (n.Length > 100) throw new DomainException("Checklist item name is too long (max 100).");
         return new ChecklistItem { UserId = userId, Name = n };
