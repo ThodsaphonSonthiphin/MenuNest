@@ -2,17 +2,21 @@ using Mediator;
 using MenuNest.Application.UseCases.Trips;
 using MenuNest.Application.UseCases.Trips.AddStop;
 using MenuNest.Application.UseCases.Trips.AddTripPlace;
+using MenuNest.Application.UseCases.Trips.AttachChecklistItem;
 using MenuNest.Application.UseCases.Trips.CreateTrip;
+using MenuNest.Application.UseCases.Trips.DetachChecklistItem;
 using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
 using MenuNest.Application.UseCases.Trips.GetItinerary;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Application.UseCases.Trips.GetTrip;
+using MenuNest.Application.UseCases.Trips.ListChecklistItems;
 using MenuNest.Application.UseCases.Trips.ListTripPlaces;
 using MenuNest.Application.UseCases.Trips.ListTrips;
 using MenuNest.Application.UseCases.Trips.RemoveStop;
 using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.ResolvePlace;
+using MenuNest.Application.UseCases.Trips.SetChecklistEntryChecked;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
 using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.UpdateStop;
@@ -73,6 +77,22 @@ public sealed class TripsController : ControllerBase
     public async Task<IActionResult> DeletePlace(Guid id, Guid placeId, CancellationToken ct)
     { await _mediator.Send(new DeleteTripPlaceCommand(id, placeId), ct); return NoContent(); }
 
+    [HttpGet("api/checklist-items")]
+    public async Task<ActionResult<IReadOnlyList<ChecklistItemDto>>> ListChecklistItems(CancellationToken ct)
+        => Ok(await _mediator.Send(new ListChecklistItemsQuery(), ct));
+
+    [HttpPost("api/trips/{id:guid}/places/{placeId:guid}/checklist")]
+    public async Task<ActionResult<PlaceChecklistEntryDto>> AttachChecklistItem(Guid id, Guid placeId, [FromBody] AttachChecklistBody b, CancellationToken ct)
+        => Ok(await _mediator.Send(new AttachChecklistItemCommand(id, placeId, b.Name), ct));
+
+    [HttpDelete("api/trips/{id:guid}/places/{placeId:guid}/checklist/{entryId:guid}")]
+    public async Task<IActionResult> DetachChecklistItem(Guid id, Guid placeId, Guid entryId, CancellationToken ct)
+    { await _mediator.Send(new DetachChecklistItemCommand(id, placeId, entryId), ct); return NoContent(); }
+
+    [HttpPatch("api/trips/{id:guid}/places/{placeId:guid}/checklist/{entryId:guid}")]
+    public async Task<ActionResult<PlaceChecklistEntryDto>> SetChecklistItemChecked(Guid id, Guid placeId, Guid entryId, [FromBody] SetChecklistCheckedBody b, CancellationToken ct)
+        => Ok(await _mediator.Send(new SetChecklistEntryCheckedCommand(id, placeId, entryId, b.IsChecked), ct));
+
     [HttpGet("api/trips/{id:guid}/itinerary")]
     public async Task<ActionResult<IReadOnlyList<ItineraryDayDto>>> GetItinerary(
         Guid id, [FromQuery] string? tz, [FromQuery] double? lat, [FromQuery] double? lng, CancellationToken ct)
@@ -114,6 +134,10 @@ public sealed record UpdateTripBody(
 public sealed record AddPlaceBody(
     string Name, double Lat, double Lng, PlaceCategory Category,
     string? GooglePlaceId, string? Address, int? PriceLevel, string? PhotoUrl, string? OpeningHoursJson);
+
+public sealed record AttachChecklistBody(string Name);
+
+public sealed record SetChecklistCheckedBody(bool IsChecked);
 
 public sealed record UpdatePlaceBody(
     string Name, PlaceCategory Category, string? Address, string? FeeNote, string? Notes,
