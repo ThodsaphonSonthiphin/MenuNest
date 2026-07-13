@@ -17,6 +17,10 @@ using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
 using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
+using MenuNest.Application.UseCases.Trips.ListChecklistItems;
+using MenuNest.Application.UseCases.Trips.AttachChecklistItem;
+using MenuNest.Application.UseCases.Trips.DetachChecklistItem;
+using MenuNest.Application.UseCases.Trips.SetChecklistEntryChecked;
 using MenuNest.Domain.Enums;
 
 namespace MenuNest.McpServer.Tools;
@@ -177,4 +181,33 @@ public sealed class TripTools(IMediator mediator)
         [Description("Points to read: each { stopId, lat, lng, arrivalIso? }. arrivalIso is the stop's local wall-clock arrival (ISO-8601), used only for OnArrival.")] WeatherPointDto[] points,
         CancellationToken ct)
         => await mediator.Send(new GetStopWeatherQuery(kind, points), ct);
+
+    [McpServerTool, Description("List the current user's reusable checklist items — the personal library of 'things to prepare/bring' reused across places and trips. Use these names with attach_checklist_item.")]
+    public async Task<IReadOnlyList<ChecklistItemDto>> list_checklist_items(CancellationToken ct)
+        => await mediator.Send(new ListChecklistItemsQuery(), ct);
+
+    [McpServerTool, Description("Attach a checklist item to a place BY NAME. Create-or-reuse: an existing library item of the same name (case-insensitive) for this user is reused; a new name creates one. Idempotent per (place,item). Returns the place checklist entry.")]
+    public async Task<PlaceChecklistEntryDto> attach_checklist_item(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place ID")] Guid placeId,
+        [Description("Checklist item name, e.g. ร่ม / passport / sunscreen")] string name,
+        CancellationToken ct)
+        => await mediator.Send(new AttachChecklistItemCommand(tripId, placeId, name), ct);
+
+    [McpServerTool, Description("Detach a checklist item from a place. Removes the place's entry ONLY; the reusable library item survives for other places.")]
+    public async Task<bool> detach_checklist_item(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place ID")] Guid placeId,
+        [Description("Place checklist entry ID (from the place's checklist)")] Guid entryId,
+        CancellationToken ct)
+        => await mediator.Send(new DetachChecklistItemCommand(tripId, placeId, entryId), ct);
+
+    [McpServerTool, Description("Set the per-place checked ('prepared') state of a place checklist entry. Checked is independent per place.")]
+    public async Task<PlaceChecklistEntryDto> set_checklist_item_checked(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place ID")] Guid placeId,
+        [Description("Place checklist entry ID")] Guid entryId,
+        [Description("true = prepared/checked, false = not yet")] bool isChecked,
+        CancellationToken ct)
+        => await mediator.Send(new SetChecklistEntryCheckedCommand(tripId, placeId, entryId, isChecked), ct);
 }
