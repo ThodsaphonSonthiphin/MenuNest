@@ -514,6 +514,7 @@ export interface TripPlaceDto {
     feeNote: string | null; notes: string | null
     reviewLinks: ReviewLink[]
     checklist: PlaceChecklistEntry[]
+    hasProfile: boolean
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
@@ -1296,7 +1297,7 @@ export const api = createApi({
             query: (tripId) => `/api/trips/${tripId}/places`,
             providesTags: (_r, _e, id) => [{type: 'TripPlaces', id}],
         }),
-        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes'>>({
+        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes' | 'hasProfile'>>({
             query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),
@@ -1307,6 +1308,10 @@ export const api = createApi({
         deleteTripPlace: build.mutation<void, {tripId: string; placeId: string}>({
             query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'DELETE'}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+        }),
+        pushPlaceProfile: build.mutation<TripPlaceDto, {tripId: string; placeId: string}>({
+            query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}/push-to-profile`, method: 'POST'}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}],
         }),
         listChecklistItems: build.query<ChecklistItem[], void>({
             query: () => `/api/checklist-items`,
@@ -1565,6 +1570,7 @@ export const {
     useAddTripPlaceMutation,
     useUpdateTripPlaceMutation,
     useDeleteTripPlaceMutation,
+    usePushPlaceProfileMutation,
     useListChecklistItemsQuery,
     useAttachChecklistItemMutation,
     useDetachChecklistItemMutation,
