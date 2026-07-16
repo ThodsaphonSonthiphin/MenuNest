@@ -818,3 +818,50 @@
 
 /* CheckIcon in the all-visited empty state (icon, never an emoji) */
 .trips-empty svg { width: 15px; height: 15px; vertical-align: -2px; color: var(--visited); margin-right: 4px; }
+
+/* ── Add-stop picker: "+ เพิ่มสถานที่ใหม่" shortcut (#36) ── */
+.add-stop-new {
+  display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
+  background: var(--teal-soft); border: 1.5px solid var(--teal); border-radius: 10px;
+  padding: 11px 13px; color: var(--teal-deep); font: inherit; font-weight: 700;
+  font-size: 0.875rem; cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.add-stop-new:hover { background: #d6eef0; }
+.add-stop-new-plus {
+  flex: none; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--teal); color: #fff; display: flex; align-items: center;
+  justify-content: center; font-weight: 700; line-height: 1;
+}
+.add-stop-new-txt { display: flex; flex-direction: column; min-width: 0; }
+.add-stop-new-sub { font-weight: 500; font-size: 11px; color: var(--teal-deep); opacity: 0.8; }
+.add-stop-divider {
+  display: flex; align-items: center; gap: 8px; color: var(--muted);
+  font-size: 11px; margin: 2px 0;
+}
+.add-stop-divider::before, .add-stop-divider::after {
+  content: ""; flex: 1; height: 1px; background: var(--border);
+}
+
+/* ── Capture-context banner over the map (#36 / ADR-070) ── */
+.add-capture-banner {
+  position: absolute; top: 12px; left: 14px; right: 14px; z-index: 8;
+  display: flex; align-items: center; gap: 9px;
+  background: var(--ink); color: #fff; border-radius: 12px; padding: 9px 12px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28);
+}
+.add-capture-back {
+  flex: none; width: 26px; height: 26px; border: 0; border-radius: 8px;
+  background: rgba(255, 255, 255, 0.12); color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.add-capture-back svg { width: 15px; height: 15px; }
+.add-capture-txt { font-size: 12px; font-weight: 700; line-height: 1.25; }
+.add-capture-txt small { display: block; font-weight: 500; color: #9fb0c4; font-size: 10.5px; }
+
+/* Push the floating search bar below the banner when it is shown */
+.add-search-wrap--banner { top: 66px; }
+
+/* ── Mobile full-screen capture overlay (#36 / ADR-070) ── */
+.capture-overlay { position: fixed; inset: 0; z-index: 1100; background: #fff; }
+.capture-overlay .trip-map { height: 100%; min-height: 0; }

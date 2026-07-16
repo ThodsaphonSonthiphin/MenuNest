@@ -4,7 +4,9 @@ import { useParams } from 'react-router-dom'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useGetTripQuery, useListTripPlacesQuery } from '../../shared/api/api'
 import { useAppDispatch, useAppSelector } from '../../store/index'
-import { setActiveTab, setPlacesView, setAddMode, setViewerLocation, setPlaceEditor } from './tripsSlice'
+import { setActiveTab, setPlacesView, setAddMode, setViewerLocation, setPlaceEditor, endAddStopCapture } from './tripsSlice'
+import { addStopDayLabel } from './lib/addStopCapture'
+import type { TravelMode } from '../../shared/api/api'
 import { useBreakpoint } from '../../shared/hooks/useBreakpoint'
 import { SegmentedTabs } from './components/SegmentedTabs'
 import { PlaceCard } from './components/PlaceCard'
@@ -52,6 +54,13 @@ export function TripDetailPage() {
   // Active day's ordered, time-aware stops → numbered pins + route on the map.
   // Called unconditionally (before the not-found guard) to keep Rules of Hooks.
   const dayRoute = useDayRoute(tripId)
+
+  const addStopForDayId = useAppSelector((s) => s.trips.addStopForDayId)
+  const addStopLabel = addStopForDayId ? addStopDayLabel(dayRoute.days, addStopForDayId, trip?.destination) : null
+  const addStopContext =
+    addStopForDayId && addStopLabel
+      ? { dayId: addStopForDayId, dayLabel: addStopLabel, travelMode: (trip?.defaultTravelMode ?? 'Drive') as TravelMode }
+      : null
 
   const isDesktop = bp === 'desktop'
 
@@ -140,9 +149,13 @@ export function TripDetailPage() {
             summaryLabel={dayRoute.dayLabel}
             summaryText={dayRoute.summaryText}
             viewerLocation={tab === 'itinerary' ? dayRoute.viewerLocation : undefined}
-            addMode={tab === 'places' && addMode}
+            addMode={(tab === 'places' && addMode) || !!addStopContext}
+            addStopContext={addStopContext}
             tripId={tripId}
-            onExitAddMode={() => dispatch(setAddMode(false))}
+            onExitAddMode={() => {
+              if (addStopContext) dispatch(endAddStopCapture())
+              else dispatch(setAddMode(false))
+            }}
           />
         </div>
         </div>
@@ -225,6 +238,17 @@ export function TripDetailPage() {
 
       {editingPlace && (
         <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
+      )}
+      {addStopContext && (
+        <div className="capture-overlay">
+          <TripMap
+            places={places ?? []}
+            addMode
+            addStopContext={addStopContext}
+            tripId={tripId}
+            onExitAddMode={() => dispatch(endAddStopCapture())}
+          />
+        </div>
       )}
     </section>
   )
