@@ -24,7 +24,7 @@ import {
 } from '../../../shared/api/api'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../../store/index'
-import {setActiveDay, setStopEditor, setItineraryMapCollapsed} from '../tripsSlice'
+import {setActiveDay, setStopEditor, setItineraryMapCollapsed, startAddStopCapture} from '../tripsSlice'
 import {useSchedule} from '../hooks/useSchedule'
 import {useStopWeather} from '../hooks/useStopWeather'
 import {SegmentedTabs} from './SegmentedTabs'
@@ -57,6 +57,7 @@ function AddStopPicker({
   existingTripPlaceIds,
   defaultTravelMode,
   onClose,
+  onAddNew,
 }: {
   tripId: string
   dayId: string
@@ -64,20 +65,12 @@ function AddStopPicker({
   existingTripPlaceIds: Set<string>
   defaultTravelMode: string
   onClose: () => void
+  onAddNew: () => void
 }) {
   const [addStop] = useAddStopMutation()
   const [addError, setAddError] = useState<string | null>(null)
 
   const available = places.filter((p) => !existingTripPlaceIds.has(p.id))
-
-  if (available.length === 0) {
-    return (
-      <div className="add-stop-picker">
-        <p className="trips-muted">สถานที่ทั้งหมดอยู่ในแผนแล้ว</p>
-        <button className="btn-text" onClick={onClose}>ปิด</button>
-      </div>
-    )
-  }
 
   return (
     <div className="add-stop-picker">
@@ -85,31 +78,47 @@ function AddStopPicker({
         <span>เลือกจุดแวะ</span>
         <button className="btn-text" onClick={onClose}>✕</button>
       </div>
-      <ul className="add-stop-list">
-        {available.map((p) => (
-          <li key={p.id}>
-            <button
-              className="add-stop-item"
-              onClick={async () => {
-                try {
-                  await addStop({
-                    tripId,
-                    dayId,
-                    tripPlaceId: p.id,
-                    dwellMinutes: 60,
-                    travelModeToReach: (defaultTravelMode as 'Drive' | 'Walk' | 'Transit') ?? 'Drive',
-                  }).unwrap()
-                  onClose()
-                } catch (err) {
-                  setAddError(getErrorMessage(err))
-                }
-              }}
-            >
-              <span className="add-stop-name">{p.name}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+
+      <button type="button" className="add-stop-new" onClick={onAddNew}>
+        <span className="add-stop-new-plus">+</span>
+        <span className="add-stop-new-txt">
+          เพิ่มสถานที่ใหม่
+          <span className="add-stop-new-sub">ค้นหา / แตะหมุดบนแผนที่ / วางลิงก์</span>
+        </span>
+      </button>
+
+      {available.length === 0 ? (
+        <p className="trips-muted">สถานที่ในคลังทั้งหมดอยู่ในแผนแล้ว</p>
+      ) : (
+        <>
+          <div className="add-stop-divider">หรือเลือกจากคลังสถานที่</div>
+          <ul className="add-stop-list">
+            {available.map((p) => (
+              <li key={p.id}>
+                <button
+                  className="add-stop-item"
+                  onClick={async () => {
+                    try {
+                      await addStop({
+                        tripId,
+                        dayId,
+                        tripPlaceId: p.id,
+                        dwellMinutes: 60,
+                        travelModeToReach: (defaultTravelMode as 'Drive' | 'Walk' | 'Transit') ?? 'Drive',
+                      }).unwrap()
+                      onClose()
+                    } catch (err) {
+                      setAddError(getErrorMessage(err))
+                    }
+                  }}
+                >
+                  <span className="add-stop-name">{p.name}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {addError && <p className="trips-field-error">{addError}</p>}
     </div>
   )
@@ -420,6 +429,10 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           existingTripPlaceIds={existingTripPlaceIds}
           defaultTravelMode={trip?.defaultTravelMode ?? 'Drive'}
           onClose={() => setPickerOpen(false)}
+          onAddNew={() => {
+            dispatch(startAddStopCapture(resolvedDayId))
+            setPickerOpen(false)
+          }}
         />
       ) : (
         <button className="btn-add-stop" onClick={() => setPickerOpen(true)}>
