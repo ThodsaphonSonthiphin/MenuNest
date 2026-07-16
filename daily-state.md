@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-16T15:57:07+07:00'
+updated: '2026-07-16T20:31:27+07:00'
 ---
 
 ## Log
@@ -136,3 +136,31 @@ EOF
 - 2026-07-16T15:33:00+07:00 — fix(trips): keep reorder toggle reachable + e2e enters reorder mode (#34)
 - 2026-07-16T15:34:25+07:00 — docs(trips): design handoff + implementation plan for itinerary detail popup & DnD toggle (#34)
 - 2026-07-16T15:57:07+07:00 — fix(trips): full-row tap target + toolbar gate + sheet ordinal (#34) — Scrutinize follow-ups on the itinerary detail-popup/DnD-toggle work: — - Compact card: move the chevron inside the .stop-body button and wrap the text in .stop-text so the whole name/summary/chevron row is one tap target. The chevron (the 'opens detail' affordance) and its 36px column were previously outside the button and did nothing. — - Reorder toolbar: gate the whole bar on (remaining>=2 || reorderMode) instead of remaining>0, so a single remaining stop no longer renders a lone count with no action; the toggle stays reachable in reorder mode. — - Detail sheet: ordinal now counts within the visible remaining list (remaining.indexOf) rather than the full schedule, so 'à¸ˆà¸¸à¸”à¸—à¸µà¹ˆ N' matches the card the user tapped when visited stops are hidden. — Verified: tsc -b + vite build clean, vitest 168/168.
+- 2026-07-16T17:06:40+07:00 — $(cat <<'EOF'
+feat(trips): add addStopForDayId capture-context flag to trips slice (#36)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-16T17:13:46+07:00 — $(cat <<'EOF'
+feat(trips): attach review links while capturing a place (shared preview card) (#36)
+EOF
+)
+- 2026-07-16T17:22:15+07:00 — $(cat <<'EOF'
+fix(trips): reset review drafts when a different place is selected in capture (#36)
+EOF
+)
+- 2026-07-16T17:28:14+07:00 — feat(trips): AddPlaceMode capture-context (banner + relabel + addStop chain) (#36)
+- 2026-07-16T17:42:23+07:00 — $(cat <<'EOF'
+feat(trips): add a new place (+review link) as a stop from the itinerary picker (closes #36)
+EOF
+)
+- 2026-07-16T17:43:17+07:00 — $(cat <<'EOF'
+docs(trips): ADR-067..071 + design spec/plan/mock for add-new-place-from-itinerary (#36)
+EOF
+)
+- 2026-07-16T18:00:47+07:00 — $(cat <<'EOF'
+fix(trips): reset capture-context on page teardown + tab-gate it; restore trailing newlines (#36)
+EOF
+)
+- 2026-07-16T20:31:27+07:00 — fix(trips): idempotent capture retry (no duplicate Place on addStop failure) + clear capture-context on itinerary-tab leave (#36)
