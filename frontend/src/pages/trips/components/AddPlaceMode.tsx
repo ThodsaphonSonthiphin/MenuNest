@@ -40,6 +40,10 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
   const [formError, setFormError] = useState<string | null>(null)
   const [addTripPlace, {isLoading: saving}] = useAddTripPlaceMutation()
   const [addStop, {isLoading: adding}] = useAddStopMutation()
+  // Idempotency: id of a Place already created during THIS attempt. If addTripPlace
+  // succeeds but the addStop chain fails, a retry reuses this id instead of creating a
+  // duplicate — AddTripPlaceHandler does not dedupe on (TripId, GooglePlaceId).
+  const createdRef = useRef<string | null>(null)
   const bp = useBreakpoint()
 
   const present = useCallback((dto: ResolvedPlaceDto) => {
@@ -48,6 +52,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     setGuessedCategory(dto.category)
     setReviewDrafts([])
     setFormError(null)
+    createdRef.current = null // a different place — forget any half-created previous one
   }, [])
 
   // Report the selected place's coords upward so TripMap can render the temp teal
@@ -96,6 +101,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     setGuessedCategory(undefined)
     setReviewDrafts([])
     setFormError(null)
+    createdRef.current = null
     search.reset()
   }, [search])
 
@@ -107,31 +113,42 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     }
     setFormError(null)
     try {
-      const created = await addTripPlace({
-        tripId,
-        googlePlaceId: selected.googlePlaceId,
-        name: selected.name,
-        lat: selected.lat,
-        lng: selected.lng,
-        address: selected.address,
-        category,
-        priceLevel: selected.priceLevel,
-        photoUrl: selected.photoUrl,
-        openingHoursJson: selected.openingHoursJson,
-        reviewLinks: sanitizeReviewDrafts(reviewDrafts),
-        checklist: [],
-      }).unwrap()
+      // Idempotent retry: reuse the Place if a prior attempt already created it
+      // (addTripPlace succeeded, addStop failed). AddTripPlace does not dedupe, so
+      // re-creating here would leave a duplicate library Place on every retry.
+      const placeId =
+        createdRef.current ??
+        (
+          await addTripPlace({
+            tripId,
+            googlePlaceId: selected.googlePlaceId,
+            name: selected.name,
+            lat: selected.lat,
+            lng: selected.lng,
+            address: selected.address,
+            category,
+            priceLevel: selected.priceLevel,
+            photoUrl: selected.photoUrl,
+            openingHoursJson: selected.openingHoursJson,
+            reviewLinks: sanitizeReviewDrafts(reviewDrafts),
+            checklist: [],
+          }).unwrap()
+        ).id
+      createdRef.current = placeId
       if (addStopContext) {
-        // ADR-071: non-atomic — if this fails, the Place stays captured in the library.
+        // ADR-071: non-atomic — if addStop fails, the Place stays captured and a retry
+        // reuses createdRef (above) rather than creating a duplicate.
         await addStop({
           tripId,
           dayId: addStopContext.dayId,
-          tripPlaceId: created.id,
+          tripPlaceId: placeId,
           dwellMinutes: 60,
           travelModeToReach: addStopContext.travelMode,
         }).unwrap()
+        createdRef.current = null
         onExit() // ADR-068 single-shot: leave capture; host clears the flag + itinerary refetches
       } else {
+        createdRef.current = null
         clearSelection() // stay armed for the next place (ADR-016)
       }
     } catch (err) {

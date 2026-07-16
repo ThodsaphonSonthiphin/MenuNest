@@ -71,6 +71,12 @@ export function TripDetailPage() {
       ? { dayId: addStopForDayId, dayLabel: addStopLabel, travelMode: (trip?.defaultTravelMode ?? 'Drive') as TravelMode }
       : null
 
+  // Abandoning capture by leaving the itinerary tab clears the context, so a dormant
+  // flag can't silently re-open the capture surface when the user returns to the tab.
+  useEffect(() => {
+    if (tab !== 'itinerary' && addStopForDayId) dispatch(endAddStopCapture())
+  }, [tab, addStopForDayId, dispatch])
+
   const isDesktop = bp === 'desktop'
 
   // Not-found / error guard (after all hooks, so Rules of Hooks hold). Covers
