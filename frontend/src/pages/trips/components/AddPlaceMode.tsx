@@ -38,6 +38,8 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     setSelected(dto)
     setCategory(dto.category)
     setGuessedCategory(dto.category)
+    setReviewDrafts([])
+    setFormError(null)
   }, [])
 
   // Report the selected place's coords upward so TripMap can render the temp teal
