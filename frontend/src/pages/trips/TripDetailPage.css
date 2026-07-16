@@ -687,3 +687,80 @@
   background:#fff; color:#d95f22; font:inherit; font-size:13px; font-weight:700; padding:11px 16px; cursor:pointer; }
 .stop-editor-dialog .se-push:disabled { opacity:.6; cursor:default; }
 .stop-editor-dialog .se-pushed { align-self:center; font-size:12px; font-weight:700; color:#1f7a45; }
+
+/* ============================================================
+   Stop detail sheet (issue #34) — body-portaled bottom sheet.
+   Portal sits OUTSIDE .trip-detail, so colors are local (like .stop-editor-dialog).
+   ============================================================ */
+.stop-detail-sheet {
+  --sd-ink: #0f172a;
+  --sd-muted: #64748b;
+  --sd-teal: #0e8f9e;
+  --sd-teal-deep: #0b7a87;
+  --sd-teal-soft: #e3f5f6;
+  --sd-border: #e2e8f0;
+  border-radius: 20px 20px 0 0;
+  overflow: hidden;
+  box-shadow: 0 -12px 40px rgba(2, 32, 27, 0.22);
+  color: var(--sd-ink);
+}
+.stop-detail-sheet .sf-dlg-header-content { padding: 18px 20px 0; border-bottom: 0; }
+.stop-detail-sheet .sf-dlg-header { width: 100%; }
+.stop-detail-sheet .sd-head { padding-right: 30px; }
+.stop-detail-sheet .sd-title { font-size: 19px; font-weight: 700; line-height: 1.25; color: var(--sd-ink); }
+.stop-detail-sheet .sd-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.stop-detail-sheet .sd-cat {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 11px 4px 9px;
+  background: #f1f5f9; border-radius: 999px; font-size: 12px; font-weight: 600; color: #475569;
+}
+.stop-detail-sheet .sd-cat-dot { width: 9px; height: 9px; border-radius: 50%; }
+.stop-detail-sheet .sd-crumb { font-size: 12.5px; font-weight: 500; color: var(--sd-muted); }
+.stop-detail-sheet .sf-dlg-content { padding: 0 20px 20px; }
+
+.stop-detail-sheet .stop-detail { display: flex; flex-direction: column; gap: 16px; margin-top: 14px; }
+
+.stop-detail-sheet .sd-times {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; background: #f8fafc; border: 1px solid var(--sd-border); border-radius: 12px;
+}
+.stop-detail-sheet .sd-time-col { text-align: center; }
+.stop-detail-sheet .sd-time-lab { font-size: 11px; font-weight: 600; color: var(--sd-muted); }
+.stop-detail-sheet .sd-time-val { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 20px; font-weight: 700; color: var(--sd-ink); }
+.stop-detail-sheet .sd-time-arrow { color: var(--sd-muted); font-size: 16px; }
+.stop-detail-sheet .sd-dwell { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--sd-teal-deep); }
+.stop-detail-sheet .sd-dwell-lab { font-weight: 600; color: var(--sd-muted); }
+
+.stop-detail-sheet .sd-weather { display: flex; gap: 10px; }
+.stop-detail-sheet .sd-weather .chip.wx {
+  flex: 1; flex-direction: column; align-items: flex-start; gap: 4px;
+  padding: 10px 12px; border-radius: 12px; font-size: 13px;
+}
+.stop-detail-sheet .sd-weather .chip.wx .lab { font-size: 10px; }
+.stop-detail-sheet .sd-weather .chip.wx img { width: 30px; height: 30px; }
+.stop-detail-sheet .sd-weather .chip.wx .cond { font-weight: 700; font-size: 14px; }
+.stop-detail-sheet .sd-weather .chip.wx .r { font-weight: 700; }
+.stop-detail-sheet .sd-weather .chip.wx .t { font-weight: 500; opacity: 0.6; font-size: 12px; }
+
+.stop-detail-sheet .sd-sec-lab { font-size: 12px; font-weight: 700; color: var(--sd-muted); margin-bottom: 6px; }
+.stop-detail-sheet .sd-review {
+  display: flex; align-items: center; gap: 8px; padding: 9px 11px; margin-bottom: 6px;
+  background: #fdeaf1; color: #c2255c; border-radius: 10px; text-decoration: none; font-size: 13px; font-weight: 600;
+}
+.stop-detail-sheet .sd-review svg { width: 15px; height: 15px; flex: none; }
+.stop-detail-sheet .sd-review-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stop-detail-sheet .sd-review-host { font-size: 11px; font-weight: 500; opacity: 0.7; }
+
+.stop-detail-sheet .sd-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.stop-detail-sheet .sd-act {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 16px; border-radius: 10px; border: 1px solid var(--sd-border);
+  background: #fff; color: var(--sd-ink); font-size: 13px; font-weight: 700; cursor: pointer;
+  font-family: inherit; text-decoration: none;
+}
+.stop-detail-sheet .sd-act svg { width: 16px; height: 16px; }
+.stop-detail-sheet .sd-act.primary { flex: 1; background: var(--sd-teal); border-color: var(--sd-teal); color: #fff; }
+.stop-detail-sheet .sd-act.primary.disabled { background: #cbd5e1; border-color: #cbd5e1; cursor: default; pointer-events: none; }
+.stop-detail-sheet .sd-act.visited { color: #15803d; border-color: #cfe9d7; background: #e7f6ec; }
+
+/* Pin the portal container to the bottom (fallback if the Dialog `position` prop is ignored). */
+.sf-dlg-container:has(> .stop-detail-sheet) { align-items: flex-end; }

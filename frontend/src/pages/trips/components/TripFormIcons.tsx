@@ -123,6 +123,15 @@ export function ChevronDownIcon({className}: IconProps) {
   )
 }
 
+/** Chevron right — trailing "opens detail" affordance on the compact stop card (issue #34). */
+export function ChevronRightIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  )
+}
+
 /** Folded map — lead glyph on the collapsed "show route map" strip. */
 export function MapRouteIcon({className}: IconProps) {
   return (
