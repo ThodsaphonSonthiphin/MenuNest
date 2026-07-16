@@ -10,6 +10,8 @@ import {AddPlaceSearchBar} from './AddPlaceSearchBar'
 import {AddPlacePreviewCard} from './AddPlacePreviewCard'
 import {PlaceLinkFallbackDialog} from './PlaceLinkFallbackDialog'
 import {useBreakpoint} from '../../../shared/hooks/useBreakpoint'
+import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
 
 export interface AddPlaceModeProps {
   tripId: string
@@ -27,6 +29,8 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
   // `category` so the "เดาจาก Google" badge can hide once the user overrides it.
   const [guessedCategory, setGuessedCategory] = useState<PlaceCategory | undefined>(undefined)
   const [showLink, setShowLink] = useState(false)
+  const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>([])
+  const [formError, setFormError] = useState<string | null>(null)
   const [addTripPlace, {isLoading: saving}] = useAddTripPlaceMutation()
   const bp = useBreakpoint()
 
@@ -80,11 +84,18 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
   const clearSelection = useCallback(() => {
     setSelected(null)
     setGuessedCategory(undefined)
+    setReviewDrafts([])
+    setFormError(null)
     search.reset()
   }, [search])
 
   const doAdd = useCallback(async () => {
     if (!selected) return
+    if (!draftsValid(reviewDrafts)) {
+      setFormError(`ลิงก์รีวิวไม่ถูกต้อง หรือเกิน ${MAX_REVIEW_LINKS} ลิงก์`)
+      return
+    }
+    setFormError(null)
     try {
       await addTripPlace({
         tripId,
@@ -97,12 +108,14 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
         priceLevel: selected.priceLevel,
         photoUrl: selected.photoUrl,
         openingHoursJson: selected.openingHoursJson,
-        reviewLinks: [],
+        reviewLinks: sanitizeReviewDrafts(reviewDrafts),
         checklist: [],
       }).unwrap()
       clearSelection() // stay armed for the next place (ADR-016)
-    } catch { /* surfaced via mutation error state; keep the card open */ }
-  }, [selected, category, tripId, addTripPlace, clearSelection])
+    } catch (err) {
+      setFormError(getErrorMessage(err))
+    }
+  }, [selected, category, tripId, reviewDrafts, addTripPlace, clearSelection])
 
   return (
     <>
@@ -128,6 +141,9 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
           onAdd={doAdd}
           saving={saving}
           variant={bp === 'desktop' ? 'floating' : 'sheet'}
+          reviewDrafts={reviewDrafts}
+          onReviewDraftsChange={setReviewDrafts}
+          error={formError}
         />
       )}
 
