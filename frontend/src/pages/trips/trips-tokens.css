@@ -194,6 +194,9 @@
 .stop-body {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
   background: transparent;
   text-align: left;
@@ -204,6 +207,7 @@
   transition: background 0.12s ease;
 }
 .stop-body:hover { background: #fafdfd; }
+.stop-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .stop-name {
   font-size: 14px;
   font-weight: 700;
@@ -321,7 +325,7 @@
 .stop-summary .sum-flag.bad .sum-flag-dot { background: var(--bad); }
 
 /* trailing chevron (normal mode → signals "opens detail") */
-.stop-chevron { flex: none; display: flex; align-items: center; justify-content: center; width: 36px; color: #cbd5e1; }
+.stop-chevron { flex: none; display: flex; align-items: center; color: #cbd5e1; }
 .stop-chevron svg { width: 18px; height: 18px; }
 
 /* reorder toolbar + toggle pill */
