@@ -4,6 +4,8 @@
 // Thai label — no emoji (project rule). Layout mirrors docs/mocks/trip-add-place-search-mock.html.
 import {DropDownList} from '@syncfusion/react-dropdowns'
 import type {PlaceCategory, ResolvedPlaceDto} from '../../../shared/api/api'
+import {ReviewLinksSection} from './ReviewLinksSection'
+import type {ReviewDraft} from '../lib/reviewLinks'
 
 const CAT_COLOR: Record<PlaceCategory, string> = {
   Stay: '#6d5ae6', Eat: '#e2553e', See: '#1f9d76',
@@ -26,10 +28,15 @@ export interface AddPlacePreviewCardProps {
   onAdd(): void
   saving: boolean
   variant?: 'floating' | 'sheet'
+  reviewDrafts: ReviewDraft[]
+  onReviewDraftsChange(drafts: ReviewDraft[]): void
+  confirmLabel?: string
+  error?: string | null
 }
 
 export function AddPlacePreviewCard({
   place, category, guessedCategory, onCategoryChange, onCancel, onAdd, saving, variant = 'floating',
+  reviewDrafts, onReviewDraftsChange, confirmLabel = 'เพิ่มลงทริป', error,
 }: AddPlacePreviewCardProps) {
   return (
     <div className={`add-preview add-preview-${variant}`}>
@@ -60,11 +67,15 @@ export function AddPlacePreviewCard({
         />
       </div>
 
+      <ReviewLinksSection drafts={reviewDrafts} onChange={onReviewDraftsChange} />
+
+      {error && <p className="trips-field-error">{error}</p>}
+
       <div className="add-preview-foot">
         <button type="button" className="add-preview-cancel" onClick={onCancel}>ยกเลิก</button>
         <button type="button" className="add-preview-add" onClick={onAdd} disabled={saving}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-          {saving ? 'กำลังเพิ่ม…' : 'เพิ่มลงทริป'}
+          {saving ? 'กำลังเพิ่ม…' : confirmLabel}
         </button>
       </div>
     </div>
