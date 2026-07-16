@@ -219,7 +219,15 @@
   border: 1.5px solid var(--trp-border);
 }
 
-.trip-map > div,
+/* Only the map container (the @vis.gl <Map> wrapper, always the FIRST child)
+   fills .trip-map. AddPlaceMode renders its overlays (.add-capture-banner,
+   .add-search-wrap) as a Fragment sibling of <Map>, and .map-day-card is a
+   sibling too, so all are direct <div> children of .trip-map. A bare
+   `.trip-map > div` stretched the dark capture banner to full map height,
+   painting it over the whole map (looked like a black screen) - #36. Scope to
+   :first-child so only the map fills; the absolutely-positioned overlays keep
+   their natural content height. */
+.trip-map > div:first-child,
 .trip-map .gm-style {
   height: 100%;
 }
