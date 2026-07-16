@@ -48,6 +48,13 @@ export function TripDetailPage() {
     )
   }, [dispatch])
 
+  // Clear any capture context when leaving this trip detail (unmount) or switching
+  // trips, so a stale addStopForDayId can't auto-reopen the capture surface on return
+  // or leak into a later capture.
+  useEffect(() => {
+    return () => { dispatch(endAddStopCapture()) }
+  }, [dispatch, tripId])
+
   const { data: trip, isLoading: tripLoading, isError: tripError } = useGetTripQuery(tripId, { skip: !tripId })
   const { data: places } = useListTripPlacesQuery(tripId, { skip: !tripId })
   const editingPlace = (places ?? []).find((p) => p.id === placeEditorPlaceId)
@@ -57,8 +64,10 @@ export function TripDetailPage() {
 
   const addStopForDayId = useAppSelector((s) => s.trips.addStopForDayId)
   const addStopLabel = addStopForDayId ? addStopDayLabel(dayRoute.days, addStopForDayId, trip?.destination) : null
+  // Gate to the itinerary tab: a stale flag must never turn a Places-tab capture
+  // into an unintended addStop chain.
   const addStopContext =
-    addStopForDayId && addStopLabel
+    tab === 'itinerary' && addStopForDayId && addStopLabel
       ? { dayId: addStopForDayId, dayLabel: addStopLabel, travelMode: (trip?.defaultTravelMode ?? 'Drive') as TravelMode }
       : null
 
