@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Add new place from the itinerary add-stop picker (#36) — mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Spline+Sans+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a; --page:#f8fafc; --surface:#fff; --border:#eef2f6; --muted:#94a3b8;
+    --review:#c2255c; --review-bg:#fdeaf1;
+    --c-see:#1f9d76; --c-eat:#e2553e; --c-cafe:#b4791f; --c-stay:#6d5ae6; --c-shop:#c2418f; --c-other:#0e8f9e;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:28px 18px 60px; font-family:'Noto Sans Thai',system-ui,sans-serif;
+    color:var(--ink); background:#eaeef2; display:flex; flex-direction:column; align-items:center; gap:30px; }
+  .caption { max-width:1120px; width:100%; }
+  .caption h1 { font-size:18px; margin:0 0 4px; }
+  .caption p { margin:0; font-size:13px; color:#64748b; line-height:1.55; }
+  .frame-label { max-width:1120px; width:100%; font-size:12px; font-weight:700; letter-spacing:.04em;
+    color:var(--teal-deep); text-transform:uppercase; margin:8px 0 -14px; }
+  .mono { font-family:'Spline Sans Mono',ui-monospace,monospace; }
+
+  /* phone row */
+  .phones { display:flex; flex-wrap:wrap; gap:22px; justify-content:center; }
+  .phone { width:330px; background:var(--page); border-radius:30px; overflow:hidden;
+    box-shadow:0 18px 50px rgba(15,23,42,.20); border:1px solid #dbe2ea; position:relative; }
+  .phone .status { height:26px; background:#fff; }
+  .phone .stepcap { font-size:11.5px; font-weight:700; color:var(--teal-deep); padding:8px 14px 0; }
+  .scr { padding:12px 14px 18px; min-height:560px; position:relative; }
+
+  /* headers/tabs */
+  .hdr { font-size:16px; font-weight:700; }
+  .meta { font-size:11.5px; color:var(--muted); margin-top:2px; }
+  .segtabs { display:flex; gap:6px; margin:12px 0 10px; }
+  .seg { border:1px solid var(--border); background:var(--surface); border-radius:999px; padding:5px 13px; font-size:12.5px; font-weight:600; }
+  .seg.active { background:var(--teal); border-color:var(--teal); color:#fff; }
+
+  /* day summary bar */
+  .day-summary { display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--ink); color:#9fb0c4; border-radius:12px; padding:9px 13px; font-size:11px; margin-bottom:10px; }
+  .day-summary b { color:#fff; font-weight:700; }
+
+  /* stop cards (compact, #34) */
+  .stop-card { display:flex; align-items:stretch; background:var(--surface); border:1px solid var(--border);
+    border-radius:13px; overflow:hidden; margin-bottom:8px; }
+  .stop-rail { flex:none; width:52px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:1px; padding:6px 4px; background:#f1f8f9; }
+  .stop-arr { font-size:14px; font-weight:700; color:var(--ink); }
+  .stop-dep { font-size:10px; color:var(--muted); }
+  .stop-body { flex:1; min-width:0; padding:10px 12px; }
+  .stop-name { font-size:14px; font-weight:700; }
+  .stop-summary { display:flex; gap:6px; margin-top:3px; font-size:11px; color:var(--muted); }
+  .stop-rev { flex:none; width:40px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border); color:var(--review); }
+  .stop-nav { flex:none; width:40px; display:flex; align-items:center; justify-content:center; border-left:1px solid var(--border); color:var(--teal); }
+  .stop-chev { flex:none; width:26px; display:flex; align-items:center; justify-content:center; color:#cbd5e1; }
+  .stop-card svg { width:16px; height:16px; }
+  .leg { padding:2px 0 2px 60px; color:var(--teal-deep); font-size:11px; font-weight:600; margin:-2px 0 6px; }
+
+  /* add-stop picker */
+  .picker { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .picker-head { display:flex; justify-content:space-between; align-items:center; font-weight:600; font-size:14px; }
+  .picker-x { border:0; background:none; color:var(--muted); font-size:16px; cursor:pointer; }
+  .new-place-row { display:flex; align-items:center; gap:9px; width:100%; text-align:left;
+    background:var(--teal-soft); border:1.5px solid var(--teal); border-radius:10px; padding:11px 13px;
+    color:var(--teal-deep); font-weight:700; font-size:13.5px; }
+  .new-place-row .plus { width:22px; height:22px; border-radius:50%; background:var(--teal); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .new-place-row .sub { font-weight:500; font-size:11px; color:var(--teal-deep); opacity:.8; }
+  .div-or { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:11px; margin:2px 0; }
+  .div-or::before,.div-or::after { content:""; flex:1; height:1px; background:var(--border); }
+  .picker-item { border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13.5px; font-weight:500; background:#fff; }
+  .btn-add-stop { width:100%; border:1.5px dashed var(--border); border-radius:10px; background:transparent;
+    padding:11px 0; color:var(--teal-deep); font-size:13.5px; }
+
+  /* capture screen */
+  .map { position:absolute; inset:0; background:
+      linear-gradient(135deg,#dbeef0 0%,#e9f3ef 45%,#eef2f6 100%);
+    background-size:cover; }
+  .map-grid { position:absolute; inset:0; opacity:.5;
+    background-image:linear-gradient(#0e8f9e11 1px,transparent 1px),linear-gradient(90deg,#0e8f9e11 1px,transparent 1px);
+    background-size:34px 34px; }
+  .map-pin { position:absolute; left:50%; top:44%; transform:translate(-50%,-100%); }
+  .map-pin .dot { width:26px; height:26px; border-radius:50% 50% 50% 0; transform:rotate(-45deg);
+    background:var(--teal); border:3px solid #fff; box-shadow:0 5px 14px rgba(14,143,158,.5); }
+  .banner { position:absolute; top:12px; left:12px; right:12px; z-index:8; display:flex; align-items:center; gap:9px;
+    background:var(--ink); color:#fff; border-radius:12px; padding:9px 12px; box-shadow:0 8px 22px rgba(15,23,42,.28); }
+  .banner .back { width:26px; height:26px; border-radius:8px; background:rgba(255,255,255,.12); display:flex; align-items:center; justify-content:center; flex:none; }
+  .banner svg { width:15px; height:15px; }
+  .banner .txt { font-size:12px; font-weight:700; line-height:1.25; flex:1; }
+  .banner .txt small { display:block; font-weight:500; color:#9fb0c4; font-size:10.5px; }
+  .searchbar { position:absolute; top:60px; left:12px; right:12px; z-index:7; }
+  .searchbox { display:flex; align-items:center; gap:9px; background:#fff; border-radius:12px; padding:10px 12px; box-shadow:0 6px 20px rgba(15,23,42,.18); }
+  .searchbox input { flex:1; border:0; outline:0; font:inherit; font-size:14px; background:transparent; }
+  .searchbox .mag { width:17px; height:17px; color:var(--teal); }
+  .searchbox .lnk { font-size:11px; color:var(--muted); white-space:nowrap; }
+  .suggest { margin-top:6px; background:#fff; border-radius:12px; overflow:hidden; box-shadow:0 8px 24px rgba(15,23,42,.18); }
+  .sug { display:flex; align-items:center; gap:10px; padding:10px 13px; border-bottom:1px solid #f1f5f9; }
+  .sug:last-child { border-bottom:0; }
+  .sug .mk { width:15px; height:15px; color:var(--muted); }
+  .sug b { font-size:13.5px; font-weight:600; display:block; }
+  .sug span { font-size:11.5px; color:var(--muted); }
+
+  /* preview card (sheet + floating) */
+  .preview { background:#fff; box-shadow:0 -10px 30px rgba(15,23,42,.2); }
+  .preview.sheet { position:absolute; left:0; right:0; bottom:0; border-radius:20px 20px 0 0; padding:8px 16px 18px; z-index:9; }
+  .preview.floating { border-radius:16px; padding:16px 18px 15px; box-shadow:0 14px 40px rgba(15,23,42,.26); }
+  .grip { width:40px; height:4px; border-radius:999px; background:#cbd5e1; margin:6px auto 12px; }
+  .pv-head { display:flex; align-items:flex-start; gap:10px; }
+  .pv-name { font-size:16px; font-weight:700; }
+  .pv-addr { margin-top:3px; font-size:12px; color:var(--muted); }
+  .pv-x { margin-left:auto; border:0; background:none; color:var(--muted); font-size:16px; }
+  .pv-lab { font-size:12px; color:var(--muted); font-weight:600; margin:13px 0 6px; display:flex; align-items:center; gap:6px; }
+  .pv-auto { background:var(--teal-soft); color:var(--teal-deep); border-radius:999px; padding:1px 8px; font-size:10.5px; }
+  .pv-cat { display:flex; align-items:center; gap:9px; border:1px solid var(--border); border-radius:10px; padding:9px 12px; font-size:13.5px; font-weight:600; }
+  .pv-cat .cdot { width:11px; height:11px; border-radius:50%; }
+  .pv-cat .chev { margin-left:auto; color:var(--muted); }
+
+  /* review-links section (NEW — shared into the capture card) */
+  .rv-sec { margin-top:14px; border-top:1px dashed #e2e8f0; padding-top:12px; }
+  .rv-head { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700; color:var(--review); margin-bottom:8px; }
+  .rv-head svg { width:16px; height:16px; }
+  .rv-row { display:flex; gap:6px; margin-bottom:6px; }
+  .rv-url { flex:1; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12.5px; }
+  .rv-url::placeholder { color:#cbd5e1; }
+  .rv-lab { width:96px; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12.5px; }
+  .rv-del { width:32px; border:1px solid var(--border); border-radius:8px; background:#fff; color:var(--muted); }
+  .rv-add { border:0; background:none; color:var(--review); font-size:12.5px; font-weight:700; padding:4px 0; }
+
+  .pv-foot { display:flex; gap:10px; margin-top:16px; }
+  .pv-cancel { border:1.5px solid var(--border); background:#fff; color:#475569; border-radius:11px; padding:11px 16px; font-size:13.5px; font-weight:600; }
+  .pv-add { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:7px; border:0; background:var(--teal);
+    color:#fff; border-radius:11px; padding:11px 16px; font-size:14px; font-weight:700; box-shadow:0 6px 16px rgba(14,143,158,.4); }
+  .pv-add svg { width:16px; height:16px; }
+  .callout { background:#fff8; border:1px dashed var(--teal); color:var(--teal-deep); font-size:11px; border-radius:9px; padding:7px 10px; margin-top:9px; }
+
+  /* desktop */
+  .desk { width:1080px; max-width:100%; background:var(--page); border-radius:18px; overflow:hidden;
+    box-shadow:0 18px 50px rgba(15,23,42,.18); border:1px solid #dbe2ea; }
+  .desk .topbar { display:flex; align-items:baseline; gap:12px; background:var(--ink); color:#cbd5e1; padding:13px 20px; }
+  .desk .topbar .name { color:#fff; font-size:15px; font-weight:700; }
+  .desk .topbar .meta { font-size:12px; color:#9fb0c4; }
+  .desk .body { display:grid; grid-template-columns:380px 1fr; min-height:540px; }
+  .desk .left { padding:16px; display:flex; flex-direction:column; gap:10px; border-right:1px solid #e2e8f0; background:var(--surface); }
+  .desk .right { position:relative; }
+  .note { font-size:12px; color:#475569; background:#f1f5f9; border-radius:9px; padding:8px 11px; line-height:1.5; }
+  .note b { color:var(--teal-deep); }
+</style>
+</head>
+<body>
+  <div class="caption">
+    <h1>#36 — เพิ่ม "สถานที่ใหม่" + ลิงก์รีวิว (TikTok) จากปุ่มเพิ่มจุดแวะในหน้าแผนเที่ยว</h1>
+    <p>จากชีต "เลือกจุดแวะ" มีทางลัด <b>+ เพิ่มสถานที่ใหม่</b> → สลับเข้าโหมดจับสถานที่แบบแผนที่เต็ม (ค้นหา / แตะหมุด / วางลิงก์) →
+       การ์ดพรีวิวมี <b>ช่องลิงก์รีวิว (TikTok)</b> เพิ่มเข้ามา → กด "เพิ่มเป็นจุดแวะ" แล้วจับ 1 ที่ + เพิ่มเป็นจุดแวะในวันนั้น + เด้งกลับแผนเที่ยวทันที
+       (ช่องลิงก์รีวิวนี้เป็นการ์ด Capture ตัวเดียวกับที่ใช้ในแท็บคลังสถานที่ ⇒ จับที่ใหม่จากตรงไหนก็แนบลิงก์รีวิวได้)</p>
+  </div>
+
+  <div class="frame-label">มือถือ — 3 สเต็ปของ flow</div>
+  <div class="phones">
+
+    <!-- STEP 1: itinerary + picker with new-place shortcut -->
+    <div class="phone">
+      <div class="status"></div>
+      <div class="stepcap">① แผนเที่ยว → กด "เพิ่มจุดแวะ" → ชีต "เลือกจุดแวะ"</div>
+      <div class="scr">
+        <div class="hdr">ทริประยอง</div>
+        <div class="meta">ระยอง · 15 ก.ค. · 1 วัน</div>
+        <div class="segtabs"><div class="seg">คลังสถานที่</div><div class="seg active">แผนเที่ยว</div></div>
+        <div class="day-summary"><span>วันที่ 1</span><span>เดินทางรวม <b class="mono">1 ชม. 4 น.</b></span></div>
+
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr mono">13:43</div><div class="stop-dep mono">→14:43</div></div>
+          <div class="stop-body"><div class="stop-name">ณ ระยอง คาเฟ่</div><div class="stop-summary">อยู่ 1 ชม. · ตอนนี้ 29°</div></div>
+          <div class="stop-rev"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h11a2 2 0 0 1 2 2v2l4-2.5v9L17 14v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg></div>
+          <div class="stop-chev">›</div>
+        </div>
+        <div class="leg">🚗 37 นาที · 29.2 กม.</div>
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr mono">15:20</div><div class="stop-dep mono">→16:20</div></div>
+          <div class="stop-body"><div class="stop-name">อ่างเก็บน้ำ…</div><div class="stop-summary">อยู่ 1 ชม. · ตอนนี้ 29°</div></div>
+          <div class="stop-chev">›</div>
+        </div>
+
+        <div class="picker" style="margin-top:8px">
+          <div class="picker-head"><span>เลือกจุดแวะ</span><button class="picker-x">✕</button></div>
+          <div class="new-place-row">
+            <span class="plus">+</span>
+            <span>เพิ่มสถานที่ใหม่<span class="sub"> ค้นหา / แตะหมุดบนแผนที่ / วางลิงก์</span></span>
+          </div>
+          <div class="div-or">หรือเลือกจากคลังสถานที่</div>
+          <div class="picker-item">Rayong Royal Peak 2</div>
+          <div class="picker-item">Wat Tham Khao Prathun</div>
+          <div class="picker-item">เกาะเสม็ด (Ko Samet)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: full-screen capture -->
+    <div class="phone">
+      <div class="status"></div>
+      <div class="stepcap">② โหมดจับสถานที่เต็มจอ (แบนเนอร์บอกว่ากำลังเพิ่มจุดแวะ)</div>
+      <div class="scr">
+        <div class="map"><div class="map-grid"></div><div class="map-pin"><div class="dot"></div></div></div>
+        <div class="banner">
+          <span class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="txt">เพิ่มสถานที่ใหม่เป็นจุดแวะ<small>วันที่ 1 · ระยอง</small></span>
+        </div>
+        <div class="searchbar">
+          <div class="searchbox">
+            <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input value="ตลาดมั่งมี" />
+            <span class="lnk">วางลิงก์</span>
+          </div>
+          <div class="suggest">
+            <div class="sug"><svg class="mk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg><span><b>ตลาดมั่งมีมาร์เก็ต</b><span>ระยอง</span></span></div>
+            <div class="sug"><svg class="mk" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg><span><b>ตลาดมั่งมี ของฝาก</b><span>เมืองระยอง</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: preview with review section -->
+    <div class="phone">
+      <div class="status"></div>
+      <div class="stepcap">③ พรีวิว + หมวด + ลิงก์รีวิว → "เพิ่มเป็นจุดแวะ"</div>
+      <div class="scr">
+        <div class="map"><div class="map-grid"></div><div class="map-pin"><div class="dot"></div></div></div>
+        <div class="banner">
+          <span class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="txt">เพิ่มสถานที่ใหม่เป็นจุดแวะ<small>วันที่ 1 · ระยอง</small></span>
+        </div>
+        <div class="preview sheet">
+          <div class="grip"></div>
+          <div class="pv-head">
+            <div><div class="pv-name">ตลาดมั่งมีมาร์เก็ต</div><div class="pv-addr">ถ. สุขุมวิท, ระยอง</div></div>
+            <button class="pv-x">✕</button>
+          </div>
+          <div class="pv-lab">หมวดหมู่ <span class="pv-auto">เดาจาก Google: ช้อปปิ้ง</span></div>
+          <div class="pv-cat"><span class="cdot" style="background:var(--c-shop)"></span>ช้อปปิ้ง<span class="chev">▾</span></div>
+
+          <div class="rv-sec">
+            <div class="rv-head">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h11a2 2 0 0 1 2 2v2l4-2.5v9L17 14v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>
+              ลิงก์รีวิว (TikTok ฯลฯ)
+            </div>
+            <div class="rv-row">
+              <input class="rv-url" value="https://www.tiktok.com/@rayongfood/..." />
+              <input class="rv-lab" placeholder="ป้ายกำกับ" />
+              <button class="rv-del">✕</button>
+            </div>
+            <button class="rv-add">+ เพิ่มลิงก์รีวิว</button>
+          </div>
+
+          <div class="pv-foot">
+            <button class="pv-cancel">ยกเลิก</button>
+            <button class="pv-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่มเป็นจุดแวะ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="frame-label">เดสก์ท็อป — ซ้ายคงแผนเที่ยวไว้ / ขวาเข้าโหมดจับสถานที่</div>
+  <div class="desk">
+    <div class="topbar"><span class="name">🗺️ ทริประยอง</span><span class="meta">ระยอง · 15 ก.ค. · 1 วัน</span></div>
+    <div class="body">
+      <div class="left">
+        <div class="segtabs"><div class="seg">คลังสถานที่</div><div class="seg active">แผนเที่ยว</div></div>
+        <div class="day-summary"><span>วันที่ 1</span><span>เดินทางรวม <b class="mono">1 ชม. 4 น.</b></span></div>
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr mono">13:43</div><div class="stop-dep mono">→14:43</div></div>
+          <div class="stop-body"><div class="stop-name">ณ ระยอง คาเฟ่</div><div class="stop-summary">อยู่ 1 ชม.</div></div>
+          <div class="stop-chev">›</div>
+        </div>
+        <div class="leg">🚗 37 นาที · 29.2 กม.</div>
+        <div class="stop-card">
+          <div class="stop-rail"><div class="stop-arr mono">15:20</div><div class="stop-dep mono">→16:20</div></div>
+          <div class="stop-body"><div class="stop-name">อ่างเก็บน้ำ…</div><div class="stop-summary">อยู่ 1 ชม.</div></div>
+          <div class="stop-chev">›</div>
+        </div>
+        <div class="note">ขณะจับสถานที่ใหม่ ฝั่งซ้ายยังเป็น <b>แผนเที่ยว</b> อยู่ — พอกด "เพิ่มเป็นจุดแวะ" จุดใหม่จะโผล่ในลิสต์นี้ทันที</div>
+      </div>
+      <div class="right">
+        <div class="map"><div class="map-grid"></div><div class="map-pin" style="top:40%"><div class="dot"></div></div></div>
+        <div class="banner">
+          <span class="back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="txt">เพิ่มสถานที่ใหม่เป็นจุดแวะ<small>วันที่ 1 · ระยอง</small></span>
+        </div>
+        <div class="searchbar" style="max-width:420px">
+          <div class="searchbox">
+            <svg class="mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input value="ตลาดมั่งมีมาร์เก็ต" />
+            <span class="lnk">วางลิงก์</span>
+          </div>
+        </div>
+        <div class="preview floating" style="position:absolute; left:50%; bottom:18px; transform:translateX(-50%); width:min(420px,calc(100% - 36px))">
+          <div class="pv-head">
+            <div><div class="pv-name">ตลาดมั่งมีมาร์เก็ต</div><div class="pv-addr">ถ. สุขุมวิท, ระยอง</div></div>
+            <button class="pv-x">✕</button>
+          </div>
+          <div class="pv-lab">หมวดหมู่ <span class="pv-auto">เดาจาก Google: ช้อปปิ้ง</span></div>
+          <div class="pv-cat"><span class="cdot" style="background:var(--c-shop)"></span>ช้อปปิ้ง<span class="chev">▾</span></div>
+          <div class="rv-sec">
+            <div class="rv-head"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h11a2 2 0 0 1 2 2v2l4-2.5v9L17 14v2a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z"/></svg>ลิงก์รีวิว (TikTok ฯลฯ)</div>
+            <div class="rv-row"><input class="rv-url" value="https://www.tiktok.com/@rayongfood/..." /><input class="rv-lab" placeholder="ป้ายกำกับ" /><button class="rv-del">✕</button></div>
+            <button class="rv-add">+ เพิ่มลิงก์รีวิว</button>
+          </div>
+          <div class="pv-foot">
+            <button class="pv-cancel">ยกเลิก</button>
+            <button class="pv-add"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>เพิ่มเป็นจุดแวะ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="caption" style="margin-top:6px">
+    <p><b>หมายเหตุบริบท:</b> ในแท็บ "คลังสถานที่" การ์ดพรีวิวตัวเดียวกันนี้ก็จะมีช่องลิงก์รีวิวโผล่เหมือนกัน แต่ปุ่มยังเป็น
+       "เพิ่มลงทริป" (จับเข้าคลังอย่างเดียว ไม่สร้างจุดแวะ) — ต่างกันแค่บริบทที่เข้ามา</p>
+  </div>
+</body>
+</html>
