@@ -337,10 +337,12 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
 
       {actionError && <p className="trips-field-error">{actionError}</p>}
 
-      {remaining.length > 0 && (
+      {(remaining.length > 0 || reorderMode) && (
         <div className="stop-toolbar">
           <span className="stop-count">จุดแวะ · {remaining.length} จุด</span>
-          {remaining.length >= 2 && (
+          {/* Keep the toggle reachable while reorder mode is on, even if stops drop below 2,
+              so the user always has a way back out (design §2). */}
+          {(remaining.length >= 2 || reorderMode) && (
             <button
               type="button"
               className={`reorder-toggle${reorderMode ? ' on' : ''}`}
