@@ -337,21 +337,20 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
 
       {actionError && <p className="trips-field-error">{actionError}</p>}
 
-      {(remaining.length > 0 || reorderMode) && (
+      {/* Toolbar appears with >=2 stops (reordering needs two) — and stays visible while
+          reorder mode is on even if stops drop below 2, so the way back out is always
+          reachable (design §2). Gating the whole bar avoids a lone count with no action. */}
+      {(remaining.length >= 2 || reorderMode) && (
         <div className="stop-toolbar">
           <span className="stop-count">จุดแวะ · {remaining.length} จุด</span>
-          {/* Keep the toggle reachable while reorder mode is on, even if stops drop below 2,
-              so the user always has a way back out (design §2). */}
-          {(remaining.length >= 2 || reorderMode) && (
-            <button
-              type="button"
-              className={`reorder-toggle${reorderMode ? ' on' : ''}`}
-              aria-pressed={reorderMode}
-              onClick={toggleReorder}
-            >
-              {reorderMode ? 'เสร็จ' : 'จัดลำดับ'}
-            </button>
-          )}
+          <button
+            type="button"
+            className={`reorder-toggle${reorderMode ? ' on' : ''}`}
+            aria-pressed={reorderMode}
+            onClick={toggleReorder}
+          >
+            {reorderMode ? 'เสร็จ' : 'จัดลำดับ'}
+          </button>
         </div>
       )}
       {reorderMode && (
@@ -471,7 +470,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           dwell={detailStop.stop.dwellMinutes}
           flag={detailStop.flag}
           dayNumber={dayList.findIndex((d) => d.id === resolvedDayId) + 1}
-          ordinal={scheduled.indexOf(detailStop) + 1}
+          ordinal={remaining.indexOf(detailStop) + 1}
           navUrl={buildStopNavUrl(detailPlace, detailStop.stop.travelModeToReach)}
           nowReading={stopWeather[detailStop.stop.id]?.now}
           arrivalReading={stopWeather[detailStop.stop.id]?.arrival}

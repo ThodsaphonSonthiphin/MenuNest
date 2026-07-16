@@ -72,17 +72,26 @@ export function ItineraryStopCard({
 
       {reorderMode ? (
         <div className="stop-body static">
-          <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
-          <StopSummaryLine summary={summary} />
+          <div className="stop-text">
+            <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
+            <StopSummaryLine summary={summary} />
+          </div>
         </div>
       ) : (
+        // The chevron lives INSIDE the button so the whole row — name, summary, and the
+        // "opens detail" affordance — is one tap target, not just the text column (#34).
         <button className="stop-body" onClick={onOpenDetail} aria-label={`ดูรายละเอียด: ${place.name}`}>
-          <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
-          <StopSummaryLine summary={summary} />
+          <div className="stop-text">
+            <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
+            <StopSummaryLine summary={summary} />
+          </div>
+          <span className="stop-chevron" aria-hidden="true">
+            <ChevronRightIcon />
+          </span>
         </button>
       )}
 
-      {reorderMode ? (
+      {reorderMode && (
         <button
           ref={setActivatorNodeRef}
           type="button"
@@ -94,10 +103,6 @@ export function ItineraryStopCard({
         >
           <GripIcon />
         </button>
-      ) : (
-        <span className="stop-chevron" aria-hidden="true">
-          <ChevronRightIcon />
-        </span>
       )}
     </div>
   )
