@@ -13,13 +13,14 @@ export interface AddPlaceSearchBarProps {
   onOpenLinkFallback(): void
   onClose(): void
   autoFocus?: boolean
+  bannerOffset?: boolean
 }
 
 export function AddPlaceSearchBar({
-  query, onQueryChange, suggestions, loading, error, onPick, onOpenLinkFallback, onClose, autoFocus,
+  query, onQueryChange, suggestions, loading, error, onPick, onOpenLinkFallback, onClose, autoFocus, bannerOffset,
 }: AddPlaceSearchBarProps) {
   return (
-    <div className="add-search-wrap">
+    <div className={`add-search-wrap${bannerOffset ? ' add-search-wrap--banner' : ''}`}>
       <div className="add-search-box">
         <svg className="add-search-mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
         <input

@@ -4,7 +4,7 @@
 // Reports the selected place's coords upward (TripMap renders the temp teal pin
 // inside <Map>). Stays armed after a successful add (ADR-016); Esc exits.
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {useAddTripPlaceMutation, type PlaceCategory, type ResolvedPlaceDto} from '../../../shared/api/api'
+import {useAddTripPlaceMutation, useAddStopMutation, type PlaceCategory, type ResolvedPlaceDto, type TravelMode} from '../../../shared/api/api'
 import {usePlaceSearch} from '../hooks/usePlaceSearch'
 import {AddPlaceSearchBar} from './AddPlaceSearchBar'
 import {AddPlacePreviewCard} from './AddPlacePreviewCard'
@@ -13,15 +13,22 @@ import {useBreakpoint} from '../../../shared/hooks/useBreakpoint'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
 
+export interface AddStopContext {
+  dayId: string
+  dayLabel: string
+  travelMode: TravelMode
+}
+
 export interface AddPlaceModeProps {
   tripId: string
   onExit(): void
   tappedPlaceId: string | null
   onTapConsumed(): void
   onSelectedChange(pos: {lat: number; lng: number} | null): void
+  addStopContext?: AddStopContext | null
 }
 
-export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSelectedChange}: AddPlaceModeProps) {
+export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSelectedChange, addStopContext}: AddPlaceModeProps) {
   const search = usePlaceSearch()
   const [selected, setSelected] = useState<ResolvedPlaceDto | null>(null)
   const [category, setCategory] = useState<PlaceCategory>('Other')
@@ -32,6 +39,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
   const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>([])
   const [formError, setFormError] = useState<string | null>(null)
   const [addTripPlace, {isLoading: saving}] = useAddTripPlaceMutation()
+  const [addStop, {isLoading: adding}] = useAddStopMutation()
   const bp = useBreakpoint()
 
   const present = useCallback((dto: ResolvedPlaceDto) => {
@@ -99,7 +107,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     }
     setFormError(null)
     try {
-      await addTripPlace({
+      const created = await addTripPlace({
         tripId,
         googlePlaceId: selected.googlePlaceId,
         name: selected.name,
@@ -113,14 +121,35 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
         reviewLinks: sanitizeReviewDrafts(reviewDrafts),
         checklist: [],
       }).unwrap()
-      clearSelection() // stay armed for the next place (ADR-016)
+      if (addStopContext) {
+        // ADR-071: non-atomic — if this fails, the Place stays captured in the library.
+        await addStop({
+          tripId,
+          dayId: addStopContext.dayId,
+          tripPlaceId: created.id,
+          dwellMinutes: 60,
+          travelModeToReach: addStopContext.travelMode,
+        }).unwrap()
+        onExit() // ADR-068 single-shot: leave capture; host clears the flag + itinerary refetches
+      } else {
+        clearSelection() // stay armed for the next place (ADR-016)
+      }
     } catch (err) {
       setFormError(getErrorMessage(err))
     }
-  }, [selected, category, tripId, reviewDrafts, addTripPlace, clearSelection])
+  }, [selected, category, tripId, reviewDrafts, addTripPlace, addStop, addStopContext, clearSelection, onExit])
 
   return (
     <>
+      {addStopContext && (
+        <div className="add-capture-banner">
+          <button type="button" className="add-capture-back" aria-label="ยกเลิก" onClick={onExit}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
+          </button>
+          <span className="add-capture-txt">เพิ่มสถานที่ใหม่เป็นจุดแวะ<small>{addStopContext.dayLabel}</small></span>
+        </div>
+      )}
+
       <AddPlaceSearchBar
         query={search.query}
         onQueryChange={search.setQuery}
@@ -131,6 +160,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
         onOpenLinkFallback={() => setShowLink(true)}
         onClose={onExit}
         autoFocus={bp === 'desktop'}
+        bannerOffset={!!addStopContext}
       />
 
       {selected && (
@@ -141,10 +171,11 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
           onCategoryChange={setCategory}
           onCancel={clearSelection}
           onAdd={doAdd}
-          saving={saving}
+          saving={saving || adding}
           variant={bp === 'desktop' ? 'floating' : 'sheet'}
           reviewDrafts={reviewDrafts}
           onReviewDraftsChange={setReviewDrafts}
+          confirmLabel={addStopContext ? 'เพิ่มเป็นจุดแวะ' : 'เพิ่มลงทริป'}
           error={formError}
         />
       )}
