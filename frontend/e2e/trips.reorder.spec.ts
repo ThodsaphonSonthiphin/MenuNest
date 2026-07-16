@@ -21,6 +21,9 @@ test.describe('Trips — itinerary reorder', () => {
     const before = await orderOf(page)
 
     // Pick up the first Stop's handle, move it down one slot, drop.
+    // Enter reorder mode - the drag handle only renders once the mode is on (#34).
+    await page.locator('.reorder-toggle').click()
+
     const handle = page.getByTestId('stop-drag-handle').first()
     await handle.focus()
     await page.keyboard.press('Space')
