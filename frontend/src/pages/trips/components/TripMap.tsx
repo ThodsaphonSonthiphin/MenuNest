@@ -6,7 +6,7 @@ import type {TripPlaceDto} from '../../../shared/api/api'
 import type {RouteStop, RouteSegment} from '../hooks/useDayRoute'
 import type {FlagSeverity} from '../hooks/useSchedule'
 import {trackGoogleMapsError} from '../../../shared/telemetry/googleMapsTelemetry'
-import {AddPlaceMode} from './AddPlaceMode'
+import {AddPlaceMode, type AddStopContext} from './AddPlaceMode'
 
 type LatLng = {lat: number; lng: number}
 
@@ -113,6 +113,7 @@ export function TripMap({
   summaryLabel,
   summaryText,
   addMode = false,
+  addStopContext = null,
   gestureHandling = 'greedy',
   fitPadding,
   tripId,
@@ -125,6 +126,7 @@ export function TripMap({
   summaryLabel?: string
   summaryText?: string
   addMode?: boolean
+  addStopContext?: AddStopContext | null
   gestureHandling?: string
   fitPadding?: number | google.maps.Padding
   tripId?: string
@@ -248,6 +250,7 @@ export function TripMap({
             tappedPlaceId={tappedPlaceId}
             onTapConsumed={onTapConsumed}
             onSelectedChange={setAddPin}
+            addStopContext={addStopContext}
           />
         )}
 
