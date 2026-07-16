@@ -1,6 +1,6 @@
 // frontend/src/pages/trips/tripsSlice.test.ts
 import {describe, it, expect} from 'vitest'
-import reducer, {setAddMode, setItineraryMapCollapsed} from './tripsSlice'
+import reducer, {setAddMode, setItineraryMapCollapsed, startAddStopCapture, endAddStopCapture} from './tripsSlice'
 
 const init = reducer(undefined, {type: '@@INIT'})
 
@@ -25,5 +25,20 @@ describe('tripsSlice itinerary map band', () => {
     expect(collapsed.itineraryMapCollapsed).toBe(true)
     const expanded = reducer(collapsed, setItineraryMapCollapsed(false))
     expect(expanded.itineraryMapCollapsed).toBe(false)
+  })
+})
+
+describe('tripsSlice add-stop capture context', () => {
+  it('defaults addStopForDayId to null', () => {
+    expect(init.addStopForDayId).toBeNull()
+  })
+  it('startAddStopCapture stores the day id', () => {
+    const on = reducer(init, startAddStopCapture('day-1'))
+    expect(on.addStopForDayId).toBe('day-1')
+  })
+  it('endAddStopCapture clears it', () => {
+    const on = reducer(init, startAddStopCapture('day-1'))
+    const off = reducer(on, endAddStopCapture())
+    expect(off.addStopForDayId).toBeNull()
   })
 })
