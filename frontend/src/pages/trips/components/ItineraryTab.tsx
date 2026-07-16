@@ -33,6 +33,7 @@ import {VisitedStopRow} from './VisitedStopRow'
 import {CheckIcon} from './FlagIcons'
 import {TravelLeg} from './TravelLeg'
 import {StopEditorDialog} from './StopEditorDialog'
+import {StopDetailSheet} from './StopDetailSheet'
 import {DayStartEditor} from './DayStartEditor'
 import {NavIcon} from './NavIcon'
 import {TripMap} from './TripMap'
@@ -125,6 +126,12 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
   const [isReordering, setIsReordering] = useState(false)
   const [doneOpen, setDoneOpen] = useState(false)
+  const [reorderMode, setReorderMode] = useState(false)
+  const [detailStopId, setDetailStopId] = useState<string | null>(null)
+  const toggleReorder = () => {
+    setReorderMode((v) => !v)
+    setDetailStopId(null) // entering/leaving reorder closes any open detail (design §2)
+  }
 
   const {data: days, isLoading: itineraryLoading, error: itineraryError, refetch: refetchItinerary} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
@@ -215,6 +222,9 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   // precedes it (i.e. it is not the day's very first Stop). Skipped at zero-visited. ADR-047 §4.
   const leadLeg =
     remaining.length > 0 && scheduled.indexOf(remaining[0]) > 0 ? remaining[0].stop.legToReach : null
+
+  const detailStop = detailStopId ? scheduled.find((x) => x.stop.id === detailStopId) ?? null : null
+  const detailPlace = detailStop ? placesById[detailStop.stop.tripPlaceId] : undefined
 
   return (
     <div className="itinerary-tab">
@@ -327,6 +337,25 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
 
       {actionError && <p className="trips-field-error">{actionError}</p>}
 
+      {remaining.length > 0 && (
+        <div className="stop-toolbar">
+          <span className="stop-count">จุดแวะ · {remaining.length} จุด</span>
+          {remaining.length >= 2 && (
+            <button
+              type="button"
+              className={`reorder-toggle${reorderMode ? ' on' : ''}`}
+              aria-pressed={reorderMode}
+              onClick={toggleReorder}
+            >
+              {reorderMode ? 'เสร็จ' : 'จัดลำดับ'}
+            </button>
+          )}
+        </div>
+      )}
+      {reorderMode && (
+        <p className="reorder-hint">โหมดจัดลำดับ — ลากที่จับด้านขวาเพื่อย้ายจุดแวะ</p>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -352,7 +381,6 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             )}
             {remaining.map((s, i) => {
               const place = placesById[s.stop.tripPlaceId]
-              const stopNav = place ? buildStopNavUrl(place, s.stop.travelModeToReach) : null
               return (
                 <Fragment key={s.stop.id}>
                   {i > 0 && s.stop.legToReach && (
@@ -363,28 +391,11 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
                       id={s.stop.id}
                       place={place}
                       arrival={s.arrival}
-                      depart={s.depart}
                       dwell={s.stop.dwellMinutes}
-                      isVisited={s.stop.isVisited}
-                      onToggleVisited={async (next) => {
-                        try {
-                          await setStopVisited({tripId, stopId: s.stop.id, isVisited: next}).unwrap()
-                        } catch (err) {
-                          setActionError(getErrorMessage(err))
-                        }
-                      }}
                       flag={s.flag}
-                      onEdit={() => dispatch(setStopEditor(s.stop.id))}
-                      navUrl={stopNav}
-                      onNavigate={() =>
-                        appInsights.trackEvent(
-                          {name: 'TripNavHandoff'},
-                          {scope: 'stop', travelMode: s.stop.travelModeToReach, hasPlaceId: !!place.googlePlaceId},
-                        )
-                      }
-                      nowReading={stopWeather[s.stop.id]?.now}
                       arrivalReading={stopWeather[s.stop.id]?.arrival}
-                      weatherLoading={(stopWeather[s.stop.id]?.nowLoading ?? false) || (stopWeather[s.stop.id]?.arrivalLoading ?? false)}
+                      reorderMode={reorderMode}
+                      onOpenDetail={() => setDetailStopId(s.stop.id)}
                     />
                   )}
                 </Fragment>
@@ -448,6 +459,41 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             </div>
           )}
         </div>
+      )}
+
+      {detailStop && detailPlace && (
+        <StopDetailSheet
+          place={detailPlace}
+          arrival={detailStop.arrival}
+          depart={detailStop.depart}
+          dwell={detailStop.stop.dwellMinutes}
+          flag={detailStop.flag}
+          dayNumber={dayList.findIndex((d) => d.id === resolvedDayId) + 1}
+          ordinal={scheduled.indexOf(detailStop) + 1}
+          navUrl={buildStopNavUrl(detailPlace, detailStop.stop.travelModeToReach)}
+          nowReading={stopWeather[detailStop.stop.id]?.now}
+          arrivalReading={stopWeather[detailStop.stop.id]?.arrival}
+          weatherLoading={(stopWeather[detailStop.stop.id]?.nowLoading ?? false) || (stopWeather[detailStop.stop.id]?.arrivalLoading ?? false)}
+          onEdit={() => {
+            setDetailStopId(null)
+            dispatch(setStopEditor(detailStop.stop.id))
+          }}
+          onNavigate={() =>
+            appInsights.trackEvent(
+              {name: 'TripNavHandoff'},
+              {scope: 'stop', travelMode: detailStop.stop.travelModeToReach, hasPlaceId: !!detailPlace.googlePlaceId},
+            )
+          }
+          onToggleVisited={async (next) => {
+            try {
+              await setStopVisited({tripId, stopId: detailStop.stop.id, isVisited: next}).unwrap()
+              setDetailStopId(null)
+            } catch (err) {
+              setActionError(getErrorMessage(err))
+            }
+          }}
+          onClose={() => setDetailStopId(null)}
+        />
       )}
 
       {editorStopId && (
