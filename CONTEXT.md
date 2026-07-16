@@ -106,7 +106,10 @@ the glossary wins until the glossary is deliberately changed.
   and **map-tap** (tap a place on the in-app map), both handled client-side (ADR-014,
   ADR-015). **Pasting a link** is kept as a hidden fallback, resolved server-side
   (ADR-007). Every path ends the same way: a Google `place_id` + snapshot → preview →
-  category → save. Share-from-Maps (PWA share target) and the browser bookmarklet are
+  category (plus optional **Review link**s — ADR-069) → save. Capture is also reachable from
+  the **Itinerary**'s add-stop picker ("เลือกจุดแวะ"); launched there it additionally adds the
+  new Place as a **Stop** on the active **Day**, then returns to the itinerary (ADR-067, ADR-068,
+  ADR-070). Share-from-Maps (PWA share target) and the browser bookmarklet are
   Phase 2.
 - **Navigate hand-off** — opening a day's route or a single **Stop** in the external
   **Google Maps** app via a client-side deep link (Maps URLs), for real turn-by-turn
