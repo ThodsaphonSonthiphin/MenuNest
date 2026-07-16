@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-13T13:55:46+07:00'
+updated: '2026-07-16T15:57:07+07:00'
 ---
 
 ## Log
@@ -120,3 +120,19 @@ EOF
 fix(trips): enforce checklist per-place cap + whitespace normalization + deterministic order server-side (#23)
 EOF
 )
+- 2026-07-13T16:51:43+07:00 — docs(trips): design + plan for user-scoped Place profile library (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:35:51+07:00 — feat(trips): PlaceProfile master entity + junction + migration (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:41:03+07:00 — feat(trips): seed captured places from the master profile + expose HasProfile (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:45:00+07:00 — feat(trips): auto-create the master profile on first enrichment (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:48:12+07:00 — feat(trips): push-to-master endpoint for the place library (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:51:59+07:00 — feat(trips): add hasProfile + pushPlaceProfile + place-editor slice state (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:55:08+07:00 — refactor(trips): extract ReviewLinksSection + ChecklistSection shared editor sections (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T20:59:10+07:00 — feat(trips): edit place fields from the Places tab + push-to-master (#37) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-13T21:12:07+07:00 — refactor(trips): decouple master auto-create from checklist-attach + push UX polish (#37) — Scrutinize fixes: master auto-create no longer fires on the #23 checklist-attach path (Save/push only); handlePush skips the redundant write when no master exists and shows a success affordance. — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-16T15:21:50+07:00 — feat(trips): pure stop-summary builder for compact itinerary card (#34)
+- 2026-07-16T15:24:59+07:00 — feat(trips): StopDetailSheet + forecast-forward weather + FlagNote extract (#34)
+- 2026-07-16T15:26:34+07:00 — feat(trips): StopDetailSheet + forecast-forward weather + FlagNote extract (#34)
+- 2026-07-16T15:30:07+07:00 — feat(trips): compact stop card + tap-to-detail + reorder-mode toggle (#34)
+- 2026-07-16T15:33:00+07:00 — fix(trips): keep reorder toggle reachable + e2e enters reorder mode (#34)
+- 2026-07-16T15:34:25+07:00 — docs(trips): design handoff + implementation plan for itinerary detail popup & DnD toggle (#34)
+- 2026-07-16T15:57:07+07:00 — fix(trips): full-row tap target + toolbar gate + sheet ordinal (#34) — Scrutinize follow-ups on the itinerary detail-popup/DnD-toggle work: — - Compact card: move the chevron inside the .stop-body button and wrap the text in .stop-text so the whole name/summary/chevron row is one tap target. The chevron (the 'opens detail' affordance) and its 36px column were previously outside the button and did nothing. — - Reorder toolbar: gate the whole bar on (remaining>=2 || reorderMode) instead of remaining>0, so a single remaining stop no longer renders a lone count with no action; the toggle stays reachable in reorder mode. — - Detail sheet: ordinal now counts within the visible remaining list (remaining.indexOf) rather than the full schedule, so 'à¸ˆà¸¸à¸”à¸—à¸µà¹ˆ N' matches the card the user tapped when visited stops are hidden. — Verified: tsc -b + vite build clean, vitest 168/168.

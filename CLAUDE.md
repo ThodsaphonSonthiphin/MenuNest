@@ -73,6 +73,19 @@ AZURE_TOKEN_CREDENTIALS=AzureCliCredential dotnet ef database update \
 (Requires the terminal `az` session to be `thodsaphonSP@hotmail.co.th`, who is the SQL Entra admin.
  Prefer `dotnet ef migrations script --idempotent` to preview SQL before applying to prod.)
 
+**The prod SQL server firewalls by IP.** If `dotnet ef database update` / `migrations list` fails with
+`Client with IP address 'x.x.x.x' is not allowed to access the server`, add a rule for your current public
+IP first — and since the default is read-only diagnostics only, make it **temporary** (add → apply → remove):
+
+```bash
+IP=<your public IP>   # the address named in the error
+az sql server firewall-rule create --subscription 01473a32-351a-4cf5-9956-674d68e2ccbf \
+  --resource-group MenuNest --server menunest-sql --name tmp-apply --start-ip-address $IP --end-ip-address $IP
+# …run the dotnet ef database update above… then remove the rule:
+az sql server firewall-rule delete --subscription 01473a32-351a-4cf5-9956-674d68e2ccbf \
+  --resource-group MenuNest --server menunest-sql --name tmp-apply
+```
+
 ## Commit messages — ALWAYS reference the tracking ticket
 Every commit MUST reference the GitHub issue it belongs to, so the code is
 traceable back to the tracker. Keep the conventional-commit style already in the
