@@ -37,14 +37,16 @@ export function WeatherChip({
 
   const r = reading! // state === 'data' ⇒ reading is present and hasData
   const rainy = kind === 'arr' && isRainy(r.rainPct)
+  // Forecast-forward (issue #34): condition + rain% lead, temperature is last and muted.
   return (
     <span className={`chip wx ${kind}${rainy ? ' rainy' : ''}`}>
       <span className="lab">{LABEL[kind]}</span>
-      {r.iconBaseUri && <img src={iconUrl(r.iconBaseUri, isDark)} alt={r.description ?? ''} width={18} height={18} />}
-      {r.tempC != null && <span className="t">{Math.round(r.tempC)}°</span>}
+      {r.iconBaseUri && <img src={iconUrl(r.iconBaseUri, isDark)} alt={r.description ?? ''} width={22} height={22} />}
+      {r.description && <span className="cond">{r.description}</span>}
       {r.rainPct != null && (
         <span className="r"><RainDropIcon />{r.rainPct}%</span>
       )}
+      {r.tempC != null && <span className="t">{Math.round(r.tempC)}°</span>}
     </span>
   )
 }
