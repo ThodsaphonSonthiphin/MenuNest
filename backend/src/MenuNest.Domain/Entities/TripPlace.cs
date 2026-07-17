@@ -30,6 +30,9 @@ public sealed class TripPlace : Entity
     private readonly List<ReviewLink> _reviewLinks = new();
     public IReadOnlyList<ReviewLink> ReviewLinks => _reviewLinks;
 
+    private readonly List<SeasonPeriod> _seasonPeriods = new();
+    public IReadOnlyList<SeasonPeriod> SeasonPeriods => _seasonPeriods;
+
     private TripPlace() { } // EF
 
     public static TripPlace Create(
@@ -82,6 +85,15 @@ public sealed class TripPlace : Entity
         if (list.Count > 10) throw new DomainException("A place can have at most 10 review links.");
         _reviewLinks.Clear();
         _reviewLinks.AddRange(list);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetSeasonPeriods(IEnumerable<SeasonPeriod> periods)
+    {
+        var list = (periods ?? Enumerable.Empty<SeasonPeriod>()).ToList();
+        if (list.Count > 12) throw new DomainException("A place can have at most 12 season periods.");
+        _seasonPeriods.Clear();
+        _seasonPeriods.AddRange(list);
         UpdatedAt = DateTime.UtcNow;
     }
 }

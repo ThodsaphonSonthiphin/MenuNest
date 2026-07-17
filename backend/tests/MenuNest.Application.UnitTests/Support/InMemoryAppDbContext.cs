@@ -169,5 +169,31 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
             .HasField("_reviewLinks")
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .IsRequired(false);
+
+        // Mirror the JSON-list conversion for SeasonPeriods (TripPlace + PlaceProfile).
+        var seasonComparer = new ValueComparer<IReadOnlyList<SeasonPeriod>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            v => v.Aggregate(0, (hash, s) => HashCode.Combine(hash, s.GetHashCode())),
+            v => v.ToList());
+
+        modelBuilder.Entity<TripPlace>()
+            .Property(p => p.SeasonPeriods)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<SeasonPeriod>)(JsonSerializer.Deserialize<List<SeasonPeriod>>(v, jsonOptions) ?? new List<SeasonPeriod>()),
+                seasonComparer)
+            .HasField("_seasonPeriods")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired(false);
+
+        modelBuilder.Entity<PlaceProfile>()
+            .Property(p => p.SeasonPeriods)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<SeasonPeriod>)(JsonSerializer.Deserialize<List<SeasonPeriod>>(v, jsonOptions) ?? new List<SeasonPeriod>()),
+                seasonComparer)
+            .HasField("_seasonPeriods")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired(false);
     }
 }

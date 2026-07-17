@@ -36,6 +36,23 @@ internal sealed class PlaceProfileConfiguration : IEntityTypeConfiguration<Place
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasDefaultValueSql("'[]'");
 
+        var seasonConverter = new ValueConverter<IReadOnlyList<SeasonPeriod>, string>(
+            v => JsonSerializer.Serialize(v, jsonOpts),
+            v => string.IsNullOrEmpty(v)
+                ? new List<SeasonPeriod>()
+                : JsonSerializer.Deserialize<List<SeasonPeriod>>(v, jsonOpts) ?? new List<SeasonPeriod>());
+        var seasonComparer = new ValueComparer<IReadOnlyList<SeasonPeriod>>(
+            (a, b) => JsonSerializer.Serialize(a, jsonOpts) == JsonSerializer.Serialize(b, jsonOpts),
+            v => JsonSerializer.Serialize(v, jsonOpts).GetHashCode(),
+            v => JsonSerializer.Deserialize<List<SeasonPeriod>>(JsonSerializer.Serialize(v, jsonOpts), jsonOpts)!);
+        b.Property(p => p.SeasonPeriods)
+            .HasConversion(seasonConverter, seasonComparer)
+            .HasColumnName("SeasonPeriodsJson")
+            .HasColumnType("nvarchar(max)")
+            .HasField("_seasonPeriods")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .HasDefaultValueSql("'[]'");
+
         // One profile per Google place per user (mirrors TripPlace's (TripId, GooglePlaceId)).
         b.HasIndex(p => new { p.UserId, p.GooglePlaceId }).IsUnique();
         b.HasOne<User>().WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Cascade);
