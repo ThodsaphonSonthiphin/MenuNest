@@ -5,5 +5,6 @@ public sealed record UpdateTripPlaceCommand(
     Guid TripId, Guid PlaceId, string Name, PlaceCategory Category,
     string? Address, string? FeeNote, string? Notes,
     TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd,
-    IReadOnlyList<ReviewLinkDto> ReviewLinks)
+    IReadOnlyList<ReviewLinkDto> ReviewLinks,
+    IReadOnlyList<SeasonPeriodDto> SeasonPeriods)
     : ICommand<TripPlaceDto>;

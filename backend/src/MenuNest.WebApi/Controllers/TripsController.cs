@@ -72,7 +72,7 @@ public sealed class TripsController : ControllerBase
 
     [HttpPut("api/trips/{id:guid}/places/{placeId:guid}")]
     public async Task<ActionResult<TripPlaceDto>> UpdatePlace(Guid id, Guid placeId, [FromBody] UpdatePlaceBody b, CancellationToken ct)
-        => Ok(await _mediator.Send(new UpdateTripPlaceCommand(id, placeId, b.Name, b.Category, b.Address, b.FeeNote, b.Notes, b.BestTimeStart, b.BestTimeEnd, b.ReviewLinks), ct));
+        => Ok(await _mediator.Send(new UpdateTripPlaceCommand(id, placeId, b.Name, b.Category, b.Address, b.FeeNote, b.Notes, b.BestTimeStart, b.BestTimeEnd, b.ReviewLinks, b.SeasonPeriods), ct));
 
     [HttpDelete("api/trips/{id:guid}/places/{placeId:guid}")]
     public async Task<IActionResult> DeletePlace(Guid id, Guid placeId, CancellationToken ct)
@@ -147,7 +147,8 @@ public sealed record SetChecklistCheckedBody(bool IsChecked);
 public sealed record UpdatePlaceBody(
     string Name, PlaceCategory Category, string? Address, string? FeeNote, string? Notes,
     TimeOnly? BestTimeStart, TimeOnly? BestTimeEnd,
-    IReadOnlyList<ReviewLinkDto> ReviewLinks);
+    IReadOnlyList<ReviewLinkDto> ReviewLinks,
+    IReadOnlyList<SeasonPeriodDto> SeasonPeriods);
 
 public sealed record AddStopBody(
     Guid TripPlaceId, int DwellMinutes, TravelMode TravelModeToReach);

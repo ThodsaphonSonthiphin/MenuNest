@@ -24,8 +24,10 @@ public class UpdateTripPlaceHandlerTests
     private static UpdateTripPlaceHandler Handler(HandlerTestFixture fx) =>
         new(fx.Db, fx.UserProvisioner.Object, new UpdateTripPlaceValidator());
 
-    private static UpdateTripPlaceCommand Cmd(Guid tripId, Guid placeId, IReadOnlyList<ReviewLinkDto> links) =>
-        new(tripId, placeId, "A", PlaceCategory.Eat, null, null, null, null, null, links);
+    private static UpdateTripPlaceCommand Cmd(Guid tripId, Guid placeId,
+        IReadOnlyList<ReviewLinkDto>? links = null, IReadOnlyList<SeasonPeriodDto>? seasonPeriods = null) =>
+        new(tripId, placeId, "A", PlaceCategory.Eat, null, null, null, null, null,
+            links ?? Array.Empty<ReviewLinkDto>(), seasonPeriods ?? Array.Empty<SeasonPeriodDto>());
 
     [Fact]
     public async Task Sets_review_links_full_replace()
@@ -82,8 +84,25 @@ public class UpdateTripPlaceHandlerTests
     {
         using var fx = new HandlerTestFixture();
         var (trip, place) = Seed(fx);
-        var cmd = new UpdateTripPlaceCommand(trip.Id, place.Id, "A", PlaceCategory.Eat, null, null, null, null, null, null!);
+        var cmd = new UpdateTripPlaceCommand(trip.Id, place.Id, "A", PlaceCategory.Eat, null, null, null, null, null, null!, Array.Empty<SeasonPeriodDto>());
         var act = () => Handler(fx).Handle(cmd, CancellationToken.None).AsTask();
         await act.Should().ThrowAsync<FluentValidation.ValidationException>();
+    }
+
+    [Fact]
+    public async Task Update_replaces_season_periods()
+    {
+        using var fx = new HandlerTestFixture();
+        var (trip, place) = Seed(fx);
+
+        var cmd = Cmd(trip.Id, place.Id) with
+        {
+            SeasonPeriods = new[] { new SeasonPeriodDto(SeasonKind.Bad, new[] { 5, 6 }, "ฝน") }
+        };
+        var dto = await Handler(fx).Handle(cmd, CancellationToken.None);
+        dto.SeasonPeriods.Should().ContainSingle().Which.Kind.Should().Be(SeasonKind.Bad);
+
+        var cleared = Cmd(trip.Id, place.Id) with { SeasonPeriods = Array.Empty<SeasonPeriodDto>() };
+        (await Handler(fx).Handle(cleared, CancellationToken.None)).SeasonPeriods.Should().BeEmpty();
     }
 }
