@@ -99,6 +99,8 @@ export function StopEditorDialog({
           bestTimeStart: bestStart,
           bestTimeEnd: bestEnd,
           reviewLinks: cleaned,
+          // TODO(#19 Task 9): wire real PlaceSeasonEditor state
+          seasonPeriods: place.seasonPeriods ?? [],
         }).unwrap()
       }
       onClose()

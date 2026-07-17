@@ -46,6 +46,8 @@ export function PlaceEditorDialog({
       bestTimeStart: bestStart,
       bestTimeEnd: bestEnd,
       reviewLinks: sanitizeReviewDrafts(reviewDrafts),
+      // TODO(#19 Task 9): wire real PlaceSeasonEditor state
+      seasonPeriods: place.seasonPeriods ?? [],
     }).unwrap()
   }
 

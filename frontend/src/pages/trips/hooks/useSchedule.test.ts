@@ -109,7 +109,8 @@ describe('computeSchedule overnight', () => {
 const mkPlace = (over: Partial<TripPlaceDto> = {}): TripPlaceDto => ({
   id: 'p', tripId: 't', googlePlaceId: null, name: 'x', lat: 0, lng: 0, address: null,
   category: 'See', priceLevel: null, photoUrl: null, bestTimeStart: null, bestTimeEnd: null,
-  openingHoursJson: null, feeNote: null, notes: null, reviewLinks: [], checklist: [], hasProfile: false, ...over,
+  openingHoursJson: null, feeNote: null, notes: null, reviewLinks: [], checklist: [], hasProfile: false,
+  seasonPeriods: [], ...over,
 })
 const mkHours = (periods: unknown) => JSON.stringify({periods})
 
