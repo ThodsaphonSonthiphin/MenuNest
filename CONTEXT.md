@@ -185,5 +185,27 @@ the glossary wins until the glossary is deliberately changed.
 - **Push to master** — the explicit, opt-in action (UI "ดันขึ้น master") that overwrites a **Place
   profile** with the current Trip's enrichment, so future **Captures** start from it. Without it, a
   **Per-trip override** stays local (ADR-064). _Avoid_: publish, save as default, sync up.
+- **Season period** — one entry in a **Place**'s season data (issue #19): a value object
+  `{ kind, months, note? }` where **kind** is `good` (UI "ควรไป") or `bad` (UI "ควรเลี่ยง"), **months**
+  is a set of calendar months (0–11), and the optional **Season note** is the reason. A Place holds an
+  ordered **list** of these — many good and/or bad periods, each with its own months and reason (e.g.
+  bad มิ.ย.–ต.ค. "น้ำท่วมหน้าฝน" **and** bad ธ.ค. "คนเยอะปีใหม่"). Stored as JSON on both the **Place**
+  (TripPlace) and its **Place profile** master, a master default with a **Per-trip override** (ADR-072/073);
+  the whole list is optional. _Avoid_: **best time** (the time-of-day window — a different concept),
+  best season, season enum.
+- **monthStatus** — the pure resolver (`lib/season.ts`) of a **Place**'s **Season period** list against a
+  month: returns the matching period with **`bad` winning over `good`**, else none (ADR-072). Feeds both
+  the **Year ribbon** colouring and the **Off-season** card region. _Avoid_: season check (informal).
+- **Year ribbon** — the 12-month strip in the season editor (`PlaceSeasonEditor`) that colours each month
+  good / avoid / neutral (with a "this month" marker) and doubles as the month-picker while editing a
+  **Season period** (ADR-080). _Avoid_: month grid, calendar.
+- **Weather diorama** — the small animated canvas on a **Stop** card that signals the resolved season for
+  the trip's month — storm + flood for a **bad** period, clear + sun for **good**, overcast for none
+  (ADR-078). Illustrative of the *authored* season only; it is **not** a **Weather reading** (the live
+  forecast, ADR-029) and never calls a weather API (ADR-079). _Avoid_: weather chip, forecast.
+- **Off-season** — the state of a **Stop** whose (projected) month resolves to a **`bad`** **Season
+  period** (**monthStatus**); shown as the **Weather diorama** + a status row ("เดือนนี้ควรเลี่ยง · <note>",
+  fix "ย้ายทริปไปเดือนอื่น") — a standalone card region, **not** a **Timing flag** reason (ADR-076).
+  _Avoid_: off-window (that is the time-of-day **Timing flag**), out-of-season.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
