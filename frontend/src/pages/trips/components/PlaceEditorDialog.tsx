@@ -11,6 +11,7 @@ import {catColor, catLabel} from '../placeCategory'
 import {BestTimeBar} from './BestTimeBar'
 import {ReviewLinksSection} from './ReviewLinksSection'
 import {ChecklistSection} from './ChecklistSection'
+import {PlaceSeasonEditor} from './PlaceSeasonEditor'
 import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
 
 export function PlaceEditorDialog({
@@ -27,6 +28,7 @@ export function PlaceEditorDialog({
   const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>(
     (place.reviewLinks ?? []).map((l) => ({url: l.url, label: l.label ?? ''})),
   )
+  const [seasonPeriods, setSeasonPeriods] = useState(place.seasonPeriods ?? [])
   const [saveError, setSaveError] = useState<string | null>(null)
   const [pushed, setPushed] = useState(false)
 
@@ -46,8 +48,7 @@ export function PlaceEditorDialog({
       bestTimeStart: bestStart,
       bestTimeEnd: bestEnd,
       reviewLinks: sanitizeReviewDrafts(reviewDrafts),
-      // TODO(#19 Task 9): wire real PlaceSeasonEditor state
-      seasonPeriods: place.seasonPeriods ?? [],
+      seasonPeriods,
     }).unwrap()
   }
 
@@ -129,6 +130,7 @@ export function PlaceEditorDialog({
         <BestTimeBar start={bestStart} end={bestEnd} onChange={(s, e) => { setBestStart(s); setBestEnd(e); setPushed(false) }} />
 
         <ReviewLinksSection drafts={reviewDrafts} onChange={(d) => { setReviewDrafts(d); setPushed(false) }} />
+        <PlaceSeasonEditor periods={seasonPeriods} onChange={(p) => { setSeasonPeriods(p); setPushed(false) }} />
 
         <ChecklistSection tripId={tripId} placeId={place.id} checklist={place.checklist ?? []} />
 

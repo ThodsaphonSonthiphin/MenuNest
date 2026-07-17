@@ -695,6 +695,25 @@
   background:#fff; color:#d95f22; font:inherit; font-size:13px; font-weight:700; padding:11px 16px; cursor:pointer; }
 .stop-editor-dialog .se-push:disabled { opacity:.6; cursor:default; }
 .stop-editor-dialog .se-pushed { align-self:center; font-size:12px; font-weight:700; color:#1f7a45; }
+/* Place season editor (issue #19, ADR-072/080) — year ribbon + saved-period rows */
+.season-ribbon { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin: 8px 0; }
+.sr-cell { border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 10px; padding: 7px 0; font-size: 12.5px; font-weight: 600; color: #6b625b; background: #fff; cursor: pointer; }
+.sr-cell:disabled { cursor: default; }
+.sr-cell.good { border-color: #bfe6d3; background: #e7f6ef; color: #1f9d6b; }
+.sr-cell.bad { border-color: #f3c9bf; background: #fdece8; color: #d4462a; }
+.sr-cell.now { box-shadow: inset 0 0 0 2px #2b2521; }
+.sr-cell.draft { box-shadow: inset 0 0 0 2px #ef6d2d; }
+.season-rows { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.sp-row { display: flex; align-items: center; gap: 9px; border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 12px; padding: 8px 10px; }
+.sp-pill { font-size: 11.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.sp-row.good .sp-pill { background: #e7f6ef; color: #1f9d6b; } .sp-row.bad .sp-pill { background: #fdece8; color: #d4462a; }
+.sp-range { font-weight: 600; } .sp-note { color: #6b625b; font-size: 12.5px; flex: 1; }
+.sp-del, .sp-add, .sp-save, .sp-cancel, .sp-kbtn { cursor: pointer; font: inherit; }
+.sp-add { width: 100%; padding: 9px; border: 1.5px dashed #f6d9bf; border-radius: 12px; background: #fdefe1; color: #d95f22; font-weight: 700; }
+.sp-kind { display: inline-flex; gap: 6px; } .sp-kbtn { border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 999px; padding: 6px 14px; font-weight: 700; background: #fff; color: #6b625b; }
+.sp-kbtn.good.active { border-color: #bfe6d3; background: #e7f6ef; color: #1f9d6b; } .sp-kbtn.bad.active { border-color: #f3c9bf; background: #fdece8; color: #d4462a; }
+.sp-note-input { width: 100%; margin-top: 10px; border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 11px; padding: 9px 12px; font: inherit; }
+.sp-draft-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; } .sp-hint { color: #a99e94; font-size: 12px; margin: 6px 0 0; }
 
 /* ============================================================
    Stop detail sheet (issue #34) — body-portaled bottom sheet.
