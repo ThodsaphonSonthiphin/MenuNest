@@ -793,3 +793,17 @@
 
 /* Pin the portal container to the bottom (fallback if the Dialog `position` prop is ignored). */
 .sf-dlg-container:has(> .stop-detail-sheet) { align-items: flex-end; }
+
+/* On-card off-season warning (issue #19, ADR-076) — bounded top band inside the card/sheet,
+   never a full-bleed overlay (a prior #36 bug painted an overlay over the whole map).
+   .stop-card (trips-tokens.css) is a row flex — rail | body | drag-handle — with no
+   flex-wrap declared, so a plain first-child would squeeze in as an extra column instead
+   of sitting on top. TripDetailPage.css loads AFTER trips-tokens.css, so adding flex-wrap
+   here (a property that file never sets) plus a full-width season item forces the
+   rail/body/drag-handle onto their own row below the band — no markup restructuring needed.
+   In StopDetailSheet's column-flex .stop-detail, width:100% is a no-op (already stretched). */
+.stop-card { flex-wrap: wrap; }
+.stop-season { border-radius: 14px 14px 0 0; overflow: hidden; margin: -1px -1px 0; width: 100%; }
+.stop-season-note { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: #fdece8; }
+.stop-season-note strong { color: #d4462a; font-size: 13px; } .stop-season-note span { color: #6b625b; font-size: 12.5px; }
+.stop-card.season-bad { border-top: 2px solid #d4462a; } .stop-card.season-good { border-top: 2px solid #1f9d6b; }

@@ -7,6 +7,8 @@ import {catEmoji} from '../placeCategory'
 import {buildStopSummary, type StopSummary} from '../lib/stopSummary'
 import {iconUrl} from '../lib/weather'
 import {GripIcon, ChevronRightIcon} from './TripFormIcons'
+import {WeatherDiorama} from './WeatherDiorama'
+import {monthStatus} from '../lib/season'
 
 // One-line, forecast-forward summary shown under the stop name on the compact card (issue #34):
 // arrival weather → dwell → timing-flag dot. Full detail lives in the StopDetailSheet.
@@ -39,6 +41,7 @@ export function ItineraryStopCard({
   dwell,
   flag,
   arrivalReading,
+  tripMonth,
   reorderMode = false,
   onOpenDetail,
 }: {
@@ -48,6 +51,7 @@ export function ItineraryStopCard({
   dwell: number
   flag: StopFlag
   arrivalReading?: WeatherReadingDto
+  tripMonth: number
   reorderMode?: boolean
   onOpenDetail?: () => void
 }) {
@@ -57,15 +61,28 @@ export function ItineraryStopCard({
 
   const summary = buildStopSummary({arrivalReading, dwellMinutes: dwell, flag})
   const cardFlag = flag ? (flag.severity === 'problem' ? ' bad' : ' warn') : ''
+  const season = monthStatus(place.seasonPeriods, tripMonth)
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`stop-card compact${cardFlag}${isDragging ? ' dragging' : ''}`}
+      className={`stop-card compact${cardFlag}${isDragging ? ' dragging' : ''}${season.kind === 'bad' ? ' season-bad' : season.kind === 'good' ? ' season-good' : ''}`}
       data-testid="itin-stop-card"
       data-stop-id={id}
     >
+      {season.kind !== 'none' && (
+        <div className={`stop-season ${season.kind}`}>
+          <WeatherDiorama kind={season.kind} />
+          {season.kind === 'bad' && (
+            <div className="stop-season-note">
+              <strong>เดือนนี้ควรเลี่ยง{season.period.note ? ` · ${season.period.note}` : ''}</strong>
+              <span>ย้ายทริปไปเดือนอื่น</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="stop-rail">
         <div className="stop-arr">{arrival}</div>
       </div>
