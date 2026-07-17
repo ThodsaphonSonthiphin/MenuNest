@@ -40,6 +40,7 @@ import {TripMap} from './TripMap'
 import {ChevronUpIcon, ChevronDownIcon, MapRouteIcon} from './TripFormIcons'
 import type {DayRoute} from '../hooks/useDayRoute'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
+import {monthOfDate} from '../lib/season'
 import {appInsights} from '../../../shared/telemetry/appInsights'
 import {formatDurationMinutes, getViewerTimeZone} from '../utils/time'
 
@@ -196,6 +197,9 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
   // After the guard above, dayList is non-empty, so dayId and day are defined.
   const resolvedDayId = dayId!
   const resolvedDay = day!
+  // resolvedDay.date is the server-projected date for this day (ADR-054/056) — always
+  // a real 'yyyy-MM-dd' string once resolvedDay is defined, so this is safe unconditionally.
+  const tripMonth = monthOfDate(resolvedDay.date)
 
   const handleDragStart = (e: DragStartEvent) => setActiveDragId(String(e.active.id))
 
@@ -404,6 +408,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
                       dwell={s.stop.dwellMinutes}
                       flag={s.flag}
                       arrivalReading={stopWeather[s.stop.id]?.arrival}
+                      tripMonth={tripMonth}
                       reorderMode={reorderMode}
                       onOpenDetail={() => setDetailStopId(s.stop.id)}
                     />
@@ -482,6 +487,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           depart={detailStop.depart}
           dwell={detailStop.stop.dwellMinutes}
           flag={detailStop.flag}
+          tripMonth={tripMonth}
           dayNumber={dayList.findIndex((d) => d.id === resolvedDayId) + 1}
           ordinal={remaining.indexOf(detailStop) + 1}
           navUrl={buildStopNavUrl(detailPlace, detailStop.stop.travelModeToReach)}

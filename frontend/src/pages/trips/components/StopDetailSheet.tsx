@@ -9,7 +9,9 @@ import type {StopFlag} from '../hooks/useSchedule'
 import {catColor, catLabel} from '../placeCategory'
 import {formatDurationMinutes} from '../utils/time'
 import {reviewHost, reviewLabel} from '../lib/reviewLinks'
+import {monthStatus, rangeLabel} from '../lib/season'
 import {WeatherChip} from './WeatherChip'
+import {WeatherDiorama} from './WeatherDiorama'
 import {FlagNote} from './FlagNote'
 import {NavIcon} from './NavIcon'
 import {ReviewIcon} from './ReviewIcon'
@@ -21,6 +23,7 @@ export function StopDetailSheet({
   depart,
   dwell,
   flag,
+  tripMonth,
   dayNumber,
   ordinal,
   navUrl,
@@ -37,6 +40,7 @@ export function StopDetailSheet({
   depart: string
   dwell: number
   flag: StopFlag
+  tripMonth: number
   dayNumber: number
   ordinal: number
   navUrl: string | null
@@ -49,6 +53,8 @@ export function StopDetailSheet({
   onClose: () => void
 }) {
   const links = place.reviewLinks ?? []
+  const seasonPeriods = place.seasonPeriods ?? []
+  const season = monthStatus(place.seasonPeriods, tripMonth)
 
   const header = (
     <div className="sd-head">
@@ -92,6 +98,18 @@ export function StopDetailSheet({
           <WeatherChip kind="arr" reading={arrivalReading} isLoading={weatherLoading} />
         </div>
 
+        {season.kind !== 'none' && (
+          <div className={`stop-season ${season.kind}`}>
+            <WeatherDiorama kind={season.kind} />
+            {season.kind === 'bad' && (
+              <div className="stop-season-note">
+                <strong>เดือนนี้ควรเลี่ยง{season.period.note ? ` · ${season.period.note}` : ''}</strong>
+                <span>ย้ายทริปไปเดือนอื่น</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {flag && <FlagNote flag={flag} />}
 
         {links.length > 0 && (
@@ -104,6 +122,21 @@ export function StopDetailSheet({
                 <span className="sd-review-host">{reviewHost(l.url)}</span>
               </a>
             ))}
+          </div>
+        )}
+
+        {seasonPeriods.length > 0 && (
+          <div className="sd-seasons">
+            <div className="sd-sec-lab">ช่วงเดือน</div>
+            <ul className="season-rows">
+              {seasonPeriods.map((p, i) => (
+                <li key={i} className={`sp-row ${p.kind === 'Bad' ? 'bad' : 'good'}`}>
+                  <span className="sp-pill">{p.kind === 'Bad' ? 'ควรเลี่ยง' : 'ควรไป'}</span>
+                  <span className="sp-range">{rangeLabel(p.months)}</span>
+                  {p.note && <span className="sp-note">{p.note}</span>}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 
