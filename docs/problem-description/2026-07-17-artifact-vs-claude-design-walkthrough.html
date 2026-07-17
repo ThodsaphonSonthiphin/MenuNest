@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>Artifact vs Claude Design — 2 พื้นผิว, การซิงค์, และ agent อ่านทำตาม</title>
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#1a2330; --surface:#0f1722; --surface-2:#0f1419;
+    --border:#2a3441; --border-dim:#3d4a5f; --surface-active:#233040;
+    --text:#e0e6ed; --text-dim:#b8c4cf; --muted:#6b7785; --muted-2:#8a96a3;
+    --accent:#5fb4ff; --accent-bright:#7ed4ff;
+    --amber:#ffd479; --warn:#ffaa00; --warn-text:#ffaa44;
+    --magic:#b070ff; --magic-text:#d4a4ff; --magic-bg:#2a1a3a;
+    --success:#4ade80; --success-text:#a3e8b9;
+    --error:#ff5757; --error-text:#ff8888; --conflict:#ff3030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 22px; margin: 0 0 4px; }
+  h2 { color: var(--text-dim); font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: var(--amber); font-size: 0.9em; }
+
+  /* progress dots */
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: var(--panel); color: var(--muted);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: var(--accent); }
+  .step-dot.current { background: var(--accent); color: var(--bg); transform: scale(1.2); }
+
+  /* narration — the canonical NESTED shape (badge+title+body inside #narration) */
+  .narration {
+    background: var(--panel); padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid var(--accent); margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: var(--warn);    background: #2a2018; }
+  .narration.error   { border-color: var(--error);   background: #2a1818; }
+  .narration.success { border-color: var(--success); background: #182a1f; }
+  .narration.magic   { border-color: var(--magic);   background: #1f1830; }
+  .narration .step-badge { background: var(--accent); color: var(--bg);
+                           padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                           font-weight: 700; display: inline-block; margin-right: 8px; }
+  .narration .step-title { color: var(--accent); font-weight: 700; font-size: 16px;
+                           display: block; margin: 8px 0 6px; }
+  .narration.warn    .step-title { color: var(--amber); }
+  .narration.error   .step-title { color: var(--error-text); }
+  .narration.success .step-title { color: var(--success-text); }
+  .narration.magic   .step-title { color: var(--magic-text); }
+
+  /* shared hidden panel (replaces the old .extra-panel/.toggleable/.key-question) */
+  .wt-panel { background: var(--panel); border-radius: 6px; padding: 14px 18px;
+              margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .wt-panel .wt-panel-title { font-weight: 700; margin-bottom: 6px; }
+  .wt-panel.question { background: #1f1830; border: 2px solid var(--magic); }
+  .wt-panel.question .wt-panel-title { color: var(--magic-text); }
+  .wt-panel.race     { background: #2a1818; border: 2px solid var(--error); }
+  .wt-panel.race .wt-panel-title { color: var(--error-text); }
+  .wt-panel.summary  { background: #182a1f; border: 2px solid var(--success); }
+  .wt-panel.summary .wt-panel-title { color: var(--success-text); }
+
+  /* controls */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button { background: var(--accent); color: var(--bg); border: none;
+           padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 700;
+           cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover:not(:disabled)  { background: var(--accent-bright); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: var(--border); color: var(--text); }
+  button.tertiary:hover:not(:disabled) { background: var(--border-dim); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hidden { display: none !important; }
+  
+  .diagram-wrapper { background: var(--surface-2); border: 1px solid var(--panel);
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .comp rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .comp .comp-title { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: var(--text-dim); transition: fill 0.4s; }
+  .comp .comp-sub { font-family: 'Consolas', monospace; font-size: 11px; fill: var(--muted); transition: fill 0.4s; }
+  .comp .comp-val { font-family: 'Consolas', monospace; font-size: 12px; fill: var(--amber); transition: fill 0.4s; }
+  .comp.active rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .comp.active .comp-title { fill: var(--accent-bright); }
+  .comp.active .comp-sub { fill: var(--text-dim); }
+  .comp.firing rect { fill: #2a2818; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 8px #ffd47988); animation: pulse-fire 1.2s ease-in-out infinite; }
+  .comp.firing .comp-title { fill: var(--amber); }
+  @keyframes pulse-fire { 0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); } 50% { filter: drop-shadow(0 0 16px #ffd479dd); } }
+  .comp.locked rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3; filter: drop-shadow(0 0 10px #b070ff88); }
+  .comp.locked .comp-title { fill: var(--magic-text); }
+  .comp.locked .comp-val { fill: var(--magic-text); }
+  .comp.blocked rect { fill: #2a1f10; stroke: var(--warn); stroke-width: 2; animation: blink-block 1s ease-in-out infinite alternate; }
+  .comp.blocked .comp-title { fill: var(--warn-text); }
+  @keyframes blink-block { from { opacity: 0.55; } to { opacity: 0.9; } }
+  .comp.done rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .comp.done .comp-title { fill: var(--success-text); }
+  .comp.done .comp-val { fill: var(--success-text); }
+  .comp.error rect { fill: #2a1818; stroke: var(--error); stroke-width: 3; filter: drop-shadow(0 0 10px #ff575788); }
+  .comp.error .comp-title { fill: var(--error-text); }
+  .comp.dimmed { opacity: 0.35; }
+  .arrow { fill: none; stroke: var(--border-dim); stroke-width: 2; transition: stroke 0.3s, stroke-width 0.3s; }
+  .arrow.active { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.magic { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); }
+  .arrow.done { stroke: var(--success); stroke-width: 2.5; }
+  .arrow.error { stroke: var(--error); stroke-width: 3; stroke-dasharray: 6 4; }
+  .arrow.dimmed { opacity: 0.2; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .flow-label { fill: var(--amber); font-family: 'Consolas', monospace; font-size: 12px; font-weight: 700; pointer-events: none; }
+  .flow-label-bg { fill: #2a2818; stroke: var(--amber); stroke-width: 1.5; }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label { fill: var(--magic-text); }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: var(--magic); }
+  .flow-label-group.error .flow-label { fill: var(--error-text); }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: var(--error); }
+  .design-frame { fill: rgba(95,180,255,0.045); stroke: var(--border-dim); stroke-width: 1.5; stroke-dasharray: 5 5; }
+  .design-frame-label { fill: var(--muted); font-family: 'Segoe UI', sans-serif; font-size: 13px; font-weight: 700; }
+  .design-frame-sub { fill: var(--muted); font-family: 'Consolas', monospace; font-size: 10px; }
+  
+</style></head>
+<body>
+<div class="container">
+  <h1>Artifact vs Claude Design — 2 พื้นผิว, การซิงค์, และ agent อ่านทำตาม</h1>
+  <h2>กด <strong>ถัดไป →</strong> เพื่อดูทีละ step</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">เริ่มต้น</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <!-- ===== MODE CONTENT — assembly inserts the chosen mode pack's §HTML here ===== -->
+<div class="diagram-wrapper">
+  <svg class="diagram" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+    <rect class="design-frame" x="662" y="172" width="300" height="298" rx="12"/>
+    <text class="design-frame-label" x="812" y="197" text-anchor="middle">Claude Design</text>
+    <text class="design-frame-sub" x="812" y="216" text-anchor="middle">claude.ai/design (desktop app)</text>
+
+    <path class="arrow" id="arrPublish" d="M 200 205 C 250 135 305 112 358 106" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrNoSync" d="M 606 120 L 690 236" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrCCSync" d="M 260 252 L 366 254" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrSyncDS" d="M 580 256 L 688 274" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrSyncReg" d="M 546 300 C 612 352 652 394 688 400" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrRepoSync" d="M 262 392 C 342 386 416 342 470 302" marker-end="url(#arrowhead)"/>
+
+    <g class="comp" id="compCC">
+      <rect x="55" y="198" width="205" height="95" rx="10"/>
+      <text class="comp-title" x="157" y="233" text-anchor="middle">🧑‍💻 Claude Code</text>
+      <text class="comp-sub" x="157" y="256" text-anchor="middle">VSCode · this agent</text>
+    </g>
+    <g class="comp" id="compRepo">
+      <rect x="55" y="355" width="205" height="80" rx="10"/>
+      <text class="comp-title" x="157" y="388" text-anchor="middle">📁 MenuNest repo</text>
+      <text class="comp-sub" x="157" y="410" text-anchor="middle">index.css tokens</text>
+    </g>
+    <g class="comp" id="compArtifact">
+      <rect x="358" y="52" width="255" height="100" rx="10"/>
+      <text class="comp-title" x="485" y="86" text-anchor="middle">🎨 Artifact</text>
+      <text class="comp-sub" x="485" y="108" text-anchor="middle">claude.ai/code</text>
+      <text class="comp-val" x="485" y="132" text-anchor="middle" id="afState">empty</text>
+    </g>
+    <g class="comp" id="compSync">
+      <rect x="366" y="212" width="212" height="88" rx="10"/>
+      <text class="comp-title" x="472" y="248" text-anchor="middle">🔗 DesignSync</text>
+      <text class="comp-sub" x="472" y="270" text-anchor="middle">tool · the only bridge</text>
+    </g>
+    <g class="comp" id="compDS">
+      <rect x="690" y="230" width="250" height="92" rx="10"/>
+      <text class="comp-title" x="815" y="261" text-anchor="middle">Design-system project</text>
+      <text class="comp-sub" x="815" y="283" text-anchor="middle">MenuNest design system</text>
+      <text class="comp-val" x="815" y="305" text-anchor="middle" id="dspState">(none yet)</text>
+    </g>
+    <g class="comp" id="compReg">
+      <rect x="690" y="360" width="250" height="88" rx="10"/>
+      <text class="comp-title" x="815" y="393" text-anchor="middle">Regular project</text>
+      <text class="comp-sub" x="815" y="415" text-anchor="middle">"MenuNest GitHub issue"</text>
+    </g>
+
+    <g class="flow-label-group" id="lblPublish">
+      <rect class="flow-label-bg" x="246" y="112" width="88" height="22" rx="5"/>
+      <text class="flow-label" x="290" y="128" text-anchor="middle">publish</text>
+    </g>
+    <g class="flow-label-group" id="lblNoSync">
+      <rect class="flow-label-bg" x="598" y="150" width="108" height="22" rx="5"/>
+      <text class="flow-label" x="652" y="166" text-anchor="middle" id="noSyncTxt">sync ?</text>
+    </g>
+    <g class="flow-label-group" id="lblSyncDS">
+      <rect class="flow-label-bg" x="556" y="226" width="124" height="22" rx="5"/>
+      <text class="flow-label" x="618" y="242" text-anchor="middle" id="syncDsTxt">push</text>
+    </g>
+    <g class="flow-label-group" id="lblReg">
+      <rect class="flow-label-bg" x="562" y="352" width="94" height="22" rx="5"/>
+      <text class="flow-label" x="609" y="368" text-anchor="middle">blocked</text>
+    </g>
+    <g class="flow-label-group" id="lblRepo">
+      <rect class="flow-label-bg" x="298" y="348" width="88" height="22" rx="5"/>
+      <text class="flow-label" x="342" y="364" text-anchor="middle">tokens</text>
+    </g>
+  </svg>
+</div>
+  
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← ย้อนกลับ</button>
+    <button id="nextBtn">ถัดไป →</button>
+    <button id="resetBtn" class="tertiary">↻ เริ่มใหม่</button>
+  </div>
+
+  <!-- term drill-down drawer §HTML inlined here at generation -->
+</div>
+
+<!-- The engine owns the fixed 5 markerheads; SVG modes select from them (ADR 0022). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/></marker>
+  <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/></marker>
+  <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b070ff"/></marker>
+  <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ade80"/></marker>
+  <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5757"/></marker>
+</defs></svg>
+<script>
+let currentStep = 0;
+let TOTAL = 0;                 // the authored bootstrap sets TOTAL = scenes.length - 1
+let MODE = null;              // the authored bootstrap sets MODE = '<mode name>'
+const RENDER_HOOKS = [];      // cross-cutting per-render actions; capabilities self-register (e.g. drawer pushes closeDrawer)
+const modeRenderers = {};     // modes self-register: modeRenderers['<name>'] = { registry, clear, <setters> }
+
+function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+// canonical 3-arg narration (nested shape). setSceneTitle kept for scenes that set only the title.
+function setNarration(cls, title, bodyHTML) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = bodyHTML || '';
+}
+function setSceneTitle(text) { document.getElementById('sceneTitle').textContent = text; }
+
+function buildProgressDots() {
+  const p = document.getElementById('stepProgress');
+  p.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot'; d.textContent = i; d.id = 'dot' + i;
+    p.appendChild(d);
+  }
+}
+
+function render(step) {
+  RENDER_HOOKS.forEach(h => h());                 // runs FIRST (drawer closes here), before any paint
+  const R = modeRenderers[MODE];
+  if (R && R.clear) R.clear(R.registry);          // engine calls the mode's reset generically
+  if (typeof scenes !== 'undefined' && scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = 'Step ' + step + ' / ' + TOTAL;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+
+modeRenderers['diagram'] = {
+  registry: {
+    COMPONENTS: ['compCC', 'compRepo', 'compArtifact', 'compSync', 'compDS', 'compReg'],
+    ARROWS: ['arrPublish', 'arrNoSync', 'arrCCSync', 'arrSyncDS', 'arrSyncReg', 'arrRepoSync'],
+    LABELS: ['lblPublish', 'lblNoSync', 'lblSyncDS', 'lblReg', 'lblRepo'],
+    LIVE: { afState: 'empty', dspState: '(none yet)', noSyncTxt: 'sync ?', syncDsTxt: 'push' },
+  },
+  clear(reg) {
+    reg.COMPONENTS.forEach(id => this.setComp(id, ''));
+    reg.ARROWS.forEach(id => this.setArrow(id, ''));
+    reg.LABELS.forEach(id => this.setLabel(id, false));
+    Object.keys(reg.LIVE).forEach(id => this.setText(id, reg.LIVE[id]));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setComp(id, state) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : '')); },
+  setArrow(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+    const m = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)', magic: 'url(#arrowhead-magic)', done: 'url(#arrowhead-done)', error: 'url(#arrowhead-error)' };
+    el.setAttribute('marker-end', m[state] || 'url(#arrowhead)');
+  },
+  setLabel(id, show, variant) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : '')); },
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+  assertRegistryComplete() {
+    const got = { comp: '.comp', arrow: '.arrow', flow: '.flow-label-group' };
+    const lists = { comp: this.registry.COMPONENTS, arrow: this.registry.ARROWS, flow: this.registry.LABELS };
+    const miss = [];
+    Object.keys(got).forEach(k => [].forEach.call(document.querySelectorAll(got[k]), e => { if (e.id && !lists[k].includes(e.id)) miss.push(e.id); }));
+    [].concat(this.registry.COMPONENTS, this.registry.ARROWS, this.registry.LABELS, Object.keys(this.registry.LIVE))
+      .forEach(id => { if (!document.getElementById(id)) miss.push(id); });
+    if (miss.length) throw new Error('diagram registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+
+MODE = 'diagram';
+const { setComp, setArrow, setLabel, setText } = modeRenderers[MODE];
+
+const scenes = [
+  // 0 — overview
+  () => {
+    setNarration('', 'ภาพรวม — 2 พื้นผิว + สะพานเดียว',
+      '<b>Artifact</b> (claude.ai/code) กับ <b>Claude Design</b> (claude.ai/design) เป็น<b>คนละพื้นผิว</b>. Claude Code แตะ Claude Design ได้ทางเดียว คือผ่าน <b>DesignSync</b> และเฉพาะ <b>design-system project</b> เท่านั้น. กด ถัดไป เพื่อไล่ทีละ step.');
+  },
+  // 1 — publish -> Artifact
+  () => {
+    setNarration('warn', '1 — Claude Code publish mock',
+      'กด publish จาก VSCode → ได้ <b>Artifact</b> โฮสต์ที่ claude.ai/code (คือหน้า mock #39 ที่เพิ่งส่งให้นั่นแหละ).');
+    setComp('compCC', 'firing');
+    setArrow('arrPublish', 'active'); setLabel('lblPublish', true);
+    setComp('compArtifact', 'active'); setText('afState', 'mock #39 (หน้านี้)');
+  },
+  // 2 — Artifact lives at claude.ai/code, separate
+  () => {
+    setNarration('', '2 — Artifact อยู่ที่ claude.ai/code',
+      'Artifact = หน้าเว็บ host ที่ <code>claude.ai/code/artifact/…</code>; republish = URL เดิม. มัน<b>ไม่ได้อยู่ใน Claude Design</b> — คนละที่กัน.');
+    setComp('compCC', 'done'); setArrow('arrPublish', 'done');
+    setComp('compArtifact', 'active'); setText('afState', 'claude.ai/code/artifact/68f1…');
+    setComp('compDS', 'dimmed'); setComp('compReg', 'dimmed');
+  },
+  // 3 — KEY QUESTION
+  () => {
+    setNarration('magic', '3 — คำถามสำคัญ (คิดก่อน)',
+      '⭐ พอ publish แล้ว Artifact นี้จะ “โผล่” ในแอป Claude Design และ <b>ซิงค์</b> กันเองไหม? ลองตอบในใจก่อนกด ถัดไป.');
+    setComp('compArtifact', 'active');
+    setArrow('arrNoSync', 'active'); setLabel('lblNoSync', true); setText('noSyncTxt', 'sync ?');
+    setComp('compDS', 'active');
+  },
+  // 4 — reveal: NO sync
+  () => {
+    setNarration('error', '4 — คำตอบ: ไม่ซิงค์ ไม่โผล่เอง',
+      'Artifact อยู่ <code>claude.ai/code</code>, Claude Design อยู่ <code>claude.ai/design</code> — <b>คนละพื้นผิว ไม่มีลิงก์เชื่อม</b>. แก้ Artifact ไม่กระทบ Design และกลับกัน. โปรเจกต์ "MenuNest GitHub issue" ที่เห็นในแอป คือของที่<b>คุณสร้างเอง</b> คนละอันกับ Artifact.');
+    setComp('compArtifact', 'done');
+    setArrow('arrNoSync', 'error'); setLabel('lblNoSync', true, 'error'); setText('noSyncTxt', 'no link');
+    setComp('compDS', 'active');
+  },
+  // 5 — the only bridge: DesignSync -> design-system project
+  () => {
+    setNarration('', '5 — สะพานเดียว: DesignSync',
+      'ทางเดียวที่ Claude Code (VSCode) แตะ Claude Design ได้ คือผ่าน <b>DesignSync</b> tool — และเขียนได้เฉพาะ <b>design-system project</b>. push ไฟล์ tokens + components เข้าไปได้ (manual).');
+    setComp('compCC', 'active'); setArrow('arrCCSync', 'active');
+    setComp('compSync', 'firing');
+    setArrow('arrSyncDS', 'magic'); setLabel('lblSyncDS', true); setText('syncDsTxt', 'push');
+    setComp('compDS', 'active'); setText('dspState', 'tokens + components');
+    setArrow('arrNoSync', 'dimmed');
+  },
+  // 6 — regular project blocked -> why list_projects []
+  () => {
+    setNarration('warn', '6 — ทำไม list_projects คืน []',
+      'DesignSync มองเห็น<b>เฉพาะ design-system project</b>. "MenuNest GitHub issue" เป็น <b>regular project</b> (แท็บ Projects) → ดันเข้าไม่ได้ และไม่ขึ้นใน list_projects เลยได้ <code>[]</code>.');
+    setComp('compSync', 'active');
+    setArrow('arrSyncReg', 'error'); setLabel('lblReg', true);
+    setComp('compReg', 'blocked');
+    setComp('compDS', 'done'); setText('dspState', 'tokens + components');
+  },
+  // 7 — sync semantics + repo as source
+  () => {
+    setNarration('', '7 — ซิงค์แบบไหน',
+      'การซิงค์ = local component library ↔ design-system project ผ่าน DesignSync — <b>manual, ทีละ component, ไม่ auto/ไม่ live</b>. repo (index.css) เป็นแหล่ง tokens/สี/ฟอนต์ที่ push ขึ้นไป.');
+    setComp('compRepo', 'firing'); setArrow('arrRepoSync', 'active'); setLabel('lblRepo', true);
+    setComp('compSync', 'active');
+    setArrow('arrSyncDS', 'magic'); setLabel('lblSyncDS', true); setText('syncDsTxt', 'push');
+    setComp('compDS', 'done'); setText('dspState', 'MenuNest DS');
+  },
+  // 8 — agent reads design-system -> implements
+  () => {
+    setNarration('success', '8 — ให้ agent อ่านแล้วทำตาม',
+      'อีกทิศ: agent <b>อ่าน</b> design-system project (get_file / list_files) แล้วเอาไป <b>implement ใน repo</b>. นี่คือ “ให้ agent ไปอ่านแล้วทำตาม” — ผ่านสะพาน DesignSync เส้นเดิม.');
+    setComp('compDS', 'active');
+    setArrow('arrSyncDS', 'active'); setLabel('lblSyncDS', true); setText('syncDsTxt', 'read');
+    setComp('compSync', 'active'); setArrow('arrCCSync', 'active');
+    setComp('compCC', 'firing');
+    setArrow('arrRepoSync', 'done'); setComp('compRepo', 'done');
+  },
+  // 9 — counter-example: the misunderstanding
+  () => {
+    setNarration('error', '9 — เข้าใจผิดที่พบบ่อย',
+      'สมมติว่า “publish Artifact แล้วมันจะไปโผล่ใน Claude Design เอง + ซิงค์กัน” → <b>ไม่ใช่</b>. Artifact ไม่เคยถูกอัปเข้า Claude Design (ui-mockup.md ระบุชัด: ตัว mock คงเป็น Artifact ไว้ ไม่ push เข้าโปรเจกต์).');
+    setComp('compArtifact', 'active');
+    setArrow('arrNoSync', 'error'); setLabel('lblNoSync', true, 'error'); setText('noSyncTxt', 'no link');
+    setComp('compDS', 'dimmed'); setComp('compReg', 'dimmed');
+  },
+  // 10 — summary + MenuNest recommendation + trade-offs
+  () => {
+    setNarration('success', '10 — สรุป mental model + trade-off',
+      '<b>Artifact</b> = ตัว mock (เร็ว, ตาม ui-mockup.md). <b>Claude Design</b> = ที่เก็บ design-system ที่ reuse ได้ ผ่าน DesignSync (manual). สอง<b>ไม่ซิงค์</b>กันตรงๆ. กับ issue #39: mock เป็น Artifact แล้ว — ถ้าอยากได้ MenuNest design system ค่อยให้ DesignSync สร้าง+push. Trade-off: DesignSync แตะได้<b>เฉพาะ design-system project</b> และเป็น<b>งาน manual</b> (regular project อย่าง "MenuNest GitHub issue" push ไม่ได้).');
+    setComp('compCC', 'done'); setArrow('arrPublish', 'done'); setComp('compArtifact', 'done'); setText('afState', 'claude.ai/code');
+    setArrow('arrCCSync', 'done'); setComp('compSync', 'done');
+    setArrow('arrSyncDS', 'done'); setLabel('lblSyncDS', true); setText('syncDsTxt', 'sync');
+    setComp('compDS', 'done'); setText('dspState', 'MenuNest DS');
+    setArrow('arrRepoSync', 'done'); setComp('compRepo', 'done');
+    setArrow('arrSyncReg', 'error'); setLabel('lblReg', true); setComp('compReg', 'blocked');
+  },
+];
+
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();
+buildProgressDots();
+render(0);
+
+</script>
+</body></html>

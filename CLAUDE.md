@@ -151,3 +151,8 @@ DOM-interaction bugs. A real example (#33): a popover was clipped invisibly by a
 interactively** (run the app / Chrome DevTools) or against an `docs/mocks/` visual mock
 before it is considered done; extract pure logic into a `lib/` module to get real vitest
 coverage for the parts that can be unit-tested.
+
+Because prod deploys on push to `main`, run a quick interactive smoke test of any map / overlay /
+layout UI change BEFORE pushing -- a fully-broken render (e.g. an overlay covering the whole map)
+passes every automated gate and would otherwise ship straight to prod (learned on #36: a capture
+banner covered the entire map -- a black screen).

@@ -5,7 +5,11 @@
       "Bash(cat backend/src/MenuNest.Infrastructure/Persistence/Configurations/ItineraryDayConfiguration.cs)",
       "Bash(AZURE_TOKEN_CREDENTIALS=AzureCliCredential dotnet ef database update --project backend/src/MenuNest.Infrastructure --startup-project backend/src/MenuNest.WebApi --connection 'Server=tcp:menunest-sql.database.windows.net,1433;Initial Catalog=MenuNest;Authentication=Active Directory Default;Encrypt=True;')",
       "Bash(git -C /c/Repo2/t/menunest status --short)",
-      "Bash(git -C /c/Repo2/t/menunest log -1 --oneline)"
+      "Bash(git -C /c/Repo2/t/menunest log -1 --oneline)",
+      "Bash(cat > *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Repo2\\t\\menunest\\docs\\adr"
     ]
   },
   "enabledPlugins": {

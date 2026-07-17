@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-16T20:31:27+07:00'
+updated: '2026-07-17T15:25:24+07:00'
 ---
 
 ## Log
@@ -164,3 +164,80 @@ fix(trips): reset capture-context on page teardown + tab-gate it; restore traili
 EOF
 )
 - 2026-07-16T20:31:27+07:00 — fix(trips): idempotent capture retry (no duplicate Place on addStop failure) + clear capture-context on itinerary-tab leave (#36)
+- 2026-07-17T08:37:01+07:00 — docs(trips): ADR-072..080 + design spec/mock/glossary for place season (#19) — Per-Place season periods (good/avoid months + reason) with master+per-trip-override, AI-fill via MCP (update_trip_place + push_place_profile), and an illustrative weather-diorama off-season warning. Decisions ADR-072..080; spec docs/superpowers/specs/2026-07-17-place-season-design.md; glossary CONTEXT.md. Design only â€” not yet implemented. — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-17T08:53:51+07:00 — docs(trips): implementation plan for place season (#19) — 12-task SDD plan (backend persistence mirroring ReviewLinks, MCP full-replace + push_place_profile, lib/season.ts, year-ribbon editor, WeatherDiorama warning) from the approved spec. Design only. — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-17T09:01:07+07:00 — feat(trips): SeasonPeriod value object + SeasonKind enum (#19)
+- 2026-07-17T09:14:36+07:00 — $(cat <<'EOF'
+feat(trips): persist SeasonPeriods JSON on TripPlace + PlaceProfile (#19)
+EOF
+)
+- 2026-07-17T09:24:48+07:00 — feat(trips): add SeasonPeriods to TripPlaceDto read model (#19)
+- 2026-07-17T09:32:14+07:00 — $(cat <<'EOF'
+feat(trips): carry SeasonPeriods through seed/override/push lifecycle (#19)
+EOF
+)
+- 2026-07-17T09:43:05+07:00 — $(cat <<'EOF'
+test(trips): make season lifecycle test a genuine DB round-trip (#19)
+
+_db.ChangeTracker.Clear() after the first SaveChangesAsync so the
+subsequent PlaceProfiles.SingleAsync reload actually deserializes
+SeasonPeriodsJson instead of returning the already-tracked identity-map
+instance, mirroring PlaceProfileAutoCreateRelationalTests and
+PlaceProfileSeedRelationalTests. Also adds the missing trailing newline.
+EOF
+)
+- 2026-07-17T10:44:20+07:00 — $(cat <<'EOF'
+feat(trips): seasonPeriods full-replace on update_trip_place (HTTP + MCP) (#19)
+EOF
+)
+- 2026-07-17T10:56:17+07:00 — $(cat <<'EOF'
+feat(trips): expose push_place_profile as an MCP tool (#19)
+EOF
+)
+- 2026-07-17T11:07:04+07:00 — $(cat <<'EOF'
+feat(trips): season API types + updateTripPlace arg (#19)
+EOF
+)
+- 2026-07-17T13:52:21+07:00 — $(cat <<'EOF'
+feat(trips): lib/season.ts monthStatus + rangeLabel + monthOfDate (#19)
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-17T14:03:24+07:00 — $(cat <<'EOF'
+feat(trips): PlaceSeasonEditor year ribbon in the place/stop editors (#19)
+EOF
+)
+- 2026-07-17T14:13:34+07:00 — feat(trips): WeatherDiorama illustrative season canvas (#19)
+- 2026-07-17T14:28:22+07:00 — $(cat <<'EOF'
+feat(trips): on-card off-season warning via monthStatus + WeatherDiorama (#19)
+EOF
+)
+- 2026-07-17T14:52:07+07:00 — docs(settings): ADR-081..085 + CONTEXT term + spec/plan for Home page (#39) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-17T15:07:59+07:00 — fix(trips): scope off-season flex-wrap to season cards only (#19)
+
+The Task-11 rule set flex-wrap:wrap on ALL .stop-card, changing the flex
+line-break behaviour of every stop card to serve a band that only season
+cards render. Scope it to .stop-card.season-bad/.season-good (appended under
+the exact condition the band renders) so no-season cards keep trips-tokens.css's
+original single-row layout byte-for-byte â€” removes the long-name-wrap regression
+surface flagged in scrutinize, no reliance on a flex hypothetical-size argument.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-17T15:09:53+07:00 — $(cat <<'EOF'
+feat(settings): add UserSettings entity + migration for Home page (#39)
+
+EOF
+) — $(cat <<'EOF'
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-17T15:11:17+07:00 — $(cat <<'EOF'
+chore(settings): restore trailing newlines on UserSettings files (#39)
+EOF
+) — $(cat <<'EOF'
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+EOF
+)
+- 2026-07-17T15:14:50+07:00 — (commit)
+- 2026-07-17T15:25:24+07:00 — fix(settings): guard UserSettings.Create/SetHomePath + test (#39) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
