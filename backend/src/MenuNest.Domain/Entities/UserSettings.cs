@@ -1,4 +1,5 @@
 using MenuNest.Domain.Common;
+using MenuNest.Domain.Exceptions;
 
 namespace MenuNest.Domain.Entities;
 
@@ -19,12 +20,23 @@ public sealed class UserSettings : Entity
 
     public static UserSettings Create(Guid userId)
     {
+        if (userId == Guid.Empty)
+        {
+            throw new DomainException("UserId is required.");
+        }
+
         return new UserSettings { UserId = userId };
     }
 
     public void SetHomePath(string? homePath)
     {
-        HomePath = string.IsNullOrWhiteSpace(homePath) ? null : homePath.Trim();
+        var trimmed = string.IsNullOrWhiteSpace(homePath) ? null : homePath.Trim();
+        if (trimmed is not null && trimmed.Length > 100)
+        {
+            throw new DomainException("HomePath must be 100 characters or less.");
+        }
+
+        HomePath = trimmed;
         UpdatedAt = DateTime.UtcNow;
     }
 }
