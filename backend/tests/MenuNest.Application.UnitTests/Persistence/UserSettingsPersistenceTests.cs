@@ -49,4 +49,11 @@ public sealed class UserSettingsPersistenceTests
         var act = async () => await ctx.SaveChangesAsync();
         await act.Should().ThrowAsync<DbUpdateException>();
     }
+
+    [Fact]
+    public void Create_rejects_an_empty_UserId()
+    {
+        var act = () => UserSettings.Create(Guid.Empty);
+        act.Should().Throw<MenuNest.Domain.Exceptions.DomainException>();
+    }
 }
