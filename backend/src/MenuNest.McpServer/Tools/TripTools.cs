@@ -8,6 +8,7 @@ using MenuNest.Application.UseCases.Trips.ResolvePlace;
 using MenuNest.Application.UseCases.Trips.ListTripPlaces;
 using MenuNest.Application.UseCases.Trips.AddTripPlace;
 using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
+using MenuNest.Application.UseCases.Trips.PushPlaceProfile;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
 using MenuNest.Application.UseCases.Trips.GetItinerary;
 using MenuNest.Application.UseCases.Trips.AddStop;
@@ -109,6 +110,13 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new UpdateTripPlaceCommand(
             tripId, placeId, name, category, address, feeNote, notes, bestTimeStart, bestTimeEnd, reviewLinks, seasonPeriods), ct);
+
+    [McpServerTool, Description("Push the current per-trip enrichment of a saved place UP to the user's master place-profile (FULL overwrite of the master: best-time window, review links, checklist item-set, AND season periods), so future captures of the same Google place start from it. Shape the place with update_trip_place FIRST, then push. Returns the place.")]
+    public async Task<TripPlaceDto> push_place_profile(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Place ID")] Guid placeId,
+        CancellationToken ct)
+        => await mediator.Send(new PushPlaceProfileCommand(tripId, placeId), ct);
 
     [McpServerTool, Description("Delete a saved place from a trip by ID")]
     public async Task delete_trip_place(
