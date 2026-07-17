@@ -19,6 +19,7 @@ import {BestTimeBar} from './BestTimeBar'
 import {formatDurationMinutes} from '../utils/time'
 import {ReviewLinksSection} from './ReviewLinksSection'
 import {ChecklistSection} from './ChecklistSection'
+import {PlaceSeasonEditor} from './PlaceSeasonEditor'
 import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
 
 const MODES: {label: string; value: TravelMode}[] = [
@@ -53,6 +54,7 @@ export function StopEditorDialog({
   const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>(
     (place?.reviewLinks ?? []).map((l) => ({url: l.url, label: l.label ?? ''})),
   )
+  const [seasonPeriods, setSeasonPeriods] = useState(place?.seasonPeriods ?? [])
 
   const [updateStop, {isLoading: s1}] = useUpdateStopMutation()
   const [updatePlace, {isLoading: s2}] = useUpdateTripPlaceMutation()
@@ -87,7 +89,8 @@ export function StopEditorDialog({
       const bestTimeChanged = bestStart !== place?.bestTimeStart || bestEnd !== place?.bestTimeEnd
       const reviewsChanged =
         JSON.stringify(cleaned) !== JSON.stringify(place?.reviewLinks ?? [])
-      if (place && (bestTimeChanged || reviewsChanged)) {
+      const seasonChanged = JSON.stringify(seasonPeriods) !== JSON.stringify(place?.seasonPeriods ?? [])
+      if (place && (bestTimeChanged || reviewsChanged || seasonChanged)) {
         await updatePlace({
           tripId,
           placeId: place.id,
@@ -99,8 +102,7 @@ export function StopEditorDialog({
           bestTimeStart: bestStart,
           bestTimeEnd: bestEnd,
           reviewLinks: cleaned,
-          // TODO(#19 Task 9): wire real PlaceSeasonEditor state
-          seasonPeriods: place.seasonPeriods ?? [],
+          seasonPeriods,
         }).unwrap()
       }
       onClose()
@@ -185,6 +187,7 @@ export function StopEditorDialog({
         </section>
 
         <ReviewLinksSection drafts={reviewDrafts} onChange={setReviewDrafts} />
+        <PlaceSeasonEditor periods={seasonPeriods} onChange={setSeasonPeriods} />
 
         {place && <ChecklistSection tripId={tripId} placeId={place.id} checklist={place.checklist ?? []} />}
 
