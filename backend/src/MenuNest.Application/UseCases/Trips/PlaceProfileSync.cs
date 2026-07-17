@@ -22,6 +22,7 @@ public static class PlaceProfileSync
 
         place.SetBestTime(profile.BestTimeStart, profile.BestTimeEnd);
         place.SetReviewLinks(profile.ReviewLinks);
+        place.SetSeasonPeriods(profile.SeasonPeriods);
         var itemIds = await db.PlaceProfileChecklistItems
             .Where(x => x.PlaceProfileId == profile.Id)
             .Select(x => x.ChecklistItemId)
@@ -62,6 +63,7 @@ public static class PlaceProfileSync
         }
         profile.SetBestTime(place.BestTimeStart, place.BestTimeEnd);
         profile.SetReviewLinks(place.ReviewLinks);
+        profile.SetSeasonPeriods(place.SeasonPeriods);
 
         var currentItemIds = await db.PlaceChecklistEntries
             .Where(e => e.TripPlaceId == place.Id).Select(e => e.ChecklistItemId).ToListAsync(ct);
