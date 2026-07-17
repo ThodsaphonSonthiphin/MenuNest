@@ -497,6 +497,11 @@ export interface ReviewLink {
     url: string
     label: string | null
 }
+export interface SeasonPeriod {
+    kind: 'Good' | 'Bad'
+    months: number[]
+    note: string | null
+}
 export interface ChecklistItem {
     id: string
     name: string
@@ -515,6 +520,7 @@ export interface TripPlaceDto {
     reviewLinks: ReviewLink[]
     checklist: PlaceChecklistEntry[]
     hasProfile: boolean
+    seasonPeriods: SeasonPeriod[]
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
@@ -1297,11 +1303,11 @@ export const api = createApi({
             query: (tripId) => `/api/trips/${tripId}/places`,
             providesTags: (_r, _e, id) => [{type: 'TripPlaces', id}],
         }),
-        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes' | 'hasProfile'>>({
+        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes' | 'hasProfile' | 'seasonPeriods'>>({
             query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),
-        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null; reviewLinks: ReviewLink[]}>({
+        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null; reviewLinks: ReviewLink[]; seasonPeriods: SeasonPeriod[]}>({
             query: ({tripId, placeId, ...b}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
         }),
