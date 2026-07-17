@@ -246,6 +246,8 @@
   padding: 16px;
 }
 
+.weather-diorama { display: block; width: 100%; height: 84px; border-radius: 14px 14px 0 0; }
+
 /* ============================================================
    Stop editor dialog — redesign (matches docs/mocks/trip-stop-editor-mock.html)
    The Syncfusion Dialog renders in a body-level PORTAL, so it sits OUTSIDE the
