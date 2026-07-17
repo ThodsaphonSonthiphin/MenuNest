@@ -57,7 +57,7 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
         var placeId = AddPlace("places/AC1");
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-            new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>()), default);
+            new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
 
         var profile = await _db.Set<PlaceProfile>().FirstOrDefaultAsync(p => p.GooglePlaceId == "places/AC1");
         profile.Should().NotBeNull();
@@ -70,9 +70,9 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
         var placeId = AddPlace("places/AC2");
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-            new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>()), default);
+            new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-            new TimeOnly(14, 0), new TimeOnly(15, 0), Array.Empty<ReviewLinkDto>()), default);
+            new TimeOnly(14, 0), new TimeOnly(15, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
 
         var profile = await _db.Set<PlaceProfile>().FirstAsync(p => p.GooglePlaceId == "places/AC2");
         profile.BestTimeStart.Should().Be(new TimeOnly(9, 0));
@@ -91,7 +91,7 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
         // A subsequent editor Save creates the master, capturing the already-attached item.
         await new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator())
             .Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-                new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>()), default);
+                new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
 
         var profile = await _db.Set<PlaceProfile>().FirstOrDefaultAsync(p => p.GooglePlaceId == "places/AC3");
         profile.Should().NotBeNull();
@@ -107,7 +107,7 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
         var placeId = AddPlace(null);
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-            new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>()), default);
+            new TimeOnly(9, 0), new TimeOnly(11, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
         (await _db.Set<PlaceProfile>().CountAsync()).Should().Be(0);
     }
 

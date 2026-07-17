@@ -28,6 +28,8 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
         place.UpdateDetails(c.Name, c.Category, c.Address, c.FeeNote, c.Notes);
         place.SetBestTime(c.BestTimeStart, c.BestTimeEnd);
         place.SetReviewLinks((c.ReviewLinks ?? Enumerable.Empty<ReviewLinkDto>()).Select(r => ReviewLink.Create(r.Url, r.Label)));
+        place.SetSeasonPeriods((c.SeasonPeriods ?? Enumerable.Empty<SeasonPeriodDto>())
+            .Select(s => SeasonPeriod.Create(s.Kind, s.Months, s.Note)));
 
         // First-enrichment auto-create: snapshot the place''s current enrichment into a new master
         // iff none exists yet (ADR-064). No-op once a master exists (per-trip override).

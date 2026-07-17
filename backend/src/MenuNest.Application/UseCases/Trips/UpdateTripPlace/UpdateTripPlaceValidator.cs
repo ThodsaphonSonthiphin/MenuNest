@@ -17,6 +17,16 @@ public sealed class UpdateTripPlaceValidator : AbstractValidator<UpdateTripPlace
                 .Must(BeHttpUrl).WithMessage("Review link must be a valid http(s) URL.");
             link.RuleFor(l => l.Label).MaximumLength(80);
         });
+        RuleFor(x => x.SeasonPeriods).NotNull()
+            .WithMessage("Season periods are required (send an empty array for none).");
+        RuleFor(x => x.SeasonPeriods).Must(l => l is null || l.Count <= 12)
+            .WithMessage("A place can have at most 12 season periods.");
+        RuleForEach(x => x.SeasonPeriods).ChildRules(sp =>
+        {
+            sp.RuleFor(s => s.Months).NotEmpty().WithMessage("A season period needs at least one month.");
+            sp.RuleForEach(s => s.Months).InclusiveBetween(0, 11);
+            sp.RuleFor(s => s.Note).MaximumLength(200);
+        });
     }
 
     private static bool BeHttpUrl(string? url) =>
