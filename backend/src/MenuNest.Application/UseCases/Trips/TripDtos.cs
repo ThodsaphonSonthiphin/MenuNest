@@ -8,6 +8,8 @@ public sealed record TripDto(
 
 public sealed record ReviewLinkDto(string Url, string? Label);
 
+public sealed record SeasonPeriodDto(SeasonKind Kind, IReadOnlyList<int> Months, string? Note);
+
 public sealed record ChecklistItemDto(Guid Id, string Name);
 
 public sealed record PlaceChecklistEntryDto(Guid Id, Guid ChecklistItemId, string Name, bool IsChecked);
@@ -19,7 +21,8 @@ public sealed record TripPlaceDto(
     string? OpeningHoursJson, string? FeeNote, string? Notes,
     IReadOnlyList<ReviewLinkDto> ReviewLinks,
     IReadOnlyList<PlaceChecklistEntryDto> Checklist,
-    bool HasProfile);
+    bool HasProfile,
+    IReadOnlyList<SeasonPeriodDto> SeasonPeriods);
 
 public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, RouteSource Source);
 
