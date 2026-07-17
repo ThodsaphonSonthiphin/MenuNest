@@ -20,6 +20,7 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
 
     public DbSet<Family> Families => Set<Family>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
     public DbSet<UserRelationship> UserRelationships => Set<UserRelationship>();
     public DbSet<Ingredient> Ingredients => Set<Ingredient>();
     public DbSet<Recipe> Recipes => Set<Recipe>();

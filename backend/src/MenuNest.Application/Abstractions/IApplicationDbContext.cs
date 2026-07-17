@@ -12,6 +12,7 @@ public interface IApplicationDbContext
 {
     DbSet<Family> Families { get; }
     DbSet<User> Users { get; }
+    DbSet<UserSettings> UserSettings { get; }
     DbSet<UserRelationship> UserRelationships { get; }
     DbSet<Ingredient> Ingredients { get; }
     DbSet<Recipe> Recipes { get; }
