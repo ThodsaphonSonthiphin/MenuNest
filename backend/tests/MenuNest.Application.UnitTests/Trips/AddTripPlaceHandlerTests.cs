@@ -24,6 +24,7 @@ public class AddTripPlaceHandlerTests
                 CancellationToken.None);
 
         dto.Name.Should().Be("Wat");
+        dto.SeasonPeriods.Should().BeEmpty();
         fx.Db.TripPlaces.Should().ContainSingle(p => p.TripId == trip.Id);
     }
 
