@@ -32,6 +32,15 @@ the glossary wins until the glossary is deliberately changed.
   (`/oauth/*`) that brokers MCP authentication to Entra and mints the app's own
   JWT for `/mcp`. See ADR-003 / ADR-004.
 
+## App shell & navigation
+
+- **Home page** — the app route a **User** lands on by default when they open the
+  app (i.e. what `/` resolves to). A per-User preference chosen from the app's
+  existing top-level routes (e.g. `/pomodoro`, `/trips`, `/budget`); it replaces
+  the previously hardcoded `/` → `/budget` redirect (issue #39, ADR-081). The
+  stored value is a **route path**, not a page component or a location.
+  _Avoid_: home path, landing page, start page, default page, homepage.
+
 ## Travel & trip planning
 
 - **Trip** — a planned journey owned by one **User** (user-scoped, not
