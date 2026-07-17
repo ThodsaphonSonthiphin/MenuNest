@@ -47,6 +47,7 @@ public sealed class PlaceProfileSeasonLifecycleTests : IDisposable
 
         await PlaceProfileSync.UpsertFromAsync(_db, _user.Id, p1, default); // push-to-master
         await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
         var master = await _db.PlaceProfiles.SingleAsync(p => p.UserId == _user.Id && p.GooglePlaceId == "gp1");
         master.SeasonPeriods.Should().HaveCount(1);
         master.SeasonPeriods[0].Kind.Should().Be(SeasonKind.Bad);
