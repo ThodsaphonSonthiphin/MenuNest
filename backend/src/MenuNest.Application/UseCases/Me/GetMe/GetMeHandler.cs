@@ -1,5 +1,6 @@
 using Mediator;
 using MenuNest.Application.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 namespace MenuNest.Application.UseCases.Me.GetMe;
 
@@ -10,15 +11,20 @@ namespace MenuNest.Application.UseCases.Me.GetMe;
 public sealed class GetMeHandler : IQueryHandler<GetMeQuery, MeDto>
 {
     private readonly IUserProvisioner _userProvisioner;
+    private readonly IApplicationDbContext _db;
 
-    public GetMeHandler(IUserProvisioner userProvisioner)
+    public GetMeHandler(IUserProvisioner userProvisioner, IApplicationDbContext db)
     {
         _userProvisioner = userProvisioner;
+        _db = db;
     }
 
     public async ValueTask<MeDto> Handle(GetMeQuery query, CancellationToken ct)
     {
         var user = await _userProvisioner.GetOrProvisionCurrentAsync(ct);
+
+        var settings = await _db.UserSettings
+            .FirstOrDefaultAsync(s => s.UserId == user.Id, ct);
 
         return new MeDto(
             UserId: user.Id,
@@ -27,6 +33,7 @@ public sealed class GetMeHandler : IQueryHandler<GetMeQuery, MeDto>
             FamilyId: user.FamilyId,
             FamilyName: user.Family?.Name,
             FamilyInviteCode: user.Family?.InviteCode.Value,
-            AuthProvider: user.AuthProvider.ToString());
+            AuthProvider: user.AuthProvider.ToString(),
+            HomePath: settings?.HomePath);
     }
 }
