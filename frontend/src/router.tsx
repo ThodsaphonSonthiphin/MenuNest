@@ -41,10 +41,10 @@ export const router = createBrowserRouter([
   {
     element: <ProtectedRoute />,
     children: [
-      // Budget is the default landing — '/' redirects into /budget so a
-      // newly-signed-in user lands on the envelope view directly. Note
-      // that /budget is family-scoped, so users without a family will
-      // bounce through FamilyRequiredRoute to /join-family.
+      // '/' resolves to the user's chosen Home page via HomeRedirect (see
+      // pages/settings/homeOptions.ts), falling back to /budget when unset
+      // or unknown. Family-gated targets still bounce through
+      // FamilyRequiredRoute.
       { path: '/', element: <HomeRedirect /> },
       { path: '/join-family', element: <JoinFamilyPage /> },
       // Health pages need auth but NOT a family — migraine tracking is a

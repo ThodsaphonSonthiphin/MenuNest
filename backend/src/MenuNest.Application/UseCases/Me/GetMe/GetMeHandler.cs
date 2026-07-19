@@ -7,6 +7,7 @@ namespace MenuNest.Application.UseCases.Me.GetMe;
 /// <summary>
 /// Returns the current caller's profile, auto-provisioning a
 /// <c>User</c> row on first sign-in via <see cref="IUserProvisioner"/>.
+/// Includes the user's <c>HomePath</c> (Home-page preference).
 /// </summary>
 public sealed class GetMeHandler : IQueryHandler<GetMeQuery, MeDto>
 {
