@@ -89,6 +89,17 @@ export function NavBar() {
               </NavLink>
             </li>
             <li>
+              <NavLink to="/settings" role="menuitem">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                     style={{ verticalAlign: '-3px', marginRight: 8 }} aria-hidden="true">
+                  <circle cx="12" cy="12" r="3.2" />
+                  <path d="M12 2.5v3M12 18.5v3M4.2 7l2.6 1.5M17.2 15.5l2.6 1.5M4.2 17l2.6-1.5M17.2 8.5l2.6-1.5" />
+                </svg>
+                Settings
+              </NavLink>
+            </li>
+            <li>
               <Button
                 variant={Variant.Standard}
                 color={Color.Secondary}
@@ -128,6 +139,11 @@ export function NavBar() {
               <li>
                 <NavLink to="/family" className="app-drawer__link">
                   Manage family
+                </NavLink>
+              </li>
+              <li>
+                <NavLink to="/settings" className="app-drawer__link">
+                  Settings
                 </NavLink>
               </li>
             </ul>
