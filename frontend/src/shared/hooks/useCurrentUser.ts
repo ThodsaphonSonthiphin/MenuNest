@@ -47,6 +47,7 @@ export function useCurrentUser() {
     email: me?.email ?? account?.username ?? googleUser?.email ?? '',
     userId: me?.userId ?? null,
     familyId: me?.familyId ?? null,
+    homePath: me?.homePath ?? null,
     familyName: me?.familyName ?? null,
     familyInviteCode: me?.familyInviteCode ?? null,
     authProvider: me?.authProvider ?? (isMsalAuth ? 'Microsoft' : googleUser ? 'Google' : null),
