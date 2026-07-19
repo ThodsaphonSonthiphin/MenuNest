@@ -103,6 +103,7 @@ export interface MeDto {
     familyName: string | null
     familyInviteCode: string | null
     authProvider: string
+    homePath: string | null
 }
 
 export interface FamilyDto {
@@ -603,6 +604,15 @@ export const api = createApi({
         getMe: build.query<MeDto, void>({
             query: () => '/api/me',
             providesTags: ['Me'],
+        }),
+        updateUserSettings: build.mutation<{ homePath: string | null }, { homePath: string | null }>({
+            query: (body) => ({
+                url: '/api/me/settings',
+                method: 'PUT',
+                body,
+            }),
+            // Changing the Home page changes what /api/me returns.
+            invalidatesTags: ['Me'],
         }),
         createFamily: build.mutation<FamilyDto, CreateFamilyRequest>({
             query: (body) => ({
@@ -1471,6 +1481,7 @@ export const publicApi = createApi({
 })
 export const {
     useGetMeQuery,
+    useUpdateUserSettingsMutation,
     useCreateFamilyMutation,
     useJoinFamilyMutation,
     useListFamilyMembersQuery,
