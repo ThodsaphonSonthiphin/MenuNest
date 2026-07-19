@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from './shared/components/AppLayout'
 import { ProtectedRoute } from './shared/components/ProtectedRoute'
 import { FamilyRequiredRoute } from './shared/components/FamilyRequiredRoute'
+import { HomeRedirect } from './shared/components/HomeRedirect'
 
 import { LoginPage } from './pages/auth'
 import { JoinFamilyPage, FamilyPage } from './pages/family'
@@ -43,7 +44,7 @@ export const router = createBrowserRouter([
       // newly-signed-in user lands on the envelope view directly. Note
       // that /budget is family-scoped, so users without a family will
       // bounce through FamilyRequiredRoute to /join-family.
-      { path: '/', element: <Navigate to="/budget" replace /> },
+      { path: '/', element: <HomeRedirect /> },
       { path: '/join-family', element: <JoinFamilyPage /> },
       // Health pages need auth but NOT a family — migraine tracking is a
       // personal-scope module. They still render inside AppLayout so the
