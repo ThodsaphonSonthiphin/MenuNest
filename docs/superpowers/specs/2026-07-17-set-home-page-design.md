@@ -69,7 +69,7 @@ erDiagram
 
 - `HOME_OPTIONS: { path, label, requiresFamily }[]` — the top-level NavBar pages: `/health`, `/pomodoro`, `/trips` (`requiresFamily:false`); `/recipes`, `/stock`, `/meal-plan`, `/shopping`, `/budget`, `/ai-assistant` (`requiresFamily:true`).
 - `homeOptions(hasFamily): HomeOption[]` — the **family-aware selectable set** (ADR-084): all when `hasFamily`, else only the non-gated three.
-- `resolveHomePath(homePath, hasFamily): string` — the resolver (ADR-084): return `homePath` when it is a known `HOME_OPTIONS.path`, else `"/budget"`. (Family gating is left to the route guards, so this stays a pure lookup and is loop-proof.)
+- `resolveHomePath(homePath): string` — the resolver (ADR-084): return `homePath` when it is a known `HOME_OPTIONS.path`, else `"/budget"`. (Family gating is left to the route guards, so this stays a pure lookup and is loop-proof.)
 
 ### `/` redirect → `HomeRedirect`
 

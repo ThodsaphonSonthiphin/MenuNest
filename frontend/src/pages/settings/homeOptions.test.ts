@@ -3,7 +3,7 @@ import { HOME_OPTIONS, homeOptions, resolveHomePath } from './homeOptions'
 
 describe('homeOptions', () => {
   it('returns all pages for a user with a family', () => {
-    expect(homeOptions(true)).toHaveLength(HOME_OPTIONS.length)
+    expect(homeOptions(true)).toEqual(HOME_OPTIONS)
   })
 
   it('hides family-gated pages for a user with no family', () => {

@@ -12,13 +12,19 @@ export function SettingsPage() {
   const [saved, setSaved] = useState(false)
 
   const options = homeOptions(!!familyId)
-  const value = homePath ?? '/budget'
+  const effective = homePath ?? '/budget'
+  const value = options.some((o) => o.path === effective) ? effective : null
 
   const handleChange = async (e: DDLChangeEvent) => {
     const path = e.value as string
     setSaved(false)
-    await updateSettings({ homePath: path }).unwrap()
-    setSaved(true)
+    try {
+      await updateSettings({ homePath: path }).unwrap()
+      setSaved(true)
+    } catch {
+      // Save failed (network/500): leave "บันทึกแล้ว" hidden. No crash, no
+      // unhandled rejection, no error affordance (per approved mock).
+    }
   }
 
   return (
@@ -38,7 +44,7 @@ export function SettingsPage() {
             </svg>
           </span>
           <div>
-            <div className="settings-row__title">หน้าแรก (Home page)</div>
+            <div className="settings-row__title" id="settings-home-label">หน้าแรก (Home page)</div>
             <div className="settings-row__sub">หน้าที่จะเปิดขึ้นมาเมื่อเข้าแอป</div>
           </div>
         </div>
@@ -48,6 +54,8 @@ export function SettingsPage() {
           dataSource={options}
           fields={{ text: 'label', value: 'path' }}
           value={value}
+          placeholder="ยังไม่ได้เลือกหน้าแรก"
+          aria-labelledby="settings-home-label"
           onChange={handleChange}
         />
       </div>
