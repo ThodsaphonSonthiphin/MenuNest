@@ -16,7 +16,7 @@ public class GetStopWeatherHandlerTests
         {
             Received = points;
             IReadOnlyList<WeatherReading> readings = points
-                .Select(p => new WeatherReading(p.StopId, true, "CLOUDY", "https://maps.gstatic.com/weather/v1/cloudy", 29.1, 20, "มีเมฆมาก"))
+                .Select(p => new WeatherReading(p.StopId, true, "CLOUDY", "https://maps.gstatic.com/weather/v1/cloudy", 29.1, 20, "มีเมฆมาก", 7, 33.0))
                 .ToList();
             return Task.FromResult(readings);
         }

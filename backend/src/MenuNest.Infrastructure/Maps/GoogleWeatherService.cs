@@ -150,11 +150,15 @@ public sealed class GoogleWeatherService : IWeatherService
         double? temp = el.TryGetProperty("temperature", out var tp) && tp.TryGetProperty("degrees", out var dg) ? dg.GetDouble() : null;
         int? rain = el.TryGetProperty("precipitation", out var pr) && pr.TryGetProperty("probability", out var pb)
             && pb.TryGetProperty("percent", out var pc) ? pc.GetInt32() : null;
+        int? uv = el.TryGetProperty("uvIndex", out var uvi) && uvi.ValueKind == JsonValueKind.Number
+            ? uvi.GetInt32() : null;
+        double? feels = el.TryGetProperty("feelsLikeTemperature", out var fl)
+            && fl.TryGetProperty("degrees", out var fd) ? fd.GetDouble() : null;
         var hasData = type is not null || temp is not null;
-        return new WeatherReading(stopId, hasData, type, icon, temp, rain, desc);
+        return new WeatherReading(stopId, hasData, type, icon, temp, rain, desc, uv, feels);
     }
 
-    private static WeatherReading NoData(string stopId) => new(stopId, false, null, null, null, null, null);
+    private static WeatherReading NoData(string stopId) => new(stopId, false, null, null, null, null, null, null, null);
 
     private static string CacheKey(WeatherPoint p, WeatherReadingKind kind)
     {
