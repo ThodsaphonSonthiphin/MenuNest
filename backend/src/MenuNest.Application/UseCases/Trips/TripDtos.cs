@@ -40,4 +40,5 @@ public sealed record ResolvedPlaceDto(
 public sealed record WeatherPointDto(string StopId, double Lat, double Lng, DateTime? ArrivalIso);
 public sealed record WeatherReadingDto(
     string StopId, bool HasData, string? ConditionType, string? IconBaseUri,
-    double? TempC, int? RainPct, string? Description);
+    double? TempC, int? RainPct, string? Description,
+    int? UvIndex, double? FeelsLikeC);

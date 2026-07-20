@@ -20,7 +20,7 @@ public sealed class GetStopWeatherHandler : IQueryHandler<GetStopWeatherQuery, I
             .ToList();
         var readings = await _weather.GetReadingsAsync(points, q.Kind, ct);
         return readings
-            .Select(r => new WeatherReadingDto(r.StopId, r.HasData, r.ConditionType, r.IconBaseUri, r.TempC, r.RainPct, r.Description))
+            .Select(r => new WeatherReadingDto(r.StopId, r.HasData, r.ConditionType, r.IconBaseUri, r.TempC, r.RainPct, r.Description, r.UvIndex, r.FeelsLikeC))
             .ToList();
     }
 }

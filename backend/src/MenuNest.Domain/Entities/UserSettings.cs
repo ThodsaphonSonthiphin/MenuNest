@@ -5,7 +5,8 @@ namespace MenuNest.Domain.Entities;
 
 /// <summary>
 /// Per-user preferences (1:1 with <see cref="User"/>). Created lazily on
-/// first write. Currently holds only the user's chosen Home page route.
+/// first write. Holds the user's chosen Home page route plus their
+/// UV-index and feels-like weather-warning thresholds.
 /// </summary>
 public sealed class UserSettings : Entity
 {
