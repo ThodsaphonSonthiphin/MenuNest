@@ -37,3 +37,17 @@ push step. **Negative:** notes + review links now diverge from the "override unt
 behaviour of the other enrichment fields (a deliberate, documented asymmetry); editing links in
 one trip updates the shared master (and thus what a future capture seeds), which is acceptable for
 a single-user app.
+
+**Last-write-wins across trips (accepted, 2026-07-20):** because `update_trip_place` is a
+full-replace of `Notes`/`ReviewLinks`, a save from **any** trip sharing the same `GooglePlaceId`
+overwrites the shared master — including a save whose own note/links are empty (e.g. a save that
+only changed category or best-time). Concretely: Trip A sets a note + review link on a place
+(master gets them); Trip B later saves the same place with no note/links (perhaps only editing an
+unrelated field) and the master's note/links are wiped back to empty, even though Trip A never
+touched anything. The human explicitly accepted this over a non-destructive (merge-on-save)
+variant, to keep the write-through rule simple (full-replace, not a 3-way merge). Mitigations: (1)
+re-save from the trip whose values should win, last save takes effect; (2) each `TripPlace` keeps
+its own `Notes`/`ReviewLinks` copy independent of the master, so per-trip data is never lost — only
+the shared master and what Discover/future captures see is affected. See
+`PlaceProfileWriteThroughRelationalTests.Write_through_is_last_write_wins_across_trips` for a test
+that reproduces this.
