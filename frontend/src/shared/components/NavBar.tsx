@@ -8,6 +8,7 @@ const navItems = [
   { to: '/health', label: '🤒 Health' },
   { to: '/pomodoro', label: '⏱️ Pomodoro' },
   { to: '/trips', label: '🧳 Trips' },
+  { to: '/discover', label: 'ไปไหนดี' },
   { to: '/recipes', label: 'Recipes' },
   { to: '/stock', label: 'Stock' },
   { to: '/meal-plan', label: 'Meal Plan' },

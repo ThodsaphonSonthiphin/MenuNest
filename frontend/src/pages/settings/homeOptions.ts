@@ -9,6 +9,7 @@ export const HOME_OPTIONS: HomeOption[] = [
   { path: '/health', label: 'Health', requiresFamily: false },
   { path: '/pomodoro', label: 'Pomodoro', requiresFamily: false },
   { path: '/trips', label: 'Trips', requiresFamily: false },
+  { path: '/discover', label: 'ไปไหนดี', requiresFamily: false },
   { path: '/recipes', label: 'Recipes', requiresFamily: true },
   { path: '/stock', label: 'Stock', requiresFamily: true },
   { path: '/meal-plan', label: 'Meal Plan', requiresFamily: true },

@@ -16,6 +16,7 @@ import { IngredientsPage } from './pages/ingredients'
 import { AiAssistantPage } from './pages/ai-assistant'
 import { BudgetPage, AccountDetailPage } from './pages/budget'
 import {TripsPage, TripDetailPage} from './pages/trips'
+import {DiscoverPage} from './pages/discover'
 import { SettingsPage } from './pages/settings'
 import {
   HealthHomePage,
@@ -67,6 +68,7 @@ export const router = createBrowserRouter([
           { path: '/pomodoro', element: <PomodoroPage /> },
           { path: '/trips', element: <TripsPage /> },
           { path: '/trips/:tripId', element: <TripDetailPage /> },
+          { path: '/discover', element: <DiscoverPage /> },
           { path: '/settings', element: <SettingsPage /> },
         ],
       },
