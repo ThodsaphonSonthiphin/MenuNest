@@ -781,7 +781,7 @@
 
 .stop-detail-sheet .sd-note { margin-bottom: 4px; }
 .stop-detail-sheet .sd-note-body {
-  margin: 0; background: var(--page, #f8fafc); border: 1px solid var(--border);
+  margin: 0; background: #f8fafc; border: 1px solid var(--sd-border);
   border-radius: 12px; padding: 10px 12px; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap;
 }
 
