@@ -7,9 +7,10 @@ interface Props {
   onClose: () => void
   onAddToTrip: (place: DiscoverPlaceView) => void
   onCreateTrip: (place: DiscoverPlaceView) => void
+  creatingTrip?: boolean
 }
 
-export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip}: Props) {
+export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingTrip}: Props) {
   const navigate = useNavigate()
   const navUrl = buildStopNavUrl({lat: place.lat, lng: place.lng, googlePlaceId: place.googlePlaceId}, 'Drive')
 
@@ -41,7 +42,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip}: Props) {
           <button type="button" className="disc-abtn ghost" onClick={() => onAddToTrip(place)}>เพิ่มเข้าทริป</button>
         </div>
         <div className="disc-arow">
-          <button type="button" className="disc-abtn ghost" onClick={() => onCreateTrip(place)}>สร้างทริปใหม่</button>
+          <button type="button" className="disc-abtn ghost" disabled={creatingTrip} onClick={() => onCreateTrip(place)}>สร้างทริปใหม่</button>
         </div>
       </div>
     </div>

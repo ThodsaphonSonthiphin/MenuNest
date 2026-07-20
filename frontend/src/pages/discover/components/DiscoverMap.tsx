@@ -65,6 +65,24 @@ function Markers({places, onSelect}: {places: DiscoverPlaceView[]; onSelect: (k:
   return null
 }
 
+// `defaultCenter`/`defaultZoom` on <Map> are read only once at mount, but
+// `anchor` resolves asynchronously from navigator.geolocation AFTER the map
+// has already mounted (DiscoverPage's effect) — so the uncontrolled default
+// alone leaves the map stuck at the Bangkok/zoom-6 fallback forever. Drive
+// the camera imperatively instead: pan/zoom once, the first time an anchor
+// becomes available, and never again (so it doesn't fight later manual pans).
+function MapCamera({anchor}: {anchor: {lat: number; lng: number} | null}) {
+  const map = useMap()
+  const done = useRef(false)
+  useEffect(() => {
+    if (!map || !anchor || done.current) return
+    map.panTo(anchor)
+    map.setZoom(13)
+    done.current = true
+  }, [map, anchor])
+  return null
+}
+
 function ViewerPin({anchor}: {anchor: {lat: number; lng: number} | null}) {
   const map = useMap()
   const markerLib = useMapsLibrary('marker')
@@ -103,6 +121,7 @@ export function DiscoverMap({places, anchor, selectedKey: _sel, onSelect, onScop
         >
           <Markers places={places} onSelect={onSelect} />
           <ViewerPin anchor={anchor} />
+          <MapCamera anchor={anchor} />
         </Map>
       </div>
     </APIProvider>
