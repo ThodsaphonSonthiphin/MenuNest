@@ -57,6 +57,10 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<PlaceProfile> PlaceProfiles => Set<PlaceProfile>();
     public DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems => Set<PlaceProfileChecklistItem>();
 
+    // MCP OAuth proxy durable store (ADR-037)
+    public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+    public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
