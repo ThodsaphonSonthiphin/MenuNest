@@ -106,35 +106,35 @@ public static class OAuthEndpoints
                 if (!PkceUtil.Verify(verifier, data.ClientCodeChallenge))
                     return Results.BadRequest(new { error = "invalid_grant", error_description = "PKCE failed" });
 
-                return Results.Ok(IssueTokens(jwt, tokens, data.Subject, form["client_id"].ToString(), data.Scope, data.Name, data.Email, data.EntraRefreshToken));
+                return Results.Ok(await IssueTokensAsync(jwt, tokens, data.Subject, form["client_id"].ToString(), data.Scope, data.Name, data.Email, data.EntraRefreshToken, ct));
             }
 
             if (grant == "refresh_token")
             {
                 var refreshCode = form["refresh_token"].ToString();
-                var entraRt = tokens.TakeRefresh(refreshCode);
+                var entraRt = await tokens.TakeRefreshAsync(refreshCode, ct);
                 if (entraRt is null) return Results.BadRequest(new { error = "invalid_grant" });
 
                 var refreshed = await entra.RefreshAsync(entraRt, ct);
                 var newEntraRt = refreshed.RefreshToken ?? entraRt;
                 var id = refreshed.IdToken is not null ? ClaimExtractor.FromIdToken(refreshed.IdToken) : null;
                 if (id is null) return Results.BadRequest(new { error = "invalid_grant", error_description = "no id_token on refresh" });
-                return Results.Ok(IssueTokens(jwt, tokens, id.Oid, form["client_id"].ToString(), "", id.Name, id.Email, newEntraRt));
+                return Results.Ok(await IssueTokensAsync(jwt, tokens, id.Oid, form["client_id"].ToString(), "", id.Name, id.Email, newEntraRt, ct));
             }
 
             return Results.BadRequest(new { error = "unsupported_grant_type" });
         }).AllowAnonymous();
     }
 
-    private static object IssueTokens(OAuthJwt jwt, TokenStore tokens, string subject, string clientId,
-        string scope, string? name, string? email, string entraRefreshToken)
+    private static async Task<object> IssueTokensAsync(OAuthJwt jwt, TokenStore tokens, string subject, string clientId,
+        string scope, string? name, string? email, string entraRefreshToken, CancellationToken ct)
     {
         var extra = new List<System.Security.Claims.Claim>();
         if (name is not null) extra.Add(new("name", name));
         if (email is not null) { extra.Add(new("email", email)); extra.Add(new("preferred_username", email)); }
 
         var accessToken = jwt.Mint(subject, clientId, scope, extra);
-        var refreshCode = tokens.SaveRefresh(entraRefreshToken);
+        var refreshCode = await tokens.SaveRefreshAsync(entraRefreshToken, subject, ct);
         return new
         {
             access_token = accessToken,

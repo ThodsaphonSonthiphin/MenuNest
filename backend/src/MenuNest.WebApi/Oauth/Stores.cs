@@ -55,8 +55,8 @@ public sealed class PkceStateStore(IMemoryCache cache)
     }
 }
 
-/// <summary>Proxy auth codes (60s, single-use) and opaque refresh codes → Entra refresh token.</summary>
-public sealed class TokenStore(IMemoryCache cache)
+/// <summary>Proxy auth codes (60s, in-memory) and durable refresh codes → Entra RT (SQL, ADR-037).</summary>
+public sealed class TokenStore(IMemoryCache cache, IApplicationDbContext db)
 {
     public string SaveAuthCode(AuthCodeData data)
     {
@@ -71,16 +71,27 @@ public sealed class TokenStore(IMemoryCache cache)
         return null;
     }
 
-    public string SaveRefresh(string entraRefreshToken)
+    public async Task<string> SaveRefreshAsync(string entraRefreshToken, string subject, CancellationToken ct = default)
     {
         var refreshCode = TokenUtil.Opaque();
-        cache.Set($"refresh:{refreshCode}", entraRefreshToken, TimeSpan.FromDays(30));
+        db.OAuthRefreshTokens.Add(new OAuthRefreshToken
+        {
+            RefreshCode = refreshCode,
+            EntraRefreshToken = entraRefreshToken,
+            Subject = subject,
+            ExpiresAt = DateTime.UtcNow.AddDays(365),
+            CreatedAt = DateTime.UtcNow,
+        });
+        await db.SaveChangesAsync(ct);
         return refreshCode;
     }
 
-    public string? TakeRefresh(string refreshCode)
+    public async Task<string?> TakeRefreshAsync(string refreshCode, CancellationToken ct = default)
     {
-        if (cache.TryGetValue($"refresh:{refreshCode}", out string? rt)) { cache.Remove($"refresh:{refreshCode}"); return rt; }
-        return null;
+        var row = await db.OAuthRefreshTokens.FirstOrDefaultAsync(r => r.RefreshCode == refreshCode, ct);
+        if (row is null || row.ExpiresAt <= DateTime.UtcNow) return null;
+        db.OAuthRefreshTokens.Remove(row); // single-use; a fresh code is minted by SaveRefreshAsync
+        await db.SaveChangesAsync(ct);
+        return row.EntraRefreshToken;
     }
 }

@@ -31,7 +31,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient<MenuNest.WebApi.Oauth.EntraClient>();
 builder.Services.AddScoped<MenuNest.WebApi.Oauth.ClientStore>();
 builder.Services.AddSingleton<MenuNest.WebApi.Oauth.PkceStateStore>();
-builder.Services.AddSingleton<MenuNest.WebApi.Oauth.TokenStore>();
+builder.Services.AddScoped<MenuNest.WebApi.Oauth.TokenStore>();
 builder.Services.AddSingleton<MenuNest.WebApi.Oauth.OAuthJwt>();
 
 // Health module — polls FollowUpPings every minute to fire web pushes.
