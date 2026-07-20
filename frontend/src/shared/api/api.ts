@@ -529,6 +529,26 @@ export interface LegDto { seconds: number; meters: number; encodedPolyline: stri
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
 export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; useCurrentTimeAsStart: boolean; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
+export interface PlaceTripRefDto { tripId: string; tripName: string }
+export interface DiscoverPlaceDto {
+    key: string
+    googlePlaceId: string | null
+    representativeTripPlaceId: string
+    name: string
+    lat: number
+    lng: number
+    address: string | null
+    category: PlaceCategory
+    priceLevel: number | null
+    photoUrl: string | null
+    openingHoursJson: string | null
+    bestTimeStart: string | null
+    bestTimeEnd: string | null
+    seasonPeriods: SeasonPeriod[]
+    visited: boolean
+    hasProfile: boolean
+    trips: PlaceTripRefDto[]
+}
 export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
 export interface WeatherReadingDto {
     stopId: string; hasData: boolean; conditionType: string | null; iconBaseUri: string | null
@@ -601,6 +621,7 @@ export const api = createApi({
         'TripPlaces',
         'TripItinerary',
         'ChecklistItems',
+        'MyPlaces',
     ],
     endpoints: (build) => ({
         // -------------------- Me / Family --------------------
@@ -1338,17 +1359,21 @@ export const api = createApi({
             query: (tripId) => `/api/trips/${tripId}/places`,
             providesTags: (_r, _e, id) => [{type: 'TripPlaces', id}],
         }),
+        listMyPlaces: build.query<DiscoverPlaceDto[], void>({
+            query: () => '/api/places',
+            providesTags: ['MyPlaces'],
+        }),
         addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes' | 'hasProfile' | 'seasonPeriods'>>({
             query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
         updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null; reviewLinks: ReviewLink[]; seasonPeriods: SeasonPeriod[]}>({
             query: ({tripId, placeId, ...b}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'PUT', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
         deleteTripPlace: build.mutation<void, {tripId: string; placeId: string}>({
             query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'DELETE'}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}],
+            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
         pushPlaceProfile: build.mutation<TripPlaceDto, {tripId: string; placeId: string}>({
             query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}/push-to-profile`, method: 'POST'}),
@@ -1609,6 +1634,7 @@ export const {
     useDeleteTripMutation,
     useResolvePlaceMutation,
     useListTripPlacesQuery,
+    useListMyPlacesQuery,
     useAddTripPlaceMutation,
     useUpdateTripPlaceMutation,
     useDeleteTripPlaceMutation,
