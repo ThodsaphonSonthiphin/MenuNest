@@ -11,6 +11,11 @@
 :root {
   --review: #c2255c;
   --review-bg: #fdeaf1;
+  --uv-low:#2f8f3e;  --uv-low-bg:#e7f6e8;
+  --uv-mod:#a6791a;  --uv-mod-bg:#fdf3d7;
+  --uv-high:#c85e0c; --uv-high-bg:#ffe6cf;
+  --uv-vhigh:#c5321f;--uv-vhigh-bg:#fdeceb;
+  --uv-ext:#7d379f;  --uv-ext-bg:#f3e8fb;
 }
 
 .trips-page, .trip-detail {
@@ -281,6 +286,14 @@
 .chip.wx.nodata { background: #f1f5f9; color: var(--muted); }
 .chip.wx.nodata svg { width: 15px; height: 15px; }
 .chip.wx.loading { background: #f1f5f9; color: transparent; min-width: 64px; }
+.chip.wx .feels { font-size:11px; font-weight:600; color:#64748b; }
+.chip.wx .uv { display:inline-flex; align-items:center; gap:4px; border-radius:999px;
+  font-size:11px; font-weight:800; padding:2px 8px; white-space:nowrap; }
+.chip.wx .uv.low   { background:var(--uv-low-bg);   color:var(--uv-low); }
+.chip.wx .uv.mod   { background:var(--uv-mod-bg);   color:var(--uv-mod); }
+.chip.wx .uv.high  { background:var(--uv-high-bg);  color:var(--uv-high); }
+.chip.wx .uv.vhigh { background:var(--uv-vhigh-bg); color:var(--uv-vhigh); }
+.chip.wx .uv.ext   { background:var(--uv-ext-bg);   color:var(--uv-ext); }
 
 /* ── Timing-flag reason line (one inset banner below the chips) ── */
 .flag-note {
