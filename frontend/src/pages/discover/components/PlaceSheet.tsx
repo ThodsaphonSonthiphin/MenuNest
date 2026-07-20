@@ -2,6 +2,8 @@ import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import type {DiscoverPlaceView} from '../lib/discoverFilter'
 import {buildStopNavUrl} from '../../trips/lib/navUrl'
+import {ReviewIcon} from '../../trips/components/ReviewIcon'
+import {reviewLabel, reviewHost} from '../../trips/lib/reviewLinks'
 
 interface Props {
   place: DiscoverPlaceView
@@ -40,6 +42,24 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingT
         {place.seasonStatus === 'bad' && <span className="disc-badge closed">เดือนนี้ควรเลี่ยง</span>}
         {place.trips.map((t) => <span key={t.tripId} className="disc-badge trip">{t.tripName}</span>)}
       </div>
+      {place.reviewLinks.length > 0 && (
+        <div className="disc-reviews">
+          <div className="disc-sec-lab">รีวิว</div>
+          {place.reviewLinks.map((l, i) => (
+            <a key={l.url + i} className="disc-review" href={l.url} target="_blank" rel="noopener noreferrer">
+              <ReviewIcon />
+              <span className="disc-review-label">{reviewLabel(l, i)}</span>
+              <span className="disc-review-host">{reviewHost(l.url)}</span>
+            </a>
+          ))}
+        </div>
+      )}
+      {place.notes && (
+        <div className="disc-note">
+          <div className="disc-sec-lab">โน้ต</div>
+          <p className="disc-note-body">{place.notes}</p>
+        </div>
+      )}
       <div className="disc-actions">
         {navUrl && <a className="disc-abtn primary" href={navUrl} target="_blank" rel="noopener noreferrer">นำทางด้วย Google Maps</a>}
         <div className="disc-arow">

@@ -546,6 +546,8 @@ export interface DiscoverPlaceDto {
     seasonPeriods: SeasonPeriod[]
     visited: boolean
     trips: PlaceTripRefDto[]
+    reviewLinks: ReviewLink[]
+    notes: string | null
 }
 export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
 export interface WeatherReadingDto {
