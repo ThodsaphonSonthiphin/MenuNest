@@ -1,0 +1,369 @@
+<!-- @dsCard group="Screens" -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ไปไหนดี — ค้นหาที่เที่ยวที่บันทึกไว้ (map-forward)</title>
+<style>
+  :root{
+    --teal:#0e8f9e;--teal-deep:#0b7a87;--teal-soft:#e3f5f6;
+    --ink:#0f172a;--page:#f8fafc;--surface:#fff;--border:#eef2f6;--muted:#94a3b8;
+    --warn:#b4791f;--warn-bg:#fff4e0;--warn-ink:#7a5310;
+    --bad:#b42318;--bad-bg:#fdeceb;
+    --visited:#15803d;--visited-bg:#e7f6ec;
+    --review:#c2255c;--review-bg:#fdeaf1;
+    /* category colours (illustrative) */
+    --cat-eat:#e8590c;--cat-see:#0e8f9e;--cat-cafe:#9c6b3f;
+    --cat-stay:#7048e8;--cat-shop:#c2255c;--cat-other:#64748b;
+    --gps:#4285f4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef2f6;color:var(--ink);
+    font-family:'IBM Plex Sans Thai','Sarabun',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:14px;line-height:1.5;padding:22px}
+  .wrap{max-width:1180px;margin:0 auto;display:grid;gap:26px;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;justify-items:center}
+  .mono{font-family:'Spline Sans Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+  .col{display:flex;flex-direction:column;align-items:center;gap:10px;width:340px}
+  .tag{display:inline-block;background:var(--ink);color:#fff;border-radius:999px;
+    font-size:10.5px;font-weight:800;padding:3px 11px;letter-spacing:.02em}
+  .col .cap{font-size:11px;color:#475569;text-align:center;line-height:1.5;padding:0 6px}
+  .col .cap b{color:var(--ink)}
+
+  /* ---------- phone frame ---------- */
+  .phone{width:340px;height:710px;border-radius:34px;background:#0b1220;
+    padding:10px;box-shadow:0 18px 50px rgba(15,23,42,.28);position:relative}
+  .screen{position:relative;width:100%;height:100%;border-radius:26px;overflow:hidden;background:var(--page)}
+
+  /* ---------- faux map ---------- */
+  .map{position:absolute;inset:0;background:
+    radial-gradient(120px 90px at 78% 20%, #cfe8ef 0 60%, transparent 62%),  /* water */
+    radial-gradient(150px 120px at 22% 78%, #dbefd6 0 55%, transparent 57%), /* park */
+    linear-gradient(#eef4f2,#e8eef0)}
+  .map .road{position:absolute;background:#fff;box-shadow:0 0 0 1px #e2e8ec}
+  .map .r1{left:-10%;right:-10%;top:34%;height:12px;transform:rotate(-6deg)}
+  .map .r2{left:-10%;right:-10%;top:62%;height:9px;transform:rotate(4deg)}
+  .map .r3{top:-10%;bottom:-10%;left:40%;width:11px;transform:rotate(7deg)}
+  .map .r4{top:-10%;bottom:-10%;left:70%;width:7px;transform:rotate(-3deg)}
+  .map-lbl{position:absolute;font-size:10px;color:#8aa0a6;font-weight:600}
+
+  /* ---------- markers ---------- */
+  .pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;z-index:3}
+  .pin .dot{width:30px;height:30px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
+    border:2.5px solid #fff;box-shadow:0 4px 10px rgba(15,23,42,.28);display:flex;align-items:center;justify-content:center}
+  .pin .dot svg{width:15px;height:15px;transform:rotate(-45deg);color:#fff}
+  .pin.eat .dot{background:var(--cat-eat)} .pin.see .dot{background:var(--cat-see)}
+  .pin.cafe .dot{background:var(--cat-cafe)} .pin.stay .dot{background:var(--cat-stay)}
+  .pin.shop .dot{background:var(--cat-shop)} .pin.other .dot{background:var(--cat-other)}
+  .pin.dim{opacity:.4;filter:grayscale(.4)}
+  .pin.sel{z-index:6}
+  .pin.sel .dot{width:38px;height:38px;box-shadow:0 6px 18px rgba(14,143,158,.55);border-width:3px}
+  .pin.sel .dot svg{width:19px;height:19px}
+  .pin .vis-tick{position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;
+    background:var(--visited);border:2px solid #fff;display:flex;align-items:center;justify-content:center;transform:none}
+  .pin .vis-tick svg{width:8px;height:8px;color:#fff;transform:none}
+
+  /* cluster bubble */
+  .cluster{position:absolute;transform:translate(-50%,-50%);z-index:4;
+    width:44px;height:44px;border-radius:50%;background:rgba(14,143,158,.92);
+    border:3px solid #fff;box-shadow:0 5px 14px rgba(14,143,158,.5);
+    color:#fff;font-weight:800;font-size:15px;display:flex;align-items:center;justify-content:center}
+  .cluster small{position:absolute;inset:-7px;border-radius:50%;border:2px solid rgba(14,143,158,.35)}
+
+  /* GPS "you are here" */
+  .gps{position:absolute;transform:translate(-50%,-50%);z-index:5;width:18px;height:18px;border-radius:50%;
+    background:var(--gps);border:3px solid #fff;box-shadow:0 0 0 8px rgba(66,133,244,.22),0 2px 6px rgba(0,0,0,.3)}
+
+  /* callout on selected pin */
+  .callout{position:absolute;transform:translate(-50%,-100%);z-index:7;margin-top:-6px;
+    background:#fff;border-radius:10px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--ink);
+    white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+  .callout::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+
+  /* ---------- floating top bar ---------- */
+  .topbar{position:absolute;top:12px;left:12px;right:12px;z-index:10;display:flex;flex-direction:column;gap:8px}
+  .searchbar{display:flex;align-items:center;gap:9px;background:#fff;border-radius:13px;
+    padding:9px 11px;box-shadow:0 6px 20px rgba(15,23,42,.16)}
+  .searchbar .mag{width:17px;height:17px;color:var(--teal);flex:none}
+  .searchbar .title{font-size:15px;font-weight:800;color:var(--ink);flex:1}
+  .anchor{display:inline-flex;align-items:center;gap:5px;background:var(--teal-soft);color:var(--teal-deep);
+    border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:800;white-space:nowrap}
+  .anchor svg{width:13px;height:13px}
+  .anchor .cv{width:12px;height:12px;opacity:.7}
+
+  /* filter chip row */
+  .filters{display:flex;gap:7px;overflow:hidden;padding-bottom:2px}
+  .fchip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border);
+    color:#475569;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:700;white-space:nowrap;
+    box-shadow:0 2px 8px rgba(15,23,42,.08)}
+  .fchip svg{width:12px;height:12px}
+  .fchip .sw{width:24px;height:14px;border-radius:999px;background:#cbd5e1;position:relative;flex:none}
+  .fchip .sw::after{content:"";position:absolute;top:1.5px;left:1.5px;width:11px;height:11px;border-radius:50%;background:#fff;transition:.15s}
+  .fchip.on{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 3px 10px rgba(14,143,158,.4)}
+  .fchip.on .sw{background:rgba(255,255,255,.5)} .fchip.on .sw::after{left:11px}
+  .fchip.cat{background:var(--ink);border-color:var(--ink);color:#fff}
+  .fchip.cat svg{color:#9fb0c4}
+
+  /* locate FAB */
+  .fab{position:absolute;right:14px;z-index:9;width:44px;height:44px;border-radius:50%;background:#fff;
+    box-shadow:0 5px 16px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;color:var(--teal-deep)}
+  .fab svg{width:20px;height:20px}
+  .fab.locate{bottom:210px}
+
+  /* ---------- bottom sheet ---------- */
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:11;background:#fff;border-radius:20px 20px 0 0;
+    box-shadow:0 -10px 30px rgba(15,23,42,.16);padding:8px 14px 16px;max-height:64%;display:flex;flex-direction:column}
+  .grip{width:38px;height:4px;border-radius:999px;background:#cbd5e1;margin:4px auto 8px}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .sheet-head .h{font-size:13px;font-weight:800;color:var(--ink)}
+  .sheet-head .n{font-size:11px;font-weight:700;color:var(--muted)}
+  .plist{display:flex;flex-direction:column;gap:8px;overflow:auto}
+
+  .prow{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:13px;padding:9px 10px;background:#fff}
+  .prow .catdot{flex:none;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .prow .catdot svg{width:15px;height:15px;color:#fff}
+  .prow.eat .catdot{background:var(--cat-eat)} .prow.see .catdot{background:var(--cat-see)}
+  .prow.cafe .catdot{background:var(--cat-cafe)} .prow.stay .catdot{background:var(--cat-stay)}
+  .prow.shop .catdot{background:var(--cat-shop)}
+  .prow .b{flex:1;min-width:0}
+  .prow .pname{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prow .meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px}
+  .badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px}
+  .badge svg{width:10px;height:10px}
+  .badge.open{background:var(--visited-bg);color:var(--visited)}
+  .badge.closed{background:#f1f5f9;color:#64748b}
+  .badge.season{background:var(--warn-bg);color:var(--warn-ink)}
+  .badge.seasonok{background:var(--teal-soft);color:var(--teal-deep)}
+  .badge.trip{background:#eef2ff;color:#4f5bd5}
+  .badge.dist{background:transparent;color:var(--muted);font-weight:800;padding-left:0}
+  .prow.visited .pname{text-decoration:line-through;text-decoration-thickness:1.5px;color:#64748b}
+  .prow .goarrow{flex:none;color:var(--teal);display:flex}
+  .prow .goarrow svg{width:18px;height:18px}
+
+  /* ---------- expanded detail sheet (frame 2) ---------- */
+  .detail{position:absolute;left:0;right:0;bottom:0;z-index:12;background:#fff;border-radius:20px 20px 0 0;
+    box-shadow:0 -12px 34px rgba(15,23,42,.2);padding:8px 16px 18px}
+  .d-head{display:flex;align-items:flex-start;gap:10px;margin-top:4px}
+  .d-cat{flex:none;width:38px;height:38px;border-radius:11px;background:var(--cat-see);display:flex;align-items:center;justify-content:center}
+  .d-cat svg{width:19px;height:19px;color:#fff}
+  .d-title{flex:1;min-width:0}
+  .d-name{font-size:17px;font-weight:800;color:var(--ink);line-height:1.2}
+  .d-addr{font-size:12px;color:var(--muted);margin-top:2px}
+  .d-badges{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+  .d-facts{display:flex;flex-direction:column;gap:7px;background:var(--page);border:1px solid var(--border);border-radius:12px;padding:11px 12px;margin-bottom:14px}
+  .fact{display:flex;align-items:center;gap:8px;font-size:12px;color:#475569}
+  .fact svg{width:14px;height:14px;color:var(--teal);flex:none}
+  .fact b{color:var(--ink);font-weight:700}
+  .fact .trip-link{color:#4f5bd5;font-weight:700}
+
+  .d-actions{display:flex;flex-direction:column;gap:9px}
+  .abtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;
+    padding:12px;font-size:14px;font-weight:800;cursor:pointer;border:1.5px solid transparent}
+  .abtn svg{width:16px;height:16px}
+  .abtn.primary{background:var(--teal);color:#fff;box-shadow:0 6px 16px rgba(14,143,158,.4)}
+  .abtn.ghost{background:#fff;border-color:var(--border);color:#334155}
+  .arow{display:flex;gap:9px}
+  .arow .abtn{flex:1;font-size:12.5px;padding:11px 8px}
+
+  /* frame-3 scope note */
+  .scopenote{position:absolute;left:12px;right:12px;bottom:16px;z-index:11;background:rgba(15,23,42,.9);
+    color:#e2e8f0;border-radius:12px;padding:10px 13px;font-size:11.5px;font-weight:600;line-height:1.5;
+    display:flex;gap:8px;align-items:flex-start}
+  .scopenote svg{width:15px;height:15px;color:#7dd3df;flex:none;margin-top:1px}
+
+  .footcap{max-width:1180px;margin:20px auto 0;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.6}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:6px auto 0;max-width:640px}
+  .legend .lg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:#475569}
+  .legend .sw2{width:13px;height:13px;border-radius:4px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></symbol>
+  <symbol id="i-cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-nav" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11l18-8-8 18-2-8-8-2z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="17" rx="2"/><path d="M3 9h18M8 2.5v4M16 2.5v4"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M6 11v10M18 3c-1.7 0-3 2-3 5s1 4 3 4v9"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h2a2 2 0 0 1 0 5h-2"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h4l2-2.5h6L17 8h4v11H3z"/><circle cx="12" cy="13" r="3.2"/></symbol>
+  <symbol id="i-bed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18V7M3 12h18v6M21 18v-4a2 2 0 0 0-2-2M7 12V9h5v3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h8M16 18h4"/><circle cx="15" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></symbol>
+</svg>
+
+<div class="wrap">
+
+  <!-- ============ FRAME 1 — default: near me (GPS) ============ -->
+  <div class="col">
+    <span class="tag">1 · เปิดหน้า — “ใกล้ฉันตอนนี้” (GPS)</span>
+    <div class="phone"><div class="screen">
+      <div class="map">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <span class="map-lbl" style="left:60%;top:16%">คลอง</span>
+        <span class="map-lbl" style="left:14%;top:70%">สวนสาธารณะ</span>
+
+        <!-- markers around GPS -->
+        <div class="pin see" style="left:38%;top:40%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+        <div class="pin eat" style="left:60%;top:34%"><div class="dot"><svg><use href="#i-fork"/></svg></div></div>
+        <div class="pin cafe" style="left:30%;top:56%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+        <div class="pin shop" style="left:66%;top:56%"><div class="dot"><svg><use href="#i-pin"/></svg></div></div>
+        <div class="pin see visited" style="left:50%;top:64%"><div class="dot"><svg><use href="#i-cam"/></svg></div><span class="vis-tick"><svg><use href="#i-check"/></svg></span></div>
+        <div class="cluster" style="left:80%;top:44%"><small></small>5</div>
+
+        <!-- you are here -->
+        <div class="gps" style="left:49%;top:49%"></div>
+      </div>
+
+      <div class="topbar">
+        <div class="searchbar">
+          <svg class="mag"><use href="#i-mag"/></svg>
+          <span class="title">ไปไหนดี</span>
+          <span class="anchor"><svg><use href="#i-locate"/></svg>ใกล้ฉัน<svg class="cv"><use href="#i-cv"/></svg></span>
+        </div>
+        <div class="filters">
+          <span class="fchip cat"><svg><use href="#i-sliders"/></svg>ทั้งหมด<svg style="width:11px"><use href="#i-cv"/></svg></span>
+          <span class="fchip on"><span class="sw"></span>เปิดตอนนี้</span>
+          <span class="fchip on"><span class="sw"></span>เดือนนี้</span>
+          <span class="fchip on"><span class="sw"></span>ซ่อนที่ไปแล้ว</span>
+        </div>
+      </div>
+
+      <div class="fab locate"><svg><use href="#i-locate"/></svg></div>
+
+      <div class="sheet">
+        <div class="grip"></div>
+        <div class="sheet-head"><span class="h">ใกล้คุณ</span><span class="n">8 ที่ · เรียงตามระยะ</span></div>
+        <div class="plist">
+          <div class="prow see">
+            <div class="catdot"><svg><use href="#i-cam"/></svg></div>
+            <div class="b"><div class="pname">วัดพระธาตุดอยคำ</div>
+              <div class="meta"><span class="badge dist">400 ม.</span><span class="badge open"><svg><use href="#i-check"/></svg>เปิดอยู่</span><span class="badge seasonok">เดือนนี้ดี</span><span class="badge trip"><svg><use href="#i-trip"/></svg>เชียงใหม่</span></div></div>
+            <span class="goarrow"><svg><use href="#i-nav"/></svg></span>
+          </div>
+          <div class="prow eat">
+            <div class="catdot"><svg><use href="#i-fork"/></svg></div>
+            <div class="b"><div class="pname">ข้าวซอยแม่สาย</div>
+              <div class="meta"><span class="badge dist">850 ม.</span><span class="badge open"><svg><use href="#i-check"/></svg>เปิดถึง 20:00</span><span class="badge trip"><svg><use href="#i-trip"/></svg>ทริปกิน</span></div></div>
+            <span class="goarrow"><svg><use href="#i-nav"/></svg></span>
+          </div>
+          <div class="prow cafe">
+            <div class="catdot"><svg><use href="#i-cup"/></svg></div>
+            <div class="b"><div class="pname">คาเฟ่ริมดอย</div>
+              <div class="meta"><span class="badge dist">1.2 กม.</span><span class="badge closed">เปิด 09:00</span><span class="badge trip"><svg><use href="#i-trip"/></svg>เชียงใหม่</span></div></div>
+            <span class="goarrow"><svg><use href="#i-nav"/></svg></span>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <p class="cap"><b>Map คือพระเอก</b> — หมุดสีตามหมวด + จุดฟ้า “คุณอยู่นี่”. แถบชิปด้านบน = ตัวกรอง <b>เปิด/ปิดได้ทุกตัว</b>. ชีทล่างลิสต์ที่ใกล้สุดเรียงตามระยะ (เลื่อนขึ้นดูเพิ่ม).</p>
+  </div>
+
+  <!-- ============ FRAME 2 — tapped a pin → actions ============ -->
+  <div class="col">
+    <span class="tag">2 · แตะหมุด → การ์ด + ปุ่มลงมือ</span>
+    <div class="phone"><div class="screen">
+      <div class="map" style="filter:brightness(.97)">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <div class="pin eat dim" style="left:60%;top:26%"><div class="dot"><svg><use href="#i-fork"/></svg></div></div>
+        <div class="pin cafe dim" style="left:26%;top:40%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+        <div class="gps" style="left:44%;top:34%"></div>
+        <div class="callout" style="left:50%;top:26%">วัดพระธาตุดอยคำ</div>
+        <div class="pin see sel" style="left:50%;top:31%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+      </div>
+
+      <div class="detail">
+        <div class="grip"></div>
+        <div class="d-head">
+          <div class="d-cat"><svg><use href="#i-cam"/></svg></div>
+          <div class="d-title"><div class="d-name">วัดพระธาตุดอยคำ</div>
+            <div class="d-addr">ต.แม่เหียะ อ.เมืองเชียงใหม่ · 400 ม. จากคุณ</div></div>
+        </div>
+        <div class="d-badges">
+          <span class="badge open"><svg><use href="#i-check"/></svg>เปิดอยู่ · ปิด 18:00</span>
+          <span class="badge seasonok"><svg><use href="#i-sun"/></svg>เดือนนี้ควรไป</span>
+          <span class="badge trip"><svg><use href="#i-trip"/></svg>อยู่ในทริป: เชียงใหม่, ไหว้พระ</span>
+        </div>
+        <div class="d-facts">
+          <div class="fact"><svg><use href="#i-clock"/></svg>ช่วงที่ควรไป <b>เช้า 07:00–10:00</b></div>
+          <div class="fact"><svg><use href="#i-list"/></svg>เช็กลิสต์ <b>3 อย่าง</b> · รีวิว <b>2 คลิป</b></div>
+          <div class="fact"><svg><use href="#i-trip"/></svg><span class="trip-link">อยู่ใน 2 ทริป — แตะเพื่อเลือก</span></div>
+        </div>
+        <div class="d-actions">
+          <button class="abtn primary"><svg><use href="#i-nav"/></svg>นำทางด้วย Google Maps</button>
+          <div class="arow">
+            <button class="abtn ghost"><svg><use href="#i-open"/></svg>ดูรายละเอียด</button>
+            <button class="abtn ghost"><svg><use href="#i-trip"/></svg>เปิดทริป</button>
+          </div>
+          <div class="arow">
+            <button class="abtn ghost"><svg><use href="#i-plus"/></svg>เพิ่มเข้าทริป</button>
+            <button class="abtn ghost"><svg><use href="#i-plus"/></svg>สร้างทริปใหม่</button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <p class="cap"><b>Event-driven</b> — แตะหมุด/แถวในลิสต์ = เด้งการ์ดรายละเอียด. <b>นำทาง</b> เป็นปุ่มหลัก, ที่เหลือคือ ดูรายละเอียด · เปิดทริป · เพิ่มเข้าทริป · สร้างทริปใหม่ (มาร์ก “มาแล้ว” รอเคลียร์จุดกำกวม).</p>
+  </div>
+
+  <!-- ============ FRAME 3 — planning from home: pan = scope ============ -->
+  <div class="col">
+    <span class="tag">3 · วางแผนที่บ้าน — เลื่อนแผนที่ = เปลี่ยนขอบเขต</span>
+    <div class="phone"><div class="screen">
+      <div class="map" style="background:
+        radial-gradient(200px 150px at 30% 30%, #dbefd6 0 55%, transparent 57%),
+        radial-gradient(160px 120px at 80% 75%, #cfe8ef 0 55%, transparent 57%),
+        linear-gradient(#eef4f2,#e8eef0)">
+        <div class="road r1" style="top:28%"></div><div class="road r2" style="top:70%"></div><div class="road r3" style="left:52%"></div>
+        <span class="map-lbl" style="left:40%;top:8%;font-weight:800;color:#64748b">เชียงใหม่</span>
+        <!-- clusters + a few pins spread across city -->
+        <div class="cluster" style="left:34%;top:38%"><small></small>9</div>
+        <div class="cluster" style="left:64%;top:52%"><small></small>6</div>
+        <div class="pin see" style="left:48%;top:30%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+        <div class="pin cafe" style="left:74%;top:33%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+        <div class="pin stay" style="left:24%;top:62%"><div class="dot"><svg><use href="#i-bed"/></svg></div></div>
+        <div class="pin eat" style="left:52%;top:68%"><div class="dot"><svg><use href="#i-fork"/></svg></div></div>
+      </div>
+
+      <div class="topbar">
+        <div class="searchbar">
+          <svg class="mag"><use href="#i-mag"/></svg>
+          <span class="title">ไปไหนดี</span>
+          <span class="anchor"><svg><use href="#i-pin"/></svg>เชียงใหม่<svg class="cv"><use href="#i-cv"/></svg></span>
+        </div>
+        <div class="filters">
+          <span class="fchip cat"><svg><use href="#i-sliders"/></svg>เที่ยว<svg style="width:11px"><use href="#i-cv"/></svg></span>
+          <span class="fchip"><span class="sw"></span>เปิดตอนนี้</span>
+          <span class="fchip on"><span class="sw"></span>เดือนนี้</span>
+          <span class="fchip on"><span class="sw"></span>ซ่อนที่ไปแล้ว</span>
+        </div>
+      </div>
+
+      <div class="scopenote"><svg><use href="#i-locate"/></svg><span>อยู่ กทม. แต่เลื่อน/ซูมแผนที่มาที่ <b>เชียงใหม่</b> ได้ — ระบบดึงเฉพาะที่บันทึกไว้ “ในกรอบแผนที่” มาโชว์. ไม่ต้องมีเมนูเลือกพื้นที่แยก.</span></div>
+    </div></div>
+    <p class="cap"><b>ขอบเขต = กรอบแผนที่</b> — ตอนไม่ได้อยู่ปลายทาง ก็เลื่อนแผนที่ไปเมืองที่จะเที่ยว แล้วลิสต์/หมุดอัปเดตตามกรอบ (ต่อยอด ADR-095). ถ้า GPS ปิด ก็เริ่มที่ “fit ทุกที่ที่บันทึกไว้”.</p>
+  </div>
+
+</div>
+
+<div class="legend">
+  <span class="lg"><span class="sw2" style="background:var(--cat-see)"></span>เที่ยว</span>
+  <span class="lg"><span class="sw2" style="background:var(--cat-eat)"></span>กิน</span>
+  <span class="lg"><span class="sw2" style="background:var(--cat-cafe)"></span>คาเฟ่</span>
+  <span class="lg"><span class="sw2" style="background:var(--cat-stay)"></span>ที่พัก</span>
+  <span class="lg"><span class="sw2" style="background:var(--cat-shop)"></span>ช้อป</span>
+  <span class="lg"><span class="sw2" style="background:var(--gps)"></span>คุณอยู่นี่ (GPS)</span>
+</div>
+<p class="footcap">MenuNest · ฟีเจอร์ “ไปไหนดี / วันนี้ไปเที่ยวไหนดี” — mockup ประกอบ grill-then-plan (ADR 094–098).<br/>
+ที่มา = ที่เที่ยวที่ “บันทึกไว้แล้ว” ข้ามทุกทริป (ไม่เสียค่า Google เพิ่ม) · แผนที่/หมุดเป็นภาพจำลอง (ของจริงใช้ @vis.gl/react-google-maps) · ไอคอน = inline SVG ไม่ใช่ emoji</p>
+</body>
+</html>
