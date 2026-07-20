@@ -9,5 +9,5 @@ public sealed class MissingConfigWeatherService : IWeatherService
     public Task<IReadOnlyList<WeatherReading>> GetReadingsAsync(
         IReadOnlyList<WeatherPoint> points, WeatherReadingKind kind, CancellationToken ct)
         => Task.FromResult<IReadOnlyList<WeatherReading>>(
-            points.Select(p => new WeatherReading(p.StopId, false, null, null, null, null, null)).ToList());
+            points.Select(p => new WeatherReading(p.StopId, false, null, null, null, null, null, null, null)).ToList());
 }

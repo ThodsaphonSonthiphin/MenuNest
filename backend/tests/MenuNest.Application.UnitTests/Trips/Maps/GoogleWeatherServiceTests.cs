@@ -114,6 +114,40 @@ public class GoogleWeatherServiceTests
     }
 
     [Fact]
+    public async Task Now_parses_uv_index_and_feels_like()
+    {
+        const string json =
+            "{\"weatherCondition\":{\"type\":\"CLEAR\"}," +
+            "\"temperature\":{\"degrees\":34.0}," +
+            "\"feelsLikeTemperature\":{\"unit\":\"CELSIUS\",\"degrees\":39.4}," +
+            "\"uvIndex\":9}";
+        var svc = Build(new StubHandler(HttpStatusCode.OK, json));
+
+        var r = (await svc.GetReadingsAsync(OnePoint, WeatherReadingKind.Now, CancellationToken.None))[0];
+
+        r.HasData.Should().BeTrue();
+        r.UvIndex.Should().Be(9);
+        r.FeelsLikeC.Should().Be(39.4);
+    }
+
+    [Fact]
+    public async Task OnArrival_parses_uv_index_and_feels_like()
+    {
+        const string json =
+            "{\"forecastHours\":[" +
+            "{\"displayDateTime\":{\"year\":2026,\"month\":7,\"day\":12,\"hours\":14}," +
+            "\"weatherCondition\":{\"type\":\"CLEAR\"},\"temperature\":{\"degrees\":31.0}," +
+            "\"feelsLikeTemperature\":{\"degrees\":35.2},\"uvIndex\":2}]}";
+        var svc = Build(new StubHandler(HttpStatusCode.OK, json));
+        var pts = new List<WeatherPoint> { new("s1", 13.7563, 100.5018, new DateTime(2026, 7, 12, 14, 30, 0)) };
+
+        var r = (await svc.GetReadingsAsync(pts, WeatherReadingKind.OnArrival, CancellationToken.None))[0];
+
+        r.UvIndex.Should().Be(2);
+        r.FeelsLikeC.Should().Be(35.2);
+    }
+
+    [Fact]
     public async Task Now_failure_degrades_to_no_data()
     {
         var svc = Build(new StubHandler(HttpStatusCode.Forbidden, "{\"error\":{\"status\":\"PERMISSION_DENIED\"}}"));

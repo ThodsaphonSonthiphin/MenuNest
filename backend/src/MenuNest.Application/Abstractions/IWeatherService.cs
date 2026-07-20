@@ -2,7 +2,10 @@ using MenuNest.Domain.Enums;
 namespace MenuNest.Application.Abstractions;
 
 public sealed record WeatherPoint(string StopId, double Lat, double Lng, DateTime? ArrivalLocal);
-public sealed record WeatherReading(string StopId, bool HasData, string? ConditionType, string? IconBaseUri, double? TempC, int? RainPct, string? Description);
+public sealed record WeatherReading(
+    string StopId, bool HasData, string? ConditionType, string? IconBaseUri,
+    double? TempC, int? RainPct, string? Description,
+    int? UvIndex, double? FeelsLikeC);
 
 public interface IWeatherService
 {
