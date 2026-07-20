@@ -21,13 +21,13 @@ public static class OAuthEndpoints
             (HttpRequest r) => Results.Ok(OAuthDiscovery.AuthorizationServer(BaseUrl(r)))).AllowAnonymous();
 
         // --- DCR (RFC 7591) ---
-        app.MapPost("/oauth/register", (DcrRequest body, ClientStore clients) =>
+        app.MapPost("/oauth/register", async (DcrRequest body, ClientStore clients) =>
         {
             var uris = body.redirect_uris ?? Array.Empty<string>();
             if (uris.Length == 0 || uris.Any(u => !RedirectAllowlist.IsAllowed(u)))
                 return Results.BadRequest(new { error = "invalid_redirect_uri" });
 
-            var id = clients.Register(body.client_name ?? "mcp-client", uris, body.scope);
+            var id = await clients.RegisterAsync(body.client_name ?? "mcp-client", uris, body.scope);
             return Results.Created((string?)null, new
             {
                 client_id = id,
@@ -40,7 +40,7 @@ public static class OAuthEndpoints
         }).AllowAnonymous();
 
         // --- Authorize: validate, store flow, redirect to Entra (NO resource param) ---
-        app.MapGet("/oauth/authorize", (
+        app.MapGet("/oauth/authorize", async (
             [FromQuery] string client_id,
             [FromQuery] string redirect_uri,
             [FromQuery] string code_challenge,
@@ -49,7 +49,8 @@ public static class OAuthEndpoints
             [FromQuery] string? scope,
             ClientStore clients, PkceStateStore flows, EntraClient entra) =>
         {
-            if (!clients.TryGet(client_id, out var reg) || !reg.RedirectUris.Contains(redirect_uri))
+            var reg = await clients.GetAsync(client_id);
+            if (reg is null || !reg.RedirectUris.Contains(redirect_uri))
                 return Results.BadRequest(new { error = "invalid_client" });
             if (!RedirectAllowlist.IsAllowed(redirect_uri))
                 return Results.BadRequest(new { error = "invalid_redirect_uri" });
