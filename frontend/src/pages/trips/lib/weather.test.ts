@@ -1,7 +1,9 @@
 import {describe, it, expect} from 'vitest'
 import {
   weatherWindow, iconUrl, isRainy, RAIN_TINT_THRESHOLD, weatherChipState, arrivalIso, buildWeatherBatches,
+  uvBand, effectiveThreshold, weatherAlertBadges,
 } from './weather'
+import type {WeatherReadingDto} from '../../../shared/api/api'
 
 const HOUR = 3600_000
 const H240 = 240 * HOUR
@@ -30,9 +32,9 @@ describe('weatherChipState', () => {
   it('is loading when loading and no reading yet', () => expect(weatherChipState(true, undefined)).toBe('loading'))
   it('is nodata when reading missing and not loading', () => expect(weatherChipState(false, undefined)).toBe('nodata'))
   it('is nodata when reading has no data', () =>
-    expect(weatherChipState(false, {stopId: 's', hasData: false, conditionType: null, iconBaseUri: null, tempC: null, rainPct: null, description: null})).toBe('nodata'))
+    expect(weatherChipState(false, {stopId: 's', hasData: false, conditionType: null, iconBaseUri: null, tempC: null, rainPct: null, description: null, uvIndex: null, feelsLikeC: null})).toBe('nodata'))
   it('is data when reading has data', () =>
-    expect(weatherChipState(false, {stopId: 's', hasData: true, conditionType: 'CLOUDY', iconBaseUri: 'x', tempC: 29, rainPct: 20, description: 'y'})).toBe('data'))
+    expect(weatherChipState(false, {stopId: 's', hasData: true, conditionType: 'CLOUDY', iconBaseUri: 'x', tempC: 29, rainPct: 20, description: 'y', uvIndex: null, feelsLikeC: null})).toBe('data'))
 })
 
 describe('arrivalIso', () => {
@@ -57,4 +59,42 @@ describe('buildWeatherBatches', () => {
     expect(arrival.map((p) => p.stopId)).toEqual(['s1'])
     expect(arrival[0].arrivalIso).toBe('2026-07-12T09:00:00')
   })
+})
+
+describe('uvBand', () => {
+  it('bands the WHO scale', () => {
+    expect(uvBand(2).word).toBe('ต่ำ')
+    expect(uvBand(3).key).toBe('mod')
+    expect(uvBand(5).word).toBe('ปานกลาง')
+    expect(uvBand(6).key).toBe('high')
+    expect(uvBand(7).word).toBe('สูง')
+    expect(uvBand(8).key).toBe('vhigh')
+    expect(uvBand(10).word).toBe('สูงมาก')
+    expect(uvBand(11).key).toBe('ext')
+    expect(uvBand(13).word).toBe('อันตราย')
+  })
+})
+
+describe('effectiveThreshold', () => {
+  it('null -> default', () => expect(effectiveThreshold(null, 6)).toBe(6))
+  it('undefined -> default', () => expect(effectiveThreshold(undefined, 40)).toBe(40))
+  it('0 -> off', () => expect(effectiveThreshold(0, 6)).toBeNull())
+  it('N -> N', () => expect(effectiveThreshold(8, 6)).toBe(8))
+})
+
+const wr = (over: Partial<WeatherReadingDto>): WeatherReadingDto => ({
+  stopId: 's', hasData: true, conditionType: null, iconBaseUri: null,
+  tempC: 30, rainPct: 0, description: null, uvIndex: null, feelsLikeC: null, ...over,
+})
+
+describe('weatherAlertBadges', () => {
+  it('empty without a usable arrival reading', () => {
+    expect(weatherAlertBadges(undefined, null, null)).toEqual({})
+    expect(weatherAlertBadges(wr({hasData: false}), null, null)).toEqual({})
+  })
+  it('uv badge at/above default 6', () => expect(weatherAlertBadges(wr({uvIndex: 9}), null, null)).toEqual({uv: 9}))
+  it('no uv badge below threshold', () => expect(weatherAlertBadges(wr({uvIndex: 2}), null, null)).toEqual({}))
+  it('feels badge rounds vs default 40', () => expect(weatherAlertBadges(wr({feelsLikeC: 40.4}), null, null)).toEqual({feels: 40}))
+  it('0 disables an axis', () => expect(weatherAlertBadges(wr({uvIndex: 11, feelsLikeC: 45}), 0, 0)).toEqual({}))
+  it('custom thresholds both fire', () => expect(weatherAlertBadges(wr({uvIndex: 3, feelsLikeC: 38}), 3, 38)).toEqual({uv: 3, feels: 38}))
 })

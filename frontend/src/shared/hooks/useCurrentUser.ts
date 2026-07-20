@@ -48,6 +48,8 @@ export function useCurrentUser() {
     userId: me?.userId ?? null,
     familyId: me?.familyId ?? null,
     homePath: me?.homePath ?? null,
+    uvWarnThreshold: me?.uvWarnThreshold ?? null,
+    feelsLikeWarnThreshold: me?.feelsLikeWarnThreshold ?? null,
     familyName: me?.familyName ?? null,
     familyInviteCode: me?.familyInviteCode ?? null,
     authProvider: me?.authProvider ?? (isMsalAuth ? 'Microsoft' : googleUser ? 'Google' : null),

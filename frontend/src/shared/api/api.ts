@@ -104,6 +104,8 @@ export interface MeDto {
     familyInviteCode: string | null
     authProvider: string
     homePath: string | null
+    uvWarnThreshold: number | null
+    feelsLikeWarnThreshold: number | null
 }
 
 export interface FamilyDto {
@@ -531,6 +533,7 @@ export interface WeatherPointDto { stopId: string; lat: number; lng: number; arr
 export interface WeatherReadingDto {
     stopId: string; hasData: boolean; conditionType: string | null; iconBaseUri: string | null
     tempC: number | null; rainPct: number | null; description: string | null
+    uvIndex: number | null; feelsLikeC: number | null
 }
 
 // ----------------------------------------------------------------------
@@ -605,7 +608,10 @@ export const api = createApi({
             query: () => '/api/me',
             providesTags: ['Me'],
         }),
-        updateUserSettings: build.mutation<{ homePath: string | null }, { homePath: string | null }>({
+        updateUserSettings: build.mutation<
+            { homePath: string | null; uvWarnThreshold: number | null; feelsLikeWarnThreshold: number | null },
+            { homePath: string | null; uvWarnThreshold: number | null; feelsLikeWarnThreshold: number | null }
+        >({
             query: (body) => ({
                 url: '/api/me/settings',
                 method: 'PUT',

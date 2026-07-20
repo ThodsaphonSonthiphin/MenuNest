@@ -11,7 +11,8 @@ export interface StopWeather {
 }
 
 const noData = (stopId: string): WeatherReadingDto => ({
-  stopId, hasData: false, conditionType: null, iconBaseUri: null, tempC: null, rainPct: null, description: null,
+  stopId, hasData: false, conditionType: null, iconBaseUri: null, tempC: null, rainPct: null,
+  description: null, uvIndex: null, feelsLikeC: null,
 })
 
 export function useStopWeather(
