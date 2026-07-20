@@ -1,3 +1,7 @@
+using System.Text.Json;
+using MenuNest.Application.Abstractions;
+using MenuNest.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace MenuNest.WebApi.Oauth;
@@ -6,19 +10,32 @@ public record ClientRegistration(string ClientId, string[] RedirectUris);
 public record PkceFlow(string ClientRedirectUri, string ClientState, string ClientCodeChallenge, string OurVerifier, string Scope);
 public record AuthCodeData(string ClientCodeChallenge, string Subject, string ClientId, string Scope, string? Name, string? Email, string EntraRefreshToken);
 
-/// <summary>DCR client registrations. In-memory; single-instance assumption (see ADR-003).</summary>
-public sealed class ClientStore(IMemoryCache cache)
+/// <summary>DCR client registrations. Durable in SQL (ADR-037).</summary>
+public sealed class ClientStore(IApplicationDbContext db)
 {
-    public string Register(string name, string[] redirectUris, string? scope)
+    public async Task<string> RegisterAsync(string name, string[] redirectUris, string? scope, CancellationToken ct = default)
     {
         var clientId = TokenUtil.Opaque(16);
-        cache.Set($"client:{clientId}", new ClientRegistration(clientId, redirectUris),
-            TimeSpan.FromDays(30));
+        db.OAuthClients.Add(new OAuthClient
+        {
+            ClientId = clientId,
+            ClientName = name,
+            RedirectUrisJson = JsonSerializer.Serialize(redirectUris),
+            Scope = scope,
+            ExpiresAt = DateTime.UtcNow.AddDays(365),
+        });
+        await db.SaveChangesAsync(ct);
         return clientId;
     }
 
-    public bool TryGet(string clientId, out ClientRegistration reg)
-        => cache.TryGetValue($"client:{clientId}", out reg!);
+    public async Task<ClientRegistration?> GetAsync(string clientId, CancellationToken ct = default)
+    {
+        var row = await db.OAuthClients
+            .FirstOrDefaultAsync(c => c.ClientId == clientId && c.ExpiresAt > DateTime.UtcNow, ct);
+        return row is null
+            ? null
+            : new ClientRegistration(row.ClientId, JsonSerializer.Deserialize<string[]>(row.RedirectUrisJson) ?? Array.Empty<string>());
+    }
 }
 
 /// <summary>Authorize→callback flow state. Short-lived, single-use.</summary>
