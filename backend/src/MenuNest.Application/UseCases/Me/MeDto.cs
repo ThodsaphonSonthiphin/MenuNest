@@ -13,4 +13,6 @@ public sealed record MeDto(
     string? FamilyName,
     string? FamilyInviteCode,
     string AuthProvider,
-    string? HomePath);
+    string? HomePath,
+    int? UvWarnThreshold,
+    int? FeelsLikeWarnThreshold);

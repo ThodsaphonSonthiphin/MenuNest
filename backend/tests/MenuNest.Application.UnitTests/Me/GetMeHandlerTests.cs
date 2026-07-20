@@ -65,4 +65,25 @@ public sealed class GetMeHandlerTests
 
         me.HomePath.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Returns_weather_alert_thresholds_from_settings()
+    {
+        using var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open();
+        using var ctx = NewContext(conn);
+        var user = User.CreateFromExternalLogin("ext-wx", "w@b.com", "W", AuthProvider.Microsoft);
+        ctx.Users.Add(user);
+        var settings = UserSettings.Create(user.Id);
+        settings.SetWeatherAlerts(6, 40);
+        ctx.UserSettings.Add(settings);
+        await ctx.SaveChangesAsync();
+        var provisioner = new Mock<IUserProvisioner>();
+        provisioner.Setup(p => p.GetOrProvisionCurrentAsync(It.IsAny<CancellationToken>())).ReturnsAsync(user);
+
+        var me = await new GetMeHandler(provisioner.Object, ctx).Handle(new GetMeQuery(), CancellationToken.None);
+
+        me.UvWarnThreshold.Should().Be(6);
+        me.FeelsLikeWarnThreshold.Should().Be(40);
+    }
 }

@@ -15,6 +15,11 @@ public sealed class UserSettings : Entity
     /// <summary>The route "/" resolves to, e.g. "/pomodoro". Null = unset.</summary>
     public string? HomePath { get; private set; }
 
+    /// <summary>UV-index warn threshold. Null = default (6); 0 = off; N = warn at UV >= N.</summary>
+    public int? UvWarnThreshold { get; private set; }
+    /// <summary>Feels-like warn threshold in C. Null = default (40); 0 = off; N = warn at feels >= N.</summary>
+    public int? FeelsLikeWarnThreshold { get; private set; }
+
     // EF Core
     private UserSettings() { }
 
@@ -37,6 +42,13 @@ public sealed class UserSettings : Entity
         }
 
         HomePath = trimmed;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetWeatherAlerts(int? uv, int? feels)
+    {
+        UvWarnThreshold = uv;
+        FeelsLikeWarnThreshold = feels;
         UpdatedAt = DateTime.UtcNow;
     }
 }

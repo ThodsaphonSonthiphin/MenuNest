@@ -35,6 +35,8 @@ public sealed class GetMeHandler : IQueryHandler<GetMeQuery, MeDto>
             FamilyName: user.Family?.Name,
             FamilyInviteCode: user.Family?.InviteCode.Value,
             AuthProvider: user.AuthProvider.ToString(),
-            HomePath: settings?.HomePath);
+            HomePath: settings?.HomePath,
+            UvWarnThreshold: settings?.UvWarnThreshold,
+            FeelsLikeWarnThreshold: settings?.FeelsLikeWarnThreshold);
     }
 }
