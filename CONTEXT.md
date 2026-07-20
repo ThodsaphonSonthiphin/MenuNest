@@ -174,8 +174,9 @@ the glossary wins until the glossary is deliberately changed.
   blank. Set by the **Trip** owner in the Stop editor and surfaced on the **Stop** card as a
   click-to-open affordance that opens the review in a **new browser tab** (never in-app), mirroring the
   **Navigate hand-off** anchor. Reference/display data only — it never feeds the **Smart Schedule**,
-  **Timing flags**, or any computed value (ADR-049). _Avoid_: note (that is the free-text **Notes**
-  field on the Place), attachment, media, embed.
+  **Timing flags**, or any computed value (ADR-049). A Review link now **write-throughs to the master
+  Place profile** on every per-trip save (ADR-103) and is **surfaced read-only on Discover** (ADR-102,
+  ADR-104). _Avoid_: note (that is the free-text **Place note** field on the Place), attachment, media, embed.
 - **Checklist item** — a **User**-scoped, reusable label for something to bring/prepare for a
   visit (e.g. ร่ม, พาสปอร์ต, ครีมกันแดด). Owned by the **User**, *not* a Trip or a Place, so one item
   is reused across many **Places** and across many **Trips** — that reuse is the whole point
@@ -201,13 +202,23 @@ the glossary wins until the glossary is deliberately changed.
   **Visited**; display-only, it never feeds any computed value (ADR-059). _Avoid_: done; **Visited**
   (that is the per-**Stop** been-there marker, a different concept).
 - **Place profile** — a **User**-scoped, reusable *master* record of the user's own enrichment for one
-  Google place: its best-time window, **Review link** list, and a **Checklist** item-set. Keyed by
+  Google place: its best-time window, a free-text **Place note**, a **Review link** list, and a
+  **Checklist** item-set. Keyed by
   (**User**, google **`place_id`**), unique per user (ADR-063). Distinct from a **Place** (TripPlace,
   the per-trip snapshot): a Place is **seeded** from its Place profile on **Capture**, and per-trip edits
   are a **Per-trip override** that never changes the profile unless the user does an explicit **Push to
   master**. Holds no per-trip state — the checklist **Checked** flag is never stored here. Only
   place_id-anchored Places have one; it survives when a Place is removed from a Trip (ADR-065). Mirrors
-  the ownership of the **Checklist library** (ADR-058). _Avoid_: master place, saved place, global Place.
+  the ownership of the **Checklist library** (ADR-058). Its **Place note** + **Review link**s
+  **write-through** to the master on every per-trip save so they stay fresh on **Discover**, while
+  best-time / season / checklist remain push-only (ADR-102, ADR-103). _Avoid_: master place, saved place, global Place.
+- **Place note** — a free-text note **about a Place**, stored on the **Place profile** master (one per
+  User + Google `place_id`, cross-trip; issue #44, ADR-101). Distinct from the structured **Review link**
+  (clickable video links) and from a **Season note** (a reason on a **Season period**). Set via the MCP
+  `update_trip_place` (write-through to the master, ADR-103) — no manual web editor in Phase 1 — and
+  surfaced **read-only** on **Discover** and the trip **StopDetailSheet** (ADR-104). A `TripPlace.Notes`
+  copy is retained per-trip for the trip card and as the fallback when a Place has no `place_id`.
+  _Avoid_: comment, description, memo; **Review link** (the clickable field), **Season note** (period reason).
 - **Seed-on-capture** — copying a **Place profile**'s enrichment into a newly **Captured** **Place**
   (TripPlace) so the data is present without re-entry (ADR-064). _Avoid_: import, sync.
 - **Per-trip override** — an edit to a **Place**'s enrichment that changes only that Trip's **Place**
@@ -243,7 +254,8 @@ the glossary wins until the glossary is deliberately changed.
   browsing (issue #42). It closes the gap that Places are otherwise reachable only inside one Trip.
   Phase 1 sources **only already-saved Places** — no live Google nearby search (ADR-094); it is
   **map-forward and event-driven** (ADR-097), reads via a User-scoped `GET /api/places` (ADR-100), and
-  is a selectable **Home page** (ADR-099). _Avoid_: Explore, Nearby, Around-me, Location list.
+  is a selectable **Home page** (ADR-099). A selected Place's detail sheet also surfaces its **Review
+  link**s and **Place note** from the master, read-only (ADR-102, ADR-104). _Avoid_: Explore, Nearby, Around-me, Location list.
 - **Discovery scope** — what bounds the set of **Places** shown in **Discover**: by default the area
   around the viewer's **live location**, changed by panning/zooming the map (the **map viewport is the
   scope**) or picking an area / **Trip** (ADR-095, ADR-097). Distinct from a **Trip** (which owns a
