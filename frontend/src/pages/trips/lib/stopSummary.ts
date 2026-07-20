@@ -7,7 +7,7 @@
 import type {WeatherReadingDto} from '../../../shared/api/api'
 import type {FlagSeverity, StopFlag} from '../hooks/useSchedule'
 import {flagText} from '../timingFlag'
-import {isRainy} from './weather'
+import {isRainy, weatherAlertBadges} from './weather'
 import {formatDurationMinutes} from '../utils/time'
 
 export interface StopSummary {
@@ -17,16 +17,22 @@ export interface StopSummary {
   dwellText: string
   /** Timing-flag severity (drives the dot colour) + short reason label, or null. */
   flag: {severity: FlagSeverity; label: string} | null
+  /** Threshold-crossing badges (On-arrival only, ADR-092) -- empty when nothing crosses. */
+  alerts: {uv?: number; feels?: number}
 }
 
 export function buildStopSummary({
   arrivalReading,
   dwellMinutes,
   flag,
+  uvWarn,
+  feelsWarn,
 }: {
   arrivalReading?: WeatherReadingDto
   dwellMinutes: number
   flag: StopFlag
+  uvWarn?: number | null
+  feelsWarn?: number | null
 }): StopSummary {
   let weather: StopSummary['weather'] = null
   if (arrivalReading?.hasData && (arrivalReading.description || arrivalReading.iconBaseUri)) {
@@ -39,5 +45,6 @@ export function buildStopSummary({
     weather,
     dwellText: `อยู่ ${formatDurationMinutes(dwellMinutes)}`,
     flag: flag ? {severity: flag.severity, label: flagText(flag).reasonLine} : null,
+    alerts: weatherAlertBadges(arrivalReading, uvWarn ?? null, feelsWarn ?? null),
   }
 }
