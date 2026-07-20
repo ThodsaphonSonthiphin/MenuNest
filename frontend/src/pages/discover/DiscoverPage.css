@@ -380,3 +380,5 @@
 @media (max-width: 380px) {
   .disc-sheet { max-height: 40%; }
 }
+
+.disc-trip-choose { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }

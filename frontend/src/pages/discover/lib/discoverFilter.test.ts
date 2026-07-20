@@ -7,10 +7,10 @@ const NOW = new Date(2026, 5, 1, 10, 0, 0)
 const openMon = JSON.stringify({periods: [{open: {day: 1, hour: 9, minute: 0}, close: {day: 1, hour: 17, minute: 0}}]})
 
 const place = (over: Partial<DiscoverPlaceDto>): DiscoverPlaceDto => ({
-  key: 'k', googlePlaceId: 'g', representativeTripPlaceId: 't', name: 'P',
+  key: 'k', googlePlaceId: 'g', name: 'P',
   lat: 13.75, lng: 100.5, address: null, category: 'See', priceLevel: null, photoUrl: null,
   openingHoursJson: null, bestTimeStart: null, bestTimeEnd: null, seasonPeriods: [],
-  visited: false, hasProfile: false, trips: [], ...over,
+  visited: false, trips: [], ...over,
 })
 
 const base: DiscoverInput = {

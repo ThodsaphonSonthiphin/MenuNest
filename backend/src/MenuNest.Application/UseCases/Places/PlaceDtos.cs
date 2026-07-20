@@ -14,7 +14,6 @@ public sealed record PlaceTripRefDto(Guid TripId, string TripName);
 public sealed record DiscoverPlaceDto(
     string Key,
     string? GooglePlaceId,
-    Guid RepresentativeTripPlaceId,
     string Name,
     double Lat,
     double Lng,
@@ -27,5 +26,4 @@ public sealed record DiscoverPlaceDto(
     TimeOnly? BestTimeEnd,
     IReadOnlyList<SeasonPeriodDto> SeasonPeriods,
     bool Visited,
-    bool HasProfile,
     IReadOnlyList<PlaceTripRefDto> Trips);
