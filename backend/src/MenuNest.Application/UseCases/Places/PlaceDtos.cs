@@ -26,4 +26,6 @@ public sealed record DiscoverPlaceDto(
     TimeOnly? BestTimeEnd,
     IReadOnlyList<SeasonPeriodDto> SeasonPeriods,
     bool Visited,
-    IReadOnlyList<PlaceTripRefDto> Trips);
+    IReadOnlyList<PlaceTripRefDto> Trips,
+    IReadOnlyList<ReviewLinkDto> ReviewLinks,
+    string? Notes);

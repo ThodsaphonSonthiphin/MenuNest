@@ -38,7 +38,15 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
             .Distinct()
             .ToListAsync(ct)).ToHashSet();
 
-        var groups = rows.GroupBy(r => r.Place.GooglePlaceId ?? $"tp:{r.Place.Id}");
+        var groups = rows.GroupBy(r => r.Place.GooglePlaceId ?? $"tp:{r.Place.Id}").ToList();
+
+        var repGpids = groups
+            .Select(g => g.OrderByDescending(r => r.Place.UpdatedAt ?? r.Place.CreatedAt).First().Place.GooglePlaceId)
+            .Where(id => id != null).Select(id => id!).Distinct().ToList();
+        var profileByGpid = (await _db.PlaceProfiles
+                .Where(p => p.UserId == user.Id && repGpids.Contains(p.GooglePlaceId))
+                .ToListAsync(ct))
+            .ToDictionary(p => p.GooglePlaceId);
 
         var result = new List<DiscoverPlaceDto>();
         foreach (var g in groups)
@@ -49,6 +57,12 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
                          .Select(x => x.First())
                          .ToList();
             var visited = g.Any(r => visitedPlaceIds.Contains(r.Place.Id));
+
+            var master = rep.GooglePlaceId != null && profileByGpid.TryGetValue(rep.GooglePlaceId, out var pf) ? pf : null;
+            // Empty-aware: a null OR empty master list falls back to the rep TripPlace (heals #33 pre-write-through data).
+            var reviewSrc = master?.ReviewLinks is { Count: > 0 } ml ? ml : rep.ReviewLinks;
+            var reviewLinks = reviewSrc.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList();
+            var notes = master?.Notes ?? rep.Notes;
 
             result.Add(new DiscoverPlaceDto(
                 g.Key,
@@ -65,7 +79,9 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
                 rep.BestTimeEnd,
                 rep.SeasonPeriods.Select(s => new SeasonPeriodDto(s.Kind, s.Months.ToList(), s.Note)).ToList(),
                 visited,
-                trips));
+                trips,
+                reviewLinks,
+                notes));
         }
 
         return result.OrderBy(r => r.Name).ToList();
