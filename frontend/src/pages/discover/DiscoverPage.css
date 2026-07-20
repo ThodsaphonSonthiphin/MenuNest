@@ -296,6 +296,86 @@
 .disc-arow { display: flex; gap: 9px; }
 .disc-arow .disc-abtn { flex: 1; font-size: 12.5px; padding: 11px 8px; }
 
+/* ── Add-to-trip modal (#42): fixed full-viewport overlay above the map,
+   topbar (z-index 10) and both bottom sheets (11/12) — centers a card with
+   its own scroll region so a long trip list never gets clipped out of reach. ── */
+.disc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.disc-modal-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+}
+
+.disc-modal-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.disc-modal-head button {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.disc-modal-head button:hover { background: #f1f5f9; color: var(--ink); }
+
+.disc-trip-list {
+  list-style: none;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.disc-trip-item {
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 11px 13px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.disc-trip-item:hover { background: var(--teal-soft); border-color: var(--teal); }
+.disc-trip-item:disabled { opacity: 0.5; cursor: default; }
+
 /* ── Responsive: keep sheets from swallowing the map on very small screens ── */
 @media (max-width: 380px) {
   .disc-sheet { max-height: 40%; }
