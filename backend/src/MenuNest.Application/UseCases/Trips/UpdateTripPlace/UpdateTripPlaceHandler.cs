@@ -33,7 +33,11 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
 
         // First-enrichment auto-create: snapshot the place''s current enrichment into a new master
         // iff none exists yet (ADR-064). No-op once a master exists (per-trip override).
-        await PlaceProfileSync.EnsureCreatedAsync(_db, user.Id, place, ct);
+        // When a master already exists, write-through only Notes + ReviewLinks (ADR-103) —
+        // best-time/season/checklist remain push-only via push_place_profile.
+        var createdMaster = await PlaceProfileSync.EnsureCreatedAsync(_db, user.Id, place, ct);
+        if (!createdMaster)
+            await PlaceProfileSync.WriteThroughNotesAndLinksAsync(_db, user.Id, place, ct);
         await _db.SaveChangesAsync(ct);
 
         var hasProfile = await PlaceProfileSync.ExistsAsync(_db, user.Id, place.GooglePlaceId, ct);

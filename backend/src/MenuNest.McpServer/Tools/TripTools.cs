@@ -94,7 +94,7 @@ public sealed class TripTools(IMediator mediator)
         => await mediator.Send(new AddTripPlaceCommand(
             tripId, name, lat, lng, category, googlePlaceId, address, priceLevel, photoUrl, openingHoursJson), ct);
 
-    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, the best-visit window (bestTimeStart/bestTimeEnd), reviewLinks, and seasonPeriods are overwritten — omitting or passing an empty/null value CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places).")]
+    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, the best-visit window (bestTimeStart/bestTimeEnd), reviewLinks, and seasonPeriods are overwritten — omitting or passing an empty/null value CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places). The notes and reviewLinks also propagate to the user's saved master profile for this place and appear on Discover immediately (no push needed).")]
     public async Task<TripPlaceDto> update_trip_place(
         [Description("Trip ID")] Guid tripId,
         [Description("Place ID")] Guid placeId,

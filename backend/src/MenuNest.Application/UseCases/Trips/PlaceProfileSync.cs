@@ -23,6 +23,7 @@ public static class PlaceProfileSync
         place.SetBestTime(profile.BestTimeStart, profile.BestTimeEnd);
         place.SetReviewLinks(profile.ReviewLinks);
         place.SetSeasonPeriods(profile.SeasonPeriods);
+        place.SetNotes(profile.Notes);
         var itemIds = await db.PlaceProfileChecklistItems
             .Where(x => x.PlaceProfileId == profile.Id)
             .Select(x => x.ChecklistItemId)
@@ -64,6 +65,7 @@ public static class PlaceProfileSync
         profile.SetBestTime(place.BestTimeStart, place.BestTimeEnd);
         profile.SetReviewLinks(place.ReviewLinks);
         profile.SetSeasonPeriods(place.SeasonPeriods);
+        profile.SetNotes(place.Notes);
 
         var currentItemIds = await db.PlaceChecklistEntries
             .Where(e => e.TripPlaceId == place.Id).Select(e => e.ChecklistItemId).ToListAsync(ct);
@@ -72,5 +74,17 @@ public static class PlaceProfileSync
         var have = links.Select(x => x.ChecklistItemId).ToHashSet();
         foreach (var id in currentItemIds.Where(id => !have.Contains(id)))
             db.PlaceProfileChecklistItems.Add(PlaceProfileChecklistItem.Create(profile.Id, id));
+    }
+
+    /// <summary>Overwrite ONLY the master's Notes + ReviewLinks from the place (write-through, ADR-103).
+    /// No-op when the place has no GooglePlaceId or no master exists yet. Caller owns SaveChanges.</summary>
+    public static async Task WriteThroughNotesAndLinksAsync(IApplicationDbContext db, Guid userId, TripPlace place, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(place.GooglePlaceId)) return;
+        var profile = await db.PlaceProfiles
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.GooglePlaceId == place.GooglePlaceId, ct);
+        if (profile is null) return;
+        profile.SetNotes(place.Notes);
+        profile.SetReviewLinks(place.ReviewLinks);
     }
 }
