@@ -5,6 +5,7 @@ using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Places.ListMyPlaces;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
+using MenuNest.Domain.ValueObjects;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -113,6 +114,57 @@ public sealed class ListMyPlacesHandlerTests : IDisposable
 
         result.Should().ContainSingle();
         result[0].Name.Should().Be("Mine place");
+    }
+
+    [Fact]
+    public async Task Surfaces_review_links_and_note_from_the_master()
+    {
+        var t = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        _db.Trips.Add(t);
+        _db.TripPlaces.Add(TripPlace.Create(t.Id, "Wat", 18.7, 98.9, PlaceCategory.See, googlePlaceId: "gp-m"));
+        var profile = PlaceProfile.Create(_user.Id, "gp-m");
+        profile.SetNotes("master note");
+        profile.SetReviewLinks(new[] { ReviewLink.Create("https://tiktok.com/x", "clip") });
+        _db.Set<PlaceProfile>().Add(profile);
+        await _db.SaveChangesAsync();
+
+        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Notes.Should().Be("master note");
+        result[0].ReviewLinks.Should().ContainSingle().Which.Url.Should().Be("https://tiktok.com/x");
+    }
+
+    [Fact]
+    public async Task Falls_back_to_trip_place_when_no_master_or_empty_master_links()
+    {
+        var t = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        _db.Trips.Add(t);
+        var p = TripPlace.Create(t.Id, "NoMaster", 18.7, 98.9, PlaceCategory.See, googlePlaceId: "gp-n");
+        p.SetNotes("trip note");
+        p.SetReviewLinks(new[] { ReviewLink.Create("https://youtu.be/y", null) });
+        _db.TripPlaces.Add(p);
+        await _db.SaveChangesAsync(); // no PlaceProfile row for gp-n
+
+        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Notes.Should().Be("trip note");
+        result[0].ReviewLinks.Should().ContainSingle().Which.Url.Should().Be("https://youtu.be/y");
+    }
+
+    [Fact]
+    public async Task Place_with_no_reviews_or_note_surfaces_empty_and_null()
+    {
+        var t = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        _db.Trips.Add(t);
+        _db.TripPlaces.Add(TripPlace.Create(t.Id, "Bare", 18.7, 98.9, PlaceCategory.See, googlePlaceId: "gp-z"));
+        await _db.SaveChangesAsync();
+
+        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
+
+        result[0].ReviewLinks.Should().BeEmpty();
+        result[0].Notes.Should().BeNull();
     }
 
     public void Dispose() { _db.Dispose(); _conn.Dispose(); }
