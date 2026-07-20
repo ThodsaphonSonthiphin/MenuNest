@@ -4,8 +4,8 @@
 // condition icon + temp + rain%. CSS classes (.chip.wx.*) land in F4.
 
 import type {WeatherReadingDto} from '../../../shared/api/api'
-import {iconUrl, isRainy, weatherChipState} from '../lib/weather'
-import {RainDropIcon, NoWeatherIcon} from './WeatherIcons'
+import {iconUrl, isRainy, weatherChipState, uvBand} from '../lib/weather'
+import {RainDropIcon, NoWeatherIcon, SunIcon} from './WeatherIcons'
 
 const LABEL = {now: 'ตอนนี้', arr: 'ไปถึง'} as const
 
@@ -47,6 +47,11 @@ export function WeatherChip({
         <span className="r"><RainDropIcon />{r.rainPct}%</span>
       )}
       {r.tempC != null && <span className="t">{Math.round(r.tempC)}°</span>}
+      {r.feelsLikeC != null && <span className="feels">รู้สึก {Math.round(r.feelsLikeC)}°</span>}
+      {r.uvIndex != null && (() => {
+        const b = uvBand(r.uvIndex)
+        return <span className={`uv ${b.key}`}><SunIcon /> UV {r.uvIndex} {b.word}</span>
+      })()}
     </span>
   )
 }

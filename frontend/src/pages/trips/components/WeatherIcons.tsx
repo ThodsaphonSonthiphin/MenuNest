@@ -36,3 +36,22 @@ export function NoWeatherIcon({className}: IconProps) {
     </svg>
   )
 }
+
+/** Sun — leads the UV badge in a weather chip. */
+export function SunIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="12" r="4.2" />
+      <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" />
+    </svg>
+  )
+}
+
+/** Thermometer — reserved for a future feels-like glyph treatment. */
+export function ThermoIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M14 14.76V5a2 2 0 1 0-4 0v9.76a4 4 0 1 0 4 0z" />
+    </svg>
+  )
+}
