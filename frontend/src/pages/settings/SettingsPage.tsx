@@ -7,7 +7,7 @@ import { homeOptions } from './homeOptions'
 import './SettingsPage.css'
 
 export function SettingsPage() {
-  const { familyId, homePath } = useCurrentUser()
+  const { familyId, homePath, uvWarnThreshold, feelsLikeWarnThreshold } = useCurrentUser()
   const [updateSettings, { isLoading }] = useUpdateUserSettingsMutation()
   const [saved, setSaved] = useState(false)
 
@@ -19,7 +19,7 @@ export function SettingsPage() {
     const path = e.value as string
     setSaved(false)
     try {
-      await updateSettings({ homePath: path }).unwrap()
+      await updateSettings({ homePath: path, uvWarnThreshold, feelsLikeWarnThreshold }).unwrap()
       setSaved(true)
     } catch {
       // Save failed (network/500): leave "บันทึกแล้ว" hidden. No crash, no

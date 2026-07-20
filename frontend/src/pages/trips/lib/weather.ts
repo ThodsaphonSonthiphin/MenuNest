@@ -60,3 +60,41 @@ export function buildWeatherBatches(
   }
   return {now, arrival}
 }
+
+
+export const UV_WARN_DEFAULT = 6
+export const FEELS_WARN_DEFAULT = 40
+
+export type UvBandKey = 'low' | 'mod' | 'high' | 'vhigh' | 'ext'
+/** WHO UV band -> key + canonical Thai word (CONTEXT.md). */
+export function uvBand(uv: number): {key: UvBandKey; word: string} {
+  if (uv <= 2) return {key: 'low', word: 'ต่ำ'}
+  if (uv <= 5) return {key: 'mod', word: 'ปานกลาง'}
+  if (uv <= 7) return {key: 'high', word: 'สูง'}
+  if (uv <= 10) return {key: 'vhigh', word: 'สูงมาก'}
+  return {key: 'ext', word: 'อันตราย'}
+}
+
+/** Tri-state stored threshold -> effective value. null/undefined -> default; 0 -> null (off); N -> N. */
+export function effectiveThreshold(stored: number | null | undefined, dflt: number): number | null {
+  if (stored == null) return dflt
+  if (stored === 0) return null
+  return stored
+}
+
+/** Compact-card alert (On-arrival only, ADR-092): which threshold-crossing badges to show. */
+export function weatherAlertBadges(
+  arrival: WeatherReadingDto | undefined,
+  uvStored: number | null,
+  feelsStored: number | null,
+): {uv?: number; feels?: number} {
+  if (!arrival || !arrival.hasData) return {}
+  const out: {uv?: number; feels?: number} = {}
+  const uvT = effectiveThreshold(uvStored, UV_WARN_DEFAULT)
+  if (uvT != null && arrival.uvIndex != null && arrival.uvIndex >= uvT) out.uv = arrival.uvIndex
+  const feelsT = effectiveThreshold(feelsStored, FEELS_WARN_DEFAULT)
+  if (feelsT != null && arrival.feelsLikeC != null && Math.round(arrival.feelsLikeC) >= feelsT) {
+    out.feels = Math.round(arrival.feelsLikeC)
+  }
+  return out
+}

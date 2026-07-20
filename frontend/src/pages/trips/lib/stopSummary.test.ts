@@ -11,6 +11,8 @@ const reading = (over: Partial<WeatherReadingDto>): WeatherReadingDto => ({
   tempC: 30,
   rainPct: 10,
   description: 'มีเมฆบางส่วน',
+  uvIndex: null,
+  feelsLikeC: null,
   ...over,
 })
 
