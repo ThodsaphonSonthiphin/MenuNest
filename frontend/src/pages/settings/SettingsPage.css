@@ -44,10 +44,26 @@
   gap: 12px;
 }
 .settings-weather-field__label { font-size: 13px; color: var(--color-text-muted); }
-.settings-weather-ddl { min-width: 170px; }
 .settings-saved {
   margin-top: 12px;
   font-size: 13px;
   font-weight: 600;
   color: #2e7d32;
+}
+.settings-weather-field__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-weather-num {
+  width: 84px;
+}
+.settings-weather-field__row .settings-weather-num[disabled],
+.settings-weather-field__row .e-numeric.e-disabled {
+  opacity: 0.5;
+}
+.settings-weather-field__hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--sd-muted, #6b7280);
 }
