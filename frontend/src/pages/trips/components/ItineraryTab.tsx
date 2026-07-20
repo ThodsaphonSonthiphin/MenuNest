@@ -13,6 +13,7 @@ import {
 import {SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy} from '@dnd-kit/sortable'
 import {restrictToVerticalAxis} from '@dnd-kit/modifiers'
 import {reorderKeepingVisited} from '../lib/reorder'
+import {useCurrentUser} from '../../../shared/hooks/useCurrentUser'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {
   useGetItineraryQuery,
@@ -127,6 +128,7 @@ function AddStopPicker({
 
 export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: DayRoute}) {
   const dispatch = useAppDispatch()
+  const {uvWarnThreshold, feelsLikeWarnThreshold} = useCurrentUser()
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
   const editorStopId = useAppSelector((s) => s.trips.stopEditorStopId)
   const mapCollapsed = useAppSelector((s) => s.trips.itineraryMapCollapsed)
@@ -411,6 +413,8 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
                       tripMonth={tripMonth}
                       reorderMode={reorderMode}
                       onOpenDetail={() => setDetailStopId(s.stop.id)}
+                      uvWarn={uvWarnThreshold}
+                      feelsWarn={feelsLikeWarnThreshold}
                     />
                   )}
                 </Fragment>

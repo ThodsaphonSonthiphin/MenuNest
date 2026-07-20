@@ -57,4 +57,30 @@ describe('buildStopSummary', () => {
     const s = buildStopSummary({dwellMinutes: 60, flag: null})
     expect(s.flag).toBeNull()
   })
+
+  it('flags UV on arrival at/above the default threshold', () => {
+    const s = buildStopSummary({arrivalReading: reading({uvIndex: 9}), dwellMinutes: 60, flag: null})
+    expect(s.alerts).toEqual({uv: 9})
+  })
+
+  it('flags feels-like at/above the default threshold', () => {
+    const s = buildStopSummary({arrivalReading: reading({feelsLikeC: 41}), dwellMinutes: 60, flag: null})
+    expect(s.alerts).toEqual({feels: 41})
+  })
+
+  it('no alerts when both axes are turned off (0)', () => {
+    const s = buildStopSummary({
+      arrivalReading: reading({uvIndex: 11, feelsLikeC: 45}),
+      dwellMinutes: 60,
+      flag: null,
+      uvWarn: 0,
+      feelsWarn: 0,
+    })
+    expect(s.alerts).toEqual({})
+  })
+
+  it('no alerts when arrival has no data', () => {
+    const s = buildStopSummary({arrivalReading: reading({hasData: false, uvIndex: 11}), dwellMinutes: 60, flag: null})
+    expect(s.alerts).toEqual({})
+  })
 })
