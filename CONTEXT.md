@@ -132,7 +132,7 @@ the glossary wins until the glossary is deliberately changed.
   to give the stop list more room, and re-expanded. Distinct from the desktop split's
   full-height right-pane map (same data, different container). See ADR-026.
   _Avoid_: peek, mini-map (informal).
-- **Weather reading** — a per-**Stop** indication of sky/precipitation conditions, shown as a
+- **Weather reading** — a per-**Stop** indication of sky/precipitation conditions — plus its **UV index** and **Feels-like** temperature (issue #40) — shown as a
   small chip on the Stop. Each Stop carries two readings side by side — **Now** and
   **On-arrival** — never a toggle between them (ADR-029). _Avoid_: forecast (names only one
   reading), alert.
@@ -145,6 +145,28 @@ the glossary wins until the glossary is deliberately changed.
 - **No weather data** — the state a **weather reading** shows when it is unavailable: an
   **On-arrival** reading beyond the **forecast horizon** or already in the past, or a provider
   failure. Rendered as a slashed-cloud chip, never hidden silently (ADR-031). _Avoid_: unknown, error.
+- **UV index** — the WHO ultraviolet index at a **Stop**, carried on each **weather reading** as
+  an integer (0–11+). Shown as a coloured badge (number + Thai **UV band** word) in the Stop's
+  detail sheet. Sourced from the same Google Weather responses as the rest of the reading
+  (`uvIndex`), never a separate call (ADR-093). _Avoid_: UV level, sun index.
+- **UV band** — the WHO categorisation of a **UV index** into five levels, each with a Thai word
+  and colour: 0–2 **ต่ำ** (Low, green), 3–5 **ปานกลาง** (Moderate, yellow), 6–7 **สูง** (High,
+  orange), 8–10 **สูงมาก** (Very High, red), 11+ **อันตราย** (Extreme, purple). Resolved by a pure
+  `lib/weather.ts` helper (ADR-088). _Avoid_: UV category, risk level.
+- **Feels-like (รู้สึกเหมือน)** — the apparent ("feels-like") temperature at a **Stop**, carried on
+  each **weather reading** in °C and shown as "รู้สึก N°" beside the actual temperature. Sourced
+  from the same Google Weather responses (`feelsLikeTemperature`), never a separate call (ADR-093).
+  _Avoid_: apparent temp, heat index, real-feel.
+- **Weather alert (เตือนอากาศ)** — a warning badge shown on a **Stop**'s compact itinerary card when
+  its **On-arrival** reading crosses the **User**'s **Weather-alert threshold** for **UV index** or
+  **Feels-like** (ADR-087, ADR-092). Display-only — it never feeds the **Smart Schedule** or any
+  computed value. Distinct from a **Timing flag** (about *time*, not weather) and the **Off-season**
+  region (about authored season). _Avoid_: warning (bare), heat warning.
+- **Weather-alert threshold** — a **User**-scoped, configurable trigger for a **Weather alert**, set
+  on the **`/settings`** page (ADR-089, ADR-090). Two independent thresholds — a **UV index** one and
+  a **Feels-like** one — each settable to a value or turned **off**. Stored per-User on
+  `UserSettings`: `null` = the built-in default (UV 6 / feels-like 40 °C), `0` = off, a positive value
+  = that threshold (ADR-091). _Avoid_: alert level, sensitivity.
 - **Review link** — a per-**Place** (TripPlace) link to an external short-video **review** of that
   Place — framed around TikTok but accepting any well-formed `http(s)` URL (YouTube, Instagram, etc.,
   see ADR-050). A Place carries an ordered **list** of Review links, each an entry of `{ url, label? }`
