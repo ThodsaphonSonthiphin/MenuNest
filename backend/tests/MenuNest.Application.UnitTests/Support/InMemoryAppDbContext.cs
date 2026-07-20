@@ -59,6 +59,10 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<PlaceProfile> PlaceProfiles => Set<PlaceProfile>();
     public DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems => Set<PlaceProfileChecklistItem>();
 
+    // MCP OAuth proxy durable store (ADR-037)
+    public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+    public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
+
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -196,5 +200,13 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
             .HasField("_seasonPeriods")
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .IsRequired(false);
+
+        // MCP OAuth proxy durable store (ADR-037): neither entity's key property
+        // matches EF's default key-discovery convention ("Id" / "{Type}Id"), so the
+        // InMemory provider (unlike AppDbContext/SqliteAppDbContext, which pick up
+        // OAuthClientConfiguration/OAuthRefreshTokenConfiguration via
+        // ApplyConfigurationsFromAssembly) needs the keys declared explicitly here.
+        modelBuilder.Entity<OAuthClient>().HasKey(c => c.ClientId);
+        modelBuilder.Entity<OAuthRefreshToken>().HasKey(r => r.RefreshCode);
     }
 }

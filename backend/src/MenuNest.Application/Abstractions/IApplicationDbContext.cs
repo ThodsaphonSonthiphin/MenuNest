@@ -51,5 +51,9 @@ public interface IApplicationDbContext
     DbSet<PlaceProfile> PlaceProfiles { get; }
     DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems { get; }
 
+    // MCP OAuth proxy durable store (ADR-037)
+    DbSet<OAuthClient> OAuthClients { get; }
+    DbSet<OAuthRefreshToken> OAuthRefreshTokens { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
