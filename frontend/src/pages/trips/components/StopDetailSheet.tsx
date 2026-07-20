@@ -125,6 +125,13 @@ export function StopDetailSheet({
           </div>
         )}
 
+        {place.notes && (
+          <div className="sd-note">
+            <div className="sd-sec-lab">โน้ต</div>
+            <p className="sd-note-body">{place.notes}</p>
+          </div>
+        )}
+
         {seasonPeriods.length > 0 && (
           <div className="sd-seasons">
             <div className="sd-sec-lab">ช่วงเดือน</div>
