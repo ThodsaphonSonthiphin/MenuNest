@@ -10,7 +10,7 @@ const place = (over: Partial<DiscoverPlaceDto>): DiscoverPlaceDto => ({
   key: 'k', googlePlaceId: 'g', name: 'P',
   lat: 13.75, lng: 100.5, address: null, category: 'See', priceLevel: null, photoUrl: null,
   openingHoursJson: null, bestTimeStart: null, bestTimeEnd: null, seasonPeriods: [],
-  visited: false, trips: [], ...over,
+  visited: false, trips: [], reviewLinks: [], notes: null, ...over,
 })
 
 const base: DiscoverInput = {
