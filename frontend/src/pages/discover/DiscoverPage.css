@@ -1,0 +1,302 @@
+/* ============================================================
+   DiscoverPage — "ไปไหนดี" map-forward place discovery (#42).
+   Layout/classes ported from the confirmed mock
+   docs/mocks/place-discovery-mock.html (Screens card); colour
+   tokens mirror trips-tokens.css's `.trips-page, .trip-detail`
+   block (kept local here rather than editing that shared file,
+   same pattern TripsPage.css/TripDetailPage.css use for their
+   own scoped --trp-* copies).
+   ============================================================ */
+
+.discover-page {
+  --teal:       #0e8f9e;
+  --teal-deep:  #0b7a87;
+  --teal-soft:  #e3f5f6;
+  --ink:        #0f172a;
+  --page:       #f8fafc;
+  --surface:    #fff;
+  --border:     #eef2f6;
+  --muted:      #94a3b8;
+  --warn:       #b4791f;
+  --warn-bg:    #fff4e0;
+  --warn-ink:   #7a5310;
+  --bad:        #b42318;
+  --bad-bg:     #fdeceb;
+  --visited:    #15803d;
+  --visited-bg: #e7f6ec;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Map-forward: fills the viewport below the nav bar (~56px), matching
+     .trip-detail's `calc(100vh - 56px)` convention. */
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  background: var(--page);
+  color: var(--ink);
+  font-size: 14px;
+}
+
+/* Break out of AppLayout's centered 1200px cap (index.css `.app-main {
+   max-width:1200px; margin:0 auto }`) so the map fills the full viewport
+   width instead of collapsing into a narrow centred panel — mirrors
+   `.app-main:has(.trip-detail.desktop)` in TripDetailPage.css. */
+.app-main:has(.discover-page) {
+  max-width: none;
+  padding: 0;
+}
+
+/* ── Map: the star of the page. Explicit height + min-height so it never
+   collapses to zero height and renders blank (CLAUDE.md map gotcha).
+   `<Map>` (no className passed, see DiscoverMap.tsx) sets its own inline
+   width/height:100% and fills this wrapper. ── */
+.discover-map {
+  flex: 1;
+  min-height: 60vh;
+  width: 100%;
+  position: relative;
+}
+
+.discover-page .trip-map-fallback {
+  flex: 1;
+  min-height: 60vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  color: var(--muted);
+  background: var(--page);
+}
+
+/* ── Floating top bar: title/search row + filter chip row ── */
+.disc-topbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.disc-title-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--surface);
+  border-radius: 13px;
+  padding: 10px 13px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.16);
+}
+.disc-title { font-size: 15px; font-weight: 800; color: var(--ink); flex: 1; }
+
+/* filter chip row — horizontally scrollable so it never grows past the
+   map's edges (no overlay may cover the whole map, CLAUDE.md #36) */
+.disc-filters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+.disc-filters::-webkit-scrollbar { display: none; }
+
+.disc-cat {
+  flex: none;
+  background: var(--ink);
+  color: #fff;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.disc-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: #475569;
+  border-radius: 999px;
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+.disc-chip.on {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(14, 143, 158, 0.4);
+}
+
+/* ── Small non-blocking loading pill (never a full-screen overlay over the
+   map — CLAUDE.md #36 black-map lesson) ── */
+.disc-loading {
+  position: absolute;
+  top: 68px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9;
+  background: rgba(15, 23, 42, 0.86);
+  color: #fff;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 6px 13px;
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.24);
+}
+
+/* ── Ranked list bottom sheet ── */
+.disc-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.16);
+  padding: 8px 14px 16px;
+  max-height: 46%;
+  display: flex;
+  flex-direction: column;
+}
+
+.disc-grip { flex: none; width: 38px; height: 4px; border-radius: 999px; background: #cbd5e1; margin: 4px auto 8px; }
+
+.disc-sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.disc-sheet-head .h { font-size: 13px; font-weight: 800; color: var(--ink); }
+.disc-sheet-head .n { font-size: 11px; font-weight: 700; color: var(--muted); }
+
+.disc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.disc-empty {
+  padding: 16px 6px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.disc-row {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  padding: 9px 12px;
+  background: var(--surface);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.disc-row:hover { background: var(--teal-soft); border-color: var(--teal); }
+.disc-row.visited .disc-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #64748b; }
+
+.disc-name { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.disc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.disc-dist { font-size: 11px; font-weight: 800; color: var(--muted); }
+.disc-cat-lab { font-size: 11px; font-weight: 600; color: #64748b; }
+
+.disc-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.disc-badge.open   { background: var(--visited-bg); color: var(--visited); }
+.disc-badge.closed { background: #f1f5f9; color: #64748b; }
+.disc-badge.season { background: var(--teal-soft); color: var(--teal-deep); }
+.disc-badge.trip   { background: #eef2ff; color: #4f5bd5; }
+
+/* ── Selected-place detail sheet (replaces the ranked list while a pin/row
+   is selected) ── */
+.disc-detail {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 12;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 34px rgba(15, 23, 42, 0.2);
+  padding: 8px 16px 18px;
+  max-height: 70%;
+  overflow-y: auto;
+}
+
+.disc-detail-head { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; }
+.disc-detail-title { flex: 1; min-width: 0; }
+.disc-detail-name { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
+.disc-detail-addr { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.disc-detail-close {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.disc-detail-close:hover { background: #f1f5f9; color: var(--ink); }
+
+.disc-detail-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+
+.disc-actions { display: flex; flex-direction: column; gap: 9px; }
+.disc-abtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  font-family: inherit;
+  text-decoration: none;
+}
+.disc-abtn.primary { background: var(--teal); color: #fff; box-shadow: 0 6px 16px rgba(14, 143, 158, 0.4); }
+.disc-abtn.primary:hover { background: var(--teal-deep); }
+.disc-abtn.ghost { background: var(--surface); border-color: var(--border); color: #334155; }
+.disc-abtn.ghost:hover:not(:disabled) { background: var(--teal-soft); border-color: var(--teal); }
+.disc-abtn.ghost:disabled { opacity: 0.5; cursor: default; }
+
+.disc-arow { display: flex; gap: 9px; }
+.disc-arow .disc-abtn { flex: 1; font-size: 12.5px; padding: 11px 8px; }
+
+/* ── Responsive: keep sheets from swallowing the map on very small screens ── */
+@media (max-width: 380px) {
+  .disc-sheet { max-height: 40%; }
+}

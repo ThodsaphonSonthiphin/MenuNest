@@ -9,7 +9,7 @@ describe('homeOptions', () => {
   it('hides family-gated pages for a user with no family', () => {
     const opts = homeOptions(false)
     expect(opts.every((o) => !o.requiresFamily)).toBe(true)
-    expect(opts.map((o) => o.path)).toEqual(['/health', '/pomodoro', '/trips'])
+    expect(opts.map((o) => o.path)).toEqual(['/health', '/pomodoro', '/trips', '/discover'])
   })
 })
 
