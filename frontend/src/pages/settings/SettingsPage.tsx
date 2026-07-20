@@ -7,7 +7,7 @@ import { homeOptions } from './homeOptions'
 import './SettingsPage.css'
 
 export function SettingsPage() {
-  const { familyId, homePath, uvWarnThreshold, feelsLikeWarnThreshold } = useCurrentUser()
+  const { familyId, homePath, uvWarnThreshold, feelsLikeWarnThreshold, isLoadingProfile } = useCurrentUser()
   const [updateSettings, { isLoading }] = useUpdateUserSettingsMutation()
   const [saved, setSaved] = useState(false)
 
@@ -16,6 +16,13 @@ export function SettingsPage() {
   const value = options.some((o) => o.path === effective) ? effective : null
 
   const handleChange = async (e: DDLChangeEvent) => {
+    if (isLoadingProfile) {
+      // Profile hasn't loaded yet: uvWarnThreshold/feelsLikeWarnThreshold are
+      // still stale-default nulls. Saving now would persist a full-snapshot
+      // PUT that resets the user's real thresholds. The control is also
+      // disabled while loading, so this is defense-in-depth only.
+      return
+    }
     const path = e.value as string
     setSaved(false)
     try {
@@ -56,6 +63,7 @@ export function SettingsPage() {
           value={value}
           placeholder="ยังไม่ได้เลือกหน้าแรก"
           aria-labelledby="settings-home-label"
+          disabled={isLoadingProfile}
           onChange={handleChange}
         />
       </div>
