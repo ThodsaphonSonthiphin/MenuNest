@@ -115,9 +115,12 @@ public sealed class ListMyPlacesHandlerTests : IDisposable
         _db.Users.Add(other);
         var mine = Trip.Create(_user.Id, "Mine", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
         var theirs = Trip.Create(other.Id, "Theirs", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
-        _db.Trips.AddRange(mine, theirs);
+        var deleted = Trip.Create(_user.Id, "Deleted", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        _db.Trips.AddRange(mine, theirs, deleted);
         _db.TripPlaces.Add(TripPlace.Create(mine.Id, "Mine place", 1, 1, PlaceCategory.See, googlePlaceId: "gp-a"));
         _db.TripPlaces.Add(TripPlace.Create(theirs.Id, "Their place", 2, 2, PlaceCategory.See, googlePlaceId: "gp-b"));
+        _db.TripPlaces.Add(TripPlace.Create(deleted.Id, "Deleted trip place", 3, 3, PlaceCategory.See, googlePlaceId: "gp-c"));
+        deleted.SoftDelete();
         await _db.SaveChangesAsync();
 
         var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
