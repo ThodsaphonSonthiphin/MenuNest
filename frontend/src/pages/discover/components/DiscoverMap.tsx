@@ -57,9 +57,8 @@ function Markers({places, onSelect}: {places: DiscoverPlaceView[]; onSelect: (k:
     })
     clustererRef.current = new MarkerClusterer({map, markers})
     return () => {
-      clustererRef.current?.clearMarkers()
+      clustererRef.current?.setMap(null)
       clustererRef.current = null
-      markers.forEach((m) => (m.map = null))
     }
   }, [map, markerLib, places, onSelect])
 
