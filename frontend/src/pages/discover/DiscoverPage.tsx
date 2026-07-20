@@ -18,6 +18,7 @@ export function DiscoverPage() {
   const {data: places = [], isLoading} = useListMyPlacesQuery()
   const {anchor, scope, categoryFilter, toggles, selectedKey} = useAppSelector((s) => s.discover)
   const [addForPlace, setAddForPlace] = useState<DiscoverPlaceView | null>(null)
+  const [creatingTrip, setCreatingTrip] = useState(false)
   const [createTrip] = useCreateTripMutation()
   const [addTripPlace] = useAddTripPlaceMutation()
 
@@ -46,27 +47,33 @@ export function DiscoverPage() {
   // TripPlace (not just an empty Trip) — reuse the same addTripPlace payload shape
   // as AddToTripDialog so both paths stay in sync.
   const handleCreateTrip = async (place: DiscoverPlaceView) => {
-    const trip = await createTrip({
-      name: place.name,
-      startDate: new Date().toISOString().slice(0, 10),
-      dayCount: 1,
-      defaultTravelMode: 'Drive',
-    }).unwrap()
-    await addTripPlace({
-      tripId: trip.id,
-      googlePlaceId: place.googlePlaceId,
-      name: place.name,
-      lat: place.lat,
-      lng: place.lng,
-      address: place.address,
-      category: place.category,
-      priceLevel: place.priceLevel,
-      photoUrl: place.photoUrl,
-      openingHoursJson: place.openingHoursJson,
-      reviewLinks: [],
-      checklist: [],
-    }).unwrap()
-    navigate(`/trips/${trip.id}`)
+    if (creatingTrip) return
+    setCreatingTrip(true)
+    try {
+      const trip = await createTrip({
+        name: place.name,
+        startDate: new Date().toISOString().slice(0, 10),
+        dayCount: 1,
+        defaultTravelMode: 'Drive',
+      }).unwrap()
+      await addTripPlace({
+        tripId: trip.id,
+        googlePlaceId: place.googlePlaceId,
+        name: place.name,
+        lat: place.lat,
+        lng: place.lng,
+        address: place.address,
+        category: place.category,
+        priceLevel: place.priceLevel,
+        photoUrl: place.photoUrl,
+        openingHoursJson: place.openingHoursJson,
+        reviewLinks: [],
+        checklist: [],
+      }).unwrap()
+      navigate(`/trips/${trip.id}`)
+    } finally {
+      setCreatingTrip(false)
+    }
   }
 
   return (
@@ -95,6 +102,7 @@ export function DiscoverPage() {
           onClose={() => dispatch(setSelectedKey(null))}
           onAddToTrip={(p) => setAddForPlace(p)}
           onCreateTrip={handleCreateTrip}
+          creatingTrip={creatingTrip}
         />
       ) : (
         <PlaceBottomSheet places={views} onSelect={(k) => dispatch(setSelectedKey(k))} />
