@@ -84,4 +84,24 @@ public sealed class UpdateUserSettingsHandlerTests
 
         await act.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task Persists_and_returns_weather_alert_thresholds()
+    {
+        using var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open();
+        using var ctx = NewContext(conn);
+        var user = User.CreateFromExternalLogin("ext-wx", "w@b.com", "W", AuthProvider.Microsoft);
+        ctx.Users.Add(user);
+        await ctx.SaveChangesAsync();
+        var handler = NewHandler(ctx, user);
+
+        var r = await handler.Handle(new UpdateUserSettingsCommand("/trips", 8, 0), CancellationToken.None);
+
+        r.UvWarnThreshold.Should().Be(8);
+        r.FeelsLikeWarnThreshold.Should().Be(0);
+        var loaded = await ctx.UserSettings.SingleAsync();
+        loaded.UvWarnThreshold.Should().Be(8);
+        loaded.FeelsLikeWarnThreshold.Should().Be(0);
+    }
 }

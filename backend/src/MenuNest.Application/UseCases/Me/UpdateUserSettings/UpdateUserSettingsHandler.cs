@@ -41,8 +41,9 @@ public sealed class UpdateUserSettingsHandler : ICommandHandler<UpdateUserSettin
         }
 
         settings.SetHomePath(command.HomePath);
+        settings.SetWeatherAlerts(command.UvWarnThreshold, command.FeelsLikeWarnThreshold);
         await _db.SaveChangesAsync(ct);
 
-        return new UserSettingsDto(settings.HomePath);
+        return new UserSettingsDto(settings.HomePath, settings.UvWarnThreshold, settings.FeelsLikeWarnThreshold);
     }
 }
