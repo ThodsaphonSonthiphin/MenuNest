@@ -47,7 +47,7 @@ export function SunIcon({className}: IconProps) {
   )
 }
 
-/** Thermometer — reserved for a future feels-like glyph treatment. */
+/** Thermometer — leads the feels-like alert pill on the itinerary stop card. */
 export function ThermoIcon({className}: IconProps) {
   return (
     <svg {...base} className={className}>

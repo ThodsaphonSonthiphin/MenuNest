@@ -8,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 namespace MenuNest.Application.UseCases.Me.UpdateUserSettings;
 
 /// <summary>
-/// Sets the current caller's Home page. Creates the caller's
+/// Sets the current caller's Home page and weather-warning thresholds
+/// (UV index, feels-like). Creates the caller's
 /// <c>UserSettings</c> row lazily on first write.
 /// </summary>
 public sealed class UpdateUserSettingsHandler : ICommandHandler<UpdateUserSettingsCommand, UserSettingsDto>

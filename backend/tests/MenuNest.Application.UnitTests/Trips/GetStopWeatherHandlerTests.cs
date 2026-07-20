@@ -40,6 +40,8 @@ public class GetStopWeatherHandlerTests
         dtos[0].TempC.Should().Be(29.1);
         dtos[0].RainPct.Should().Be(20);
         dtos[0].Description.Should().Be("มีเมฆมาก");
+        dtos[0].UvIndex.Should().Be(7);
+        dtos[0].FeelsLikeC.Should().Be(33.0);
     }
 
     [Fact]

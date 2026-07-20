@@ -619,6 +619,25 @@ export const api = createApi({
             }),
             // Changing the Home page changes what /api/me returns.
             invalidatesTags: ['Me'],
+            // The PUT invalidates 'Me', but the refetch is async — a rapid
+            // second edit before it lands would read stale getMe cache data
+            // and clobber the first change. Patch the cache immediately so
+            // both fields are correct even mid-flight; invalidatesTags above
+            // still reconciles with server truth once the refetch completes.
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
+                const patch = dispatch(
+                    api.util.updateQueryData('getMe', undefined, (draft) => {
+                        draft.homePath = arg.homePath
+                        draft.uvWarnThreshold = arg.uvWarnThreshold
+                        draft.feelsLikeWarnThreshold = arg.feelsLikeWarnThreshold
+                    })
+                )
+                try {
+                    await queryFulfilled
+                } catch {
+                    patch.undo()
+                }
+            },
         }),
         createFamily: build.mutation<FamilyDto, CreateFamilyRequest>({
             query: (body) => ({
