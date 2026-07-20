@@ -238,5 +238,22 @@ the glossary wins until the glossary is deliberately changed.
   period** (**monthStatus**); shown as the **Weather diorama** + a status row ("เดือนนี้ควรเลี่ยง · <note>",
   fix "ย้ายทริปไปเดือนอื่น") — a standalone card region, **not** a **Timing flag** reason (ADR-076).
   _Avoid_: off-window (that is the time-of-day **Timing flag**), out-of-season.
+- **Discover (ไปไหนดี)** — the map-forward, **User**-scoped view that surfaces the User's own saved
+  **Places** across **all** their **Trips** by proximity, for spontaneous "where should I go today"
+  browsing (issue #42). It closes the gap that Places are otherwise reachable only inside one Trip.
+  Phase 1 sources **only already-saved Places** — no live Google nearby search (ADR-094); it is
+  **map-forward and event-driven** (ADR-097), reads via a User-scoped `GET /api/places` (ADR-100), and
+  is a selectable **Home page** (ADR-099). _Avoid_: Explore, Nearby, Around-me, Location list.
+- **Discovery scope** — what bounds the set of **Places** shown in **Discover**: by default the area
+  around the viewer's **live location**, changed by panning/zooming the map (the **map viewport is the
+  scope**) or picking an area / **Trip** (ADR-095, ADR-097). Distinct from a **Trip** (which owns a
+  fixed pool) — a scope is just a spatial window over *all* the User's saved Places.
+  _Avoid_: area filter, region.
+- **Discovery signal** — one of the four **free**, per-**Place** cues **Discover** layers on top of
+  distance + **Category**, each a **User**-toggleable control (ADR-096): **open-now** (from opening
+  hours), **season** (good/avoid this month via **monthStatus**), **best-time-of-day** (from the Place's
+  best-time window), and **Visited** (hide/dim been-there). Computed at read time from data already
+  stored — never a new Google call (live **Weather reading** in Discover is Phase 2). _Avoid_: filter
+  (bare), ranking factor.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
