@@ -17,6 +17,7 @@ internal sealed class PlaceProfileConfiguration : IEntityTypeConfiguration<Place
         b.Property(p => p.Id).ValueGeneratedNever();
         b.Property(p => p.UserId).IsRequired();
         b.Property(p => p.GooglePlaceId).IsRequired().HasMaxLength(400);
+        b.Property(p => p.Notes).HasColumnName("Notes").HasMaxLength(2000);
 
         var jsonOpts = new JsonSerializerOptions(JsonSerializerDefaults.Web);
         var reviewConverter = new ValueConverter<IReadOnlyList<ReviewLink>, string>(

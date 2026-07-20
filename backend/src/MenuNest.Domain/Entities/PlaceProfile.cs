@@ -16,6 +16,7 @@ public sealed class PlaceProfile : Entity
     public string GooglePlaceId { get; private set; } = null!;
     public TimeOnly? BestTimeStart { get; private set; }
     public TimeOnly? BestTimeEnd { get; private set; }
+    public string? Notes { get; private set; }
 
     private readonly List<ReviewLink> _reviewLinks = new();
     public IReadOnlyList<ReviewLink> ReviewLinks => _reviewLinks;
@@ -38,6 +39,14 @@ public sealed class PlaceProfile : Entity
         else if (end <= start) throw new DomainException("Best-time end must be after start.");
         BestTimeStart = start;
         BestTimeEnd = end;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetNotes(string? notes)
+    {
+        var n = notes?.Trim();
+        if (n is { Length: > 2000 }) throw new DomainException("Place note is too long (max 2000).");
+        Notes = string.IsNullOrEmpty(n) ? null : n;
         UpdatedAt = DateTime.UtcNow;
     }
 
