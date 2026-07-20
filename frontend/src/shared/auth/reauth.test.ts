@@ -4,7 +4,7 @@ import {handleAuthFailure, isReauthBounce} from './reauth'
 function stubEnv(pathname: string) {
   const removeItem = vi.fn()
   const assign = vi.fn()
-  vi.stubGlobal('sessionStorage', {getItem: vi.fn(() => null), setItem: vi.fn(), removeItem})
+  vi.stubGlobal('localStorage', {getItem: vi.fn(() => null), setItem: vi.fn(), removeItem})
   vi.stubGlobal('window', {location: {pathname, assign}})
   return {removeItem, assign}
 }

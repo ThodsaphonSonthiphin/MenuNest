@@ -18,24 +18,24 @@ export interface GoogleIdTokenPayload {
 }
 
 export function getGoogleToken(): string | null {
-  const token = sessionStorage.getItem(GOOGLE_TOKEN_KEY)
+  const token = localStorage.getItem(GOOGLE_TOKEN_KEY)
   if (!token) return null
   // Self-heal: a present-but-expired token is worse than no token — it
   // sails past presence-only guards and then 401s every API call. Drop
   // it so callers (route guard, header builder) treat us as signed out.
   if (isGoogleTokenExpired(token)) {
-    sessionStorage.removeItem(GOOGLE_TOKEN_KEY)
+    localStorage.removeItem(GOOGLE_TOKEN_KEY)
     return null
   }
   return token
 }
 
 export function setGoogleToken(token: string): void {
-  sessionStorage.setItem(GOOGLE_TOKEN_KEY, token)
+  localStorage.setItem(GOOGLE_TOKEN_KEY, token)
 }
 
 export function clearGoogleToken(): void {
-  sessionStorage.removeItem(GOOGLE_TOKEN_KEY)
+  localStorage.removeItem(GOOGLE_TOKEN_KEY)
 }
 
 export function isGoogleAuthenticated(): boolean {
