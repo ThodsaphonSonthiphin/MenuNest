@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>git worktree — 2 โฟลเดอร์ · .git เดียว · เครื่องเดียว</title>
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#1a2330; --surface:#0f1722; --surface-2:#0f1419;
+    --border:#2a3441; --border-dim:#3d4a5f; --surface-active:#233040;
+    --text:#e0e6ed; --text-dim:#b8c4cf; --muted:#6b7785; --muted-2:#8a96a3;
+    --accent:#5fb4ff; --accent-bright:#7ed4ff;
+    --amber:#ffd479; --warn:#ffaa00; --warn-text:#ffaa44;
+    --magic:#b070ff; --magic-text:#d4a4ff; --magic-bg:#2a1a3a;
+    --success:#4ade80; --success-text:#a3e8b9;
+    --error:#ff5757; --error-text:#ff8888; --conflict:#ff3030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 22px; margin: 0 0 4px; }
+  h2 { color: var(--text-dim); font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: var(--amber); font-size: 0.9em; }
+
+  /* progress dots */
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: var(--panel); color: var(--muted);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: var(--accent); }
+  .step-dot.current { background: var(--accent); color: var(--bg); transform: scale(1.2); }
+
+  /* narration — the canonical NESTED shape (badge+title+body inside #narration) */
+  .narration {
+    background: var(--panel); padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid var(--accent); margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: var(--warn);    background: #2a2018; }
+  .narration.error   { border-color: var(--error);   background: #2a1818; }
+  .narration.success { border-color: var(--success); background: #182a1f; }
+  .narration.magic   { border-color: var(--magic);   background: #1f1830; }
+  .narration .step-badge { background: var(--accent); color: var(--bg);
+                           padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                           font-weight: 700; display: inline-block; margin-right: 8px; }
+  .narration .step-title { color: var(--accent); font-weight: 700; font-size: 16px;
+                           display: block; margin: 8px 0 6px; }
+  .narration.warn    .step-title { color: var(--amber); }
+  .narration.error   .step-title { color: var(--error-text); }
+  .narration.success .step-title { color: var(--success-text); }
+  .narration.magic   .step-title { color: var(--magic-text); }
+
+  /* shared hidden panel (replaces the old .extra-panel/.toggleable/.key-question) */
+  .wt-panel { background: var(--panel); border-radius: 6px; padding: 14px 18px;
+              margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .wt-panel .wt-panel-title { font-weight: 700; margin-bottom: 6px; }
+  .wt-panel.question { background: #1f1830; border: 2px solid var(--magic); }
+  .wt-panel.question .wt-panel-title { color: var(--magic-text); }
+  .wt-panel.race     { background: #2a1818; border: 2px solid var(--error); }
+  .wt-panel.race .wt-panel-title { color: var(--error-text); }
+  .wt-panel.summary  { background: #182a1f; border: 2px solid var(--success); }
+  .wt-panel.summary .wt-panel-title { color: var(--success-text); }
+
+  /* controls */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button { background: var(--accent); color: var(--bg); border: none;
+           padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 700;
+           cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover:not(:disabled)  { background: var(--accent-bright); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: var(--border); color: var(--text); }
+  button.tertiary:hover:not(:disabled) { background: var(--border-dim); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hidden { display: none !important; }
+  
+  .diagram-wrapper { background: var(--surface-2); border: 1px solid var(--panel);
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .comp rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .comp .comp-title { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: var(--text-dim); transition: fill 0.4s; }
+  .comp .comp-sub { font-family: 'Consolas', monospace; font-size: 11px; fill: var(--muted); transition: fill 0.4s; }
+  .comp .comp-val { font-family: 'Consolas', monospace; font-size: 12px; fill: var(--amber); transition: fill 0.4s; }
+  .comp.active rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .comp.active .comp-title { fill: var(--accent-bright); }
+  .comp.active .comp-sub { fill: var(--text-dim); }
+  .comp.firing rect { fill: #2a2818; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 8px #ffd47988); animation: pulse-fire 1.2s ease-in-out infinite; }
+  .comp.firing .comp-title { fill: var(--amber); }
+  @keyframes pulse-fire { 0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); } 50% { filter: drop-shadow(0 0 16px #ffd479dd); } }
+  .comp.locked rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3; filter: drop-shadow(0 0 10px #b070ff88); }
+  .comp.locked .comp-title { fill: var(--magic-text); }
+  .comp.locked .comp-val { fill: var(--magic-text); }
+  .comp.blocked rect { fill: #2a1f10; stroke: var(--warn); stroke-width: 2; animation: blink-block 1s ease-in-out infinite alternate; }
+  .comp.blocked .comp-title { fill: var(--warn-text); }
+  @keyframes blink-block { from { opacity: 0.55; } to { opacity: 0.9; } }
+  .comp.done rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .comp.done .comp-title { fill: var(--success-text); }
+  .comp.done .comp-val { fill: var(--success-text); }
+  .comp.error rect { fill: #2a1818; stroke: var(--error); stroke-width: 3; filter: drop-shadow(0 0 10px #ff575788); }
+  .comp.error .comp-title { fill: var(--error-text); }
+  .comp.dimmed { opacity: 0.35; }
+  .arrow { fill: none; stroke: var(--border-dim); stroke-width: 2; transition: stroke 0.3s, stroke-width 0.3s; }
+  .arrow.active { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.magic { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); }
+  .arrow.done { stroke: var(--success); stroke-width: 2.5; }
+  .arrow.error { stroke: var(--error); stroke-width: 3; }
+  .arrow.dimmed { opacity: 0.2; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .flow-label { fill: var(--amber); font-family: 'Consolas', monospace; font-size: 12px; font-weight: 700; pointer-events: none; }
+  .flow-label-bg { fill: #2a2818; stroke: var(--amber); stroke-width: 1.5; }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label { fill: var(--magic-text); }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: var(--magic); }
+  .flow-label-group.error .flow-label { fill: var(--error-text); }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: var(--error); }
+  
+  /* Colors are engine :root tokens (var(--token)), so a palette change in the engine
+     propagates here too; the standalone demo's :root above supplies them when opened raw. */
+  .term { border-bottom: 1px dotted var(--accent); color: var(--accent); cursor: help; }
+  .term:hover { color: var(--accent-bright); }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 86vw;
+    background: var(--panel); border-left: 2px solid var(--accent);
+    box-shadow: -8px 0 24px #00000088;
+    padding: 18px 20px; overflow-y: auto; z-index: 50;
+  }
+  .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .drawer-term { color: var(--accent-bright); font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .drawer-source { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                   letter-spacing: 0.5px; margin: 2px 0 12px; }
+  .drawer-def { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+  .drawer-seealso-title { font-size: 11px; color: var(--muted-2); text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 8px; }
+  .seealso-chip {
+    display: inline-block; background: var(--panel); border: 1px solid var(--border);
+    color: var(--accent); border-radius: 14px; padding: 4px 12px;
+    margin: 0 6px 6px 0; font-size: 13px; cursor: pointer;
+  }
+  .seealso-chip:hover { background: var(--surface-active); border-color: var(--accent); }
+  .drawer-btns { display: flex; gap: 8px; margin-top: 18px; }
+  
+</style></head>
+<body>
+<div class="container">
+  <h1>git worktree — 2 โฟลเดอร์ · .git เดียว · เครื่องเดียว</h1>
+  <h2>กด <strong>ถัดไป →</strong> เพื่อดูทีละ step</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">เริ่มต้น</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <!-- ===== MODE CONTENT — assembly inserts the chosen mode pack's §HTML here ===== -->
+<div class="diagram-wrapper">
+  <svg class="diagram" viewBox="0 0 1000 460" xmlns="http://www.w3.org/2000/svg">
+    <!-- Working folder A: menunest, on main -->
+    <g class="comp" id="compFolderA">
+      <rect x="40" y="40" width="300" height="140" rx="10"/>
+      <text class="comp-title" x="190" y="78"  text-anchor="middle">📁 menunest/</text>
+      <text class="comp-sub"   x="190" y="102" text-anchor="middle">working tree · on: main</text>
+      <text class="comp-val"   x="190" y="150" text-anchor="middle" id="folderAState">—</text>
+    </g>
+
+    <!-- Working folder B: the worktree, on auth-relogin-fix -->
+    <g class="comp" id="compFolderB">
+      <rect x="40" y="290" width="300" height="140" rx="10"/>
+      <text class="comp-title" x="190" y="328" text-anchor="middle">📁 menunest-auth-fix/</text>
+      <text class="comp-sub"   x="190" y="352" text-anchor="middle">worktree · on: auth-relogin-fix</text>
+      <text class="comp-val"   x="190" y="400" text-anchor="middle" id="folderBState">— ยังไม่สร้าง —</text>
+    </g>
+
+    <!-- The one shared .git object store (container) -->
+    <g class="comp" id="compGit">
+      <rect x="600" y="70" width="360" height="330" rx="12"/>
+      <text class="comp-title" x="780" y="104" text-anchor="middle">🗄️ .git — object store เดียว</text>
+      <text class="comp-sub"   x="780" y="126" text-anchor="middle">commits + branch pointers (ใช้ร่วมกัน)</text>
+      <text class="comp-sub"   x="780" y="360" text-anchor="middle">ทั้งสองโฟลเดอร์เขียนเข้าที่นี่ ที่เดียว</text>
+    </g>
+
+    <!-- branch pointer: main -->
+    <g class="comp" id="compMain">
+      <rect x="636" y="150" width="290" height="70" rx="8"/>
+      <text class="comp-title" x="781" y="180" text-anchor="middle">branch: main</text>
+      <text class="comp-val"   x="781" y="204" text-anchor="middle" id="mainRef">→ 3eac1fa</text>
+    </g>
+
+    <!-- branch pointer: auth-relogin-fix -->
+    <g class="comp" id="compAuth">
+      <rect x="636" y="250" width="290" height="70" rx="8"/>
+      <text class="comp-title" x="781" y="280" text-anchor="middle">branch: auth-relogin-fix</text>
+      <text class="comp-val"   x="781" y="304" text-anchor="middle" id="authRef">→ (ยังไม่มี)</text>
+    </g>
+
+    <!-- arrows -->
+    <path class="arrow" id="arrACommit" d="M 340 110 C 470 110, 500 185, 636 185" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrBCommit" d="M 340 360 C 470 360, 500 285, 636 285" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrCreate"  d="M 636 215 C 480 250, 480 300, 348 305" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrMerge"   d="M 636 285 C 566 262, 566 208, 636 185" marker-end="url(#arrowhead)"/>
+
+    <!-- flying labels -->
+    <g class="flow-label-group" id="lblACommit">
+      <rect class="flow-label-bg" x="430" y="138" width="120" height="24" rx="5"/>
+      <text class="flow-label"    x="490" y="155" text-anchor="middle">commit → main</text>
+    </g>
+    <g class="flow-label-group" id="lblBCommit">
+      <rect class="flow-label-bg" x="430" y="315" width="120" height="24" rx="5"/>
+      <text class="flow-label"    x="490" y="332" text-anchor="middle">commit → auth</text>
+    </g>
+    <g class="flow-label-group" id="lblCreate">
+      <rect class="flow-label-bg" x="392" y="258" width="156" height="24" rx="5"/>
+      <text class="flow-label"    x="470" y="275" text-anchor="middle">git worktree add</text>
+    </g>
+    <g class="flow-label-group" id="lblMerge">
+      <rect class="flow-label-bg" x="498" y="224" width="112" height="22" rx="5"/>
+      <text class="flow-label"    x="554" y="240" text-anchor="middle">merge → main</text>
+    </g>
+  </svg>
+</div>
+
+<div class="wt-panel question hidden" id="qPanel">
+  <div class="wt-panel-title">🔑 ลองคิดก่อนกดถัดไป</div>
+  <div>ในโฟลเดอร์เดียว การสลับ branch จะ<b>เขียนทับไฟล์ทั้งโฟลเดอร์</b>ให้ตรงกับ branch ใหม่ — แล้ว WIP ที่ยังไม่ commit ของ session #40 จะไปไหน? มีวิธีได้ working tree "ที่สอง" โดยไม่ยุ่งกับอันแรกไหม?</div>
+</div>
+
+<div class="wt-panel summary hidden" id="sumPanel">
+  <div class="wt-panel-title">✓ สรุป + ข้อแลก</div>
+  <div>
+    worktree = โฟลเดอร์ทำงานที่สอง ผูก <code>.git</code> เดิม → 2 branch แก้พร้อมกันบนเครื่องเดียว ไม่ชนกัน<br>
+    <b>ข้อแลก:</b> (1) รัน 2 build บนเครื่องเดียว กิน CPU/ดิสก์มากขึ้น (2) มีขั้น <code>merge → main</code> เพิ่ม (ปกติคุณ push main ตรง) (3) prod DB ใช้ร่วมกัน — apply migration (Task 6) เป็นขั้น env แยก ไม่เกี่ยวกับ branch
+  </div>
+</div>
+  
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← ย้อนกลับ</button>
+    <button id="nextBtn">ถัดไป →</button>
+    <button id="resetBtn" class="tertiary">↻ เริ่มใหม่</button>
+  </div>
+
+    <aside id="termDrawer" class="drawer hidden" aria-label="term definition">
+    <div class="drawer-head">
+      <span class="drawer-term" id="drawerTerm"></span>
+      <button class="tertiary" id="drawerClose" title="ปิด">✕</button>
+    </div>
+    <div class="drawer-source" id="drawerSource"></div>
+    <div class="drawer-def" id="drawerDef"></div>
+    <div class="drawer-seealso-title hidden" id="drawerSeeAlsoTitle">ดูเพิ่ม</div>
+    <div id="drawerSeeAlso"></div>
+    <div class="drawer-btns">
+      <button class="tertiary hidden" id="drawerBack">← ย้อน</button>
+    </div>
+  </aside>
+  
+</div>
+
+<!-- The engine owns the fixed 5 markerheads; SVG modes select from them (ADR 0022). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/></marker>
+  <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/></marker>
+  <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b070ff"/></marker>
+  <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ade80"/></marker>
+  <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5757"/></marker>
+</defs></svg>
+<script>
+let currentStep = 0;
+let TOTAL = 0;                 // the authored bootstrap sets TOTAL = scenes.length - 1
+let MODE = null;              // the authored bootstrap sets MODE = '<mode name>'
+const RENDER_HOOKS = [];      // cross-cutting per-render actions; capabilities self-register (e.g. drawer pushes closeDrawer)
+const modeRenderers = {};     // modes self-register: modeRenderers['<name>'] = { registry, clear, <setters> }
+
+function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+// canonical 3-arg narration (nested shape). setSceneTitle kept for scenes that set only the title.
+function setNarration(cls, title, bodyHTML) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = bodyHTML || '';
+}
+function setSceneTitle(text) { document.getElementById('sceneTitle').textContent = text; }
+
+function buildProgressDots() {
+  const p = document.getElementById('stepProgress');
+  p.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot'; d.textContent = i; d.id = 'dot' + i;
+    p.appendChild(d);
+  }
+}
+
+function render(step) {
+  RENDER_HOOKS.forEach(h => h());                 // runs FIRST (drawer closes here), before any paint
+  const R = modeRenderers[MODE];
+  if (R && R.clear) R.clear(R.registry);          // engine calls the mode's reset generically
+  if (typeof scenes !== 'undefined' && scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = 'Step ' + step + ' / ' + TOTAL;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+
+/* GLOSSARY is provided by the generated walkthrough's authored bootstrap (inlined from
+   CONTEXT.md at authoring time): an object keyed by slug -> {term, short, seeAlso, source}
+   where source is 'CONTEXT.md' | 'authored'. The §JS below only READS it; the standalone
+   demo declares a demo GLOSSARY in its DEMO-ONLY block at the bottom of this file. */
+
+let drawerStack = [];   // GLOSSARY keys visited this open, for ← back
+
+function renderTerm(key) {
+  const entry = GLOSSARY[key];
+  if (!entry) return;
+  document.getElementById('drawerTerm').textContent = entry.term;
+  document.getElementById('drawerSource').textContent =
+    entry.source === 'CONTEXT.md' ? 'จาก CONTEXT.md' : 'อธิบายเพิ่มเติม';
+  document.getElementById('drawerDef').textContent = entry.short;
+  const wrap = document.getElementById('drawerSeeAlso');
+  wrap.innerHTML = '';
+  const related = (entry.seeAlso || []).filter(k => GLOSSARY[k]);
+  if (related.length) {
+    document.getElementById('drawerSeeAlsoTitle').classList.remove('hidden');
+    related.forEach(k => {
+      const chip = document.createElement('span');
+      chip.className = 'seealso-chip';
+      chip.textContent = GLOSSARY[k].term;
+      chip.dataset.hop = k;
+      wrap.appendChild(chip);
+    });
+  } else {
+    document.getElementById('drawerSeeAlsoTitle').classList.add('hidden');
+  }
+  document.getElementById('drawerBack').classList.toggle('hidden', drawerStack.length <= 1);
+}
+
+function openTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+  document.getElementById('termDrawer').classList.remove('hidden');
+}
+
+function hopTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+}
+
+function backTerm() {
+  if (drawerStack.length <= 1) return;
+  drawerStack.pop();
+  renderTerm(drawerStack[drawerStack.length - 1]);
+}
+
+function closeDrawer() {
+  drawerStack = [];
+  document.getElementById('termDrawer').classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  const termEl = e.target.closest('[data-term]');
+  if (termEl) { openTerm(termEl.dataset.term); return; }
+  const hopEl = e.target.closest('[data-hop]');
+  if (hopEl) { hopTerm(hopEl.dataset.hop); return; }
+});
+document.getElementById('drawerClose').onclick = closeDrawer;
+document.getElementById('drawerBack').onclick  = backTerm;
+
+// Self-register with the walkthrough engine so stepping closes the drawer
+// (Phase 2 RENDER_HOOKS model). Guarded so this file still runs standalone.
+if (typeof RENDER_HOOKS !== 'undefined' && RENDER_HOOKS.indexOf(closeDrawer) === -1) RENDER_HOOKS.push(closeDrawer);
+
+modeRenderers['diagram'] = {
+  registry: {
+    COMPONENTS: ['compFolderA', 'compFolderB', 'compGit', 'compMain', 'compAuth'],
+    ARROWS: ['arrACommit', 'arrBCommit', 'arrCreate', 'arrMerge'],
+    LABELS: ['lblACommit', 'lblBCommit', 'lblCreate', 'lblMerge'],
+    LIVE: { folderAState: '—', folderBState: '— ยังไม่สร้าง —', mainRef: '→ 3eac1fa', authRef: '→ (ยังไม่มี)' },
+  },
+  clear(reg) {
+    reg.COMPONENTS.forEach(id => this.setComp(id, ''));
+    reg.ARROWS.forEach(id => this.setArrow(id, ''));
+    reg.LABELS.forEach(id => this.setLabel(id, false));
+    Object.keys(reg.LIVE).forEach(id => this.setText(id, reg.LIVE[id]));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setComp(id, state) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : '')); },
+  setArrow(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+    const m = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)', magic: 'url(#arrowhead-magic)', done: 'url(#arrowhead-done)', error: 'url(#arrowhead-error)' };
+    el.setAttribute('marker-end', m[state] || 'url(#arrowhead)');
+  },
+  setLabel(id, show, variant) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : '')); },
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+  assertRegistryComplete() {
+    const got = { comp: '.comp', arrow: '.arrow', flow: '.flow-label-group' };
+    const lists = { comp: this.registry.COMPONENTS, arrow: this.registry.ARROWS, flow: this.registry.LABELS };
+    const miss = [];
+    Object.keys(got).forEach(k => [].forEach.call(document.querySelectorAll(got[k]), e => { if (e.id && !lists[k].includes(e.id)) miss.push(e.id); }));
+    [].concat(this.registry.COMPONENTS, this.registry.ARROWS, this.registry.LABELS, Object.keys(this.registry.LIVE))
+      .forEach(id => { if (!document.getElementById(id)) miss.push(id); });
+    if (miss.length) throw new Error('diagram registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+
+MODE = 'diagram';
+const { setComp, setArrow, setLabel, setText } = modeRenderers[MODE];
+
+const GLOSSARY = {
+  'working-tree': { term: 'working tree', short: 'โฟลเดอร์ไฟล์จริงที่คุณเห็นและแก้ในเอดิเตอร์ — แยกออกจาก .git แต่ละ worktree มี working tree ของตัวเองคนละชุด', seeAlso: ['object-store', 'worktree', 'index'], source: 'authored' },
+  'object-store': { term: '.git object store', short: 'ฐานข้อมูลใน .git ที่เก็บ commit / tree / blob ทุกอัน บวกกับตัวชี้ branch ทุก ๆ worktree ที่ผูก .git เดียวกันใช้ object store ก้อนนี้ร่วมกัน', seeAlso: ['working-tree', 'worktree'], source: 'authored' },
+  'worktree': { term: 'git worktree', short: 'โฟลเดอร์ทำงานเพิ่มอีกอันที่ผูกกับ .git เดิม แต่ checkout คนละ branch — ทำให้แก้หลาย branch พร้อมกันบนเครื่องเดียวได้ โดยไม่ต้อง stash หรือสลับ branch ในโฟลเดอร์เดิม', seeAlso: ['working-tree', 'checkout', 'HEAD'], source: 'authored' },
+  'checkout': { term: 'checkout', short: 'สลับไฟล์ใน working tree ให้ตรงกับ snapshot ของ branch หรือ commit ที่เลือก ถ้าทำในโฟลเดอร์เดียว มันจะเขียนทับไฟล์เดิมในโฟลเดอร์นั้น', seeAlso: ['working-tree', 'worktree'], source: 'authored' },
+  'HEAD': { term: 'HEAD', short: 'ตัวชี้ว่าตอนนี้ working tree นี้อยู่ที่ branch หรือ commit ไหน เป็นของแต่ละ worktree แยกกัน — folder A ชี้ main, folder B ชี้ auth-relogin-fix ได้พร้อมกัน', seeAlso: ['worktree', 'checkout'], source: 'authored' },
+  'index': { term: 'index (staging area)', short: 'ที่พักการเปลี่ยนแปลงก่อน commit ที่ git add ไปลง แต่ละ worktree มี index ของตัวเอง จึง stage แยกกันได้', seeAlso: ['working-tree', 'uncommitted'], source: 'authored' },
+  'uncommitted': { term: 'uncommitted / WIP', short: 'การแก้ที่บันทึกลงดิสก์แล้วแต่ยังไม่ได้ commit อยู่แค่ใน working tree ของโฟลเดอร์นั้น worktree อื่นและ .git มองไม่เห็นมันเลย', seeAlso: ['working-tree', 'stash'], source: 'authored' },
+  'pre-commit-hook': { term: 'pre-commit hook', short: 'สคริปต์ที่ git รันก่อนปิด commit ของ MenuNest ตัวนี้ build และ test ทั้ง solution ทุก ๆ commit ถ้ามีอะไรแดงมันจะบล็อก commit ทันที', seeAlso: ['uncommitted'], source: 'authored' },
+  'stash': { term: 'git stash', short: 'เก็บการแก้ที่ยังไม่ commit ออกจาก working tree ชั่วคราว — หมายความว่ามันดึงไฟล์ออกจากมือ session ที่กำลังแก้อยู่ จึงไม่เหมาะกับกรณีมี session อื่นทำงานพร้อมกัน', seeAlso: ['uncommitted', 'worktree'], source: 'authored' },
+};
+
+const scenes = [
+  // 0 — the model you already have
+  () => {
+    setNarration('', 'ภาพที่คุณรู้อยู่แล้ว: 1 โฟลเดอร์ = 1 branch',
+      `คุณรู้จัก <b>commit</b> กับ <b>branch</b> แล้ว ต่อจากตรงนั้น: โฟลเดอร์ <code>menunest/</code> ที่คุณเห็นและแก้ไฟล์ คือ <span class="term" data-term="working-tree">working tree</span> ส่วน <code>.git</code> คือฐานข้อมูลที่เก็บ commit ทุกอัน + ตัวชี้ branch (<span class="term" data-term="object-store">object store</span>) ปกติ 1 โฟลเดอร์ผูกกับ 1 branch — ตอนนี้คือ <code>main</code>`);
+    setComp('compFolderA', 'active'); setText('folderAState', 'on main · clean');
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setText('mainRef', '→ 3eac1fa');
+    setComp('compFolderB', 'dimmed'); setComp('compAuth', 'dimmed');
+  },
+  // 1 — commit recap
+  () => {
+    setNarration('', 'Step 1 — commit = ถ่ายรูป working tree เข้า .git',
+      `เวลา <code>git commit</code> ในโฟลเดอร์ <code>menunest</code> git จะถ่าย snapshot ของ working tree ไปเก็บใน <code>.git</code> แล้วเลื่อนตัวชี้ <code>main</code> ไปข้างหน้า นี่คือกลไกที่คุณรู้อยู่แล้ว — จำภาพ "ไฟล์ในโฟลเดอร์ ➜ เข้า .git ➜ branch ขยับ" ไว้`);
+    setComp('compFolderA', 'firing'); setText('folderAState', 'on main');
+    setArrow('arrACommit', 'active'); setLabel('lblACommit', true);
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setText('mainRef', '→ 3eac1fa');
+    setComp('compFolderB', 'dimmed'); setComp('compAuth', 'dimmed');
+  },
+  // 2 — #40 is editing, uncommitted
+  () => {
+    setNarration('warn', 'Step 2 — session #40 กำลังแก้ไฟล์ (ยังไม่ commit)',
+      `ตอนนี้ session #40 แก้ไฟล์ weather ในโฟลเดอร์ <code>menunest</code> แต่ <b>ยังไม่ commit</b> การแก้พวกนี้เป็น <span class="term" data-term="uncommitted">uncommitted</span> — อยู่แค่ใน <span class="term" data-term="working-tree">working tree</span> ของโฟลเดอร์นี้เท่านั้น ยังไม่เข้า <code>.git</code> ตัวชี้ <code>main</code> จึงไม่ขยับ`);
+    setComp('compFolderA', 'firing'); setText('folderAState', 'weather WIP · ยังไม่ commit');
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setText('mainRef', '→ 3eac1fa (ไม่ขยับ)');
+    setComp('compFolderB', 'dimmed'); setComp('compAuth', 'dimmed');
+  },
+  // 3 — the WIP is red
+  () => {
+    setNarration('error', 'Step 3 — WIP นั้น build แดง',
+      `ไฟล์ weather WIP อ้างถึงโค้ดที่ยังไม่มี → ทั้ง solution compile ไม่ผ่าน และ <span class="term" data-term="pre-commit-hook">pre-commit hook</span> ของ MenuNest จะ build+test <b>ทั้งโฟลเดอร์</b>ทุก commit ตอนนี้โฟลเดอร์นี้เลยอยู่สถานะแดง`);
+    setComp('compFolderA', 'error'); setText('folderAState', 'weather WIP · build ❌');
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setText('mainRef', '→ 3eac1fa');
+    setComp('compFolderB', 'dimmed'); setComp('compAuth', 'dimmed');
+  },
+  // 4 — the trap of working in the same folder
+  () => {
+    setNarration('error', 'Step 4 — ถ้าคุณแก้ auth ในโฟลเดอร์เดียวกัน = ติดสองเด้ง',
+      `ถ้าผมไปแก้ไฟล์ auth ใน <code>menunest</code> โฟลเดอร์เดิม ไฟล์ผมจะวางปนกับ WIP แดงของ #40 ผลคือ (1) commit ของผมโดน pre-commit hook build ทั้งโฟลเดอร์ → เจอ WIP แดง → <b>commit ผมพังตาม</b> และ (2) ผมจะ commit ลง <code>main</code> ทับซ้อนกับงาน #40`);
+    setComp('compFolderA', 'error'); setText('folderAState', '#40 WIP + auth ปนกัน');
+    setComp('compGit', 'active'); setComp('compMain', 'blocked'); setText('mainRef', '→ 3eac1fa');
+    setArrow('arrACommit', 'error');
+    setComp('compFolderB', 'dimmed'); setComp('compAuth', 'dimmed');
+  },
+  // 5 — KEY QUESTION
+  () => {
+    setNarration('magic', 'Step 5 — 🔑 คำถามสำคัญ',
+      `<code>git checkout auth-relogin-fix</code> จะ<b>เขียนทับไฟล์ในโฟลเดอร์เดียวนี้</b>ให้เป็น branch ใหม่ — ดึง WIP ของ #40 มาชนและรบกวนเขา<br><br>แล้วจะแก้ branch ที่สองบนเครื่องเดียวกัน <b>โดยไม่แตะโฟลเดอร์ของ #40 เลย</b> ได้ยังไง?`);
+    setComp('compFolderA', 'error'); setText('folderAState', '#40 WIP + auth ปนกัน');
+    setComp('compGit', 'active'); setComp('compMain', 'active');
+    setComp('compFolderB', 'dimmed'); setComp('compAuth', 'dimmed');
+    show('qPanel');
+  },
+  // 6 — the answer: git worktree add
+  () => {
+    setNarration('magic', 'Step 6 — คำตอบ: git worktree add (working tree ที่สอง)',
+      `<code>git worktree add ../menunest-auth-fix auth-relogin-fix</code> — git สร้าง<b>โฟลเดอร์ที่สอง</b> checkout เป็น branch ใหม่จาก commit <code>3eac1fa</code> ผูกกับ <code>.git</code> <span class="term" data-term="object-store">เดิม</span> เพราะมันคือ <span class="term" data-term="checkout">checkout</span> สะอาดจาก commit ที่ผ่าน build มาแล้ว จึง<b>ไม่มี weather WIP</b>ติดมา`);
+    setComp('compFolderA', 'dimmed'); setText('folderAState', '#40 ทำต่อได้ตามปกติ');
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setText('mainRef', '→ 3eac1fa');
+    setComp('compFolderB', 'active'); setText('folderBState', 'checkout สะอาด · ไม่มี WIP');
+    setComp('compAuth', 'active'); setText('authRef', '→ 3eac1fa');
+    setArrow('arrCreate', 'magic'); setLabel('lblCreate', true, 'magic');
+  },
+  // 7 — two working trees, one .git
+  () => {
+    setNarration('', 'Step 7 — สองโฟลเดอร์ .git เดียว',
+      `ตอนนี้มี 2 โฟลเดอร์ แต่ละอันมี <span class="term" data-term="working-tree">working tree</span>, <span class="term" data-term="index">index</span> และ <span class="term" data-term="HEAD">HEAD</span> ของตัวเอง แต่ <b>ใช้ .git object store + ตัวชี้ branch ร่วมกัน</b> WIP แดงของ #40 อยู่แค่ในโฟลเดอร์ <code>menunest</code> — โฟลเดอร์ <code>menunest-auth-fix</code> มองไม่เห็นมัน`);
+    setComp('compFolderA', 'active'); setText('folderAState', 'on main · (มี #40 WIP)');
+    setComp('compFolderB', 'active'); setText('folderBState', 'on auth-relogin-fix · สะอาด');
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setComp('compAuth', 'active');
+    setText('mainRef', '→ 3eac1fa'); setText('authRef', '→ 3eac1fa');
+  },
+  // 8 — you commit in folder B, isolated
+  () => {
+    setNarration('success', 'Step 8 — คุณ commit ในโฟลเดอร์ B (แยกขาด)',
+      `commit auth ของผม (Task 1..5) ถ่าย snapshot จาก <code>menunest-auth-fix</code> เข้า <code>.git</code> ใต้ branch <code>auth-relogin-fix</code> — <code>main</code> ไม่ขยับ และ pre-commit hook build เฉพาะโฟลเดอร์ผม (สะอาด) → <b>ผ่าน</b>`);
+    setComp('compFolderB', 'firing'); setText('folderBState', 'commit auth Task 1..5');
+    setArrow('arrBCommit', 'active'); setLabel('lblBCommit', true);
+    setComp('compAuth', 'firing'); setText('authRef', '→ 9b7c… (ขยับ)');
+    setComp('compFolderA', 'dimmed'); setComp('compGit', 'active');
+    setComp('compMain', 'active'); setText('mainRef', '→ 3eac1fa');
+  },
+  // 9 — #40 commits in parallel, no clash
+  () => {
+    setNarration('success', 'Step 9 — #40 commit พร้อมกันได้ ไม่ชนกัน',
+      `ระหว่างนั้น #40 commit ในโฟลเดอร์ <code>menunest</code> → <code>main</code> ขยับ ไม่มีการ interleave เพราะเป็น<b>คนละตัวชี้ branch</b> แต่เขียนลง object store ก้อนเดียวกัน ทั้งสองเดินหน้าอิสระต่อกัน`);
+    setComp('compFolderA', 'firing'); setText('folderAState', '#40 commit → main');
+    setArrow('arrACommit', 'active'); setLabel('lblACommit', true);
+    setComp('compMain', 'firing'); setText('mainRef', '→ a1c2… (ขยับ)');
+    setComp('compFolderB', 'done'); setText('folderBState', 'auth เสร็จ');
+    setComp('compAuth', 'done'); setText('authRef', '→ 9b7c…');
+    setArrow('arrBCommit', 'done'); setComp('compGit', 'active');
+  },
+  // 10 — counter-example: why not stash / checkout
+  () => {
+    setNarration('warn', 'Step 10 — ทำไมไม่ stash หรือ checkout เฉย ๆ?',
+      `ทางลัดในโฟลเดอร์เดียว: <span class="term" data-term="stash">git stash</span> จะดึง WIP ที่ยังไม่ commit ของ #40 ออกจาก working tree ของเขา (รบกวน session ที่กำลังทำสด ๆ) ส่วน <code>git checkout</code> จะเขียนทับไฟล์ในโฟลเดอร์ <code>menunest</code> ทั้งคู่ไปแตะโฟลเดอร์ A — ส่วน worktree <b>ไม่แตะโฟลเดอร์ A เลย</b> นั่นคือหัวใจ`);
+    setComp('compFolderA', 'error'); setText('folderAState', 'stash/checkout = WIP #40 หาย!');
+    setComp('compFolderB', 'done'); setText('folderBState', 'auth เสร็จ');
+    setComp('compGit', 'active'); setComp('compMain', 'active'); setText('mainRef', '→ a1c2…');
+    setComp('compAuth', 'done'); setText('authRef', '→ 9b7c…');
+  },
+  // 11 — resolution + trade-offs
+  () => {
+    setNarration('success', 'Step 11 — จบงาน: merge เข้า main + ข้อแลก',
+      `พอ auth เสร็จ: <code>git merge auth-relogin-fix</code> เข้า <code>main</code> — clean เพราะไฟล์ auth กับไฟล์ #40 คนละไฟล์กันหมด แล้ว <code>git worktree remove</code> ทิ้งโฟลเดอร์ที่สอง ดูข้อแลกด้านล่าง`);
+    setComp('compFolderB', 'done'); setText('folderBState', 'merged ✓');
+    setComp('compAuth', 'done'); setText('authRef', '→ 9b7c…');
+    setArrow('arrMerge', 'done'); setLabel('lblMerge', true);
+    setComp('compMain', 'done'); setText('mainRef', '→ merged ✓');
+    setComp('compFolderA', 'done'); setText('folderAState', '#40 + auth รวมแล้ว');
+    setComp('compGit', 'done');
+    show('sumPanel');
+  },
+];
+
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();
+buildProgressDots();
+render(0);
+
+</script>
+</body></html>

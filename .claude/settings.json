@@ -6,7 +6,10 @@
       "Bash(AZURE_TOKEN_CREDENTIALS=AzureCliCredential dotnet ef database update --project backend/src/MenuNest.Infrastructure --startup-project backend/src/MenuNest.WebApi --connection 'Server=tcp:menunest-sql.database.windows.net,1433;Initial Catalog=MenuNest;Authentication=Active Directory Default;Encrypt=True;')",
       "Bash(git -C /c/Repo2/t/menunest status --short)",
       "Bash(git -C /c/Repo2/t/menunest log -1 --oneline)",
-      "Bash(cat > *)"
+      "Bash(cat > *)",
+      "WebFetch(domain:developers.google.com)",
+      "Bash(gh api *)",
+      "Bash(sort -t- -k1 -n)"
     ],
     "additionalDirectories": [
       "c:\\Repo2\\t\\menunest\\docs\\adr"
