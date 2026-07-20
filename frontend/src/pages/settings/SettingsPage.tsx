@@ -1,10 +1,15 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DropDownList } from '@syncfusion/react-dropdowns'
 import type { ChangeEvent as DDLChangeEvent } from '@syncfusion/react-dropdowns'
+import { NumericTextBox } from '@syncfusion/react-inputs'
+import { Checkbox } from '@syncfusion/react-buttons'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
 import { useUpdateUserSettingsMutation } from '../../shared/api/api'
 import { homeOptions } from './homeOptions'
-import { UV_ALERT_OPTIONS, FEELS_ALERT_OPTIONS, selectedAlertValue } from './weatherAlertOptions'
+import {
+  alertControlFromStored, storedFromAlertControl, clampThreshold,
+  UV_MIN, UV_MAX, FEELS_MIN, FEELS_MAX,
+} from './weatherAlertControl'
 import { UV_WARN_DEFAULT, FEELS_WARN_DEFAULT } from '../trips/lib/weather'
 import './SettingsPage.css'
 
@@ -17,58 +22,45 @@ export function SettingsPage() {
   const effective = homePath ?? '/budget'
   const value = options.some((o) => o.path === effective) ? effective : null
 
-  const uvValue = selectedAlertValue(uvWarnThreshold, UV_WARN_DEFAULT)
-  const feelsValue = selectedAlertValue(feelsLikeWarnThreshold, FEELS_WARN_DEFAULT)
+  // Local control state — bound to the inputs so toggling OFF (persists 0) still keeps the
+  // typed number visible in-session and re-sends it when toggled back ON. Synced from the
+  // profile once it has loaded.
+  const [uvOn, setUvOn] = useState(true)
+  const [uvVal, setUvVal] = useState(UV_WARN_DEFAULT)
+  const [feelsOn, setFeelsOn] = useState(true)
+  const [feelsVal, setFeelsVal] = useState(FEELS_WARN_DEFAULT)
 
-  const handleChange = async (e: DDLChangeEvent) => {
-    if (isLoadingProfile) {
-      // Profile hasn't loaded yet: uvWarnThreshold/feelsLikeWarnThreshold are
-      // still stale-default nulls. Saving now would persist a full-snapshot
-      // PUT that resets the user's real thresholds. The control is also
-      // disabled while loading, so this is defense-in-depth only.
-      return
-    }
-    const path = e.value as string
+  useEffect(() => {
+    if (isLoadingProfile) return
+    const uv = alertControlFromStored(uvWarnThreshold, UV_WARN_DEFAULT)
+    const feels = alertControlFromStored(feelsLikeWarnThreshold, FEELS_WARN_DEFAULT)
+    setUvOn(uv.on); setUvVal(uv.value)
+    setFeelsOn(feels.on); setFeelsVal(feels.value)
+  }, [isLoadingProfile, uvWarnThreshold, feelsLikeWarnThreshold])
+
+  // Full-snapshot PUT (ADR-091 full-replace). Guard against saving while the profile is still
+  // loading — the thresholds would be stale-default nulls and clobber the user's real values.
+  const persist = async (next: { homePath: string | null; uvStored: number; feelsStored: number }) => {
+    if (isLoadingProfile) return
     setSaved(false)
     try {
-      await updateSettings({ homePath: path, uvWarnThreshold, feelsLikeWarnThreshold }).unwrap()
+      await updateSettings({
+        homePath: next.homePath,
+        uvWarnThreshold: next.uvStored,
+        feelsLikeWarnThreshold: next.feelsStored,
+      }).unwrap()
       setSaved(true)
     } catch {
-      // Save failed (network/500): leave "บันทึกแล้ว" hidden. No crash, no
-      // unhandled rejection, no error affordance (per approved mock).
+      // Save failed (network/500): leave "บันทึกแล้ว" hidden. No crash, no error affordance.
     }
   }
 
-  const handleUvChange = async (e: DDLChangeEvent) => {
-    if (isLoadingProfile) {
-      // Same data-loss guard as handleChange: don't persist a snapshot built
-      // from stale-default nulls while the profile is still loading.
-      return
-    }
-    const next = Number(e.value)
-    setSaved(false)
-    try {
-      await updateSettings({ homePath, uvWarnThreshold: next, feelsLikeWarnThreshold }).unwrap()
-      setSaved(true)
-    } catch {
-      // Save failed (network/500): leave "บันทึกแล้ว" hidden. No crash, no
-      // unhandled rejection, no error affordance (per approved mock).
-    }
-  }
-
-  const handleFeelsChange = async (e: DDLChangeEvent) => {
-    if (isLoadingProfile) {
-      return
-    }
-    const next = Number(e.value)
-    setSaved(false)
-    try {
-      await updateSettings({ homePath, uvWarnThreshold, feelsLikeWarnThreshold: next }).unwrap()
-      setSaved(true)
-    } catch {
-      // Save failed (network/500): leave "บันทึกแล้ว" hidden. No crash, no
-      // unhandled rejection, no error affordance (per approved mock).
-    }
+  const handleHomeChange = (e: DDLChangeEvent) => {
+    void persist({
+      homePath: e.value as string,
+      uvStored: storedFromAlertControl(uvOn, uvVal),
+      feelsStored: storedFromAlertControl(feelsOn, feelsVal),
+    })
   }
 
   return (
@@ -101,7 +93,7 @@ export function SettingsPage() {
           placeholder="ยังไม่ได้เลือกหน้าแรก"
           aria-labelledby="settings-home-label"
           disabled={isLoadingProfile}
-          onChange={handleChange}
+          onChange={handleHomeChange}
         />
       </div>
 
@@ -123,27 +115,64 @@ export function SettingsPage() {
         <div className="settings-weather-controls">
           <div className="settings-weather-field">
             <label className="settings-weather-field__label" id="settings-uv-label">ดัชนี UV</label>
-            <DropDownList
-              className="settings-weather-ddl"
-              dataSource={UV_ALERT_OPTIONS}
-              fields={{ text: 'label', value: 'value' }}
-              value={uvValue}
-              aria-labelledby="settings-uv-label"
-              disabled={isLoadingProfile}
-              onChange={handleUvChange}
-            />
+            <div className="settings-weather-field__row">
+              <Checkbox
+                checked={uvOn}
+                disabled={isLoadingProfile}
+                aria-labelledby="settings-uv-label"
+                onChange={(e) => {
+                  const on = e.value
+                  setUvOn(on)
+                  void persist({ homePath, uvStored: storedFromAlertControl(on, uvVal), feelsStored: storedFromAlertControl(feelsOn, feelsVal) })
+                }}
+              />
+              <NumericTextBox
+                className="settings-weather-num"
+                value={uvVal}
+                min={UV_MIN}
+                max={UV_MAX}
+                step={1}
+                disabled={isLoadingProfile || !uvOn}
+                aria-labelledby="settings-uv-label"
+                onChange={(e) => {
+                  const v = clampThreshold((e.value as number | null) ?? UV_MIN, UV_MIN, UV_MAX)
+                  setUvVal(v)
+                  void persist({ homePath, uvStored: storedFromAlertControl(uvOn, v), feelsStored: storedFromAlertControl(feelsOn, feelsVal) })
+                }}
+              />
+            </div>
+            <p className="settings-weather-field__hint">≥6 = แดดแรง</p>
           </div>
+
           <div className="settings-weather-field">
-            <label className="settings-weather-field__label" id="settings-feels-label">รู้สึกร้อน (feels-like)</label>
-            <DropDownList
-              className="settings-weather-ddl"
-              dataSource={FEELS_ALERT_OPTIONS}
-              fields={{ text: 'label', value: 'value' }}
-              value={feelsValue}
-              aria-labelledby="settings-feels-label"
-              disabled={isLoadingProfile}
-              onChange={handleFeelsChange}
-            />
+            <label className="settings-weather-field__label" id="settings-feels-label">รู้สึกร้อน (°C)</label>
+            <div className="settings-weather-field__row">
+              <Checkbox
+                checked={feelsOn}
+                disabled={isLoadingProfile}
+                aria-labelledby="settings-feels-label"
+                onChange={(e) => {
+                  const on = e.value
+                  setFeelsOn(on)
+                  void persist({ homePath, uvStored: storedFromAlertControl(uvOn, uvVal), feelsStored: storedFromAlertControl(on, feelsVal) })
+                }}
+              />
+              <NumericTextBox
+                className="settings-weather-num"
+                value={feelsVal}
+                min={FEELS_MIN}
+                max={FEELS_MAX}
+                step={1}
+                disabled={isLoadingProfile || !feelsOn}
+                aria-labelledby="settings-feels-label"
+                onChange={(e) => {
+                  const v = clampThreshold((e.value as number | null) ?? FEELS_MIN, FEELS_MIN, FEELS_MAX)
+                  setFeelsVal(v)
+                  void persist({ homePath, uvStored: storedFromAlertControl(uvOn, uvVal), feelsStored: storedFromAlertControl(feelsOn, v) })
+                }}
+              />
+            </div>
+            <p className="settings-weather-field__hint">แนะนำ ~35–40°</p>
           </div>
         </div>
       </div>
