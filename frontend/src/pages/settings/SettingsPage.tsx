@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { DropDownList } from '@syncfusion/react-dropdowns'
 import type { ChangeEvent as DDLChangeEvent } from '@syncfusion/react-dropdowns'
 import { NumericTextBox } from '@syncfusion/react-inputs'
@@ -30,8 +30,17 @@ export function SettingsPage() {
   const [feelsOn, setFeelsOn] = useState(true)
   const [feelsVal, setFeelsVal] = useState(FEELS_WARN_DEFAULT)
 
+  // Hydrate the controls from the stored profile exactly ONCE, on first load --
+  // not on later stored-value changes. Saving optimistically patches the getMe
+  // cache (api.ts updateUserSettings onQueryStarted), so re-running the sync on
+  // those changes would reset a field to its default the moment the user toggles
+  // an axis off (which persists 0), wiping their typed value. After the initial
+  // hydrate, local state is the source of truth.
+  const hasHydrated = useRef(false)
+
   useEffect(() => {
-    if (isLoadingProfile) return
+    if (isLoadingProfile || hasHydrated.current) return
+    hasHydrated.current = true
     const uv = alertControlFromStored(uvWarnThreshold, UV_WARN_DEFAULT)
     const feels = alertControlFromStored(feelsLikeWarnThreshold, FEELS_WARN_DEFAULT)
     setUvOn(uv.on); setUvVal(uv.value)
