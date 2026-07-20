@@ -51,7 +51,7 @@ function inViewport(p: DiscoverPlaceDto, v: ViewportBounds): boolean {
   return p.lat <= v.north && p.lat >= v.south && p.lng >= v.west && p.lng <= v.east
 }
 
-function toView(p: DiscoverPlaceDto, input: DiscoverInput): DiscoverPlaceView {
+export function computePlaceView(p: DiscoverPlaceDto, input: DiscoverInput): DiscoverPlaceView {
   return {
     ...p,
     distanceKm: input.anchor ? haversineKm(input.anchor, {lat: p.lat, lng: p.lng}) : null,
@@ -67,7 +67,7 @@ function seasonRank(v: DiscoverPlaceView): number {
 
 /** Compute per-place signals, apply category/viewport/toggle filters, and rank. */
 export function applyDiscover(places: DiscoverPlaceDto[], input: DiscoverInput): DiscoverPlaceView[] {
-  const views = places.map((p) => toView(p, input))
+  const views = places.map((p) => computePlaceView(p, input))
   const filtered = views.filter((v) => {
     if (input.category !== 'all' && v.category !== input.category) return false
     if (input.viewport && !inViewport(v, input.viewport)) return false

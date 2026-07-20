@@ -533,7 +533,6 @@ export interface PlaceTripRefDto { tripId: string; tripName: string }
 export interface DiscoverPlaceDto {
     key: string
     googlePlaceId: string | null
-    representativeTripPlaceId: string
     name: string
     lat: number
     lng: number
@@ -546,7 +545,6 @@ export interface DiscoverPlaceDto {
     bestTimeEnd: string | null
     seasonPeriods: SeasonPeriod[]
     visited: boolean
-    hasProfile: boolean
     trips: PlaceTripRefDto[]
 }
 export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
@@ -1350,7 +1348,7 @@ export const api = createApi({
         }),
         deleteTrip: build.mutation<void, string>({
             query: (id) => ({url: `/api/trips/${id}`, method: 'DELETE'}),
-            invalidatesTags: (_r, _e, id) => ['Trips', {type: 'TripDetail', id}, {type: 'TripItinerary', id}],
+            invalidatesTags: (_r, _e, id) => ['Trips', {type: 'TripDetail', id}, {type: 'TripItinerary', id}, 'MyPlaces'],
         }),
         resolvePlace: build.mutation<ResolvedPlaceDto, {url: string}>({
             query: (b) => ({url: '/api/trips/resolve-place', method: 'POST', body: b}),

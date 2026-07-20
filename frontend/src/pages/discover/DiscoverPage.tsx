@@ -5,7 +5,7 @@ import '../trips/trips-tokens.css'
 import {useListMyPlacesQuery, useAddTripPlaceMutation, useCreateTripMutation} from '../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../store'
 import {setAnchor, setScope, setCategoryFilter, toggleSignal, setSelectedKey} from './discoverSlice'
-import {applyDiscover, type DiscoverPlaceView} from './lib/discoverFilter'
+import {applyDiscover, computePlaceView, type DiscoverPlaceView} from './lib/discoverFilter'
 import {DiscoverMap} from './components/DiscoverMap'
 import {FilterBar} from './components/FilterBar'
 import {PlaceBottomSheet} from './components/PlaceBottomSheet'
@@ -36,7 +36,13 @@ export function DiscoverPage() {
     () => applyDiscover(places, {anchor, viewport: scope, category: categoryFilter, toggles, now: new Date()}),
     [places, anchor, scope, categoryFilter, toggles],
   )
-  const selected = views.find((v) => v.key === selectedKey) ?? null
+  // Resolve the selected place from the FULL list (not the viewport-scoped `views`)
+  // so panning the map or toggling a filter can't make the open detail sheet vanish.
+  const selected = useMemo(() => {
+    if (!selectedKey) return null
+    const p = places.find((pl) => pl.key === selectedKey)
+    return p ? computePlaceView(p, {anchor, viewport: scope, category: categoryFilter, toggles, now: new Date()}) : null
+  }, [selectedKey, places, anchor, scope, categoryFilter, toggles])
 
   // Memoized so DiscoverMap's marker-building effect (keyed on this callback
   // identity) doesn't rebuild its markers/clusterer on every parent render.

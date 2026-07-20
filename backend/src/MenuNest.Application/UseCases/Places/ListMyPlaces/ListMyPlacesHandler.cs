@@ -38,11 +38,6 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
             .Distinct()
             .ToListAsync(ct)).ToHashSet();
 
-        var profiledIds = (await _db.PlaceProfiles
-            .Where(pp => pp.UserId == user.Id)
-            .Select(pp => pp.GooglePlaceId)
-            .ToListAsync(ct)).ToHashSet();
-
         var groups = rows.GroupBy(r => r.Place.GooglePlaceId ?? $"tp:{r.Place.Id}");
 
         var result = new List<DiscoverPlaceDto>();
@@ -54,12 +49,10 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
                          .Select(x => x.First())
                          .ToList();
             var visited = g.Any(r => visitedPlaceIds.Contains(r.Place.Id));
-            var hasProfile = rep.GooglePlaceId != null && profiledIds.Contains(rep.GooglePlaceId);
 
             result.Add(new DiscoverPlaceDto(
                 g.Key,
                 rep.GooglePlaceId,
-                rep.Id,
                 rep.Name,
                 rep.Lat,
                 rep.Lng,
@@ -72,7 +65,6 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
                 rep.BestTimeEnd,
                 rep.SeasonPeriods.Select(s => new SeasonPeriodDto(s.Kind, s.Months.ToList(), s.Note)).ToList(),
                 visited,
-                hasProfile,
                 trips));
         }
 

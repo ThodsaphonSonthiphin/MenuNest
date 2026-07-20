@@ -98,6 +98,11 @@ function ViewerPin({anchor}: {anchor: {lat: number; lng: number} | null}) {
 }
 
 export function DiscoverMap({places, anchor, selectedKey: _sel, onSelect, onScopeChange}: Props) {
+  // onCameraChanged fires on every animation frame during a pan/zoom; debounce the
+  // scope dispatch so the marker/clusterer rebuild doesn't run on every frame.
+  const scopeTimer = useRef<number | null>(null)
+  useEffect(() => () => { if (scopeTimer.current != null) clearTimeout(scopeTimer.current) }, [])
+
   if (!KEY) {
     return <div className="trip-map-fallback">ตั้งค่า VITE_GOOGLE_MAPS_BROWSER_KEY เพื่อแสดงแผนที่</div>
   }
@@ -116,7 +121,9 @@ export function DiscoverMap({places, anchor, selectedKey: _sel, onSelect, onScop
             if (!b) return
             const ne = b.getNorthEast()
             const sw = b.getSouthWest()
-            onScopeChange({north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng()})
+            const bounds = {north: ne.lat(), south: sw.lat(), east: ne.lng(), west: sw.lng()}
+            if (scopeTimer.current != null) clearTimeout(scopeTimer.current)
+            scopeTimer.current = window.setTimeout(() => onScopeChange(bounds), 200)
           }}
         >
           <Markers places={places} onSelect={onSelect} />

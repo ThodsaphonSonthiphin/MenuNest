@@ -1,3 +1,4 @@
+import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import type {DiscoverPlaceView} from '../lib/discoverFilter'
 import {buildStopNavUrl} from '../../trips/lib/navUrl'
@@ -12,11 +13,15 @@ interface Props {
 
 export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingTrip}: Props) {
   const navigate = useNavigate()
+  const [choosing, setChoosing] = useState(false)
   const navUrl = buildStopNavUrl({lat: place.lat, lng: place.lng, googlePlaceId: place.googlePlaceId}, 'Drive')
 
+  // 1 trip → open directly. >1 (a place deduped across trips, ADR-100) → toggle an
+  // inline chooser so the user picks which trip. 0 shouldn't happen (a discovered
+  // place always comes from a TripPlace) but the button is guarded regardless.
   const openTrip = () => {
     if (place.trips.length === 1) navigate(`/trips/${place.trips[0].tripId}`)
-    // >1 trip: the caller renders a small chooser; here we no-op unless single.
+    else if (place.trips.length > 1) setChoosing((v) => !v)
   }
 
   return (
@@ -38,9 +43,18 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingT
       <div className="disc-actions">
         {navUrl && <a className="disc-abtn primary" href={navUrl} target="_blank" rel="noopener noreferrer">นำทางด้วย Google Maps</a>}
         <div className="disc-arow">
-          <button type="button" className="disc-abtn ghost" onClick={openTrip} disabled={place.trips.length !== 1}>เปิดทริป</button>
+          <button type="button" className="disc-abtn ghost" onClick={openTrip} disabled={place.trips.length === 0}>
+            {place.trips.length > 1 ? `เปิดทริป (${place.trips.length})` : 'เปิดทริป'}
+          </button>
           <button type="button" className="disc-abtn ghost" onClick={() => onAddToTrip(place)}>เพิ่มเข้าทริป</button>
         </div>
+        {choosing && place.trips.length > 1 && (
+          <div className="disc-trip-choose">
+            {place.trips.map((t) => (
+              <button key={t.tripId} type="button" className="disc-abtn ghost" onClick={() => navigate(`/trips/${t.tripId}`)}>{t.tripName}</button>
+            ))}
+          </div>
+        )}
         <div className="disc-arow">
           <button type="button" className="disc-abtn ghost" disabled={creatingTrip} onClick={() => onCreateTrip(place)}>สร้างทริปใหม่</button>
         </div>

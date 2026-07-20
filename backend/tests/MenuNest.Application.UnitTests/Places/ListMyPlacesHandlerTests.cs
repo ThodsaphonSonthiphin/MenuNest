@@ -95,20 +95,6 @@ public sealed class ListMyPlacesHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HasProfile_true_when_a_place_profile_exists_for_the_google_id()
-    {
-        var t = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
-        _db.Trips.Add(t);
-        _db.TripPlaces.Add(TripPlace.Create(t.Id, "Cafe", 18.7, 98.9, PlaceCategory.Cafe, googlePlaceId: "gp-7"));
-        _db.PlaceProfiles.Add(PlaceProfile.Create(_user.Id, "gp-7"));
-        await _db.SaveChangesAsync();
-
-        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
-
-        result[0].HasProfile.Should().BeTrue();
-    }
-
-    [Fact]
     public async Task Excludes_other_users_and_soft_deleted_trips()
     {
         var other = User.CreateFromExternalLogin("oid2", "o@example.com", "Other", AuthProvider.Microsoft);
