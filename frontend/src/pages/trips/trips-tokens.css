@@ -337,6 +337,11 @@
 .stop-summary .sum-flag.warn .sum-flag-dot { background: #d9a441; }
 .stop-summary .sum-flag.bad .sum-flag-dot { background: var(--bad); }
 
+.stop-summary .sum-alert { display:inline-flex; align-items:center; gap:3px; border-radius:999px;
+  font-size:10.5px; font-weight:800; padding:2px 8px; }
+.stop-summary .sum-alert.uv  { background:var(--uv-vhigh-bg); color:var(--uv-vhigh); }
+.stop-summary .sum-alert.hot { background:#fdeceb; color:#c5321f; }
+
 /* trailing chevron (normal mode → signals "opens detail") */
 .stop-chevron { flex: none; display: flex; align-items: center; color: #cbd5e1; }
 .stop-chevron svg { width: 18px; height: 18px; }

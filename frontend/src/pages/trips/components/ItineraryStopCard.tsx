@@ -7,6 +7,7 @@ import {catEmoji} from '../placeCategory'
 import {buildStopSummary, type StopSummary} from '../lib/stopSummary'
 import {iconUrl} from '../lib/weather'
 import {GripIcon, ChevronRightIcon} from './TripFormIcons'
+import {SunIcon, ThermoIcon} from './WeatherIcons'
 import {WeatherDiorama} from './WeatherDiorama'
 import {monthStatus} from '../lib/season'
 
@@ -15,6 +16,12 @@ import {monthStatus} from '../lib/season'
 function StopSummaryLine({summary}: {summary: StopSummary}) {
   return (
     <div className="stop-summary">
+      {summary.alerts.uv != null && (
+        <span className="sum-alert uv"><SunIcon /> UV {summary.alerts.uv}</span>
+      )}
+      {summary.alerts.feels != null && (
+        <span className="sum-alert hot"><ThermoIcon /> รู้สึก {summary.alerts.feels}°</span>
+      )}
       {summary.weather && (
         <span className="sum-wx">
           {summary.weather.iconBaseUri && (
@@ -44,6 +51,8 @@ export function ItineraryStopCard({
   tripMonth,
   reorderMode = false,
   onOpenDetail,
+  uvWarn,
+  feelsWarn,
 }: {
   id: string
   place: TripPlaceDto
@@ -54,12 +63,14 @@ export function ItineraryStopCard({
   tripMonth: number
   reorderMode?: boolean
   onOpenDetail?: () => void
+  uvWarn?: number | null
+  feelsWarn?: number | null
 }) {
   const {attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging} =
     useSortable({id})
   const style = {transform: CSS.Transform.toString(transform), transition}
 
-  const summary = buildStopSummary({arrivalReading, dwellMinutes: dwell, flag})
+  const summary = buildStopSummary({arrivalReading, dwellMinutes: dwell, flag, uvWarn, feelsWarn})
   const cardFlag = flag ? (flag.severity === 'problem' ? ' bad' : ' warn') : ''
   const season = monthStatus(place.seasonPeriods, tripMonth)
 
