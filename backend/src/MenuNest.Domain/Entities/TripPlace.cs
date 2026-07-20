@@ -79,6 +79,14 @@ public sealed class TripPlace : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void SetNotes(string? notes)
+    {
+        var n = notes?.Trim();
+        if (n is { Length: > 2000 }) throw new DomainException("Place note is too long (max 2000).");
+        Notes = string.IsNullOrEmpty(n) ? null : n;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void SetReviewLinks(IEnumerable<ReviewLink> links)
     {
         var list = (links ?? Enumerable.Empty<ReviewLink>()).ToList();
