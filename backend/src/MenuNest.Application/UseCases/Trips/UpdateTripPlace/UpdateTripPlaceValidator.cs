@@ -7,6 +7,7 @@ public sealed class UpdateTripPlaceValidator : AbstractValidator<UpdateTripPlace
         RuleFor(x => x.TripId).NotEmpty();
         RuleFor(x => x.PlaceId).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(300);
+        RuleFor(x => x.Notes).MaximumLength(2000).WithMessage("Place note is too long (max 2000).");
         RuleFor(x => x.ReviewLinks).NotNull()
             .WithMessage("Review links are required (send an empty array for none).");
         RuleFor(x => x.ReviewLinks).Must(l => l is null || l.Count <= 10)

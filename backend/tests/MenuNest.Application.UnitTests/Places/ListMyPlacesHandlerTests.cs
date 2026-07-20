@@ -154,6 +154,27 @@ public sealed class ListMyPlacesHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task Falls_back_to_trip_place_when_master_exists_but_is_empty()
+    {
+        var t = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        _db.Trips.Add(t);
+        var p = TripPlace.Create(t.Id, "EmptyMaster", 18.7, 98.9, PlaceCategory.See, googlePlaceId: "gp-em");
+        p.SetNotes("trip note");
+        p.SetReviewLinks(new[] { ReviewLink.Create("https://youtu.be/rep", null) });
+        _db.TripPlaces.Add(p);
+        // Master row EXISTS for the place, but its own Notes/ReviewLinks are empty.
+        var profile = PlaceProfile.Create(_user.Id, "gp-em");
+        _db.Set<PlaceProfile>().Add(profile);
+        await _db.SaveChangesAsync();
+
+        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Notes.Should().Be("trip note");
+        result[0].ReviewLinks.Should().ContainSingle().Which.Url.Should().Be("https://youtu.be/rep");
+    }
+
+    [Fact]
     public async Task Place_with_no_reviews_or_note_surfaces_empty_and_null()
     {
         var t = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);

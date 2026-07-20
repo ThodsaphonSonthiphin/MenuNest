@@ -107,5 +107,34 @@ public sealed class PlaceProfileWriteThroughRelationalTests : IDisposable
         dto.Notes.Should().Be("seeded note");
     }
 
+    // Documents the intentional last-write-wins semantics (ADR-103): update_trip_place is
+    // full-replace, so a later save from ANY trip sharing the same google place overwrites the
+    // shared master's Notes/ReviewLinks — even when that save's own note/links are empty. This
+    // was accepted deliberately over a non-destructive (merge) variant.
+    [Fact]
+    public async Task Write_through_is_last_write_wins_across_trips()
+    {
+        var t2 = Trip.Create(_user.Id, "Trip B", new DateOnly(2026, 11, 2), 1, TravelMode.Drive);
+        _db.Trips.Add(t2);
+        await _db.SaveChangesAsync();
+        var a = TripPlace.Create(_trip.Id, "P", 1, 2, PlaceCategory.See, "places/LW");
+        var b = TripPlace.Create(t2.Id, "P", 1, 2, PlaceCategory.See, "places/LW");
+        _db.TripPlaces.AddRange(a, b);
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        var h = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
+        // Trip A enriches the shared master
+        await h.Handle(new UpdateTripPlaceCommand(_trip.Id, a.Id, "P", PlaceCategory.See, null, null, "great view",
+            null, null, new[] { new ReviewLinkDto("https://tiktok.com/a", null) }, Array.Empty<SeasonPeriodDto>()), default);
+        // Trip B saves with empty note/links (e.g. only category changed) -> overwrites the shared master (accepted last-write-wins)
+        await h.Handle(new UpdateTripPlaceCommand(t2.Id, b.Id, "P", PlaceCategory.See, null, null, null,
+            null, null, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
+
+        var profile = await _db.Set<PlaceProfile>().FirstAsync(p => p.GooglePlaceId == "places/LW");
+        profile.Notes.Should().BeNull();
+        profile.ReviewLinks.Should().BeEmpty();
+    }
+
     public void Dispose() { _db.Dispose(); _conn.Dispose(); }
 }

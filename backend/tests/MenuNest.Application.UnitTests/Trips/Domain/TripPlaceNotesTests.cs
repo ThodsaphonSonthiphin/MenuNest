@@ -27,4 +27,23 @@ public sealed class TripPlaceNotesTests
         var act = () => p.SetNotes(new string('a', 2001));
         act.Should().Throw<DomainException>();
     }
+
+    [Fact]
+    public void SetNotes_accepts_exactly_2000_chars()
+    {
+        var p = New();
+        var note = new string('a', 2000);
+        var act = () => p.SetNotes(note);
+        act.Should().NotThrow();
+        p.Notes.Should().Be(note);
+    }
+
+    [Fact]
+    public void SetNotes_bumps_UpdatedAt()
+    {
+        var p = New();
+        p.UpdatedAt.Should().BeNull();
+        p.SetNotes("hello");
+        p.UpdatedAt.Should().NotBeNull();
+    }
 }
