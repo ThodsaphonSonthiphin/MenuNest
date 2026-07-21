@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>416b12c0-b75d-45e0-b63c-e40a2f0ad41a</UserSecretsId>
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -31,6 +32,28 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MenuNest.McpServer\MenuNest.McpServer.csproj" />
+  </ItemGroup>
+
+  <!-- Auto-version: fill SourceRevisionId from git for local/dev builds when CI
+       didn't pass it. Take the FULL sha then truncate to 7 (canonical rule).
+       The .NET SDK appends +$(SourceRevisionId) to InformationalVersion. -->
+  <Target Name="SetGitShaFromLocalRepo"
+          BeforeTargets="AddSourceRevisionToInformationalVersion;GetAssemblyVersion"
+          Condition="'$(SourceRevisionId)' == ''">
+    <Exec Command="git rev-parse HEAD"
+          ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_FullSha" />
+    </Exec>
+    <PropertyGroup Condition="'$(_FullSha)' != ''">
+      <SourceRevisionId>$(_FullSha.Substring(0, 7))</SourceRevisionId>
+    </PropertyGroup>
+  </Target>
+
+  <PropertyGroup Condition="'$(BuildTimestamp)' == ''">
+    <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</BuildTimestamp>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="BuildTimestamp" Value="$(BuildTimestamp)" />
   </ItemGroup>
 
 </Project>
