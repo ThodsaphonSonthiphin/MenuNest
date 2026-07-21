@@ -53,6 +53,15 @@ export function HourlyPlanner({
   }
 
   const todayDate = day.date.slice(0, 10)
+  // Date-rollover label for the hour strip: the window spans 48h from "now" (not midnight-aligned),
+  // so it can cross THREE calendar dates. Label by day-delta from the anchor date, not a fixed
+  // "today vs not-today" check (see classifyShift's date-diff idiom in lib/retiming.ts).
+  const rolloverLabel = (dateStr: string) => {
+    const deltaDays = Math.round((Date.parse(dateStr) - Date.parse(todayDate)) / 86_400_000)
+    return deltaDays === 1
+      ? 'พรุ่งนี้'
+      : new Date(`${dateStr}T00:00:00`).toLocaleDateString('th-TH', {weekday: 'short', day: 'numeric', month: 'short'})
+  }
   return (
     <div className="sd-hourly">
       <div className="sd-hourly-head"><ClockIcon /> พยากรณ์รายชั่วโมง</div>
@@ -61,12 +70,13 @@ export function HourlyPlanner({
         {dayN && <button type="button" className="btn-text" onClick={() => setPicked(dayN)}>กลางคืนเย็นสุด รู้สึก {Math.round(dayN.feelsLikeC as number)}°</button>}
       </div>
       <div className="sd-hourly-strip">
-        {hours.map((h) => {
-          const isNextDay = h.displayLocal.slice(0, 10) !== todayDate
+        {hours.map((h, i) => {
+          const hDate = h.displayLocal.slice(0, 10)
+          const isRollover = i > 0 && hours[i - 1].displayLocal.slice(0, 10) !== hDate
           const isPicked = picked?.displayLocal === h.displayLocal
           return (
             <div key={h.displayLocal} className={`sd-hr${h.isDaytime ? ' day' : ' night'}${isPicked ? ' picked' : ''}`}>
-              {isNextDay && <span className="sd-hr-div">พรุ่งนี้</span>}
+              {isRollover && <span className="sd-hr-div">{rolloverLabel(hDate)}</span>}
               <button type="button" onClick={() => setPicked(h)}>
                 <span className="sd-hr-time">{h.displayLocal.slice(11, 16)}</span>
                 {h.iconBaseUri && <img src={iconUrl(h.iconBaseUri, false)} alt={h.conditionType ?? ''} width={20} height={20} />}
