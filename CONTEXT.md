@@ -171,7 +171,7 @@ the glossary wins until the glossary is deliberately changed.
   forward window from *now* (**Feels-like** °C as the headline, plus temperature, condition, rain %,
   **UV index**, and Google's per-hour **isDaytime** flag), sourced from the **same** Google
   `forecast/hours` the **On-arrival** reading walks (ADR-119). Distinct from a **Weather reading** (the
-  two Now/On-arrival chips). Horizon-gated to 10 days (ADR-031, ADR-118). _Avoid_: hourly weather
+  two Now/On-arrival chips). Horizon-gated to 10 days (ADR-031, ADR-118). Rendered as a horizontal strip in **both** the trip **StopDetailSheet** (with **Weather-based retiming**, issue #46) and the **Discover** `PlaceSheet` (display-only, issue #47 — ADR-124). _Avoid_: hourly weather
   (informal), timeline (that is the UI strip that renders it).
 - **isDaytime** — Google Weather's per-hour flag, "true if the hour is between the local sunrise
   (inclusive) and sunset (exclusive) times"; the canonical daytime/nighttime split for the
@@ -275,7 +275,7 @@ the glossary wins until the glossary is deliberately changed.
   Phase 1 sources **only already-saved Places** — no live Google nearby search (ADR-094); it is
   **map-forward and event-driven** (ADR-097), reads via a User-scoped `GET /api/places` (ADR-100), and
   is a selectable **Home page** (ADR-099). A selected Place's detail sheet also surfaces its **Review
-  link**s and **Place note** from the master, read-only (ADR-102, ADR-104). _Avoid_: Explore, Nearby, Around-me, Location list.
+  link**s and **Place note** from the master, read-only (ADR-102, ADR-104), and — from issue #47 — a live **Hourly forecast** strip for the Place's coordinates (ADR-122), the one deliberate exception to Phase-1's no-live-Google-call rule. _Avoid_: Explore, Nearby, Around-me, Location list.
 - **Discovery scope** — what bounds the set of **Places** shown in **Discover**: by default the area
   around the viewer's **live location**, changed by panning/zooming the map (the **map viewport is the
   scope**) or picking an area / **Trip** (ADR-095, ADR-097). Distinct from a **Trip** (which owns a
@@ -285,7 +285,7 @@ the glossary wins until the glossary is deliberately changed.
   distance + **Category**, each a **User**-toggleable control (ADR-096): **open-now** (from opening
   hours), **season** (good/avoid this month via **monthStatus**), **best-time-of-day** (from the Place's
   best-time window), and **Visited** (hide/dim been-there). Computed at read time from data already
-  stored — never a new Google call (live **Weather reading** in Discover is Phase 2). _Avoid_: filter
+  stored — never a new Google call. (The **Hourly forecast** strip Discover added in issue #47 is a *distinct* surface, not a signal, and *does* make a live call on Place selection — ADR-122; the two-chip Now / On-arrival **Weather reading** stays trip-only.) _Avoid_: filter
   (bare), ranking factor.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
