@@ -55,7 +55,7 @@ public sealed class RetimeStopToHourHandler : ICommandHandler<RetimeStopToHourCo
         }
 
         day.SetStartTime(c.NewDayStartTime);
-        day.SetUseCurrentTimeAsStart(false);            // pin (ADR-110)
+        day.SetUseCurrentTimeAsStart(false);            // pin (ADR-115)
 
         await _db.SaveChangesAsync(ct);
         return new RetimeResultDto(moved, startBefore, trip.StartDate, day.Date, day.DayStartTime);

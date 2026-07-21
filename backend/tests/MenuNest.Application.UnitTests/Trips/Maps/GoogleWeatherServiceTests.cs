@@ -390,7 +390,7 @@ public class GoogleWeatherServiceTests
             .Should().BeEmpty();
     }
 
-    // ADR-112 says Google always sends isDaytime; an ABSENT field (vs. an explicit false) is defensively
+    // ADR-117 says Google always sends isDaytime; an ABSENT field (vs. an explicit false) is defensively
     // treated the same way — pin that behavior so a future change to "absent means unknown" is deliberate,
     // not accidental.
     private const string HourlyJsonMissingIsDaytime =

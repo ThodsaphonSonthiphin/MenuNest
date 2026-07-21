@@ -159,12 +159,12 @@ public sealed class GoogleWeatherService : IWeatherService
         double? feels = el.TryGetProperty("feelsLikeTemperature", out var fl) && fl.TryGetProperty("degrees", out var fd) ? fd.GetDouble() : null;
         int? rain = el.TryGetProperty("precipitation", out var pr) && pr.TryGetProperty("probability", out var pb) && pb.TryGetProperty("percent", out var pc) ? pc.GetInt32() : null;
         int? uv = el.TryGetProperty("uvIndex", out var uvi) && uvi.ValueKind == JsonValueKind.Number ? uvi.GetInt32() : null;
-        // ADR-112: Google is verified to always send isDaytime, so an ABSENT field here is an upstream
+        // ADR-117: Google is verified to always send isDaytime, so an ABSENT field here is an upstream
         // contract break, not a normal "night" reading. Keep the existing defensive false-on-absent
         // result (never drop the bucket), but log it so a future omission is observable, not silent.
         var hasIsDaytime = el.TryGetProperty("isDaytime", out var idt);
         if (!hasIsDaytime)
-            _log.LogDebug("Hourly forecast bucket for {DisplayLocal:o} is missing isDaytime (ADR-112 expects it present); defaulting to false.", local);
+            _log.LogDebug("Hourly forecast bucket for {DisplayLocal:o} is missing isDaytime (ADR-117 expects it present); defaulting to false.", local);
         bool day = hasIsDaytime && idt.ValueKind == JsonValueKind.True;
         return new HourlyReading(local, day, temp, feels, type, icon, rain, uv);
     }

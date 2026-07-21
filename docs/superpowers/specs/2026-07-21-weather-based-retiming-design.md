@@ -2,7 +2,7 @@
 
 **Issue:** [#46 "show the possible heat"](https://github.com/ThodsaphonSonthiphin/MenuNest/issues/46)
 **Date:** 2026-07-21
-**ADRs:** 107–116  ·  **Glossary:** CONTEXT.md — *Hourly forecast, isDaytime, Weather-based retiming, Anchor Stop*
+**ADRs:** 112–121  ·  **Glossary:** CONTEXT.md — *Hourly forecast, isDaytime, Weather-based retiming, Anchor Stop*
 **Mockup:** MenuNest design system → Screens → *"Issue #46 — วางแผนไปถึงตอนอากาศที่ต้องการ"*
 
 > The user asked to *see per-hour temperature so they can plan right*, and clarified the goal is to
@@ -31,7 +31,7 @@ write paths. **No database schema change / no EF migration is required.**
 
 ---
 
-## 1. Scope (ADR-107)
+## 1. Scope (ADR-112)
 
 Phase 1 delivers both halves of the request:
 
@@ -44,7 +44,7 @@ rolling window; a persisted "preferred temperature" setting; live weather inside
 
 ---
 
-## 2. The retiming model (ADR-108, 109, 110)
+## 2. The retiming model (ADR-113, 114, 115)
 
 Arrival is derived (ADR-008):
 
@@ -64,27 +64,27 @@ flowchart TD
     C --> D["confirm → apply"]
 ```
 
-- **Only lever = day start** (ADR-108): shifting `dayStart` by Δ moves *every* Stop on that Day by Δ.
+- **Only lever = day start** (ADR-113): shifting `dayStart` by Δ moves *every* Stop on that Day by Δ.
   Pinning one Stop's arrival is rejected (breaks the pure cascade). Consequence: **the whole day moves**.
-- **Cross-day = shift the whole Trip** (ADR-109): `ItineraryDay.Date = Trip.StartDate + index` (unique
+- **Cross-day = shift the whole Trip** (ADR-114): `ItineraryDay.Date = Trip.StartDate + index` (unique
   `(TripId, Date)`), so a later-date target shifts `Trip.StartDate` by ΔD and realigns every Day — reusing
   the existing `Trip.Reschedule` + realign (as in `UpdateTripHandler`). Single-day is the ΔD-covering case
   of the same formula. Consequence: **the whole Trip moves** (other Days change weekday / opening-hours /
   On-arrival weather) → **warn before apply**.
-- **Apply pins the Day** (ADR-110): applying turns `UseCurrentTimeAsStart` **off** on the anchor Day,
+- **Apply pins the Day** (ADR-115): applying turns `UseCurrentTimeAsStart` **off** on the anchor Day,
   else the next fetch re-seeds the start to "now" and the target won't stick.
 
 ---
 
-## 3. Target & selection (ADR-111, 112, 113)
+## 3. Target & selection (ADR-116, 117, 118)
 
-- **Forecast-derived, metric = Feels-like** (ADR-111): selectable targets are the *actual hours* of the
+- **Forecast-derived, metric = Feels-like** (ADR-116): selectable targets are the *actual hours* of the
   **Hourly forecast** — future hours within the 10-day horizon — each labelled with its real feels-like.
   An unreachable aim is reported honestly ("วันนี้เย็นสุด 30° ตอน 18:00"); no new stored setting.
-- **Pick = tap any hour + two quick actions** (ADR-112): **coolest-daytime** and **coolest-nighttime**,
+- **Pick = tap any hour + two quick actions** (ADR-117): **coolest-daytime** and **coolest-nighttime**,
   each the minimum-feels-like hour of its half. Day vs night = Google's per-hour **isDaytime** flag
   (sunrise-inclusive → sunset-exclusive), *verified present* in `forecast/hours`.
-- **Window = rolling now→+N, cross-midnight visible** (ADR-113): forward window from *now*, long enough to
+- **Window = rolling now→+N, cross-midnight visible** (ADR-118): forward window from *now*, long enough to
   contain the next full daytime and nighttime (`N` = tunable const, default **48 h**, capped at the 240 h
   horizon). Cross-midnight hours show with a "พรุ่งนี้" divider and are selectable (cross-day supported).
   A Stop beyond the horizon shows **No weather data** and no planner (ADR-031/030).
@@ -102,7 +102,7 @@ Quick-action resolution:
 
 ## 4. Backend
 
-### 4.1 Read — `GetHourlyForecast` (ADR-114)
+### 4.1 Read — `GetHourlyForecast` (ADR-119)
 
 No persistence. New application query + WebApi endpoint, served by a new `IWeatherService` method that
 reuses the **same** `forecast/hours:lookup` walk the On-arrival reading already uses (ADR-033) — adds no
@@ -160,7 +160,7 @@ SaveChanges  → return updated itinerary (+ a movedTrip flag / from→to for th
   on the unique `(TripId, Date)` — see reference_ef_relational_testing).
 - Validator: trip/day/stop belong to the current user; `windowHours` in `[1, 240]`; target resolvable.
 
-### 4.3 MCP (ADR-115)
+### 4.3 MCP (ADR-120)
 
 Two `TripTools` methods (lineage ADR-034):
 - `get_stop_hourly_forecast(tripId, stopId, hours)` → the hourly list.
@@ -202,7 +202,7 @@ sequenceDiagram
   "พรุ่งนี้" divider; two quick-action buttons; apply-preview card with the resulting start time, the
   cross-day/trip warning, and the "จะปิด 'ใช้เวลาปัจจุบันเสมอ'" note). Icons = inline SVG (no emoji; not
   @syncfusion/react-icons — CLAUDE.md / no-emoji preference).
-- **UI (ADR-116):** as the confirmed mockup. Not a separate top-level screen.
+- **UI (ADR-121):** as the confirmed mockup. Not a separate top-level screen.
 
 ---
 
@@ -242,5 +242,5 @@ sequenceDiagram
 
 - **No migration** — reuses existing tables and write paths; nothing to apply to prod DB.
 - Prod deploys on push to `main`; commit references #46; pre-commit runs the full suite (stage narrowly).
-- Parallel-session caution (memory): another session may push ADRs — re-check ADR numbering (107–116) and
+- Parallel-session caution (memory): another session may push ADRs — re-check ADR numbering (112–121) and
   `fetch + rebase` before pushing this worktree's branch.

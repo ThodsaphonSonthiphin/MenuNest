@@ -27,7 +27,7 @@ export function suggestedStartMinutes(targetMinuteOfDay: number, offsetMin: numb
 }
 
 export interface ShiftKind {sameDay: boolean; deltaDays: number; movesTrip: boolean}
-/** dates are 'yyyy-MM-dd'. Any cross-day target shifts the whole trip (ADR-109). */
+/** dates are 'yyyy-MM-dd'. Any cross-day target shifts the whole trip (ADR-114). */
 export function classifyShift(targetDate: string, anchorDayDate: string): ShiftKind {
   const d = Math.round((Date.parse(targetDate.slice(0, 10)) - Date.parse(anchorDayDate.slice(0, 10))) / 86_400_000)
   return {sameDay: d === 0, deltaDays: d, movesTrip: d !== 0}

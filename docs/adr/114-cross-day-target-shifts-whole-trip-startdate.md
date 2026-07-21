@@ -11,4 +11,4 @@ flowchart TD
 
 ## Consequences
 
-The **whole Trip moves** — every other Day changes weekday, so its Stops' opening-hours / On-arrival weather change too. Apply must warn before committing (ADR-116 mockup: "ทั้งทริปจะเลื่อน X → Y, วันอื่นขยับตาม").
+The **whole Trip moves** — every other Day changes weekday, so its Stops' opening-hours / On-arrival weather change too. Apply must warn before committing (ADR-121 mockup: "ทั้งทริปจะเลื่อน X → Y, วันอื่นขยับตาม").
