@@ -45,7 +45,7 @@ jobs:
 
       # Step 4: Build
       - name: Build
-        run: dotnet build backend/MenuNest.sln --configuration Release --no-restore
+        run: dotnet build backend/MenuNest.sln --configuration Release --no-restore -p:SourceRevisionId=${GITHUB_SHA::7}
 
       # Step 5: Publish เฉพาะ WebApi
       # --no-build = ไม่ build ซ้ำ ใช้ผลลัพธ์ step 4
