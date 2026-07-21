@@ -36,7 +36,7 @@ public class RetimeStopToHourHandlerTests
         var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 7, 12), 1, TravelMode.Drive);
         fx.Db.Trips.Add(trip);
         var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 7, 12), new TimeOnly(9, 0));
-        day.SetUseCurrentTimeAsStart(true);              // apply must turn this OFF (ADR-110)
+        day.SetUseCurrentTimeAsStart(true);              // apply must turn this OFF (ADR-115)
         fx.Db.ItineraryDays.Add(day);
         var pA = TripPlace.Create(trip.Id, "A", 13.75, 100.50, PlaceCategory.See);
         fx.Db.TripPlaces.Add(pA);

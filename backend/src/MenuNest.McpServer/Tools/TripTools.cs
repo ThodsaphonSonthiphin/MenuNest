@@ -206,7 +206,7 @@ public sealed class TripTools(IMediator mediator)
         [Description("Trip ID")] Guid tripId,
         [Description("Itinerary day ID of the anchor stop")] Guid dayId,
         [Description("Anchor stop ID")] Guid stopId,
-        [Description("Target: { kind: 'hour'|'coolestDaytime'|'coolestNighttime', localDateTime?, windowHours? }. For coolestDaytime/coolestNighttime, windowHours (default 48) is counted from the CURRENT time, not the anchor stop's scheduled day; for a stop scheduled far in the future this may resolve to a near-term date and shift the whole trip's dates (ADR-109).")] RetimeTarget target,
+        [Description("Target: { kind: 'hour'|'coolestDaytime'|'coolestNighttime', localDateTime?, windowHours? }. For coolestDaytime/coolestNighttime, windowHours (default 48) is counted from the CURRENT time, not the anchor stop's scheduled day; for a stop scheduled far in the future this may resolve to a near-term date and shift the whole trip's dates (ADR-114).")] RetimeTarget target,
         CancellationToken ct)
         => await mediator.Send(new RetimeStopToWeatherCommand(tripId, dayId, stopId, target), ct);
 

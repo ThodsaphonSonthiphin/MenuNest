@@ -3,11 +3,11 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Issue:** [#46 "show the possible heat"](https://github.com/ThodsaphonSonthiphin/MenuNest/issues/46)
-**Spec:** `docs/superpowers/specs/2026-07-21-weather-based-retiming-design.md` · **ADRs:** 107–116 (see *Pre-flight* — renumber before merge)
+**Spec:** `docs/superpowers/specs/2026-07-21-weather-based-retiming-design.md` · **ADRs:** 112–121 (see *Pre-flight* — renumber before merge)
 
 **Goal:** On a Stop's detail sheet, show a per-hour weather forecast for the Stop's location and let the user tap a target hour (or "coolest daytime / nighttime") to one-tap re-time the plan so the Stop *arrives* at that hour.
 
-**Architecture:** A new `IWeatherService.GetHourlyAsync` returns an ordered hourly series from the **same** Google `forecast/hours:lookup` the On-arrival reading already walks (no new billing SKU, no schema change). A coords-based query serves the web hourly view. Retiming is **display + a suggested, confirmed write** that only shifts existing inputs — the anchor Day's start time (ADR-108), and for a cross-day target the whole `Trip.StartDate` (ADR-109) — then pins the Day by turning off `UseCurrentTimeAsStart` (ADR-110). No per-Stop time is ever stored; arrival stays derived (ADR-008).
+**Architecture:** A new `IWeatherService.GetHourlyAsync` returns an ordered hourly series from the **same** Google `forecast/hours:lookup` the On-arrival reading already walks (no new billing SKU, no schema change). A coords-based query serves the web hourly view. Retiming is **display + a suggested, confirmed write** that only shifts existing inputs — the anchor Day's start time (ADR-113), and for a cross-day target the whole `Trip.StartDate` (ADR-114) — then pins the Day by turning off `UseCurrentTimeAsStart` (ADR-115). No per-Stop time is ever stored; arrival stays derived (ADR-008).
 
 **Tech Stack:** .NET 10, martinothamar/**Mediator** (source-gen, NOT MediatR), FluentValidation, EF Core 10; React + Redux Toolkit Query, Vitest (node env, no DOM). Backend tests: xUnit + Moq + FluentAssertions.
 
@@ -65,14 +65,14 @@ Both converge on one **apply core**: `RetimeStopToHourCommand(newDayStartTime, n
 
 ## Pre-flight (setup — not TDD; do once before Task 1)
 
-- [ ] **P1. Reconcile the worktree with `main`.** This branch (`worktree-issue-46-hourly-temperature`, HEAD `18f4ffa`) is ~9 commits behind `main` and its ADRs 107–116 **collide** with `main`'s #41 ADRs 107–111. Fetch and rebase (or merge) `main`:
+- [ ] **P1. Reconcile the worktree with `main`.** This branch (`worktree-issue-46-hourly-temperature`, HEAD `18f4ffa`) is ~9 commits behind `main` and its ADRs 112–121 **collide** with `main`'s #41 ADRs 107–111. Fetch and rebase (or merge) `main`:
   ```bash
   cd "C:/Repo2/t/menunest/.claude/worktrees/issue-46-hourly-temperature"
   git fetch main
   git rebase main/main   # or: git merge main/main — pick per your workflow
   ```
   Resolve any conflicts (unlikely in weather/trip code; #41 was version-display). If you prefer to keep the design docs uncommitted through the rebase, `git stash -u` first.
-- [ ] **P2. Renumber ADRs to the next free block.** After rebasing, find the highest ADR on `main` (`ls docs/adr/ | sort -n | tail`) and renumber this branch's `107..116` → the next free contiguous block (expected `112..121`). Update the filenames, each ADR's internal cross-refs, and the spec header (`**ADRs:** 107–116`) + the "Design note" reference above.
+- [ ] **P2. Renumber ADRs to the next free block.** After rebasing, find the highest ADR on `main` (`ls docs/adr/ | sort -n | tail`) and renumber this branch's `107..116` → the next free contiguous block (expected `112..121`). Update the filenames, each ADR's internal cross-refs, and the spec header (`**ADRs:** 112–121`) + the "Design note" reference above.
 - [ ] **P3. Add a short ADR for the resolve-split** (the deviation above): "Retiming offset resolved client-side (web, authoritative legs incl. approach) / server-side (MCP, inter-stop legs only)". Amend spec §4.2 to match.
 - [ ] **P4. Commit the design docs** (they are currently untracked — SDD commits only code):
   ```bash
@@ -468,7 +468,7 @@ public class RetimeStopToHourHandlerTests
         var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 7, 12), 1, TravelMode.Drive);
         fx.Db.Trips.Add(trip);
         var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 7, 12), new TimeOnly(9, 0));
-        day.SetUseCurrentTimeAsStart(true);              // apply must turn this OFF (ADR-110)
+        day.SetUseCurrentTimeAsStart(true);              // apply must turn this OFF (ADR-115)
         fx.Db.ItineraryDays.Add(day);
         var pA = TripPlace.Create(trip.Id, "A", 13.75, 100.50, PlaceCategory.See);
         fx.Db.TripPlaces.Add(pA);
@@ -519,7 +519,7 @@ namespace MenuNest.Application.UseCases.Trips.RetimeStopToHour;
 
 /// <summary>Apply core (web + shared): re-time the anchor Day so the anchor Stop arrives at a
 /// client-resolved hour. Shifts the Day start (always) and, for a cross-day target, the whole
-/// Trip.StartDate + realign (ADR-108/109); pins the Day by turning off current-time-start (ADR-110).</summary>
+/// Trip.StartDate + realign (ADR-113/114); pins the Day by turning off current-time-start (ADR-115).</summary>
 public sealed record RetimeStopToHourCommand(
     Guid TripId, Guid DayId, Guid StopId, TimeOnly NewDayStartTime, DateOnly NewAnchorDate)
     : ICommand<RetimeResultDto>;
@@ -586,7 +586,7 @@ public sealed class RetimeStopToHourHandler : ICommandHandler<RetimeStopToHourCo
         // (cross-day realign added in Task 4)
 
         day.SetStartTime(c.NewDayStartTime);
-        day.SetUseCurrentTimeAsStart(false);            // pin (ADR-110)
+        day.SetUseCurrentTimeAsStart(false);            // pin (ADR-115)
 
         await _db.SaveChangesAsync(ct);
         return new RetimeResultDto(moved, startBefore, trip.StartDate, day.Date, day.DayStartTime);
@@ -901,7 +901,7 @@ export function suggestedStartMinutes(targetMinuteOfDay: number, offsetMin: numb
 }
 
 export interface ShiftKind {sameDay: boolean; deltaDays: number; movesTrip: boolean}
-/** dates are 'yyyy-MM-dd'. Any cross-day target shifts the whole trip (ADR-109). */
+/** dates are 'yyyy-MM-dd'. Any cross-day target shifts the whole trip (ADR-114). */
 export function classifyShift(targetDate: string, anchorDayDate: string): ShiftKind {
   const d = Math.round((Date.parse(targetDate.slice(0, 10)) - Date.parse(anchorDayDate.slice(0, 10))) / 86_400_000)
   return {sameDay: d === 0, deltaDays: d, movesTrip: d !== 0}
@@ -1075,7 +1075,7 @@ git commit -m "feat(web): add HourlyPlanner (hourly strip + quick actions + appl
 
 ## Task 8: Entry button in `StopDetailSheet` + wire props in `ItineraryTab`
 
-Mount the planner under the two weather chips (ADR-116), revealed on tap. No unit test — verified interactively.
+Mount the planner under the two weather chips (ADR-121), revealed on tap. No unit test — verified interactively.
 
 **Files:**
 - Modify: `frontend/src/pages/trips/components/StopDetailSheet.tsx`
@@ -1136,7 +1136,7 @@ git commit -m "feat(web): add hourly-planner entry to the stop detail sheet (#46
 
 ## Task 9 (Phase 1b — separable): MCP tools + stop-based hourly + weather-target resolver
 
-ADR-115 exposes both over MCP. This is cleanly separable from the web feature — if scope needs trimming, defer Task 9 to Phase 2 (the web feature above is complete without it). Server-side offset here uses **inter-stop legs only** (no approach leg — an AI caller has no live location); it delegates the write to `RetimeStopToHourCommand`.
+ADR-120 exposes both over MCP. This is cleanly separable from the web feature — if scope needs trimming, defer Task 9 to Phase 2 (the web feature above is complete without it). Server-side offset here uses **inter-stop legs only** (no approach leg — an AI caller has no live location); it delegates the write to `RetimeStopToHourCommand`.
 
 **Files:**
 - Create: `backend/src/MenuNest.Application/UseCases/Trips/GetStopHourlyForecast/GetStopHourlyForecastQuery.cs`, `…Handler.cs`, `…Validator.cs`
