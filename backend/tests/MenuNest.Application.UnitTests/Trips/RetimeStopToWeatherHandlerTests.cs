@@ -158,4 +158,94 @@ public class RetimeStopToWeatherHandlerTests
 
         await act.Should().ThrowAsync<DomainException>();
     }
+
+    // Seeds a 1-day trip with a single anchor stop (index 0, no offset/legs involved) — keeps these
+    // resolver-focused tests from depending on IRouteService leg math.
+    private static async Task<(Trip trip, ItineraryDay day, Stop stop)> SeedOneStopDayAsync(HandlerTestFixture fx)
+    {
+        var trip = Trip.Create(fx.User.Id, "t", new DateOnly(2026, 7, 12), 1, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 7, 12), new TimeOnly(9, 0));
+        fx.Db.ItineraryDays.Add(day);
+        var pA = TripPlace.Create(trip.Id, "A", 13.75, 100.50, PlaceCategory.See);
+        fx.Db.TripPlaces.Add(pA);
+        var stop = Stop.Create(day.Id, pA.Id, 0, 1, TravelMode.Drive);
+        fx.Db.Stops.Add(stop);
+        await fx.Db.SaveChangesAsync();
+        return (trip, day, stop);
+    }
+
+    [Fact]
+    public async Task Coolest_target_with_no_candidates_in_requested_half_throws()
+    {
+        using var fx = new HandlerTestFixture();
+        var (trip, day, stop) = await SeedOneStopDayAsync(fx);
+
+        // Every hour StubWeather returns is nighttime; requesting coolestDaytime leaves
+        // WeatherHourSelection.CoolestHour with no candidate for that half.
+        var hours = new List<HourlyReading> { H(22, false, 28), H(23, false, 27) };
+        var weather = new StubWeather(hours);
+        var mediator = DelegatingMediator(fx, _ => { });
+        var handler = new RetimeStopToWeatherHandler(
+            fx.Db, fx.UserProvisioner.Object, RouteReturning(0).Object, weather, mediator.Object,
+            new RetimeStopToWeatherValidator());
+
+        var act = () => handler.Handle(
+            new RetimeStopToWeatherCommand(trip.Id, day.Id, stop.Id, new RetimeTarget("coolestDaytime", null, 48)),
+            CancellationToken.None).AsTask();
+
+        await act.Should().ThrowAsync<DomainException>();
+        mediator.Verify(m => m.Send(It.IsAny<RetimeStopToHourCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Coolest_target_with_null_windowHours_defaults_to_48()
+    {
+        using var fx = new HandlerTestFixture();
+        var (trip, day, stop) = await SeedOneStopDayAsync(fx);
+
+        var hours = new List<HourlyReading> { H(6, true, 30) };
+        var weather = new StubWeather(hours);
+        var mediator = DelegatingMediator(fx, _ => { });
+        var handler = new RetimeStopToWeatherHandler(
+            fx.Db, fx.UserProvisioner.Object, RouteReturning(0).Object, weather, mediator.Object,
+            new RetimeStopToWeatherValidator());
+
+        await handler.Handle(
+            new RetimeStopToWeatherCommand(trip.Id, day.Id, stop.Id, new RetimeTarget("coolestDaytime", null, null)),
+            CancellationToken.None);
+
+        weather.ReceivedHours.Should().Be(48); // WindowHours omitted ⇒ defaults to 48, not 0/unbounded
+    }
+
+    [Fact]
+    public async Task Coolest_result_on_a_later_calendar_date_advances_the_delegated_NewAnchorDate()
+    {
+        using var fx = new HandlerTestFixture();
+        var (trip, day, stop) = await SeedOneStopDayAsync(fx);
+
+        // Coolest nighttime hour is on the NEXT calendar date (cross-midnight): 07-12 23:00 (feels 28)
+        // vs 07-13 01:00 (feels 20, cooler) — the min-feels-like pick crosses into the next day.
+        var hours = new List<HourlyReading>
+        {
+            new(new DateTime(2026, 7, 12, 23, 0, 0), false, 23, 28, "CLEAR", null, 0, 0),
+            new(new DateTime(2026, 7, 13, 1, 0, 0), false, 15, 20, "CLEAR", null, 0, 0),
+        };
+        var weather = new StubWeather(hours);
+        RetimeStopToHourCommand? delegated = null;
+        var mediator = DelegatingMediator(fx, c => delegated = c);
+        var handler = new RetimeStopToWeatherHandler(
+            fx.Db, fx.UserProvisioner.Object, RouteReturning(0).Object, weather, mediator.Object,
+            new RetimeStopToWeatherValidator());
+
+        var result = await handler.Handle(
+            new RetimeStopToWeatherCommand(trip.Id, day.Id, stop.Id, new RetimeTarget("coolestNighttime", null, 48)),
+            CancellationToken.None);
+
+        delegated!.NewAnchorDate.Should().Be(new DateOnly(2026, 7, 13));
+        delegated!.NewDayStartTime.Should().Be(new TimeOnly(1, 0));
+        result.MovedTrip.Should().BeTrue();
+        (await fx.Db.Trips.FirstAsync(t => t.Id == trip.Id, CancellationToken.None)).StartDate
+            .Should().Be(new DateOnly(2026, 7, 13));
+    }
 }

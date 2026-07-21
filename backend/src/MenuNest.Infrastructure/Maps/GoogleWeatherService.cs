@@ -98,7 +98,12 @@ public sealed class GoogleWeatherService : IWeatherService
     public async Task<IReadOnlyList<HourlyReading>> GetHourlyAsync(WeatherPoint point, int hours, CancellationToken ct)
     {
         var want = Math.Clamp(hours, 1, 240);
-        var cacheKey = $"wx:Hourly:{point.Lat:F5},{point.Lng:F5}:{want}";
+        // Google's forecast/hours buckets are anchored to "now" at fetch time (unlike OnArrival, which
+        // is time-partitioned by arrival hour). Without a time component here, a cache hit up to the 3h
+        // TTL later would replay buckets whose earliest hours are already in the past. Appending the
+        // current UTC hour rolls the key forward every hour so a served list never precedes it — this is
+        // a cache-key-only use of wall-clock, not a behavioural dependency on it.
+        var cacheKey = $"wx:Hourly:{point.Lat:F5},{point.Lng:F5}:{want}:{DateTime.UtcNow:yyyyMMddHH}";
         if (_cache.TryGetValue(cacheKey, out IReadOnlyList<HourlyReading>? cached) && cached is not null) return cached;
 
         var lat = point.Lat.ToString(CultureInfo.InvariantCulture);
@@ -140,7 +145,7 @@ public sealed class GoogleWeatherService : IWeatherService
         return ordered;
     }
 
-    private static HourlyReading? ParseHourly(JsonElement el)
+    private HourlyReading? ParseHourly(JsonElement el)
     {
         var when = BucketHour(el);
         if (when is not { } local) return null;
@@ -154,7 +159,13 @@ public sealed class GoogleWeatherService : IWeatherService
         double? feels = el.TryGetProperty("feelsLikeTemperature", out var fl) && fl.TryGetProperty("degrees", out var fd) ? fd.GetDouble() : null;
         int? rain = el.TryGetProperty("precipitation", out var pr) && pr.TryGetProperty("probability", out var pb) && pb.TryGetProperty("percent", out var pc) ? pc.GetInt32() : null;
         int? uv = el.TryGetProperty("uvIndex", out var uvi) && uvi.ValueKind == JsonValueKind.Number ? uvi.GetInt32() : null;
-        bool day = el.TryGetProperty("isDaytime", out var idt) && idt.ValueKind == JsonValueKind.True;
+        // ADR-112: Google is verified to always send isDaytime, so an ABSENT field here is an upstream
+        // contract break, not a normal "night" reading. Keep the existing defensive false-on-absent
+        // result (never drop the bucket), but log it so a future omission is observable, not silent.
+        var hasIsDaytime = el.TryGetProperty("isDaytime", out var idt);
+        if (!hasIsDaytime)
+            _log.LogDebug("Hourly forecast bucket for {DisplayLocal:o} is missing isDaytime (ADR-112 expects it present); defaulting to false.", local);
+        bool day = hasIsDaytime && idt.ValueKind == JsonValueKind.True;
         return new HourlyReading(local, day, temp, feels, type, icon, rain, uv);
     }
 
