@@ -2,16 +2,20 @@ import { useState } from 'react'
 import { DropDownList } from '@syncfusion/react-dropdowns'
 import type { ChangeEvent as DDLChangeEvent } from '@syncfusion/react-dropdowns'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
-import { useUpdateUserSettingsMutation } from '../../shared/api/api'
+import { useUpdateUserSettingsMutation, useGetVersionQuery } from '../../shared/api/api'
 import { homeOptions } from './homeOptions'
 import { UV_ALERT_OPTIONS, FEELS_ALERT_OPTIONS, selectedAlertValue } from './weatherAlertOptions'
 import { UV_WARN_DEFAULT, FEELS_WARN_DEFAULT } from '../trips/lib/weather'
+import { inSync } from '../../shared/version/versionCompare'
+import { APP_VERSION, APP_COMMIT, BUILD_TIME } from '../../shared/version/buildInfo'
 import './SettingsPage.css'
 
 export function SettingsPage() {
   const { familyId, homePath, uvWarnThreshold, feelsLikeWarnThreshold, isLoadingProfile } = useCurrentUser()
   const [updateSettings, { isLoading }] = useUpdateUserSettingsMutation()
   const [saved, setSaved] = useState(false)
+  const { data: apiVersion, isLoading: apiLoading, isError: apiError } = useGetVersionQuery()
+  const buildDate = new Date(BUILD_TIME).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
 
   const options = homeOptions(!!familyId)
   const effective = homePath ?? '/budget'
@@ -145,6 +149,43 @@ export function SettingsPage() {
               onChange={handleFeelsChange}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="settings-row">
+        <div className="settings-row__label">
+          <span className="settings-row__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2l8 4v6c0 5-3.5 8.2-8 10-4.5-1.8-8-5-8-10V6z" />
+              <path d="M9.2 12l1.9 1.9 3.7-3.8" />
+            </svg>
+          </span>
+          <div>
+            <div className="settings-row__title">เวอร์ชัน</div>
+            <div className="settings-row__sub">รุ่นที่กำลังใช้งานของแอปและ API</div>
+          </div>
+        </div>
+
+        <div className="settings-version">
+          <div className="settings-version__line">
+            <span className="settings-version__k">แอป</span>
+            <code className="settings-version__v">{APP_VERSION}</code>
+          </div>
+          <div className="settings-version__line">
+            <span className="settings-version__k">API</span>
+            {apiLoading && <span className="settings-version__skel" aria-label="กำลังโหลด" />}
+            {!apiLoading && apiError && <span className="settings-version__unavail">ไม่พร้อมใช้งาน</span>}
+            {!apiLoading && !apiError && apiVersion && (
+              <>
+                <code className="settings-version__v">{apiVersion.version}</code>
+                {inSync(APP_COMMIT, apiVersion.commit)
+                  ? <span className="settings-version__badge settings-version__badge--ok">ตรงกัน</span>
+                  : <span className="settings-version__badge settings-version__badge--warn">ไม่ตรงกัน</span>}
+              </>
+            )}
+          </div>
+          <div className="settings-version__meta">อัปเดตแอปเมื่อ {buildDate}</div>
         </div>
       </div>
 
