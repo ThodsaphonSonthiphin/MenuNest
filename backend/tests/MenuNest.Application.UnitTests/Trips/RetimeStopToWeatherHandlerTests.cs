@@ -46,7 +46,7 @@ public class RetimeStopToWeatherHandlerTests
             .Returns<RetimeStopToHourCommand, CancellationToken>((cmd, token) =>
             {
                 capture(cmd);
-                return new RetimeStopToHourHandler(fx.Db, fx.UserProvisioner.Object, new RetimeStopToHourValidator())
+                return new RetimeStopToHourHandler(fx.Db, fx.UserProvisioner.Object, new RetimeStopToHourValidator(), fx.Clock)
                     .Handle(cmd, token);
             });
         return mediator;
