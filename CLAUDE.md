@@ -162,3 +162,12 @@ Because prod deploys on push to `main`, run a quick interactive smoke test of an
 layout UI change BEFORE pushing -- a fully-broken render (e.g. an overlay covering the whole map)
 passes every automated gate and would otherwise ship straight to prod (learned on #36: a capture
 banner covered the entire map -- a black screen).
+
+**The review gates are blind to visual fidelity.** SDD per-task review, the whole-branch review, and
+`/scrutinize` verify behaviour and spec-compliance -- none of them render the UI or compare it to the
+mock. A mockup-backed UI task can pass every automated + agent gate and still ship visibly wrong
+(learned on #46: the HourlyPlanner shipped flat / placeholder-styled, diverging from its approved mock,
+straight through all gates + /scrutinize to prod). Before merge, for any mockup-backed UI task: fetch the
+mock (Claude Design -> `DesignSync get_file screens/<name>.html`, or the `docs/mocks/` file) and diff the
+produced CSS/markup against it -- tokens, colors, structural treatment -- and/or verify interactively.
+Passing the gates is NOT evidence the UI matches the mock.
