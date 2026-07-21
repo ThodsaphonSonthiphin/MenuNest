@@ -8,7 +8,7 @@ import {Fragment, useMemo, useState} from 'react'
 import type {ItineraryDayDto, TripPlaceDto, HourlyReadingDto} from '../../../shared/api/api'
 import {useGetHourlyForecastQuery, useRetimeStopMutation} from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
-import {iconUrl} from '../lib/weather'
+import {iconUrl, hourlyRolloverLabel} from '../lib/weather'
 import {offsetMinutes, suggestedStartMinutes, classifyShift, coolestHour, minutesToHHMMSS, withinHorizon} from '../lib/retiming'
 import {SunIcon, MoonIcon, PowerIcon, AlertIcon} from './WeatherIcons'
 import {CheckIcon} from './FlagIcons'
@@ -42,15 +42,6 @@ export function HourlyPlanner({
   )
 
   const todayDate = day.date.slice(0, 10)
-  // Date-rollover label for the hour strip: the window spans 48h from "now" (not midnight-aligned),
-  // so it can cross THREE calendar dates. Label by day-delta from the anchor date, not a fixed
-  // "today vs not-today" check (see classifyShift's date-diff idiom in lib/retiming.ts).
-  const rolloverLabel = (dateStr: string) => {
-    const deltaDays = Math.round((Date.parse(dateStr) - Date.parse(todayDate)) / 86_400_000)
-    return deltaDays === 1
-      ? 'พรุ่งนี้'
-      : new Date(`${dateStr}T00:00:00`).toLocaleDateString('th-TH', {weekday: 'short', day: 'numeric', month: 'short'})
-  }
 
   // A cross-day retime moves Trip.StartDate — surface that before the planner closes
   // instead of silently vanishing like a same-day apply.
@@ -158,7 +149,7 @@ export function HourlyPlanner({
           else if (isCoolNight) cls.push('coolnight')
           return (
             <Fragment key={h.displayLocal}>
-              {isRollover && <div className="sd-daydiv">{rolloverLabel(hDate)}</div>}
+              {isRollover && <div className="sd-daydiv">{hourlyRolloverLabel(hDate, todayDate)}</div>}
               <button type="button" className={cls.join(' ')} onClick={() => setPicked(h)}>
                 {isPlan && <span className="sd-hr-tag">แผนตอนนี้</span>}
                 <span className="sd-hr-time mono">{h.displayLocal.slice(11, 16)}</span>
@@ -187,7 +178,7 @@ export function HourlyPlanner({
               </div>
               {preview.shift.movesTrip &&
                 (tripDayCount === 1 ? (
-                  <div className="sd-sugg-off"><PowerIcon /> วันของทริปจะย้ายไป {rolloverLabel(preview.newAnchorDate)}</div>
+                  <div className="sd-sugg-off"><PowerIcon /> วันของทริปจะย้ายไป {hourlyRolloverLabel(preview.newAnchorDate, todayDate)}</div>
                 ) : (
                   <div className="sd-sugg-warn">
                     <AlertIcon /> <span>ทั้งทริปจะเลื่อนไป {preview.shift.deltaDays} วัน — วันอื่นในทริปขยับตาม</span>
