@@ -269,3 +269,15 @@ the glossary wins until the glossary is deliberately changed.
   (bare), ranking factor.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
+
+## Build & release
+
+- **App version** -- the build identity of a deployed MenuNest surface: a **SemVer-2.0** string
+  `MAJOR.MINOR.PATCH+<shortSHA>` (e.g. `0.1.0+a1b2c3d`), auto-derived at build time -- the
+  `+<shortSHA>` from git, the `MAJOR.MINOR.PATCH` base from a single source file per side
+  (`package.json` `"version"` for the SPA, the `<Version>` MSBuild property for the API), kept
+  equal across both and bumped in lockstep (ADR-107, ADR-111). Reported by the API at the public
+  **`GET /version`** (`{ version, commit, buildTime }`, ADR-108) and shown on the SPA **`/settings`**
+  page -- both the app's own build and the API's, side by side, with a **ตรงกัน / ไม่ตรงกัน** match
+  badge (ADR-110). Embedded in each artifact at build, never read from runtime config (ADR-109).
+  _Avoid_: build number, revision, release (bare), tag.
