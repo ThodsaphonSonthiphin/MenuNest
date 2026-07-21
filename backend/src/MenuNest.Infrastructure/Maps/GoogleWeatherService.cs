@@ -101,6 +101,8 @@ public sealed class GoogleWeatherService : IWeatherService
         var cacheKey = $"wx:Hourly:{point.Lat:F5},{point.Lng:F5}:{want}";
         if (_cache.TryGetValue(cacheKey, out IReadOnlyList<HourlyReading>? cached) && cached is not null) return cached;
 
+        var lat = point.Lat.ToString(CultureInfo.InvariantCulture);
+        var lng = point.Lng.ToString(CultureInfo.InvariantCulture);
         var client = _http.CreateClient();
         using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         timeoutCts.CancelAfter(TimeSpan.FromSeconds(20));
@@ -110,7 +112,7 @@ public sealed class GoogleWeatherService : IWeatherService
             string? pageToken = null;
             for (var page = 0; page < MaxForecastPages && result.Count < want; page++)
             {
-                var url = $"https://weather.googleapis.com/v1/forecast/hours:lookup?location.latitude={point.Lat}&location.longitude={point.Lng}&hours=240&unitsSystem=METRIC&languageCode=th";
+                var url = $"https://weather.googleapis.com/v1/forecast/hours:lookup?location.latitude={lat}&location.longitude={lng}&hours=240&unitsSystem=METRIC&languageCode=th";
                 if (pageToken is not null) url += $"&pageToken={Uri.EscapeDataString(pageToken)}";
                 using var doc = await GetJsonAsync(client, url, timeoutCts.Token);
                 if (doc.RootElement.TryGetProperty("forecastHours", out var arr) && arr.ValueKind == JsonValueKind.Array)
