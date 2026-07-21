@@ -1527,6 +1527,9 @@ export const publicApi = createApi({
             query: (token) => `/api/public/report?t=${encodeURIComponent(token)}`,
             providesTags: (_r, _e, token) => [{type: 'PublicReport', id: token}],
         }),
+        getVersion: build.query<{ version: string; commit: string; buildTime: string | null }, void>({
+            query: () => '/version',
+        }),
     }),
 })
 export const {
@@ -1656,4 +1659,5 @@ export const {
 
 export const {
     useGetDoctorReportQuery,
+    useGetVersionQuery,
 } = publicApi
