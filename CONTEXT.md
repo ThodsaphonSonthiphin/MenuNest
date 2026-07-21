@@ -167,6 +167,26 @@ the glossary wins until the glossary is deliberately changed.
   a **Feels-like** one — each settable to a value or turned **off**. Stored per-User on
   `UserSettings`: `null` = the built-in default (UV 6 / feels-like 40 °C), `0` = off, a positive value
   = that threshold (ADR-091). _Avoid_: alert level, sensitivity.
+- **Hourly forecast** — the per-hour weather series for a **Stop**'s coordinates across a rolling
+  forward window from *now* (**Feels-like** °C as the headline, plus temperature, condition, rain %,
+  **UV index**, and Google's per-hour **isDaytime** flag), sourced from the **same** Google
+  `forecast/hours` the **On-arrival** reading walks (ADR-114). Distinct from a **Weather reading** (the
+  two Now/On-arrival chips). Horizon-gated to 10 days (ADR-031, ADR-113). _Avoid_: hourly weather
+  (informal), timeline (that is the UI strip that renders it).
+- **isDaytime** — Google Weather's per-hour flag, "true if the hour is between the local sunrise
+  (inclusive) and sunset (exclusive) times"; the canonical daytime/nighttime split for the
+  coolest-daytime / coolest-nighttime quick actions of **Weather-based retiming** — never a fixed clock
+  (ADR-112). _Avoid_: day flag, sun flag.
+- **Weather-based retiming (จัดเวลาตามอากาศ)** — the interaction (issue #46): from an **Anchor Stop**'s
+  **Hourly forecast**, pick a target hour — by tapping any hour, or a *coolest-daytime* / *coolest-nighttime*
+  quick action — and the app suggests, then one-tap applies, a **day start time** shift (and, for a
+  cross-day target, a whole-**Trip** date shift — ADR-109) so the Stop's cascaded **arrival** lands on that
+  hour. Suggested-then-confirmed, never an automatic silent change; applying also turns off **Current-time
+  start** (ADR-110). It never edits the cascade itself — only its inputs (ADR-108). _Avoid_: auto-schedule,
+  weather optimizer, reschedule (that is `Trip.Reschedule`, the mechanism it reuses).
+- **Anchor Stop** — the **Stop** whose **Hourly forecast** is open; a **Weather-based retiming** target
+  applies to it — its **arrival** is what is driven to the chosen hour, and its **Day** index sets the
+  **Trip** date shift for a cross-day target. _Avoid_: target stop, selected stop.
 - **Review link** — a per-**Place** (TripPlace) link to an external short-video **review** of that
   Place — framed around TikTok but accepting any well-formed `http(s)` URL (YouTube, Instagram, etc.,
   see ADR-050). A Place carries an ordered **list** of Review links, each an entry of `{ url, label? }`

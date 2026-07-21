@@ -20,4 +20,10 @@ public class MissingConfigWeatherServiceTests
         readings.Should().OnlyContain(r => r.HasData == false && r.ConditionType == null && r.TempC == null);
         readings.Select(r => r.StopId).Should().Equal("s1", "s2");
     }
+
+    [Fact]
+    public async Task GetHourlyAsync_returns_empty_without_a_key()
+        => (await new MissingConfigWeatherService()
+            .GetHourlyAsync(new WeatherPoint("", 13.75, 100.50, null), 48, CancellationToken.None))
+            .Should().BeEmpty();
 }

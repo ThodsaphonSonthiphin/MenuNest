@@ -20,6 +20,9 @@ public class GetStopWeatherHandlerTests
                 .ToList();
             return Task.FromResult(readings);
         }
+
+        public Task<IReadOnlyList<HourlyReading>> GetHourlyAsync(WeatherPoint point, int hours, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<HourlyReading>>(Array.Empty<HourlyReading>());
     }
 
     private static GetStopWeatherHandler Build(StubWeather w) => new(w, new GetStopWeatherValidator());
