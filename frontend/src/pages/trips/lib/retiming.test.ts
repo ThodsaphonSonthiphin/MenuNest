@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {offsetMinutes, suggestedStartMinutes, classifyShift, coolestHour, minutesToHHMMSS} from './retiming'
+import {offsetMinutes, suggestedStartMinutes, classifyShift, coolestHour, minutesToHHMMSS, withinHorizon} from './retiming'
 import type {ItineraryDayDto, HourlyReadingDto} from '../../../shared/api/api'
 
 const stop = (id: string, seq: number, dwell: number, legSec: number | null) => ({
@@ -27,6 +27,15 @@ describe('offsetMinutes', () => {
   it('returns null for an unknown stop', () => {
     expect(offsetMinutes(day([stop('0', 0, 60, null)]), 'zzz')).toBeNull()
   })
+  it('sums correctly when stops are passed out of sequence order', () => {
+    // Same legs/dwell as the first test, but the array itself is NOT in sequence order —
+    // offsetMinutes must sort by `sequence` internally rather than trust array order.
+    const d = day([stop('1', 1, 45, 900), stop('0', 0, 60, null)])
+    expect(offsetMinutes(d, '1')).toBe(75)
+  })
+  it('rounds a non-exact leg duration (925s -> 15m)', () => {
+    expect(offsetMinutes(day([stop('0', 0, 0, 925)]), '0')).toBe(15)
+  })
 })
 
 describe('suggestedStartMinutes', () => {
@@ -46,8 +55,24 @@ describe('coolestHour', () => {
   it('picks min feels-like daytime hour', () => expect(coolestHour(hours, true)?.displayLocal).toContain('T13:'))
   it('picks min feels-like nighttime hour', () => expect(coolestHour(hours, false)?.displayLocal).toContain('T02:'))
   it('is null when the half has no candidates', () => expect(coolestHour([hr(13, true, 39)], false)).toBeNull())
+  it('picks the earliest hour on a genuine tie', () => {
+    // Two daytime hours tied on feels-like, given out of chronological order — the
+    // strict `<` comparison in coolestHour must not let the later tie overwrite the first.
+    const tied = [hr(14, true, 35), hr(10, true, 35), hr(18, true, 40)]
+    expect(coolestHour(tied, true)?.displayLocal).toContain('T10:')
+  })
 })
 
 describe('minutesToHHMMSS', () => {
   it('formats to HH:mm:ss', () => expect(minutesToHHMMSS(10 * 60 + 45)).toBe('10:45:00'))
+  it('wraps a value past 24h', () => expect(minutesToHHMMSS(1470)).toBe('00:30:00'))
+  it('wraps a negative value into the previous day', () => expect(minutesToHHMMSS(-15)).toBe('23:45:00'))
+})
+
+describe('withinHorizon', () => {
+  const now = 1_700_000_000_000
+  const HOUR = 3_600_000
+  it('is false for a target in the past', () => expect(withinHorizon(now - HOUR, now)).toBe(false))
+  it('is true for a target within the 240h forecast window', () => expect(withinHorizon(now + 100 * HOUR, now)).toBe(true))
+  it('is false for a target beyond the 240h horizon', () => expect(withinHorizon(now + 241 * HOUR, now)).toBe(false))
 })

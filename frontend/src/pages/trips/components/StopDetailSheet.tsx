@@ -53,7 +53,7 @@ export function StopDetailSheet({
   nowReading?: WeatherReadingDto
   arrivalReading?: WeatherReadingDto
   weatherLoading?: boolean
-  planner?: {tripId: string; day: ItineraryDayDto}
+  planner?: {tripId: string; day: ItineraryDayDto; tripDayCount: number}
   onEdit: () => void
   onNavigate?: () => void
   onToggleVisited: (next: boolean) => void
@@ -117,6 +117,7 @@ export function StopDetailSheet({
                 stopId={stopId}
                 place={place}
                 tripId={planner.tripId}
+                tripDayCount={planner.tripDayCount}
                 onClose={() => setShowHourly(false)}
               />
             )}

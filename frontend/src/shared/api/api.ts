@@ -1525,8 +1525,15 @@ export const api = createApi({
         >({
             query: ({tripId, dayId, ...b}) => ({url: `/api/trips/${tripId}/days/${dayId}/retime`, method: 'POST', body: b}),
             // A retime reschedules the day (and maybe the whole trip) — the itinerary must refetch to
-            // show the new cascade, exactly like setDayStartTime.
-            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+            // show the new cascade, exactly like setDayStartTime. A cross-day retime also changes
+            // Trip.StartDate, which the Trips list card and trip date editor read from 'Trips' /
+            // TripDetail (mirrors updateTrip's invalidation below) — a same-day retime invalidating
+            // them too is a harmless no-op refetch.
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'TripItinerary', id: a.tripId},
+                'Trips',
+                {type: 'TripDetail', id: a.tripId},
+            ],
         }),
     }),
 })

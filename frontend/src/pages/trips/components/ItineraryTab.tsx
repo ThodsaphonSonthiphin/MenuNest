@@ -499,7 +499,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           nowReading={stopWeather[detailStop.stop.id]?.now}
           arrivalReading={stopWeather[detailStop.stop.id]?.arrival}
           weatherLoading={(stopWeather[detailStop.stop.id]?.nowLoading ?? false) || (stopWeather[detailStop.stop.id]?.arrivalLoading ?? false)}
-          planner={{tripId, day: resolvedDay}}
+          planner={{tripId, day: resolvedDay, tripDayCount: dayList.length}}
           onEdit={() => {
             setDetailStopId(null)
             dispatch(setStopEditor(detailStop.stop.id))
