@@ -35,7 +35,17 @@ public sealed class RetimeStopToHourHandler : ICommandHandler<RetimeStopToHourCo
         var deltaDays = c.NewAnchorDate.DayNumber - day.Date.DayNumber;
         var moved = deltaDays != 0;
 
-        // (cross-day realign added in Task 4)
+        if (moved)
+        {
+            var newStart = trip.StartDate.AddDays(deltaDays);
+            trip.Reschedule(newStart, trip.DayCount);
+            // Realign every kept Day in ONE SaveChanges — EF orders the per-row UPDATEs so the unique
+            // (TripId, Date) index is never transiently violated (see UpdateTripHandler + reference_ef_relational_testing).
+            var days = await _db.ItineraryDays.Where(d => d.TripId == trip.Id).OrderBy(d => d.Date).ToListAsync(ct);
+            for (var i = 0; i < days.Count; i++)
+                days[i].SetDate(newStart.AddDays(i));
+            // `day` is one of those tracked entities; its Date is now the target date.
+        }
 
         day.SetStartTime(c.NewDayStartTime);
         day.SetUseCurrentTimeAsStart(false);            // pin (ADR-110)
