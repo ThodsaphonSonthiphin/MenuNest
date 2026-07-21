@@ -17,6 +17,7 @@ using MenuNest.Application.UseCases.Trips.ListTrips;
 using MenuNest.Application.UseCases.Trips.RemoveStop;
 using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.ResolvePlace;
+using MenuNest.Application.UseCases.Trips.RetimeStopToHour;
 using MenuNest.Application.UseCases.Trips.SetChecklistEntryChecked;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
 using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
@@ -135,6 +136,10 @@ public sealed class TripsController : ControllerBase
     [HttpPost("api/trips/weather/hourly")]
     public async Task<ActionResult<IReadOnlyList<HourlyReadingDto>>> HourlyWeather([FromBody] GetHourlyForecastQuery q, CancellationToken ct)
         => Ok(await _mediator.Send(q, ct));
+
+    [HttpPost("api/trips/{tripId:guid}/days/{dayId:guid}/retime")]
+    public async Task<ActionResult<RetimeResultDto>> Retime(Guid tripId, Guid dayId, [FromBody] RetimeBody b, CancellationToken ct)
+        => Ok(await _mediator.Send(new RetimeStopToHourCommand(tripId, dayId, b.StopId, b.NewDayStartTime, b.NewAnchorDate), ct));
 }
 
 public sealed record UpdateTripBody(
@@ -166,3 +171,5 @@ public sealed record ReorderBody(IReadOnlyList<Guid> OrderedStopIds);
 public sealed record SetDayStartBody(TimeOnly StartTime);
 
 public sealed record SetDayUseCurrentTimeBody(bool UseCurrentTime);
+
+public sealed record RetimeBody(Guid StopId, TimeOnly NewDayStartTime, DateOnly NewAnchorDate);
