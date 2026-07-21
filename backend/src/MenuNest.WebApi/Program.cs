@@ -1,7 +1,9 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using MenuNest.Application;
 using MenuNest.Infrastructure;
 using MenuNest.McpServer;
+using MenuNest.WebApi;
 using MenuNest.WebApi.Middleware;
 using MenuNest.WebApi.Oauth;
 using Microsoft.AspNetCore.Authorization;
@@ -208,6 +210,14 @@ app.UseCors(CorsPolicyName);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Public build-version probe (anonymous). Infra metadata read from the
+// assembly at runtime — not a domain use case (ADR-108).
+app.MapGet("/version", () =>
+{
+    var v = BuildVersion.Read(Assembly.GetEntryAssembly());
+    return Results.Ok(new { version = v.Version, commit = v.Commit, buildTime = v.BuildTime });
+}).AllowAnonymous();
 
 // MCP — Streamable HTTP; authentication is handled by the McpProxy JWT bearer
 app.MapMcp("/mcp").RequireAuthorization("McpProxy");
