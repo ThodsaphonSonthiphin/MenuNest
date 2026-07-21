@@ -4,6 +4,7 @@ import type {DiscoverPlaceView} from '../lib/discoverFilter'
 import {buildStopNavUrl} from '../../trips/lib/navUrl'
 import {ReviewIcon} from '../../trips/components/ReviewIcon'
 import {reviewLabel, reviewHost} from '../../trips/lib/reviewLinks'
+import {DiscoverHourly} from './DiscoverHourly'
 
 interface Props {
   place: DiscoverPlaceView
@@ -42,6 +43,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingT
         {place.seasonStatus === 'bad' && <span className="disc-badge closed">เดือนนี้ควรเลี่ยง</span>}
         {place.trips.map((t) => <span key={t.tripId} className="disc-badge trip">{t.tripName}</span>)}
       </div>
+      <DiscoverHourly place={place} />
       {place.reviewLinks.length > 0 && (
         <div className="disc-reviews">
           <div className="disc-sec-lab">รีวิว</div>
