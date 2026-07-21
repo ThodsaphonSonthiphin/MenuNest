@@ -7,22 +7,45 @@
 import {useMemo, useState} from 'react'
 import type {ItineraryDayDto, TripPlaceDto, HourlyReadingDto} from '../../../shared/api/api'
 import {useGetHourlyForecastQuery, useRetimeStopMutation} from '../../../shared/api/api'
+import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {iconUrl} from '../lib/weather'
-import {offsetMinutes, suggestedStartMinutes, classifyShift, coolestHour, minutesToHHMMSS} from '../lib/retiming'
+import {offsetMinutes, suggestedStartMinutes, classifyShift, coolestHour, minutesToHHMMSS, withinHorizon} from '../lib/retiming'
 import {ClockIcon} from './WeatherIcons'
 
 const WINDOW_HOURS = 48
 
 export function HourlyPlanner({
-  day, stopId, place, tripId, onClose,
+  day, stopId, place, tripId, tripDayCount, onClose,
 }: {
-  day: ItineraryDayDto; stopId: string; place: TripPlaceDto; tripId: string; onClose: () => void
+  day: ItineraryDayDto; stopId: string; place: TripPlaceDto; tripId: string; tripDayCount: number; onClose: () => void
 }) {
-  const {data: hours = [], isLoading} = useGetHourlyForecastQuery({lat: place.lat, lng: place.lng, hours: WINDOW_HOURS})
+  const {data: allHours = [], isLoading} = useGetHourlyForecastQuery({lat: place.lat, lng: place.lng, hours: WINDOW_HOURS})
   const [retime, {isLoading: applying}] = useRetimeStopMutation()
   const [picked, setPicked] = useState<HourlyReadingDto | null>(null)
+  const [applyError, setApplyError] = useState<string | null>(null)
+  const [tripMovedNote, setTripMovedNote] = useState<string | null>(null)
 
   const offset = useMemo(() => offsetMinutes(day, stopId), [day, stopId])
+  // H2 guard: never let the user pick an hour that's already past or beyond the 240h
+  // forecast horizon. Filtering here (rather than per-cell) also gives the coolest
+  // quick-actions below — derived from this same list — the same guard for free.
+  const hours = useMemo(
+    () => allHours.filter((h) => withinHorizon(Date.parse(h.displayLocal), Date.now())),
+    [allHours],
+  )
+
+  // A cross-day retime moves Trip.StartDate — surface that before the planner closes
+  // instead of silently vanishing like a same-day apply.
+  if (tripMovedNote) {
+    return (
+      <div className="sd-hourly">
+        <div className="sd-hourly-preview">
+          <p>{tripMovedNote}</p>
+          <button type="button" className="btn-primary" onClick={onClose}>ตกลง</button>
+        </div>
+      </div>
+    )
+  }
 
   if (isLoading) return <div className="sd-hourly sd-hourly--loading">กำลังโหลดพยากรณ์รายชั่วโมง…</div>
   if (hours.length === 0) return <div className="sd-hourly sd-hourly--empty">ไม่มีข้อมูลอากาศรายชั่วโมง</div>
@@ -48,8 +71,22 @@ export function HourlyPlanner({
 
   const apply = async () => {
     if (!preview || preview.unreachable) return
-    await retime({tripId, dayId: day.id, stopId, newDayStartTime: preview.newDayStartTime, newAnchorDate: preview.newAnchorDate})
-    onClose()
+    setApplyError(null)
+    try {
+      const res = await retime({
+        tripId, dayId: day.id, stopId,
+        newDayStartTime: preview.newDayStartTime, newAnchorDate: preview.newAnchorDate,
+      }).unwrap()
+      if (res.movedTrip) {
+        // Keep the planner open just long enough to show the moved trip start date;
+        // the user dismisses it explicitly (see the tripMovedNote render above).
+        setTripMovedNote(`ทริปเลื่อนเป็น ${res.tripStartAfter}`)
+      } else {
+        onClose()
+      }
+    } catch (err) {
+      setApplyError(getErrorMessage(err))
+    }
   }
 
   const todayDate = day.date.slice(0, 10)
@@ -93,8 +130,15 @@ export function HourlyPlanner({
           ) : (
             <>
               <p>เริ่มวันใหม่ {preview.newDayStartTime.slice(0, 5)} → ถึงตอน {picked!.displayLocal.slice(11, 16)}</p>
-              {preview.shift.movesTrip && <p className="warn">ทั้งทริปจะเลื่อนไป {preview.shift.deltaDays} วัน วันอื่นขยับตาม</p>}
+              {preview.shift.movesTrip && (
+                tripDayCount === 1 ? (
+                  <p className="note">วันของทริปจะย้ายไป {rolloverLabel(preview.newAnchorDate)}</p>
+                ) : (
+                  <p className="warn">ทั้งทริปจะเลื่อนไป {preview.shift.deltaDays} วัน วันอื่นขยับตาม</p>
+                )
+              )}
               <p className="note">จะปิด “ใช้เวลาปัจจุบันเสมอ” ของวันนี้</p>
+              {applyError && <p className="trips-field-error">{applyError}</p>}
               <button type="button" className="btn-primary" disabled={applying} onClick={apply}>ปรับเลย</button>
             </>
           )}
