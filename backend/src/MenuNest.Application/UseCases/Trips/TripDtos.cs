@@ -48,3 +48,7 @@ public sealed record HourlyReadingDto(
     double? TempC, double? FeelsLikeC,
     string? ConditionType, string? IconBaseUri,
     int? RainPct, int? UvIndex);
+
+public sealed record RetimeResultDto(
+    bool MovedTrip, DateOnly TripStartBefore, DateOnly TripStartAfter,
+    DateOnly AnchorDate, TimeOnly NewDayStartTime);
