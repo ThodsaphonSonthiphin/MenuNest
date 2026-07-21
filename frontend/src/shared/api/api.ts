@@ -555,6 +555,17 @@ export interface WeatherReadingDto {
     tempC: number | null; rainPct: number | null; description: string | null
     uvIndex: number | null; feelsLikeC: number | null
 }
+export interface HourlyReadingDto {
+  displayLocal: string; isDaytime: boolean
+  tempC: number | null; feelsLikeC: number | null
+  conditionType: string | null; iconBaseUri: string | null
+  rainPct: number | null; uvIndex: number | null
+}
+export interface RetimeResultDto {
+  movedTrip: boolean
+  tripStartBefore: string; tripStartAfter: string
+  anchorDate: string; newDayStartTime: string
+}
 
 // ----------------------------------------------------------------------
 const rawBaseQuery = fetchBaseQuery({
@@ -1504,6 +1515,19 @@ export const api = createApi({
             }),
             keepUnusedDataFor: 300,
         }),
+        getHourlyForecast: build.query<HourlyReadingDto[], {lat: number; lng: number; hours: number}>({
+            query: (body) => ({url: '/api/trips/weather/hourly', method: 'POST', body}),
+            keepUnusedDataFor: 600, // ephemeral like getStopWeather; no providesTags
+        }),
+        retimeStop: build.mutation<
+            RetimeResultDto,
+            {tripId: string; dayId: string; stopId: string; newDayStartTime: string; newAnchorDate: string}
+        >({
+            query: ({tripId, dayId, ...b}) => ({url: `/api/trips/${tripId}/days/${dayId}/retime`, method: 'POST', body: b}),
+            // A retime reschedules the day (and maybe the whole trip) — the itinerary must refetch to
+            // show the new cascade, exactly like setDayStartTime.
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+        }),
     }),
 })
 
@@ -1652,6 +1676,8 @@ export const {
     useSetDayStartTimeMutation,
     useSetDayUseCurrentTimeMutation,
     useGetStopWeatherQuery,
+    useGetHourlyForecastQuery,
+    useRetimeStopMutation,
 } = api
 
 export const {
