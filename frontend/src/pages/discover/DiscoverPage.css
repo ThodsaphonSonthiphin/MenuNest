@@ -410,21 +410,27 @@
 .disc-wx-now b { font-size: 13px; font-weight: 800; color: var(--ink); }
 .disc-wx-now .fl { color: var(--muted); font-weight: 700; }
 
-.disc-wx-strip { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 8px; scroll-snap-type: x proximity; }
+.disc-wx-strip { display: flex; gap: 6px; overflow-x: auto; padding: 10px 2px 8px; scroll-snap-type: x proximity; }
 .disc-wx-strip::-webkit-scrollbar { height: 5px; }
 .disc-wx-strip::-webkit-scrollbar-thumb { background: #d5dde5; border-radius: 999px; }
 
-.disc-hr { flex: none; scroll-snap-align: start; min-width: 58px; display: flex; flex-direction: column;
-  align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 12px; padding: 7px 6px 8px; background: #fffdf5; }
+.disc-hr { position: relative; flex: none; scroll-snap-align: start; min-width: 58px; display: flex; flex-direction: column;
+  align-items: center; gap: 2px; border: 1px solid var(--border); border-radius: 12px; padding: 7px 6px 8px; background: #fff; }
+.disc-hr.day { background: #fffdf5; }
 .disc-hr.night { background: #f3f5fc; border-color: #e4e8f6; }
-.disc-hr-div { align-self: stretch; text-align: center; font-size: 9px; font-weight: 800; white-space: nowrap;
-  color: var(--teal-deep); background: var(--teal-soft); border-radius: 999px; padding: 1px 7px; margin-bottom: 2px; }
+/* "ตอนนี้" badge floated above the first cell (mirrors the trips planner's current-plan tag) */
+.disc-hr-now { position: absolute; top: -8px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: #fff; font-size: 8px; font-weight: 800; line-height: 1.5;
+  border-radius: 999px; padding: 0 7px; white-space: nowrap; }
+/* vertical date-rollover separator rendered between cells ("พรุ่งนี้" / dated) */
+.disc-daydiv { flex: none; align-self: stretch; display: flex; align-items: center; justify-content: center;
+  padding: 0 3px; margin: 0 1px; color: var(--teal-deep); font-size: 9px; font-weight: 800;
+  writing-mode: vertical-rl; transform: rotate(180deg); border-left: 1px dashed #c3cbea; }
 .disc-hr-time { font-size: 10.5px; font-weight: 700; color: var(--muted); }
-.disc-hr:first-child .disc-hr-time { color: var(--teal-deep); }
 .disc-hr img { width: 22px; height: 22px; }
 .disc-hr-temp { font-size: 14px; font-weight: 800; color: var(--ink); letter-spacing: -0.01em; }
 .disc-hr-feels { font-size: 9px; color: var(--muted); line-height: 1.1; }
-.disc-hr-rain { font-size: 9px; font-weight: 700; color: #1863b7; }
+.disc-hr-rain { display: inline-flex; align-items: center; gap: 2px; font-size: 9px; font-weight: 700; color: #1863b7; }
 .disc-hr-rain.dry { color: #cbd5e1; }
 
 .disc-wx-sk { flex: none; width: 58px; height: 82px; border-radius: 12px;
