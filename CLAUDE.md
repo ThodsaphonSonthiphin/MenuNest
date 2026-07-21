@@ -141,6 +141,12 @@ indexes / FK behaviour the InMemory provider silently ignores are exercised). **
 classes implement `IApplicationDbContext`: `AppDbContext` (prod), `SqliteAppDbContext` and
 `InMemoryAppDbContext` (tests) — a new `DbSet<>` must be added to **all three** or the build
 fails `CS0535`.
+**There are four test projects** under `backend/tests/`: `MenuNest.Application.UnitTests`
+(handlers/use-cases; SQLite + InMemory contexts), `MenuNest.Infrastructure.IntegrationTests`,
+`MenuNest.McpServer.UnitTests`, and `MenuNest.WebApi.UnitTests` (web-layer units —
+OAuth/JWT/claims/middleware, and the right home for anything reading `MenuNest.WebApi`
+internals). Put a test beside the layer it exercises — don't assume `Application.UnitTests`
+is the only home.
 ## Frontend has NO component/visual test harness
 
 The SPA's vitest runs in `environment: 'node'` (see `frontend/vite.config.ts`) with **no**
