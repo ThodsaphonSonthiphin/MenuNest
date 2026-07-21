@@ -3,8 +3,9 @@
 // Dialog styled as a bottom sheet (same mechanism as StopEditorDialog). Holds the
 // detail moved off the now-compact card: times, dwell, forecast-forward weather,
 // timing flag, and the นำทาง / รีวิว / แก้ไข / มาแล้ว actions.
+import {useState} from 'react'
 import {Dialog} from '@syncfusion/react-popups'
-import type {TripPlaceDto, WeatherReadingDto} from '../../../shared/api/api'
+import type {ItineraryDayDto, TripPlaceDto, WeatherReadingDto} from '../../../shared/api/api'
 import type {StopFlag} from '../hooks/useSchedule'
 import {catColor, catLabel} from '../placeCategory'
 import {formatDurationMinutes} from '../utils/time'
@@ -12,13 +13,16 @@ import {reviewHost, reviewLabel} from '../lib/reviewLinks'
 import {monthStatus, rangeLabel} from '../lib/season'
 import {WeatherChip} from './WeatherChip'
 import {WeatherDiorama} from './WeatherDiorama'
+import {HourlyPlanner} from './HourlyPlanner'
 import {FlagNote} from './FlagNote'
 import {NavIcon} from './NavIcon'
 import {ReviewIcon} from './ReviewIcon'
+import {ClockIcon} from './WeatherIcons'
 import {CheckIcon} from './FlagIcons'
 
 export function StopDetailSheet({
   place,
+  stopId,
   arrival,
   depart,
   dwell,
@@ -30,12 +34,14 @@ export function StopDetailSheet({
   nowReading,
   arrivalReading,
   weatherLoading = false,
+  planner,
   onEdit,
   onNavigate,
   onToggleVisited,
   onClose,
 }: {
   place: TripPlaceDto
+  stopId: string
   arrival: string
   depart: string
   dwell: number
@@ -47,11 +53,13 @@ export function StopDetailSheet({
   nowReading?: WeatherReadingDto
   arrivalReading?: WeatherReadingDto
   weatherLoading?: boolean
+  planner?: {tripId: string; day: ItineraryDayDto}
   onEdit: () => void
   onNavigate?: () => void
   onToggleVisited: (next: boolean) => void
   onClose: () => void
 }) {
+  const [showHourly, setShowHourly] = useState(false)
   const links = place.reviewLinks ?? []
   const seasonPeriods = place.seasonPeriods ?? []
   const season = monthStatus(place.seasonPeriods, tripMonth)
@@ -97,6 +105,23 @@ export function StopDetailSheet({
           <WeatherChip kind="now" reading={nowReading} isLoading={weatherLoading} />
           <WeatherChip kind="arr" reading={arrivalReading} isLoading={weatherLoading} />
         </div>
+
+        {planner && (
+          <>
+            <button type="button" className="sd-act btn-text" onClick={() => setShowHourly((v) => !v)}>
+              <ClockIcon /> ดูอุณหภูมิรายชั่วโมง — เลือกเวลาไปถึงตอนอากาศที่ต้องการ
+            </button>
+            {showHourly && (
+              <HourlyPlanner
+                day={planner.day}
+                stopId={stopId}
+                place={place}
+                tripId={planner.tripId}
+                onClose={() => setShowHourly(false)}
+              />
+            )}
+          </>
+        )}
 
         {season.kind !== 'none' && (
           <div className={`stop-season ${season.kind}`}>
