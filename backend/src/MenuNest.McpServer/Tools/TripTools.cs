@@ -18,6 +18,8 @@ using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
 using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
+using MenuNest.Application.UseCases.Trips.GetStopHourlyForecast;
+using MenuNest.Application.UseCases.Trips.RetimeStopToWeather;
 using MenuNest.Application.UseCases.Trips.ListChecklistItems;
 using MenuNest.Application.UseCases.Trips.AttachChecklistItem;
 using MenuNest.Application.UseCases.Trips.DetachChecklistItem;
@@ -190,6 +192,23 @@ public sealed class TripTools(IMediator mediator)
         [Description("Points to read: each { stopId, lat, lng, arrivalIso? }. arrivalIso is the stop's local wall-clock arrival (ISO-8601), used only for OnArrival.")] WeatherPointDto[] points,
         CancellationToken ct)
         => await mediator.Send(new GetStopWeatherQuery(kind, points), ct);
+
+    [McpServerTool, Description("Hourly weather forecast for a stop's location (up to 240h). Each hour: local time, feels-like, temp, condition, isDaytime.")]
+    public async Task<IReadOnlyList<HourlyReadingDto>> get_stop_hourly_forecast(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Stop ID")] Guid stopId,
+        [Description("Forecast hours to return (1-240)")] int hours,
+        CancellationToken ct)
+        => await mediator.Send(new GetStopHourlyForecastQuery(tripId, stopId, hours), ct);
+
+    [McpServerTool, Description("Re-time the plan so a stop arrives at a target hour, or the coolest daytime/nighttime hour. Shifts the day start (and whole trip StartDate for a cross-day target); turns off the day's current-time-start. Returns whether the whole trip moved.")]
+    public async Task<RetimeResultDto> retime_stop_to_weather(
+        [Description("Trip ID")] Guid tripId,
+        [Description("Itinerary day ID of the anchor stop")] Guid dayId,
+        [Description("Anchor stop ID")] Guid stopId,
+        [Description("Target: { kind: 'hour'|'coolestDaytime'|'coolestNighttime', localDateTime?, windowHours? }")] RetimeTarget target,
+        CancellationToken ct)
+        => await mediator.Send(new RetimeStopToWeatherCommand(tripId, dayId, stopId, target), ct);
 
     [McpServerTool, Description("List the current user's reusable checklist items — the personal library of 'things to prepare/bring' reused across places and trips. Use these names with attach_checklist_item.")]
     public async Task<IReadOnlyList<ChecklistItemDto>> list_checklist_items(CancellationToken ct)

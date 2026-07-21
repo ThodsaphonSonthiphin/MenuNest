@@ -52,3 +52,7 @@ public sealed record HourlyReadingDto(
 public sealed record RetimeResultDto(
     bool MovedTrip, DateOnly TripStartBefore, DateOnly TripStartAfter,
     DateOnly AnchorDate, TimeOnly NewDayStartTime);
+
+/// <summary>Wire shape of a weather re-timing target (mirrors RetimeTarget).
+/// Kind ∈ hour | coolestDaytime | coolestNighttime.</summary>
+public sealed record RetimeTargetDto(string Kind, DateTime? LocalDateTime, int? WindowHours);
