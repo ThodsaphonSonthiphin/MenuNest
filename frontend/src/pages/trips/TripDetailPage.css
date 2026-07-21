@@ -770,6 +770,76 @@
 .stop-detail-sheet .sd-weather .chip.wx .r { font-weight: 700; }
 .stop-detail-sheet .sd-weather .chip.wx .t { font-weight: 500; opacity: 0.6; font-size: 12px; }
 
+/* Hourly planner (issue #46) — mounted from StopDetailSheet's body-portaled Dialog (Task 8).
+   Portal fallback (see CSS-portal gotcha): `.btn-text` (global, trips-tokens.css) reads
+   --teal-deep from the page-scoped `.trips-page, .trip-detail` selector, which is NOT an
+   ancestor once the sheet is portaled to document.body — mirror it (and the --sd-* tokens
+   the rules below consume) on :root so the reused button idiom still paints correctly here. */
+:root {
+  --teal-deep: #0b7a87;
+  --sd-ink: #0f172a;
+  --sd-muted: #64748b;
+  --sd-teal: #0e8f9e;
+  --sd-teal-deep: #0b7a87;
+  --sd-teal-soft: #e3f5f6;
+  --sd-border: #e2e8f0;
+}
+
+.stop-detail-sheet .sd-hourly { display: flex; flex-direction: column; gap: 10px; }
+.stop-detail-sheet .sd-hourly--loading,
+.stop-detail-sheet .sd-hourly--empty {
+  padding: 14px; text-align: center; font-size: 13px; color: var(--sd-muted);
+  background: #f8fafc; border: 1px solid var(--sd-border); border-radius: 12px;
+}
+.stop-detail-sheet .sd-hourly-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--sd-muted);
+}
+.stop-detail-sheet .sd-hourly-head svg { width: 14px; height: 14px; }
+
+.stop-detail-sheet .sd-hourly-quick { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+
+.stop-detail-sheet .sd-hourly-strip {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 8px; scroll-snap-type: x proximity;
+}
+.stop-detail-sheet .sd-hr {
+  flex: none; scroll-snap-align: start; display: flex; flex-direction: column;
+  align-items: center; justify-content: flex-end; gap: 2px; border-radius: 12px;
+}
+.stop-detail-sheet .sd-hr.day { background: #fff6de; }
+.stop-detail-sheet .sd-hr.night { background: #eef1f8; }
+.stop-detail-sheet .sd-hr.picked { box-shadow: 0 0 0 2px var(--sd-teal); }
+.stop-detail-sheet .sd-hr-div {
+  font-size: 9px; font-weight: 700; line-height: 1.5; white-space: nowrap;
+  color: var(--sd-teal-deep); background: var(--sd-teal-soft); border-radius: 999px; padding: 1px 7px;
+}
+.stop-detail-sheet .sd-hr button {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 52px;
+  padding: 8px 9px; border: none; background: none; cursor: pointer; font-family: inherit; border-radius: 12px;
+}
+.stop-detail-sheet .sd-hr-time { font-size: 11px; font-weight: 700; color: var(--sd-ink); }
+.stop-detail-sheet .sd-hr img { width: 26px; height: 26px; }
+.stop-detail-sheet .sd-hr-feels { font-size: 11px; font-weight: 600; color: var(--sd-muted); }
+
+.stop-detail-sheet .sd-hourly-preview {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+  padding: 12px 14px; background: var(--sd-teal-soft); border-radius: 12px;
+  font-size: 13px; color: var(--sd-ink);
+}
+.stop-detail-sheet .sd-hourly-preview p { margin: 0; }
+.stop-detail-sheet .sd-hourly-preview .warn { color: var(--warn, #b4791f); font-weight: 700; }
+.stop-detail-sheet .sd-hourly-preview .note { font-size: 11.5px; color: var(--sd-muted); }
+
+.stop-detail-sheet .btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 9px 16px; border-radius: 10px; border: 1px solid var(--sd-teal);
+  background: var(--sd-teal); color: #fff; font-size: 13px; font-weight: 700;
+  cursor: pointer; font-family: inherit;
+}
+.stop-detail-sheet .btn-primary:disabled { background: #cbd5e1; border-color: #cbd5e1; cursor: default; }
+
+.stop-detail-sheet .sd-hourly-close { align-self: flex-start; }
+
 .stop-detail-sheet .sd-sec-lab { font-size: 12px; font-weight: 700; color: var(--sd-muted); margin-bottom: 6px; }
 .stop-detail-sheet .sd-review {
   display: flex; align-items: center; gap: 8px; padding: 9px 11px; margin-bottom: 6px;
