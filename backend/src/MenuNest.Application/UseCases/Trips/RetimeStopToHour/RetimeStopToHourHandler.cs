@@ -1,6 +1,7 @@
 using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Trips.Shared;
 using MenuNest.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,9 +12,10 @@ public sealed class RetimeStopToHourHandler : ICommandHandler<RetimeStopToHourCo
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly IValidator<RetimeStopToHourCommand> _validator;
+    private readonly IClock _clock;
 
-    public RetimeStopToHourHandler(IApplicationDbContext db, IUserProvisioner users, IValidator<RetimeStopToHourCommand> validator)
-    { _db = db; _users = users; _validator = validator; }
+    public RetimeStopToHourHandler(IApplicationDbContext db, IUserProvisioner users, IValidator<RetimeStopToHourCommand> validator, IClock clock)
+    { _db = db; _users = users; _validator = validator; _clock = clock; }
 
     public async ValueTask<RetimeResultDto> Handle(RetimeStopToHourCommand c, CancellationToken ct)
     {
@@ -31,6 +33,13 @@ public sealed class RetimeStopToHourHandler : ICommandHandler<RetimeStopToHourCo
         var anchorExists = await _db.Stops.AnyAsync(s => s.Id == c.StopId && s.ItineraryDayId == day.Id, ct);
         if (!anchorExists) throw new DomainException("Stop not found.");
 
+        // Guard: never rewrite the trip onto a date already in the past. A cross-day pick anchored to
+        // "now" (e.g. a coolest-hour forecast window) can resolve to a large negative delta and silently
+        // shift StartDate + earlier days into the past. One day of slack keeps a legitimate viewer-local
+        // "today" that is still UTC-yesterday from being falsely rejected.
+        if (c.NewAnchorDate < DateOnly.FromDateTime(_clock.UtcNow).AddDays(-1))
+            throw new DomainException("ไม่สามารถเลื่อนไปวันที่ผ่านมาแล้ว");
+
         var startBefore = trip.StartDate;
         var deltaDays = c.NewAnchorDate.DayNumber - day.Date.DayNumber;
         var moved = deltaDays != 0;
@@ -39,11 +48,9 @@ public sealed class RetimeStopToHourHandler : ICommandHandler<RetimeStopToHourCo
         {
             var newStart = trip.StartDate.AddDays(deltaDays);
             trip.Reschedule(newStart, trip.DayCount);
-            // Realign every kept Day in ONE SaveChanges — EF orders the per-row UPDATEs so the unique
-            // (TripId, Date) index is never transiently violated (see UpdateTripHandler + reference_ef_relational_testing).
+            // Realign every kept Day in ONE SaveChanges (collision-safe; see DayRealigner + reference_ef_relational_testing).
             var days = await _db.ItineraryDays.Where(d => d.TripId == trip.Id).OrderBy(d => d.Date).ToListAsync(ct);
-            for (var i = 0; i < days.Count; i++)
-                days[i].SetDate(newStart.AddDays(i));
+            DayRealigner.RealignDays(days, newStart);
             // `day` is one of those tracked entities; its Date is now the target date.
         }
 

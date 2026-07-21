@@ -49,7 +49,9 @@ public sealed class RetimeStopToWeatherHandler : ICommandHandler<RetimeStopToWea
             var origin = new RoutePoint(places[dayStops[i - 1].TripPlaceId].Lat, places[dayStops[i - 1].TripPlaceId].Lng);
             var dest = new RoutePoint(places[dayStops[i].TripPlaceId].Lat, places[dayStops[i].TripPlaceId].Lng);
             var legs = await _routes.GetLegTimesAsync(new[] { origin, dest }, dayStops[i].TravelModeToReach, ct);
-            offsetMin += (int)Math.Round(legs[0].Seconds / 60.0);
+            // Round half-up (AwayFromZero) to match the client JS Math.round in retiming.ts -
+            // C# default Math.Round is banker rounding (.5 -> even), a latent cross-language divergence.
+            offsetMin += (int)Math.Round(legs[0].Seconds / 60.0, MidpointRounding.AwayFromZero);
         }
         for (var i = 0; i < anchorIndex; i++)
             offsetMin += dayStops[i].DwellMinutes;
