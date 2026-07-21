@@ -98,3 +98,13 @@ export function weatherAlertBadges(
   }
   return out
 }
+
+/** Rollover-divider label for an hourly-strip cell whose date differs from the previous cell's.
+ *  `dateStr` / `anchorDateStr` are 'YYYY-MM-DD'. One day after the anchor -> 'พรุ่งนี้'; otherwise a
+ *  short Thai weekday+date label. Shared by the trips planner (#46) and the Discover strip (#47). */
+export function hourlyRolloverLabel(dateStr: string, anchorDateStr: string): string {
+  const deltaDays = Math.round((Date.parse(dateStr) - Date.parse(anchorDateStr)) / 86_400_000)
+  return deltaDays === 1
+    ? 'พรุ่งนี้'
+    : new Date(`${dateStr}T00:00:00`).toLocaleDateString('th-TH', {weekday: 'short', day: 'numeric', month: 'short'})
+}

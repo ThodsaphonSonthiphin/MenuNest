@@ -1,7 +1,7 @@
 import {describe, it, expect} from 'vitest'
 import {
   weatherWindow, iconUrl, isRainy, RAIN_TINT_THRESHOLD, weatherChipState, arrivalIso, buildWeatherBatches,
-  uvBand, effectiveThreshold, weatherAlertBadges,
+  uvBand, effectiveThreshold, weatherAlertBadges, hourlyRolloverLabel,
 } from './weather'
 import type {WeatherReadingDto} from '../../../shared/api/api'
 
@@ -97,4 +97,18 @@ describe('weatherAlertBadges', () => {
   it('feels badge rounds vs default 40', () => expect(weatherAlertBadges(wr({feelsLikeC: 40.4}), null, null)).toEqual({feels: 40}))
   it('0 disables an axis', () => expect(weatherAlertBadges(wr({uvIndex: 11, feelsLikeC: 45}), 0, 0)).toEqual({}))
   it('custom thresholds both fire', () => expect(weatherAlertBadges(wr({uvIndex: 3, feelsLikeC: 38}), 3, 38)).toEqual({uv: 3, feels: 38}))
+})
+
+describe('hourlyRolloverLabel', () => {
+  it('labels the day after the anchor as พรุ่งนี้', () => {
+    expect(hourlyRolloverLabel('2026-07-22', '2026-07-21')).toBe('พรุ่งนี้')
+  })
+  it('labels a further-out day with its date, not พรุ่งนี้', () => {
+    const label = hourlyRolloverLabel('2026-07-23', '2026-07-21')
+    expect(label).not.toBe('พรุ่งนี้')
+    expect(label).toContain('23')
+  })
+  it('does not call the anchor day itself พรุ่งนี้', () => {
+    expect(hourlyRolloverLabel('2026-07-21', '2026-07-21')).not.toBe('พรุ่งนี้')
+  })
 })
