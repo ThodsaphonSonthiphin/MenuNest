@@ -42,3 +42,9 @@ public sealed record WeatherReadingDto(
     string StopId, bool HasData, string? ConditionType, string? IconBaseUri,
     double? TempC, int? RainPct, string? Description,
     int? UvIndex, double? FeelsLikeC);
+
+public sealed record HourlyReadingDto(
+    DateTime DisplayLocal, bool IsDaytime,
+    double? TempC, double? FeelsLikeC,
+    string? ConditionType, string? IconBaseUri,
+    int? RainPct, int? UvIndex);

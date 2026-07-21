@@ -7,6 +7,7 @@ using MenuNest.Application.UseCases.Trips.CreateTrip;
 using MenuNest.Application.UseCases.Trips.DetachChecklistItem;
 using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
+using MenuNest.Application.UseCases.Trips.GetHourlyForecast;
 using MenuNest.Application.UseCases.Trips.GetItinerary;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Application.UseCases.Trips.GetTrip;
@@ -129,6 +130,10 @@ public sealed class TripsController : ControllerBase
 
     [HttpPost("api/trips/weather")]
     public async Task<ActionResult<IReadOnlyList<WeatherReadingDto>>> Weather([FromBody] GetStopWeatherQuery q, CancellationToken ct)
+        => Ok(await _mediator.Send(q, ct));
+
+    [HttpPost("api/trips/weather/hourly")]
+    public async Task<ActionResult<IReadOnlyList<HourlyReadingDto>>> HourlyWeather([FromBody] GetHourlyForecastQuery q, CancellationToken ct)
         => Ok(await _mediator.Send(q, ct));
 }
 
