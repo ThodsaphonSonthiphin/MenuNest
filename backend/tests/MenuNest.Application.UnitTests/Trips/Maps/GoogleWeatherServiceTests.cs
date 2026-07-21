@@ -389,4 +389,26 @@ public class GoogleWeatherServiceTests
         (await svc.GetHourlyAsync(new WeatherPoint("", 13.75, 100.50, null), 48, CancellationToken.None))
             .Should().BeEmpty();
     }
+
+    // ADR-112 says Google always sends isDaytime; an ABSENT field (vs. an explicit false) is defensively
+    // treated the same way — pin that behavior so a future change to "absent means unknown" is deliberate,
+    // not accidental.
+    private const string HourlyJsonMissingIsDaytime =
+        "{\"forecastHours\":[" +
+        "{\"displayDateTime\":{\"year\":2026,\"month\":7,\"day\":12,\"hours\":9}," +
+        "\"weatherCondition\":{\"type\":\"CLEAR\"},\"temperature\":{\"degrees\":29.0},\"feelsLikeTemperature\":{\"degrees\":31.0}}" +
+        "]}";
+
+    [Fact]
+    public async Task Hourly_bucket_missing_isDaytime_parses_to_IsDaytime_false()
+    {
+        var svc = Build(new StubHandler(HttpStatusCode.OK, HourlyJsonMissingIsDaytime));
+        var pt = new WeatherPoint("", 13.7563, 100.5018, null);
+
+        var hours = await svc.GetHourlyAsync(pt, 48, CancellationToken.None);
+
+        hours.Should().HaveCount(1);
+        hours[0].IsDaytime.Should().BeFalse();
+        hours[0].TempC.Should().Be(29.0);
+    }
 }

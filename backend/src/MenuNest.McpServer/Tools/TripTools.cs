@@ -201,12 +201,12 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new GetStopHourlyForecastQuery(tripId, stopId, hours), ct);
 
-    [McpServerTool, Description("Re-time the plan so a stop arrives at a target hour, or the coolest daytime/nighttime hour. Shifts the day start (and whole trip StartDate for a cross-day target); turns off the day's current-time-start. Returns whether the whole trip moved.")]
+    [McpServerTool, Description("Re-time the plan so a stop arrives at a target hour, or the coolest daytime/nighttime hour. Shifts the day start (and whole trip StartDate for a cross-day target); turns off the day's current-time-start. The resulting day-start assumes inter-stop travel only — no approach leg from a live location — so a user later opening the trip in-app with location enabled may see the anchor arrive slightly later than the targeted hour by their travel time to the first stop. Returns whether the whole trip moved.")]
     public async Task<RetimeResultDto> retime_stop_to_weather(
         [Description("Trip ID")] Guid tripId,
         [Description("Itinerary day ID of the anchor stop")] Guid dayId,
         [Description("Anchor stop ID")] Guid stopId,
-        [Description("Target: { kind: 'hour'|'coolestDaytime'|'coolestNighttime', localDateTime?, windowHours? }")] RetimeTarget target,
+        [Description("Target: { kind: 'hour'|'coolestDaytime'|'coolestNighttime', localDateTime?, windowHours? }. For coolestDaytime/coolestNighttime, windowHours (default 48) is counted from the CURRENT time, not the anchor stop's scheduled day; for a stop scheduled far in the future this may resolve to a near-term date and shift the whole trip's dates (ADR-109).")] RetimeTarget target,
         CancellationToken ct)
         => await mediator.Send(new RetimeStopToWeatherCommand(tripId, dayId, stopId, target), ct);
 
