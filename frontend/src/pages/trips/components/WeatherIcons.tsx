@@ -65,3 +65,41 @@ export function ClockIcon({className}: IconProps) {
     </svg>
   )
 }
+
+/** Moon — the "coolest nighttime" quick action + night accent (issue #46 planner). */
+export function MoonIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M20 14.5A8 8 0 0 1 9.5 4 7 7 0 1 0 20 14.5z" />
+    </svg>
+  )
+}
+
+/** Chevron-right — trailing affordance on the hourly-planner entry pill. */
+export function ChevronRightIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M9 6l6 6-6 6" />
+    </svg>
+  )
+}
+
+/** Power — leads the "turns off current-time-start" note in the retiming preview. */
+export function PowerIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M18.4 5.6a9 9 0 1 1-12.8 0" />
+      <path d="M12 2v8" />
+    </svg>
+  )
+}
+
+/** Alert triangle — leads the whole-trip-shift warning in the retiming preview. */
+export function AlertIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  )
+}
