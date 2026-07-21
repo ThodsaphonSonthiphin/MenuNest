@@ -17,7 +17,7 @@ import {HourlyPlanner} from './HourlyPlanner'
 import {FlagNote} from './FlagNote'
 import {NavIcon} from './NavIcon'
 import {ReviewIcon} from './ReviewIcon'
-import {ClockIcon} from './WeatherIcons'
+import {ThermoIcon, ChevronRightIcon} from './WeatherIcons'
 import {CheckIcon} from './FlagIcons'
 
 export function StopDetailSheet({
@@ -108,8 +108,13 @@ export function StopDetailSheet({
 
         {planner && (
           <>
-            <button type="button" className="sd-act btn-text" onClick={() => setShowHourly((v) => !v)}>
-              <ClockIcon /> ดูอุณหภูมิรายชั่วโมง — เลือกเวลาไปถึงตอนอากาศที่ต้องการ
+            <button type="button" className="sd-planner-open" onClick={() => setShowHourly((v) => !v)} aria-expanded={showHourly}>
+              <span className="po-ic"><ThermoIcon /></span>
+              <span className="po-t">
+                <b>ดูอุณหภูมิรายชั่วโมง</b>
+                <span>เลือกเวลาไปถึงตอนอากาศที่ต้องการ</span>
+              </span>
+              <span className="po-chev"><ChevronRightIcon /></span>
             </button>
             {showHourly && (
               <HourlyPlanner
@@ -118,6 +123,7 @@ export function StopDetailSheet({
                 place={place}
                 tripId={planner.tripId}
                 tripDayCount={planner.tripDayCount}
+                arrival={arrival}
                 onClose={() => setShowHourly(false)}
               />
             )}
