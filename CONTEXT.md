@@ -105,7 +105,7 @@ the glossary wins until the glossary is deliberately changed.
 - **Timing flag** — a warning shown on a **Stop** in the **Smart Schedule** when its
   computed arrival is problematic, stating the reason and a suggested fix in words
   (ADR-019). Three types by **reason** — **closed** (place shut at arrival),
-  **off-window** (arrival outside the place's best-time window), **overflow** (the day
+  **off-window** (arrival outside **all** of the place's best-time windows; the flag names the nearest window — ADR-127), **overflow** (the day
   runs past midnight) — and two **severities** by colour — **problem** (red: closed,
   overflow) vs **suggestion** (amber: off-window) (ADR-020, ADR-021). Only the single
   most-severe flag shows per Stop (priority overflow > closed > off-window); a
@@ -247,6 +247,16 @@ the glossary wins until the glossary is deliberately changed.
 - **Push to master** — the explicit, opt-in action (UI "ดันขึ้น master") that overwrites a **Place
   profile** with the current Trip's enrichment, so future **Captures** start from it. Without it, a
   **Per-trip override** stays local (ADR-064). _Avoid_: publish, save as default, sync up.
+- **Best-time window** — one *good* time-of-day window on a **Place** (issue #38): a value object
+  `{ start, end, note? }` where **start**/**end** are wall-clock times (`end > start`) and the optional
+  **note** is the reason (e.g. "แดดร่ม"). A Place holds an ordered **list** of these — many good windows
+  in a day (e.g. 06:00–09:00 *and* 17:00–19:00), each with its own reason — stored as JSON on both the
+  **Place** (TripPlace) and its **Place profile** master, a master default with a **Per-trip override**
+  (ADR-126), mirroring **Season period** on the *time-of-day* axis. Every window is "good" — there is **no**
+  avoid kind; anything outside **all** windows is **off-window**. The whole list is optional. Consumed by the
+  **off-window** **Timing flag** and the Discover **best-time-of-day** **Discovery signal**. Time-of-day
+  only — never a calendar/season concept (ADR-077). _Avoid_: best time (bare — it is now plural), best hour,
+  opening window (that is **opening hours**), **Season period** (the month axis — a different concept).
 - **Season period** — one entry in a **Place**'s season data (issue #19): a value object
   `{ kind, months, note? }` where **kind** is `good` (UI "ควรไป") or `bad` (UI "ควรเลี่ยง"), **months**
   is a set of calendar months (0–11), and the optional **Season note** is the reason. A Place holds an
