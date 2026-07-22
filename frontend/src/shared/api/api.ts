@@ -500,6 +500,11 @@ export interface ReviewLink {
     url: string
     label: string | null
 }
+export interface BestTimeWindow {
+    start: string
+    end: string
+    note: string | null
+}
 export interface SeasonPeriod {
     kind: 'Good' | 'Bad'
     months: number[]
