@@ -4,11 +4,12 @@ import {
   useUpdateTripPlaceMutation,
   useDeleteTripPlaceMutation,
   usePushPlaceProfileMutation,
+  type BestTimeWindow,
   type TripPlaceDto,
 } from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {catColor, catLabel} from '../placeCategory'
-import {BestTimeBar} from './BestTimeBar'
+import {BestTimeEditor} from './BestTimeEditor'
 import {ReviewLinksSection} from './ReviewLinksSection'
 import {ChecklistSection} from './ChecklistSection'
 import {PlaceSeasonEditor} from './PlaceSeasonEditor'
@@ -23,8 +24,7 @@ export function PlaceEditorDialog({
   place: TripPlaceDto
   onClose: () => void
 }) {
-  const [bestStart, setBestStart] = useState<string | null>(place.bestTimeStart ?? null)
-  const [bestEnd, setBestEnd] = useState<string | null>(place.bestTimeEnd ?? null)
+  const [bestTimeWindows, setBestTimeWindows] = useState<BestTimeWindow[]>(place.bestTimeWindows ?? [])
   const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>(
     (place.reviewLinks ?? []).map((l) => ({url: l.url, label: l.label ?? ''})),
   )
@@ -45,8 +45,7 @@ export function PlaceEditorDialog({
       address: place.address,
       feeNote: place.feeNote,
       notes: place.notes,
-      bestTimeStart: bestStart,
-      bestTimeEnd: bestEnd,
+      bestTimeWindows,
       reviewLinks: sanitizeReviewDrafts(reviewDrafts),
       seasonPeriods,
     }).unwrap()
@@ -127,7 +126,7 @@ export function PlaceEditorDialog({
           </div>
         )}
 
-        <BestTimeBar start={bestStart} end={bestEnd} onChange={(s, e) => { setBestStart(s); setBestEnd(e); setPushed(false) }} />
+        <BestTimeEditor windows={bestTimeWindows} onChange={(w) => { setBestTimeWindows(w); setPushed(false) }} />
 
         <ReviewLinksSection drafts={reviewDrafts} onChange={(d) => { setReviewDrafts(d); setPushed(false) }} />
         <PlaceSeasonEditor periods={seasonPeriods} onChange={(p) => { setSeasonPeriods(p); setPushed(false) }} />

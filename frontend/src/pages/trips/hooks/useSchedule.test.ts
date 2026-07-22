@@ -108,7 +108,7 @@ describe('computeSchedule overnight', () => {
 
 const mkPlace = (over: Partial<TripPlaceDto> = {}): TripPlaceDto => ({
   id: 'p', tripId: 't', googlePlaceId: null, name: 'x', lat: 0, lng: 0, address: null,
-  category: 'See', priceLevel: null, photoUrl: null, bestTimeStart: null, bestTimeEnd: null,
+  category: 'See', priceLevel: null, photoUrl: null, bestTimeWindows: [],
   openingHoursJson: null, feeNote: null, notes: null, reviewLinks: [], checklist: [], hasProfile: false,
   seasonPeriods: [], ...over,
 })
@@ -127,23 +127,27 @@ describe('computeSchedule arrivedAfterMidnight', () => {
 })
 
 describe('offWindowFlag', () => {
-  it('null inside window (bounds inclusive)', () => {
-    const p = mkPlace({bestTimeStart: '08:00:00', bestTimeEnd: '10:00:00'})
+  it('inside any window → null', () => {
+    const p = mkPlace({bestTimeWindows: [{start: '08:00:00', end: '10:00:00', note: null}]})
     expect(offWindowFlag(p, '09:00')).toBeNull()
     expect(offWindowFlag(p, '08:00')).toBeNull()
     expect(offWindowFlag(p, '10:00')).toBeNull()
   })
-  it('after window → suggestion, windowDir after', () => {
-    const p = mkPlace({bestTimeStart: '12:00:00', bestTimeEnd: '13:00:00'})
-    expect(offWindowFlag(p, '14:41')).toMatchObject({
-      reason: 'off-window', severity: 'suggestion', windowDir: 'after', bestStart: '12:00', bestEnd: '13:00',
+  it('between windows → nearest missed window, dir after, upcoming next', () => {
+    const p = mkPlace({bestTimeWindows: [
+      {start: '06:00:00', end: '09:00:00', note: null},
+      {start: '17:00:00', end: '19:00:00', note: null},
+    ]})
+    expect(offWindowFlag(p, '12:30')).toMatchObject({
+      reason: 'off-window', severity: 'suggestion', windowDir: 'after',
+      bestStart: '06:00', bestEnd: '09:00', upcomingStart: '17:00', upcomingEnd: '19:00',
     })
   })
-  it('before window → windowDir before', () => {
-    const p = mkPlace({bestTimeStart: '17:30:00', bestTimeEnd: '18:30:00'})
+  it('before all windows → windowDir before', () => {
+    const p = mkPlace({bestTimeWindows: [{start: '17:30:00', end: '18:30:00', note: null}]})
     expect(offWindowFlag(p, '13:50')).toMatchObject({windowDir: 'before'})
   })
-  it('null when no window set', () => {
+  it('no windows → null', () => {
     expect(offWindowFlag(mkPlace(), '13:50')).toBeNull()
   })
 })
@@ -193,7 +197,7 @@ describe('composeFlags', () => {
   })
   it('closed outranks off-window on the same stop', () => {
     const p = mkPlace({
-      bestTimeStart: '12:00:00', bestTimeEnd: '13:00:00',
+      bestTimeWindows: [{start: '12:00:00', end: '13:00:00', note: null}],
       openingHoursJson: mkHours([{open: {day: 6, hour: 10}, close: {day: 6, hour: 11}}]), // Sat 10–11
     })
     const day: ItineraryDayDto = {id: 'd', date: '2026-11-14', dayStartTime: '14:00:00', useCurrentTimeAsStart: false, stops: [stop('1', 0, 30, null)]}

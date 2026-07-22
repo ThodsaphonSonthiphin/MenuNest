@@ -24,13 +24,13 @@ describe('flagText', () => {
     const f: TimingFlag = {reason: 'closed', severity: 'problem', closedKind: 'all-day'}
     expect(flagText(f)).toEqual({reasonLine: 'ร้านปิดทั้งวันนี้', fixLine: 'ย้ายไปวันอื่น หรือเอาออก'})
   })
-  it('off-window after', () => {
-    const f: TimingFlag = {reason: 'off-window', severity: 'suggestion', windowDir: 'after', bestStart: '12:00', bestEnd: '13:00'}
-    expect(flagText(f)).toEqual({reasonLine: 'ไปถึงหลังช่วงแนะนำ · ช่วงเหมาะ 12:00–13:00', fixLine: 'เลื่อนสตอปนี้ขึ้นก่อนหน้า'})
+  it('off-window after → waits for the upcoming window when there is one', () => {
+    const f: TimingFlag = {reason: 'off-window', severity: 'suggestion', windowDir: 'after', bestStart: '06:00', bestEnd: '09:00', upcomingStart: '17:00', upcomingEnd: '19:00'}
+    expect(flagText(f)).toEqual({reasonLine: 'ไปถึงหลังช่วงแนะนำ · ช่วงเหมาะ 06:00–09:00', fixLine: 'รอช่วง 17:00–19:00'})
   })
-  it('off-window before', () => {
+  it('off-window before with no upcoming window falls back to "move earlier"', () => {
     const f: TimingFlag = {reason: 'off-window', severity: 'suggestion', windowDir: 'before', bestStart: '17:30', bestEnd: '18:30'}
-    expect(flagText(f)).toEqual({reasonLine: 'ไปถึงก่อนช่วงแนะนำ · ช่วงเหมาะ 17:30–18:30', fixLine: 'เลื่อนสตอปนี้ไปช่วงหลัง'})
+    expect(flagText(f)).toEqual({reasonLine: 'ไปถึงก่อนช่วงแนะนำ · ช่วงเหมาะ 17:30–18:30', fixLine: 'เลื่อนสตอปนี้ให้เร็วขึ้น'})
   })
 })
 

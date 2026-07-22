@@ -9,7 +9,7 @@ const openMon = JSON.stringify({periods: [{open: {day: 1, hour: 9, minute: 0}, c
 const place = (over: Partial<DiscoverPlaceDto>): DiscoverPlaceDto => ({
   key: 'k', googlePlaceId: 'g', name: 'P',
   lat: 13.75, lng: 100.5, address: null, category: 'See', priceLevel: null, photoUrl: null,
-  openingHoursJson: null, bestTimeStart: null, bestTimeEnd: null, seasonPeriods: [],
+  openingHoursJson: null, bestTimeWindows: [], seasonPeriods: [],
   visited: false, trips: [], reviewLinks: [], notes: null, ...over,
 })
 
@@ -66,8 +66,8 @@ describe('applyDiscover', () => {
   })
 
   it('bestTime toggle ranks a place whose window covers now above others', () => {
-    const match = place({key: 'match', lat: 18, lng: 99, bestTimeStart: '09:00:00', bestTimeEnd: '11:00:00'})
-    const other = place({key: 'other', lat: 13.75, lng: 100.5, bestTimeStart: '14:00:00', bestTimeEnd: '16:00:00'})
+    const match = place({key: 'match', lat: 18, lng: 99, bestTimeWindows: [{start: '09:00:00', end: '11:00:00', note: null}]})
+    const other = place({key: 'other', lat: 13.75, lng: 100.5, bestTimeWindows: [{start: '14:00:00', end: '16:00:00', note: null}]})
     const out = applyDiscover([other, match], {...base, toggles: {...base.toggles, bestTime: true}})
     expect(out[0].key).toBe('match')
   })

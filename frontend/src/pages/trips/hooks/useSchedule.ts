@@ -1,6 +1,7 @@
 // frontend/src/pages/trips/hooks/useSchedule.ts
 import {useMemo} from 'react'
 import type {ItineraryDayDto, StopDto, TripPlaceDto} from '../../../shared/api/api'
+import {resolveBestTime} from '../lib/bestTime'
 
 export interface ScheduledStop {
   stop: StopDto; arrival: string; depart: string; overnight: boolean
@@ -20,6 +21,8 @@ export interface TimingFlag {
   bestStart?: string            // 'HH:MM' — off-window
   bestEnd?: string              // 'HH:MM' — off-window
   windowDir?: 'before' | 'after'
+  upcomingStart?: string        // 'HH:MM' — off-window (next window after arrival)
+  upcomingEnd?: string          // 'HH:MM' — off-window (next window after arrival)
   arrival?: string              // 'HH:MM' (post-midnight) — overflow
 }
 export type ScheduledStopWithFlag = ScheduledStop & {flag: TimingFlag | null}
@@ -96,19 +99,18 @@ export function closedFlag(openingHoursJson: string | null | undefined, dow: num
   return {reason: 'closed', severity: 'problem', closedKind, reopenAt: reopen !== null ? fromMin(reopen) : undefined}
 }
 
-/** Flag when arrival is outside the place's best-time window; null when inside (bounds inclusive) or no window set. */
+/** Off-window when arrival is outside ALL of the place's best-time windows; references the nearest window (ADR-127). */
 export function offWindowFlag(place: TripPlaceDto, arrival: string): TimingFlag | null {
-  if (!place.bestTimeStart || !place.bestTimeEnd) return null
-  const a = toMin(arrival)
-  const start = toMin(place.bestTimeStart)
-  const end = toMin(place.bestTimeEnd)
-  if (a >= start && a <= end) return null
+  const off = resolveBestTime(place.bestTimeWindows, toMin(arrival))
+  if (!off) return null
   return {
     reason: 'off-window',
     severity: 'suggestion',
-    bestStart: place.bestTimeStart.slice(0, 5),
-    bestEnd: place.bestTimeEnd.slice(0, 5),
-    windowDir: a < start ? 'before' : 'after',
+    bestStart: off.nearest.start.slice(0, 5),
+    bestEnd: off.nearest.end.slice(0, 5),
+    windowDir: off.dir,
+    upcomingStart: off.upcoming ? off.upcoming.start.slice(0, 5) : undefined,
+    upcomingEnd: off.upcoming ? off.upcoming.end.slice(0, 5) : undefined,
   }
 }
 

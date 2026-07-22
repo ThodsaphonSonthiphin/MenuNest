@@ -62,6 +62,7 @@ export function StopDetailSheet({
   const [showHourly, setShowHourly] = useState(false)
   const links = place.reviewLinks ?? []
   const seasonPeriods = place.seasonPeriods ?? []
+  const bestTimeWindows = place.bestTimeWindows ?? []
   const season = monthStatus(place.seasonPeriods, tripMonth)
 
   const header = (
@@ -173,6 +174,20 @@ export function StopDetailSheet({
                   <span className="sp-pill">{p.kind === 'Bad' ? 'ควรเลี่ยง' : 'ควรไป'}</span>
                   <span className="sp-range">{rangeLabel(p.months)}</span>
                   {p.note && <span className="sp-note">{p.note}</span>}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {bestTimeWindows.length > 0 && (
+          <div className="sd-seasons">
+            <div className="sd-sec-lab">ช่วงเวลาที่ดี</div>
+            <ul className="season-rows">
+              {bestTimeWindows.map((w, i) => (
+                <li key={i} className="sp-row good">
+                  <span className="sp-range">{w.start.slice(0, 5)}–{w.end.slice(0, 5)}</span>
+                  {w.note && <span className="sp-note">{w.note}</span>}
                 </li>
               ))}
             </ul>

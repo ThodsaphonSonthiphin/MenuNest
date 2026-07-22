@@ -1,4 +1,4 @@
-import type {DiscoverPlaceDto, PlaceCategory} from '../../../shared/api/api'
+import type {BestTimeWindow, DiscoverPlaceDto, PlaceCategory} from '../../../shared/api/api'
 import {haversineKm} from './distance'
 import {isOpenAt} from '../../trips/hooks/useSchedule'
 import {monthStatus} from '../../trips/lib/season'
@@ -38,13 +38,16 @@ function hmsToMinutes(hms: string | null): number | null {
   return Number(h) * 60 + Number(m)
 }
 
-/** now ∈ [start, end)? null when the window is not fully defined. */
-function bestTimeMatch(start: string | null, end: string | null, now: Date): boolean | null {
-  const s = hmsToMinutes(start)
-  const e = hmsToMinutes(end)
-  if (s == null || e == null) return null
+/** now inside ANY window? [start, end); null when there are no windows. */
+function bestTimeMatch(windows: BestTimeWindow[] | undefined, now: Date): boolean | null {
+  const list = windows ?? []
+  if (list.length === 0) return null
   const cur = now.getHours() * 60 + now.getMinutes()
-  return cur >= s && cur < e
+  return list.some((w) => {
+    const s = hmsToMinutes(w.start)
+    const e = hmsToMinutes(w.end)
+    return s != null && e != null && cur >= s && cur < e
+  })
 }
 
 function inViewport(p: DiscoverPlaceDto, v: ViewportBounds): boolean {
@@ -57,7 +60,7 @@ export function computePlaceView(p: DiscoverPlaceDto, input: DiscoverInput): Dis
     distanceKm: input.anchor ? haversineKm(input.anchor, {lat: p.lat, lng: p.lng}) : null,
     openNow: isOpenAt(p.openingHoursJson, input.now.getDay(), input.now.getHours() * 60 + input.now.getMinutes()),
     seasonStatus: monthStatus(p.seasonPeriods, input.now.getMonth()).kind,
-    bestTimeMatch: bestTimeMatch(p.bestTimeStart, p.bestTimeEnd, input.now),
+    bestTimeMatch: bestTimeMatch(p.bestTimeWindows, input.now),
   }
 }
 
