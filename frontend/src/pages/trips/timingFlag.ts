@@ -11,7 +11,9 @@ export function flagText(flag: TimingFlag): {reasonLine: string; fixLine: string
     case 'off-window':
       return {
         reasonLine: `${flag.windowDir === 'before' ? 'ไปถึงก่อนช่วงแนะนำ' : 'ไปถึงหลังช่วงแนะนำ'} · ช่วงเหมาะ ${flag.bestStart}–${flag.bestEnd}`,
-        fixLine: flag.windowDir === 'before' ? 'เลื่อนสตอปนี้ไปช่วงหลัง' : 'เลื่อนสตอปนี้ขึ้นก่อนหน้า',
+        fixLine: flag.upcomingStart
+          ? `รอช่วง ${flag.upcomingStart}–${flag.upcomingEnd}`
+          : 'เลื่อนสตอปนี้ให้เร็วขึ้น',
       }
     case 'closed':
       switch (flag.closedKind) {

@@ -7,6 +7,7 @@ import {
   useUpdateStopMutation,
   useUpdateTripPlaceMutation,
   useRemoveStopMutation,
+  type BestTimeWindow,
   type ItineraryDayDto,
   type TripPlaceDto,
   type TravelMode,
@@ -15,7 +16,7 @@ import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {computeSchedule} from '../hooks/useSchedule'
 import {catColor, catLabel} from '../placeCategory'
 import {DwellStepper} from './DwellStepper'
-import {BestTimeBar} from './BestTimeBar'
+import {BestTimeEditor} from './BestTimeEditor'
 import {formatDurationMinutes} from '../utils/time'
 import {ReviewLinksSection} from './ReviewLinksSection'
 import {ChecklistSection} from './ChecklistSection'
@@ -48,8 +49,7 @@ export function StopEditorDialog({
 
   const [dwell, setDwell] = useState(stop.dwellMinutes)
   const [mode, setMode] = useState<TravelMode>(stop.travelModeToReach)
-  const [bestStart, setBestStart] = useState<string | null>(place?.bestTimeStart ?? null)
-  const [bestEnd, setBestEnd] = useState<string | null>(place?.bestTimeEnd ?? null)
+  const [bestTimeWindows, setBestTimeWindows] = useState<BestTimeWindow[]>(place?.bestTimeWindows ?? [])
   const [saveError, setSaveError] = useState<string | null>(null)
   const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>(
     (place?.reviewLinks ?? []).map((l) => ({url: l.url, label: l.label ?? ''})),
@@ -86,7 +86,7 @@ export function StopEditorDialog({
     try {
       await updateStop({tripId, stopId, dwellMinutes: dwell, travelModeToReach: mode}).unwrap()
       const cleaned = sanitizeReviewDrafts(reviewDrafts)
-      const bestTimeChanged = bestStart !== place?.bestTimeStart || bestEnd !== place?.bestTimeEnd
+      const bestTimeChanged = JSON.stringify(bestTimeWindows) !== JSON.stringify(place?.bestTimeWindows ?? [])
       const reviewsChanged =
         JSON.stringify(cleaned) !== JSON.stringify(place?.reviewLinks ?? [])
       const seasonChanged = JSON.stringify(seasonPeriods) !== JSON.stringify(place?.seasonPeriods ?? [])
@@ -99,8 +99,7 @@ export function StopEditorDialog({
           address: place.address,
           feeNote: place.feeNote,
           notes: place.notes,
-          bestTimeStart: bestStart,
-          bestTimeEnd: bestEnd,
+          bestTimeWindows,
           reviewLinks: cleaned,
           seasonPeriods,
         }).unwrap()
@@ -152,14 +151,7 @@ export function StopEditorDialog({
       style={{width: 'min(480px, calc(100vw - 24px))'}}
     >
       <div className="stop-editor">
-        <BestTimeBar
-          start={bestStart}
-          end={bestEnd}
-          onChange={(s, e) => {
-            setBestStart(s)
-            setBestEnd(e)
-          }}
-        />
+        <BestTimeEditor windows={bestTimeWindows} onChange={setBestTimeWindows} />
 
         <section className="se-sec">
           <div className="se-sec-head">

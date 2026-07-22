@@ -523,12 +523,13 @@ export interface PlaceChecklistEntry {
 export interface TripPlaceDto {
     id: string; tripId: string; googlePlaceId: string | null; name: string; lat: number; lng: number
     address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null
-    bestTimeStart: string | null; bestTimeEnd: string | null; openingHoursJson: string | null
+    openingHoursJson: string | null
     feeNote: string | null; notes: string | null
     reviewLinks: ReviewLink[]
     checklist: PlaceChecklistEntry[]
     hasProfile: boolean
     seasonPeriods: SeasonPeriod[]
+    bestTimeWindows: BestTimeWindow[]
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
@@ -546,8 +547,7 @@ export interface DiscoverPlaceDto {
     priceLevel: number | null
     photoUrl: string | null
     openingHoursJson: string | null
-    bestTimeStart: string | null
-    bestTimeEnd: string | null
+    bestTimeWindows: BestTimeWindow[]
     seasonPeriods: SeasonPeriod[]
     visited: boolean
     trips: PlaceTripRefDto[]
@@ -1379,11 +1379,11 @@ export const api = createApi({
             query: () => '/api/places',
             providesTags: ['MyPlaces'],
         }),
-        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeStart' | 'bestTimeEnd' | 'feeNote' | 'notes' | 'hasProfile' | 'seasonPeriods'>>({
+        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeWindows' | 'feeNote' | 'notes' | 'hasProfile' | 'seasonPeriods'>>({
             query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
-        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeStart?: string | null; bestTimeEnd?: string | null; reviewLinks: ReviewLink[]; seasonPeriods: SeasonPeriod[]}>({
+        updateTripPlace: build.mutation<TripPlaceDto, {tripId: string; placeId: string; name: string; category: PlaceCategory; address?: string | null; feeNote?: string | null; notes?: string | null; bestTimeWindows: BestTimeWindow[]; reviewLinks: ReviewLink[]; seasonPeriods: SeasonPeriod[]}>({
             query: ({tripId, placeId, ...b}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
