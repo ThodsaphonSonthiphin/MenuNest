@@ -717,6 +717,29 @@
 .sp-note-input { width: 100%; margin-top: 10px; border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 11px; padding: 9px 12px; font: inherit; }
 .sp-draft-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; } .sp-hint { color: #a99e94; font-size: 12px; margin: 6px 0 0; }
 
+/* Best-time windows (issue #38) — teal accent, distinct from season's green/red.
+   Matches the approved mock (Claude Design → Screens → issue-38-best-time-windows).
+   Global (used by the editor in .stop-editor-dialog and the detail sheet in
+   .stop-detail-sheet); teal is hardcoded like the season .sr-/.sp- colors. */
+.bt-rows { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.bt-row { display: flex; align-items: center; gap: 9px; border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 12px; padding: 8px 10px; background: #fff; }
+.bt-clock { color: #0b7a87; flex: none; display: flex; }
+.bt-clock svg { width: 15px; height: 15px; }
+.bt-range { font-weight: 700; font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 13px; }
+.bt-note { color: #6b625b; font-size: 12.5px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt-del { flex: none; width: 30px; height: 30px; border: 1px solid #eef2f6; border-radius: 9px; background: #fff; color: #94a3b8; cursor: pointer; font: inherit; font-size: 13px; }
+.bt-draft { margin-top: 9px; border: 1.5px dashed #bfe3e7; border-radius: 12px; background: #f2fbfc; padding: 11px; }
+.bt-note-input { width: 100%; margin-top: 10px; border: 1.5px solid var(--trip-border, #ece4d9); border-radius: 11px; padding: 9px 12px; font: inherit; font-size: 12.5px; background: #fff; }
+.bt-draft-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.bt-cancel { border: 1px solid #eef2f6; background: #fff; color: #475569; border-radius: 9px; padding: 7px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+.bt-save { border: 0; background: #0e8f9e; color: #fff; border-radius: 9px; padding: 7px 16px; font: inherit; font-weight: 700; cursor: pointer; }
+.bt-save:disabled { opacity: 0.5; cursor: default; }
+.bt-add { width: 100%; margin-top: 8px; padding: 9px; border: 1.5px dashed #bfe3e7; border-radius: 12px; background: #e3f5f6; color: #0b7a87; font: inherit; font-weight: 700; cursor: pointer; }
+.bt-cap { font-size: 11px; color: #a99e94; margin: 7px 2px 0; }
+/* Teal-ise the best-time section's pill + TimePicker focus (override the orange se- accent) */
+.stop-editor-dialog .se-best .se-pill { background: #e3f5f6; color: #0b7a87; }
+.stop-editor-dialog .se-best .se-time-card:focus-within { border-color: #0e8f9e; }
+
 /* ============================================================
    Stop detail sheet (issue #34) — body-portaled bottom sheet.
    Portal sits OUTSIDE .trip-detail, so colors are local (like .stop-editor-dialog).

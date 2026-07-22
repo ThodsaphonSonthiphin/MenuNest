@@ -12,9 +12,10 @@ const toMin = (hms: string): number => {
 }
 
 /**
- * null when `arrivalMin` is inside ANY window (bounds inclusive). Otherwise the nearest
- * window (smallest time gap), the direction relative to it, and the next window that starts
- * after arrival (if any) — the basis for the off-window Timing flag (ADR-127).
+ * null when `arrivalMin` is inside ANY window (bounds INCLUSIVE [start, end], spec §6 — arriving
+ * exactly at the end is not "off-window"; note the Discover signal uses half-open [start, end)
+ * instead). Otherwise the nearest window (smallest time gap), the direction relative to it, and the
+ * next window that starts after arrival (if any) — the basis for the off-window Timing flag (ADR-127).
  */
 export function resolveBestTime(windows: BestTimeWindow[] | undefined, arrivalMin: number): OffWindow | null {
   const list = windows ?? []

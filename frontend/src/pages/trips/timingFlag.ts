@@ -11,6 +11,9 @@ export function flagText(flag: TimingFlag): {reasonLine: string; fixLine: string
     case 'off-window':
       return {
         reasonLine: `${flag.windowDir === 'before' ? 'ไปถึงก่อนช่วงแนะนำ' : 'ไปถึงหลังช่วงแนะนำ'} · ช่วงเหมาะ ${flag.bestStart}–${flag.bestEnd}`,
+        // upcoming present → wait for it; else (arrival is past ALL windows — dir is always
+        // 'after' here, since resolveBestTime guarantees an upcoming window when dir='before')
+        // suggest moving the stop earlier. The no-upcoming branch is kept as defensive fallback.
         fixLine: flag.upcomingStart
           ? `รอช่วง ${flag.upcomingStart}–${flag.upcomingEnd}`
           : 'เลื่อนสตอปนี้ให้เร็วขึ้น',
