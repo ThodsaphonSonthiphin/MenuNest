@@ -47,7 +47,7 @@ public sealed class PlaceProfileSeedRelationalTests : IDisposable
         var item = ChecklistItem.Create(_user.Id, "sunscreen");
         _db.ChecklistItems.Add(item);
         var profile = PlaceProfile.Create(_user.Id, placeId);
-        profile.SetBestTime(new TimeOnly(16, 0), new TimeOnly(18, 0));
+        profile.SetBestTimeWindows(new[] { BestTimeWindow.Create(new TimeOnly(16, 0), new TimeOnly(18, 0), null) });
         profile.SetReviewLinks(new[] { ReviewLink.Create("https://youtu.be/x", "clip") });
         _db.Set<PlaceProfile>().Add(profile);
         await _db.SaveChangesAsync();
@@ -65,7 +65,7 @@ public sealed class PlaceProfileSeedRelationalTests : IDisposable
             default);
 
         dto.HasProfile.Should().BeTrue();
-        dto.BestTimeStart.Should().Be(new TimeOnly(16, 0));
+        dto.BestTimeWindows.Should().ContainSingle().Which.Start.Should().Be(new TimeOnly(16, 0));
         dto.ReviewLinks.Should().ContainSingle();
         dto.Checklist.Should().ContainSingle().Which.Name.Should().Be("sunscreen");
     }
@@ -77,7 +77,7 @@ public sealed class PlaceProfileSeedRelationalTests : IDisposable
             new AddTripPlaceCommand(_trip.Id, "New", 1, 2, PlaceCategory.See, "places/NONE", null, null, null, null),
             default);
         dto.HasProfile.Should().BeFalse();
-        dto.BestTimeStart.Should().BeNull();
+        dto.BestTimeWindows.Should().BeEmpty();
         dto.Checklist.Should().BeEmpty();
     }
 

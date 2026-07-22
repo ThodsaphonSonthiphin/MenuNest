@@ -32,14 +32,14 @@ public sealed class PlaceProfileRelationalTests : IDisposable
     public async Task Profile_round_trips_best_time_and_review_links()
     {
         var profile = PlaceProfile.Create(_user.Id, "places/ChIJ1");
-        profile.SetBestTime(new TimeOnly(16, 0), new TimeOnly(18, 30));
+        profile.SetBestTimeWindows(new[] { BestTimeWindow.Create(new TimeOnly(16, 0), new TimeOnly(18, 30), null) });
         profile.SetReviewLinks(new[] { ReviewLink.Create("https://youtu.be/abc", "clip") });
         _db.Set<PlaceProfile>().Add(profile);
         await _db.SaveChangesAsync();
 
         _db.ChangeTracker.Clear();
         var read = await _db.Set<PlaceProfile>().AsNoTracking().FirstAsync(p => p.Id == profile.Id);
-        read.BestTimeStart.Should().Be(new TimeOnly(16, 0));
+        read.BestTimeWindows.Should().ContainSingle().Which.Start.Should().Be(new TimeOnly(16, 0));
         read.ReviewLinks.Should().ContainSingle().Which.Url.Should().Be("https://youtu.be/abc");
     }
 

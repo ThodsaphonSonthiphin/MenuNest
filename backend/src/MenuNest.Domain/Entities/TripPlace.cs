@@ -21,8 +21,6 @@ public sealed class TripPlace : Entity
     public PlaceCategory Category { get; private set; }
     public int? PriceLevel { get; private set; }
     public string? PhotoUrl { get; private set; }
-    public TimeOnly? BestTimeStart { get; private set; }
-    public TimeOnly? BestTimeEnd { get; private set; }
     public string? OpeningHoursJson { get; private set; }
     public string? FeeNote { get; private set; }
     public string? Notes { get; private set; }
@@ -32,6 +30,9 @@ public sealed class TripPlace : Entity
 
     private readonly List<SeasonPeriod> _seasonPeriods = new();
     public IReadOnlyList<SeasonPeriod> SeasonPeriods => _seasonPeriods;
+
+    private readonly List<BestTimeWindow> _bestTimeWindows = new();
+    public IReadOnlyList<BestTimeWindow> BestTimeWindows => _bestTimeWindows;
 
     private TripPlace() { } // EF
 
@@ -70,12 +71,12 @@ public sealed class TripPlace : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void SetBestTime(TimeOnly? start, TimeOnly? end)
+    public void SetBestTimeWindows(IEnumerable<BestTimeWindow> windows)
     {
-        if (start is null || end is null) { start = null; end = null; }
-        else if (end <= start) throw new DomainException("Best-time end must be after start.");
-        BestTimeStart = start;
-        BestTimeEnd = end;
+        var list = (windows ?? Enumerable.Empty<BestTimeWindow>()).ToList();
+        if (list.Count > 6) throw new DomainException("A place can have at most 6 best-time windows.");
+        _bestTimeWindows.Clear();
+        _bestTimeWindows.AddRange(list);
         UpdatedAt = DateTime.UtcNow;
     }
 

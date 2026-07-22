@@ -59,18 +59,18 @@ public sealed class PushPlaceProfileHandlerTests : IDisposable
         // seed a stale master via a first edit (auto-create at 09:00)
         await new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator())
             .Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-                new TimeOnly(9, 0), new TimeOnly(10, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
+                new[] { new BestTimeWindowDto(new TimeOnly(9, 0), new TimeOnly(10, 0), null) }, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
         // change this trip only (override) — master still 09:00
         await new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator())
             .Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-                new TimeOnly(20, 0), new TimeOnly(21, 0), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
+                new[] { new BestTimeWindowDto(new TimeOnly(20, 0), new TimeOnly(21, 0), null) }, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
 
         var dto = await new PushPlaceProfileHandler(_db, Users().Object)
             .Handle(new PushPlaceProfileCommand(_trip.Id, placeId), default);
 
         dto.HasProfile.Should().BeTrue();
         var profile = await _db.Set<PlaceProfile>().FirstAsync(p => p.GooglePlaceId == "places/PUSH");
-        profile.BestTimeStart.Should().Be(new TimeOnly(20, 0));
+        profile.BestTimeWindows.Should().ContainSingle().Which.Start.Should().Be(new TimeOnly(20, 0));
     }
 
     [Fact]

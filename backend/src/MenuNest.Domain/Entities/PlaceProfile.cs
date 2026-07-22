@@ -14,8 +14,6 @@ public sealed class PlaceProfile : Entity
 {
     public Guid UserId { get; private set; }
     public string GooglePlaceId { get; private set; } = null!;
-    public TimeOnly? BestTimeStart { get; private set; }
-    public TimeOnly? BestTimeEnd { get; private set; }
     public string? Notes { get; private set; }
 
     private readonly List<ReviewLink> _reviewLinks = new();
@@ -23,6 +21,9 @@ public sealed class PlaceProfile : Entity
 
     private readonly List<SeasonPeriod> _seasonPeriods = new();
     public IReadOnlyList<SeasonPeriod> SeasonPeriods => _seasonPeriods;
+
+    private readonly List<BestTimeWindow> _bestTimeWindows = new();
+    public IReadOnlyList<BestTimeWindow> BestTimeWindows => _bestTimeWindows;
 
     private PlaceProfile() { } // EF
 
@@ -33,12 +34,12 @@ public sealed class PlaceProfile : Entity
         return new PlaceProfile { UserId = userId, GooglePlaceId = googlePlaceId.Trim() };
     }
 
-    public void SetBestTime(TimeOnly? start, TimeOnly? end)
+    public void SetBestTimeWindows(IEnumerable<BestTimeWindow> windows)
     {
-        if (start is null || end is null) { start = null; end = null; }
-        else if (end <= start) throw new DomainException("Best-time end must be after start.");
-        BestTimeStart = start;
-        BestTimeEnd = end;
+        var list = (windows ?? Enumerable.Empty<BestTimeWindow>()).ToList();
+        if (list.Count > 6) throw new DomainException("A place profile can have at most 6 best-time windows.");
+        _bestTimeWindows.Clear();
+        _bestTimeWindows.AddRange(list);
         UpdatedAt = DateTime.UtcNow;
     }
 

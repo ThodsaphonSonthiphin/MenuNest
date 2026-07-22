@@ -28,32 +28,25 @@ public class TripPlaceTests
             .Should().Throw<DomainException>();
 
     [Fact]
-    public void SetBestTime_rejects_end_before_start() =>
-        FluentActions.Invoking(() =>
-            TripPlace.Create(Trip, "x", 0, 0, PlaceCategory.Other)
-                .SetBestTime(new TimeOnly(18, 0), new TimeOnly(9, 0)))
-            .Should().Throw<DomainException>();
+    public void SetBestTimeWindows_replaces_the_whole_list()
+    {
+        var place = TripPlace.Create(Guid.NewGuid(), "P", 0, 0, PlaceCategory.See);
+        place.SetBestTimeWindows(new[]
+        {
+            BestTimeWindow.Create(new TimeOnly(6, 0), new TimeOnly(9, 0), "แดดร่ม"),
+            BestTimeWindow.Create(new TimeOnly(17, 0), new TimeOnly(19, 0), null),
+        });
+        place.BestTimeWindows.Should().HaveCount(2);
+        place.SetBestTimeWindows(Array.Empty<BestTimeWindow>());
+        place.BestTimeWindows.Should().BeEmpty();
+    }
 
     [Fact]
-    public void SetBestTime_normalizes_partial_window_to_null()
-    {
-        var place = TripPlace.Create(Trip, "x", 0, 0, PlaceCategory.Other);
-
-        // Partial window (start only) normalizes to null
-        place.SetBestTime(new TimeOnly(8, 0), null);
-        place.BestTimeStart.Should().BeNull();
-        place.BestTimeEnd.Should().BeNull();
-
-        // Partial window (end only) normalizes to null
-        place.SetBestTime(null, new TimeOnly(10, 0));
-        place.BestTimeStart.Should().BeNull();
-        place.BestTimeEnd.Should().BeNull();
-
-        // Complete window sets both
-        place.SetBestTime(new TimeOnly(8, 0), new TimeOnly(10, 0));
-        place.BestTimeStart.Should().Be(new TimeOnly(8, 0));
-        place.BestTimeEnd.Should().Be(new TimeOnly(10, 0));
-    }
+    public void SetBestTimeWindows_rejects_more_than_6() =>
+        FluentActions.Invoking(() => TripPlace.Create(Guid.NewGuid(), "P", 0, 0, PlaceCategory.See)
+                .SetBestTimeWindows(Enumerable.Range(0, 7)
+                    .Select(i => BestTimeWindow.Create(new TimeOnly(i, 0), new TimeOnly(i, 30), null))))
+            .Should().Throw<DomainException>();
 
     [Fact]
     public void New_place_has_no_review_links()

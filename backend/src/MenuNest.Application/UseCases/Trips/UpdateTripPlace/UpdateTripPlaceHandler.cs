@@ -26,7 +26,8 @@ public sealed class UpdateTripPlaceHandler : ICommandHandler<UpdateTripPlaceComm
             ?? throw new DomainException("Place not found.");
 
         place.UpdateDetails(c.Name, c.Category, c.Address, c.FeeNote, c.Notes);
-        place.SetBestTime(c.BestTimeStart, c.BestTimeEnd);
+        place.SetBestTimeWindows((c.BestTimeWindows ?? Enumerable.Empty<BestTimeWindowDto>())
+            .Select(w => BestTimeWindow.Create(w.Start, w.End, w.Note)));
         place.SetReviewLinks((c.ReviewLinks ?? Enumerable.Empty<ReviewLinkDto>()).Select(r => ReviewLink.Create(r.Url, r.Label)));
         place.SetSeasonPeriods((c.SeasonPeriods ?? Enumerable.Empty<SeasonPeriodDto>())
             .Select(s => SeasonPeriod.Create(s.Kind, s.Months, s.Note)));
