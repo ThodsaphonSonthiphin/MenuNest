@@ -26,7 +26,7 @@ public class UpdateTripPlaceHandlerTests
 
     private static UpdateTripPlaceCommand Cmd(Guid tripId, Guid placeId,
         IReadOnlyList<ReviewLinkDto>? links = null, IReadOnlyList<SeasonPeriodDto>? seasonPeriods = null) =>
-        new(tripId, placeId, "A", PlaceCategory.Eat, null, null, null, null, null,
+        new(tripId, placeId, "A", PlaceCategory.Eat, null, null, null, Array.Empty<BestTimeWindowDto>(),
             links ?? Array.Empty<ReviewLinkDto>(), seasonPeriods ?? Array.Empty<SeasonPeriodDto>());
 
     [Fact]
@@ -84,7 +84,7 @@ public class UpdateTripPlaceHandlerTests
     {
         using var fx = new HandlerTestFixture();
         var (trip, place) = Seed(fx);
-        var cmd = new UpdateTripPlaceCommand(trip.Id, place.Id, "A", PlaceCategory.Eat, null, null, null, null, null, null!, Array.Empty<SeasonPeriodDto>());
+        var cmd = new UpdateTripPlaceCommand(trip.Id, place.Id, "A", PlaceCategory.Eat, null, null, null, Array.Empty<BestTimeWindowDto>(), null!, Array.Empty<SeasonPeriodDto>());
         var act = () => Handler(fx).Handle(cmd, CancellationToken.None).AsTask();
         await act.Should().ThrowAsync<FluentValidation.ValidationException>();
     }

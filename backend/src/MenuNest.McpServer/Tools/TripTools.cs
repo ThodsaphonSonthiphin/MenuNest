@@ -96,7 +96,7 @@ public sealed class TripTools(IMediator mediator)
         => await mediator.Send(new AddTripPlaceCommand(
             tripId, name, lat, lng, category, googlePlaceId, address, priceLevel, photoUrl, openingHoursJson), ct);
 
-    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, the best-visit window (bestTimeStart/bestTimeEnd), reviewLinks, and seasonPeriods are overwritten — omitting or passing an empty/null value CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places). The notes and reviewLinks also propagate to the user's saved master profile for this place and appear on Discover immediately (no push needed). CAUTION: notes/reviewLinks are shared per Google place across ALL of the user's trips that reference it — this save is last-write-wins, so a save from any trip (even one only changing an unrelated field, like category, if that trip's own notes/reviewLinks happen to be empty) overwrites the shared value used by Discover. Always send the intended CURRENT notes/reviewLinks for this place, not blank placeholders.")]
+    [McpServerTool, Description("Update a saved place's editable fields. FULL REPLACE of the listed fields: address, feeNote, notes, the best-visit windows (bestTimeWindows), reviewLinks, and seasonPeriods are overwritten — omitting or passing an empty/null value CLEARS the stored value. To change just one field, pass the current values of the others (get them from list_trip_places). The notes and reviewLinks also propagate to the user's saved master profile for this place and appear on Discover immediately (no push needed). CAUTION: notes/reviewLinks are shared per Google place across ALL of the user's trips that reference it — this save is last-write-wins, so a save from any trip (even one only changing an unrelated field, like category, if that trip's own notes/reviewLinks happen to be empty) overwrites the shared value used by Discover. Always send the intended CURRENT notes/reviewLinks for this place, not blank placeholders.")]
     public async Task<TripPlaceDto> update_trip_place(
         [Description("Trip ID")] Guid tripId,
         [Description("Place ID")] Guid placeId,
@@ -105,15 +105,14 @@ public sealed class TripTools(IMediator mediator)
         [Description("Address (optional)")] string? address,
         [Description("Fee/ticket note (optional)")] string? feeNote,
         [Description("Free-form notes (optional)")] string? notes,
-        [Description("Best-visit window start, HH:mm (optional)")] TimeOnly? bestTimeStart,
-        [Description("Best-visit window end, HH:mm (optional)")] TimeOnly? bestTimeEnd,
+        [Description("Best-visit time-of-day windows, each { start: 'HH:mm:ss', end: 'HH:mm:ss' (end after start), note?: string reason }; max 6; all are 'good' windows; FULL REPLACE — omitting or passing an empty array CLEARS all windows.")] IReadOnlyList<BestTimeWindowDto> bestTimeWindows,
         [Description("Review links (TikTok/YouTube/etc.), each {url,label?}; max 10; FULL REPLACE")] IReadOnlyList<ReviewLinkDto> reviewLinks,
         [Description("Season periods, each { kind: 'Good'|'Bad', months: int[] 0-11 (0=Jan), note?: string }; max 12; FULL REPLACE — omitting or passing an empty array CLEARS all seasons.")] IReadOnlyList<SeasonPeriodDto> seasonPeriods,
         CancellationToken ct)
         => await mediator.Send(new UpdateTripPlaceCommand(
-            tripId, placeId, name, category, address, feeNote, notes, bestTimeStart, bestTimeEnd, reviewLinks, seasonPeriods), ct);
+            tripId, placeId, name, category, address, feeNote, notes, bestTimeWindows, reviewLinks, seasonPeriods), ct);
 
-    [McpServerTool, Description("Push the current per-trip enrichment of a saved place UP to the user's master place-profile (FULL overwrite of the master: best-time window, review links, notes, checklist item-set, AND season periods), so future captures of the same Google place start from it. Shape the place with update_trip_place FIRST, then push. Returns the place.")]
+    [McpServerTool, Description("Push the current per-trip enrichment of a saved place UP to the user's master place-profile (FULL overwrite of the master: best-time windows, review links, notes, checklist item-set, AND season periods), so future captures of the same Google place start from it. Shape the place with update_trip_place FIRST, then push. Returns the place.")]
     public async Task<TripPlaceDto> push_place_profile(
         [Description("Trip ID")] Guid tripId,
         [Description("Place ID")] Guid placeId,

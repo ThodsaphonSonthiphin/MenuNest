@@ -20,7 +20,7 @@ public static class PlaceProfileSync
             .FirstOrDefaultAsync(p => p.UserId == userId && p.GooglePlaceId == place.GooglePlaceId, ct);
         if (profile is null) return false;
 
-        place.SetBestTime(profile.BestTimeStart, profile.BestTimeEnd);
+        place.SetBestTimeWindows(profile.BestTimeWindows);
         place.SetReviewLinks(profile.ReviewLinks);
         place.SetSeasonPeriods(profile.SeasonPeriods);
         place.SetNotes(profile.Notes);
@@ -62,7 +62,7 @@ public static class PlaceProfileSync
             profile = PlaceProfile.Create(userId, place.GooglePlaceId);
             db.PlaceProfiles.Add(profile);
         }
-        profile.SetBestTime(place.BestTimeStart, place.BestTimeEnd);
+        profile.SetBestTimeWindows(place.BestTimeWindows);
         profile.SetReviewLinks(place.ReviewLinks);
         profile.SetSeasonPeriods(place.SeasonPeriods);
         profile.SetNotes(place.Notes);

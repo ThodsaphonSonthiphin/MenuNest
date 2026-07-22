@@ -200,6 +200,30 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
             .HasField("_seasonPeriods")
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .IsRequired(false);
+        var bestTimeComparer = new ValueComparer<IReadOnlyList<BestTimeWindow>>(
+            (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+            v => v.Aggregate(0, (hash, w) => HashCode.Combine(hash, w.GetHashCode())),
+            v => v.ToList());
+
+        modelBuilder.Entity<TripPlace>()
+            .Property(p => p.BestTimeWindows)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<BestTimeWindow>)(JsonSerializer.Deserialize<List<BestTimeWindow>>(v, jsonOptions) ?? new List<BestTimeWindow>()),
+                bestTimeComparer)
+            .HasField("_bestTimeWindows")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired(false);
+
+        modelBuilder.Entity<PlaceProfile>()
+            .Property(p => p.BestTimeWindows)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, jsonOptions),
+                v => (IReadOnlyList<BestTimeWindow>)(JsonSerializer.Deserialize<List<BestTimeWindow>>(v, jsonOptions) ?? new List<BestTimeWindow>()),
+                bestTimeComparer)
+            .HasField("_bestTimeWindows")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .IsRequired(false);
 
         // MCP OAuth proxy durable store (ADR-037): neither entity's key property
         // matches EF's default key-discovery convention ("Id" / "{Type}Id"), so the

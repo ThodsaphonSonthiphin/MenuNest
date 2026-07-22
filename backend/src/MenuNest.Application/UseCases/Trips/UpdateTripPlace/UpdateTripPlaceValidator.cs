@@ -28,6 +28,16 @@ public sealed class UpdateTripPlaceValidator : AbstractValidator<UpdateTripPlace
             sp.RuleForEach(s => s.Months).InclusiveBetween(0, 11);
             sp.RuleFor(s => s.Note).MaximumLength(200);
         });
+        RuleFor(x => x.BestTimeWindows).NotNull()
+            .WithMessage("Best-time windows are required (send an empty array for none).");
+        RuleFor(x => x.BestTimeWindows).Must(l => l is null || l.Count <= 6)
+            .WithMessage("A place can have at most 6 best-time windows.");
+        RuleForEach(x => x.BestTimeWindows).ChildRules(w =>
+        {
+            w.RuleFor(x => x.End).GreaterThan(x => x.Start)
+                .WithMessage("Best-time end must be after start.");
+            w.RuleFor(x => x.Note).MaximumLength(200);
+        });
     }
 
     private static bool BeHttpUrl(string? url) =>

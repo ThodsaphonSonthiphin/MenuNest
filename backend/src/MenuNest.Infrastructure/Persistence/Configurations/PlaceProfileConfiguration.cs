@@ -53,6 +53,22 @@ internal sealed class PlaceProfileConfiguration : IEntityTypeConfiguration<Place
             .HasField("_seasonPeriods")
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasDefaultValueSql("'[]'");
+        var bestTimeConverter = new ValueConverter<IReadOnlyList<BestTimeWindow>, string>(
+            v => JsonSerializer.Serialize(v, jsonOpts),
+            v => string.IsNullOrEmpty(v)
+                ? new List<BestTimeWindow>()
+                : JsonSerializer.Deserialize<List<BestTimeWindow>>(v, jsonOpts) ?? new List<BestTimeWindow>());
+        var bestTimeComparer = new ValueComparer<IReadOnlyList<BestTimeWindow>>(
+            (a, b) => JsonSerializer.Serialize(a, jsonOpts) == JsonSerializer.Serialize(b, jsonOpts),
+            v => JsonSerializer.Serialize(v, jsonOpts).GetHashCode(),
+            v => JsonSerializer.Deserialize<List<BestTimeWindow>>(JsonSerializer.Serialize(v, jsonOpts), jsonOpts)!);
+        b.Property(p => p.BestTimeWindows)
+            .HasConversion(bestTimeConverter, bestTimeComparer)
+            .HasColumnName("BestTimeWindowsJson")
+            .HasColumnType("nvarchar(max)")
+            .HasField("_bestTimeWindows")
+            .UsePropertyAccessMode(PropertyAccessMode.Field)
+            .HasDefaultValueSql("'[]'");
 
         // One profile per Google place per user (mirrors TripPlace's (TripId, GooglePlaceId)).
         b.HasIndex(p => new { p.UserId, p.GooglePlaceId }).IsUnique();

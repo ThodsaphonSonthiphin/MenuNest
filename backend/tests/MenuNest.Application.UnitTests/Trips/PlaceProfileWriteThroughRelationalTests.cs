@@ -52,8 +52,8 @@ public sealed class PlaceProfileWriteThroughRelationalTests : IDisposable
         return place.Id;
     }
 
-    private UpdateTripPlaceCommand Cmd(Guid placeId, string? notes, ReviewLinkDto[] links, TimeOnly? bestStart = null, TimeOnly? bestEnd = null)
-        => new(_trip.Id, placeId, "P", PlaceCategory.See, null, null, notes, bestStart, bestEnd, links, Array.Empty<SeasonPeriodDto>());
+    private UpdateTripPlaceCommand Cmd(Guid placeId, string? notes, ReviewLinkDto[] links, IReadOnlyList<BestTimeWindowDto>? windows = null)
+        => new(_trip.Id, placeId, "P", PlaceCategory.See, null, null, notes, windows ?? Array.Empty<BestTimeWindowDto>(), links, Array.Empty<SeasonPeriodDto>());
 
     [Fact]
     public async Task First_save_snapshots_note_into_the_new_master()
@@ -72,14 +72,14 @@ public sealed class PlaceProfileWriteThroughRelationalTests : IDisposable
         var placeId = AddPlace("places/W2");
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(Cmd(placeId, "A",
-            new[] { new ReviewLinkDto("https://tiktok.com/a", null) }, new TimeOnly(9, 0), new TimeOnly(11, 0)), default);
+            new[] { new ReviewLinkDto("https://tiktok.com/a", null) }, new[] { new BestTimeWindowDto(new TimeOnly(9, 0), new TimeOnly(11, 0), null) }), default);
         await handler.Handle(Cmd(placeId, "B",
-            new[] { new ReviewLinkDto("https://youtu.be/b", "clip") }, new TimeOnly(14, 0), new TimeOnly(15, 0)), default);
+            new[] { new ReviewLinkDto("https://youtu.be/b", "clip") }, new[] { new BestTimeWindowDto(new TimeOnly(14, 0), new TimeOnly(15, 0), null) }), default);
 
         var profile = await _db.Set<PlaceProfile>().FirstAsync(p => p.GooglePlaceId == "places/W2");
         profile.Notes.Should().Be("B");                                   // write-through
         profile.ReviewLinks.Should().ContainSingle().Which.Url.Should().Be("https://youtu.be/b"); // write-through
-        profile.BestTimeStart.Should().Be(new TimeOnly(9, 0));            // push-only: unchanged from first save
+        profile.BestTimeWindows.Should().ContainSingle().Which.Start.Should().Be(new TimeOnly(9, 0));            // push-only: unchanged from first save
     }
 
     [Fact]
@@ -126,10 +126,10 @@ public sealed class PlaceProfileWriteThroughRelationalTests : IDisposable
         var h = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         // Trip A enriches the shared master
         await h.Handle(new UpdateTripPlaceCommand(_trip.Id, a.Id, "P", PlaceCategory.See, null, null, "great view",
-            null, null, new[] { new ReviewLinkDto("https://tiktok.com/a", null) }, Array.Empty<SeasonPeriodDto>()), default);
+            Array.Empty<BestTimeWindowDto>(), new[] { new ReviewLinkDto("https://tiktok.com/a", null) }, Array.Empty<SeasonPeriodDto>()), default);
         // Trip B saves with empty note/links (e.g. only category changed) -> overwrites the shared master (accepted last-write-wins)
         await h.Handle(new UpdateTripPlaceCommand(t2.Id, b.Id, "P", PlaceCategory.See, null, null, null,
-            null, null, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
+            Array.Empty<BestTimeWindowDto>(), Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
 
         var profile = await _db.Set<PlaceProfile>().FirstAsync(p => p.GooglePlaceId == "places/LW");
         profile.Notes.Should().BeNull();

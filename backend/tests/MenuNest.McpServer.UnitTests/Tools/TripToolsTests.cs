@@ -25,12 +25,13 @@ public class TripToolsTests
         var expectedDto = new TripPlaceDto(
             Guid.NewGuid(), tripId, null, "Wat Arun",
             13.7437, 100.4888, null, PlaceCategory.See,
-            null, null, null, null,
+            null, null,
             null, null, null,
             new List<ReviewLinkDto>(),
             new List<PlaceChecklistEntryDto>(),
             true,
-            new List<SeasonPeriodDto>());
+            new List<SeasonPeriodDto>(),
+            new List<BestTimeWindowDto>());
 
         _mediator
             .Setup(m => m.Send(It.Is<PushPlaceProfileCommand>(c => c.TripId == tripId && c.PlaceId == placeId), It.IsAny<CancellationToken>()))

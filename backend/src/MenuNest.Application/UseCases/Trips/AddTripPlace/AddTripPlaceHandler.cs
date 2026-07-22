@@ -42,8 +42,9 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
 
     internal static TripPlaceDto ToDto(TripPlace p, IReadOnlyList<PlaceChecklistEntryDto> checklist, bool hasProfile = false) => new(
         p.Id, p.TripId, p.GooglePlaceId, p.Name, p.Lat, p.Lng, p.Address, p.Category,
-        p.PriceLevel, p.PhotoUrl, p.BestTimeStart, p.BestTimeEnd, p.OpeningHoursJson, p.FeeNote, p.Notes,
+        p.PriceLevel, p.PhotoUrl, p.OpeningHoursJson, p.FeeNote, p.Notes,
         p.ReviewLinks.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList(),
         checklist, hasProfile,
-        p.SeasonPeriods.Select(s => new SeasonPeriodDto(s.Kind, s.Months.ToList(), s.Note)).ToList());
+        p.SeasonPeriods.Select(s => new SeasonPeriodDto(s.Kind, s.Months.ToList(), s.Note)).ToList(),
+        p.BestTimeWindows.Select(w => new BestTimeWindowDto(w.Start, w.End, w.Note)).ToList());
 }
