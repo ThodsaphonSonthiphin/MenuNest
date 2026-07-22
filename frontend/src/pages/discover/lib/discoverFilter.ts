@@ -38,7 +38,10 @@ function hmsToMinutes(hms: string | null): number | null {
   return Number(h) * 60 + Number(m)
 }
 
-/** now inside ANY window? [start, end); null when there are no windows. */
+/** now inside ANY window? Half-open [start, end) BY DESIGN (spec §8): at the exact end
+ *  minute a window is no longer "now-best". The planner's off-window check (bestTime.ts
+ *  resolveBestTime) is inclusive [start, end] instead — different surface, different intent
+ *  (arriving exactly at the end is not "late"). null when there are no windows. */
 function bestTimeMatch(windows: BestTimeWindow[] | undefined, now: Date): boolean | null {
   const list = windows ?? []
   if (list.length === 0) return null

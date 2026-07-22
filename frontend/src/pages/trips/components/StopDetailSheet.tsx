@@ -17,6 +17,7 @@ import {HourlyPlanner} from './HourlyPlanner'
 import {FlagNote} from './FlagNote'
 import {NavIcon} from './NavIcon'
 import {ReviewIcon} from './ReviewIcon'
+import {ClockIcon} from './ClockIcon'
 import {ThermoIcon, ChevronRightIcon} from './WeatherIcons'
 import {CheckIcon} from './FlagIcons'
 
@@ -183,11 +184,12 @@ export function StopDetailSheet({
         {bestTimeWindows.length > 0 && (
           <div className="sd-seasons">
             <div className="sd-sec-lab">ช่วงเวลาที่ดี</div>
-            <ul className="season-rows">
+            <ul className="bt-rows">
               {bestTimeWindows.map((w, i) => (
-                <li key={i} className="sp-row good">
-                  <span className="sp-range">{w.start.slice(0, 5)}–{w.end.slice(0, 5)}</span>
-                  {w.note && <span className="sp-note">{w.note}</span>}
+                <li key={i} className="bt-row">
+                  <span className="bt-clock"><ClockIcon /></span>
+                  <span className="bt-range">{w.start.slice(0, 5)}–{w.end.slice(0, 5)}</span>
+                  {w.note && <span className="bt-note">{w.note}</span>}
                 </li>
               ))}
             </ul>
