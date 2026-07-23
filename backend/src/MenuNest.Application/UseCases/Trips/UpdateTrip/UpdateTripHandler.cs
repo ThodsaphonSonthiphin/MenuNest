@@ -49,6 +49,6 @@ public sealed class UpdateTripHandler : ICommandHandler<UpdateTripCommand, TripD
         DayRealigner.RealignDays(days.Take(kept).ToList(), c.StartDate);
 
         await _db.SaveChangesAsync(ct);
-        return new TripDto(trip.Id, trip.Name, trip.Destination, trip.StartDate, trip.DayCount, trip.DefaultTravelMode);
+        return new TripDto(trip.Id, trip.Name, trip.Destination, trip.StartDate, trip.DayCount, trip.DefaultTravelMode, trip.IsDaily);
     }
 }

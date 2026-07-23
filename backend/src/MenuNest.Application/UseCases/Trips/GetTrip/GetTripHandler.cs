@@ -17,7 +17,7 @@ public sealed class GetTripHandler : IQueryHandler<GetTripQuery, TripDto>
         var user = await _users.GetOrProvisionCurrentAsync(ct);
         var trip = await _db.Trips
             .Where(t => t.Id == q.TripId && t.UserId == user.Id && t.DeletedAt == null)
-            .Select(t => new TripDto(t.Id, t.Name, t.Destination, t.StartDate, t.DayCount, t.DefaultTravelMode))
+            .Select(t => new TripDto(t.Id, t.Name, t.Destination, t.StartDate, t.DayCount, t.DefaultTravelMode, t.IsDaily))
             .FirstOrDefaultAsync(ct)
             ?? throw new DomainException("Trip not found.");
         return trip;
