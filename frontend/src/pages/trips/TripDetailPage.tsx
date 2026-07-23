@@ -14,6 +14,8 @@ import { PlaceEditorDialog } from './components/PlaceEditorDialog'
 import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
 import { TripDateEditor } from './components/TripDateEditor'
+import { DailyToggle } from './components/DailyToggle'
+import { MapRouteIcon } from './components/TripFormIcons'
 import { useDayRoute } from './hooks/useDayRoute'
 import './trips-tokens.css'
 import './TripDetailPage.css'
@@ -102,12 +104,13 @@ export function TripDetailPage() {
     return (
       <section className="trip-detail desktop">
         <header className="trip-topbar">
-          <span className="trip-topbar-name">🗺️ {trip?.name ?? '…'}</span>
+          <span className="trip-topbar-name"><MapRouteIcon className="trip-topbar-ic" /> {trip?.name ?? '…'}</span>
           {trip && (
             <span className="trip-topbar-meta">
               {trip.destination && <>{trip.destination} · </>}
               <TripDateEditor trip={trip} overrideDate={overrideDate} locked={currentDay} onError={setDateError} />
               {trip.dayCount != null && <> · {trip.dayCount} วัน</>}
+              <DailyToggle trip={trip} onError={setDateError} />
             </span>
           )}
           {dateError && <span className="trip-topbar-error">{dateError}</span>}
@@ -191,6 +194,7 @@ export function TripDetailPage() {
             {trip.destination && <>{trip.destination} · </>}
             <TripDateEditor trip={trip} overrideDate={overrideDate} locked={currentDay} onError={setDateError} />
             {trip.dayCount != null && <> · {trip.dayCount} วัน</>}
+            <DailyToggle trip={trip} onError={setDateError} />
           </div>
         )}
         {dateError && <p className="trips-field-error">{dateError}</p>}
