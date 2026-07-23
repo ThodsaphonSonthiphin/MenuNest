@@ -5,7 +5,7 @@ import {useListTripsQuery, type TripDto} from '../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../store/index'
 import {setCreateTripOpen} from './tripsSlice'
 import {CreateTripDialog} from './components/CreateTripDialog'
-import {SuitcaseIcon, RepeatIcon} from './components/TripFormIcons'
+import {SuitcaseIcon, RepeatIcon, CalendarIcon} from './components/TripFormIcons'
 import {getErrorMessage} from '../../shared/utils/getErrorMessage'
 import './trips-tokens.css'
 import './TripsPage.css'
@@ -68,14 +68,20 @@ export function TripsPage() {
 
       {daily.length > 0 && (
         <section className="trips-section">
-          <div className="trips-section-lab"><RepeatIcon /> ประจำวัน</div>
+          <div className="trips-section-lab">
+            <RepeatIcon /> ประจำวัน <span className="trips-section-count">· {daily.length}</span>
+          </div>
           <div className="trips-grid">{daily.map(dailyCard)}</div>
         </section>
       )}
 
       {regular.length > 0 && (
         <section className="trips-section">
-          {daily.length > 0 && <div className="trips-section-lab">ทริป</div>}
+          {daily.length > 0 && (
+            <div className="trips-section-lab">
+              <CalendarIcon /> ทริป <span className="trips-section-count">· {regular.length}</span>
+            </div>
+          )}
           <div className="trips-grid">{regular.map(regularCard)}</div>
         </section>
       )}

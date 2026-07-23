@@ -5,17 +5,22 @@ import {RepeatIcon} from './TripFormIcons'
 
 /**
  * The trip-level "โหมดประจำวัน" switch (issue #49). Commits immediately via
- * setTripDaily; enabling a multi-day trip is rejected by the backend and the
- * message is surfaced through onError. Disabled (with a hint) when the trip has
- * more than one day, since a daily trip must be single-day.
+ * setTripDaily. When the trip has more than one day it cannot be enabled; the
+ * switch is kept clickable (not `disabled`) so touch users — who have no hover
+ * for the title — still get the reason in the shared error line on tap.
  */
 export function DailyToggle({trip, onError}: {trip: TripDto; onError: (msg: string | null) => void}) {
   const [setDaily, {isLoading}] = useSetTripDailyMutation()
   const canEnable = trip.dayCount === 1
-  const disabled = isLoading || (!trip.isDaily && !canEnable)
+  const blocked = !trip.isDaily && !canEnable
+  const blockedMsg = 'ทริปประจำวันต้องเป็นวันเดียว — ลบวันอื่นก่อนถึงจะเปิดได้'
 
   const toggle = async () => {
     onError(null)
+    if (blocked) {
+      onError(blockedMsg)
+      return
+    }
     try {
       await setDaily({id: trip.id, isDaily: !trip.isDaily}).unwrap()
     } catch (e) {
@@ -26,12 +31,13 @@ export function DailyToggle({trip, onError}: {trip: TripDto; onError: (msg: stri
   return (
     <button
       type="button"
-      className={`daily-toggle${trip.isDaily ? ' on' : ''}`}
+      className={`daily-toggle${trip.isDaily ? ' on' : ''}${blocked ? ' blocked' : ''}`}
       role="switch"
       aria-checked={trip.isDaily}
+      aria-disabled={blocked}
       aria-label="โหมดประจำวัน"
-      disabled={disabled}
-      title={!trip.isDaily && !canEnable ? 'ทริปประจำวันต้องเป็นวันเดียว' : undefined}
+      disabled={isLoading}
+      title={blocked ? blockedMsg : undefined}
       onClick={toggle}
     >
       <RepeatIcon className="daily-toggle-ic" />
