@@ -16,13 +16,14 @@ import {CheckIcon} from './FlagIcons'
 const WINDOW_HOURS = 48
 
 export function HourlyPlanner({
-  day, stopId, place, tripId, tripDayCount, arrival, onClose,
+  day, stopId, place, tripId, tripDayCount, isDaily, arrival, onClose,
 }: {
   day: ItineraryDayDto
   stopId: string
   place: TripPlaceDto
   tripId: string
   tripDayCount: number
+  isDaily: boolean
   arrival: string
   onClose: () => void
 }) {
@@ -150,7 +151,7 @@ export function HourlyPlanner({
           return (
             <Fragment key={h.displayLocal}>
               {isRollover && <div className="sd-daydiv">{hourlyRolloverLabel(hDate, todayDate)}</div>}
-              <button type="button" className={cls.join(' ')} onClick={() => setPicked(h)}>
+              <button type="button" className={cls.join(' ')} disabled={isDaily} onClick={isDaily ? undefined : () => setPicked(h)}>
                 {isPlan && <span className="sd-hr-tag">แผนตอนนี้</span>}
                 <span className="sd-hr-time mono">{h.displayLocal.slice(11, 16)}</span>
                 {h.iconBaseUri && <img className="sd-hr-ic" src={iconUrl(h.iconBaseUri, false)} alt={h.conditionType ?? ''} width={19} height={19} />}
@@ -162,7 +163,9 @@ export function HourlyPlanner({
         })}
       </div>
 
-      {preview && (
+      {isDaily ? (
+        <div className="sd-sugg"><p className="sd-sugg-line">โหมดประจำวันเริ่มจากเวลาปัจจุบันเสมอ — ปรับเวลาตามอากาศไม่ได้</p></div>
+      ) : preview && (
         <div className="sd-sugg">
           {preview.unreachable ? (
             <p className="sd-sugg-line">ช่วงเวลานี้ไปถึงไม่ทัน — จุดนี้อยู่ลึกในวันเกินไป</p>

@@ -154,7 +154,7 @@ export function TripDetailPage() {
             </div>
           )}
 
-          {tab === 'itinerary' && <ItineraryTab tripId={tripId} />}
+          {tab === 'itinerary' && <ItineraryTab tripId={tripId} isDaily={trip?.isDaily ?? false} />}
         </div>
 
         {/* Right column — persistent map. In the itinerary tab it shows the
@@ -253,7 +253,7 @@ export function TripDetailPage() {
         </div>
       )}
 
-      {tab === 'itinerary' && <ItineraryTab tripId={tripId} dayRoute={dayRoute} />}
+      {tab === 'itinerary' && <ItineraryTab tripId={tripId} isDaily={trip?.isDaily ?? false} dayRoute={dayRoute} />}
 
       {editingPlace && (
         <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />

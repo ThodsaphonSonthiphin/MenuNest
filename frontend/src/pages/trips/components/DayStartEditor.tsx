@@ -27,12 +27,14 @@ export function DayStartEditor({
   dayId,
   dayStartTime,
   useCurrentTimeAsStart,
+  locked = false,
   onError,
 }: {
   tripId: string
   dayId: string
   dayStartTime: string // "HH:mm:ss"
   useCurrentTimeAsStart: boolean
+  locked?: boolean
   onError: (msg: string | null) => void
 }) {
   const [value, setValue] = useState<string>(dayStartTime)
@@ -112,10 +114,11 @@ export function DayStartEditor({
       <label className="day-start-live-toggle">
         <input
           type="checkbox"
-          checked={useCurrentTimeAsStart}
-          onChange={handleToggleUseCurrentTime}
+          checked={locked ? true : useCurrentTimeAsStart}
+          disabled={locked}
+          onChange={locked ? undefined : handleToggleUseCurrentTime}
         />
-        ใช้เวลาปัจจุบันเสมอ
+        ใช้เวลาปัจจุบันเสมอ{locked && ' (โหมดประจำวัน)'}
       </label>
     </span>
   )
