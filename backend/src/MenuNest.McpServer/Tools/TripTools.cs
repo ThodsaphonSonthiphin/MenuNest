@@ -49,8 +49,9 @@ public sealed class TripTools(IMediator mediator)
         [Description("Start date, YYYY-MM-DD")] DateOnly startDate,
         [Description("Number of itinerary days (1 or more)")] int dayCount,
         [Description("Default travel mode new legs inherit: Drive, Walk, or Transit")] TravelMode defaultTravelMode,
+        [Description("Optional: create the trip as a 'daily' recurring run-as-today route. Requires dayCount == 1.")] bool isDaily,
         CancellationToken ct)
-        => await mediator.Send(new CreateTripCommand(name, destination, startDate, dayCount, defaultTravelMode), ct);
+        => await mediator.Send(new CreateTripCommand(name, destination, startDate, dayCount, defaultTravelMode, isDaily), ct);
 
     [McpServerTool, Description("Update a trip's fields (full replace — passing null for destination CLEARS it). WARNING: lowering dayCount deletes the trailing itinerary days AND their stops (cascade).")]
     public async Task<TripDto> update_trip(
