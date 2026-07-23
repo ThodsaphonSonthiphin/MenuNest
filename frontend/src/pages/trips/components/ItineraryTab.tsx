@@ -126,7 +126,7 @@ function AddStopPicker({
   )
 }
 
-export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: DayRoute}) {
+export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: string; isDaily?: boolean; dayRoute?: DayRoute}) {
   const dispatch = useAppDispatch()
   const {uvWarnThreshold, feelsLikeWarnThreshold} = useCurrentUser()
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
@@ -293,6 +293,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
             dayId={resolvedDayId}
             dayStartTime={resolvedDay.dayStartTime}
             useCurrentTimeAsStart={resolvedDay.useCurrentTimeAsStart}
+            locked={isDaily}
             onError={setActionError}
           />
           <span>
@@ -499,7 +500,7 @@ export function ItineraryTab({tripId, dayRoute}: {tripId: string; dayRoute?: Day
           nowReading={stopWeather[detailStop.stop.id]?.now}
           arrivalReading={stopWeather[detailStop.stop.id]?.arrival}
           weatherLoading={(stopWeather[detailStop.stop.id]?.nowLoading ?? false) || (stopWeather[detailStop.stop.id]?.arrivalLoading ?? false)}
-          planner={{tripId, day: resolvedDay, tripDayCount: dayList.length}}
+          planner={{tripId, day: resolvedDay, tripDayCount: dayList.length, isDaily}}
           onEdit={() => {
             setDetailStopId(null)
             dispatch(setStopEditor(detailStop.stop.id))
