@@ -39,4 +39,31 @@ public class CreateTripHandlerTests
                 CancellationToken.None).AsTask()
         ).Should().ThrowAsync<FluentValidation.ValidationException>();
     }
+
+    [Fact]
+    public async Task Create_as_daily_seeds_one_day_with_current_time_start()
+    {
+        using var fx = new HandlerTestFixture();
+        var handler = new CreateTripHandler(fx.Db, fx.UserProvisioner.Object, new CreateTripValidator());
+
+        var dto = await handler.Handle(
+            new CreateTripCommand("ไปทำงาน", null, new DateOnly(2026, 7, 23), 1, TravelMode.Drive, IsDaily: true),
+            CancellationToken.None);
+
+        dto.IsDaily.Should().BeTrue();
+        var trip = fx.Db.Trips.Single();
+        var day = await fx.Db.ItineraryDays.SingleAsync(d => d.TripId == trip.Id);
+        day.UseCurrentTimeAsStart.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Create_as_daily_with_multi_day_is_rejected()
+    {
+        using var fx = new HandlerTestFixture();
+        var handler = new CreateTripHandler(fx.Db, fx.UserProvisioner.Object, new CreateTripValidator());
+        await FluentActions.Awaiting(() => handler.Handle(
+            new CreateTripCommand("X", null, new DateOnly(2026, 7, 23), 3, TravelMode.Drive, IsDaily: true),
+            CancellationToken.None).AsTask()
+        ).Should().ThrowAsync<FluentValidation.ValidationException>();
+    }
 }
