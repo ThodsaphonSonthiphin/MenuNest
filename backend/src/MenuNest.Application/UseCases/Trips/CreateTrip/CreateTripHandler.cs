@@ -25,6 +25,6 @@ public sealed class CreateTripHandler : ICommandHandler<CreateTripCommand, TripD
             _db.ItineraryDays.Add(ItineraryDay.Create(trip.Id, c.StartDate.AddDays(i)));
 
         await _db.SaveChangesAsync(ct);
-        return new TripDto(trip.Id, trip.Name, trip.Destination, trip.StartDate, trip.DayCount, trip.DefaultTravelMode);
+        return new TripDto(trip.Id, trip.Name, trip.Destination, trip.StartDate, trip.DayCount, trip.DefaultTravelMode, trip.IsDaily);
     }
 }

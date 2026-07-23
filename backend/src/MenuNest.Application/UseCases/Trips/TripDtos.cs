@@ -4,7 +4,7 @@ namespace MenuNest.Application.UseCases.Trips;
 
 public sealed record TripDto(
     Guid Id, string Name, string? Destination,
-    DateOnly StartDate, int DayCount, TravelMode DefaultTravelMode);
+    DateOnly StartDate, int DayCount, TravelMode DefaultTravelMode, bool IsDaily);
 
 public sealed record ReviewLinkDto(string Url, string? Label);
 

@@ -54,4 +54,18 @@ public class GetTripHandlerTests
 
         await act.Should().ThrowAsync<DomainException>();
     }
+
+    [Fact]
+    public async Task GetTrip_returns_IsDaily_false_for_a_normal_trip()
+    {
+        using var fx = new HandlerTestFixture();
+        var trip = Trip.Create(fx.User.Id, "Trip", new DateOnly(2026, 7, 23), 2, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        await fx.Db.SaveChangesAsync();
+
+        var dto = await new GetTripHandler(fx.Db, fx.UserProvisioner.Object)
+            .Handle(new GetTripQuery(trip.Id), CancellationToken.None);
+
+        dto.IsDaily.Should().BeFalse();
+    }
 }

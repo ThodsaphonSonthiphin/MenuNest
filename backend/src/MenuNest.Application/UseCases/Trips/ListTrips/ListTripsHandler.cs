@@ -17,7 +17,7 @@ public sealed class ListTripsHandler : IQueryHandler<ListTripsQuery, IReadOnlyLi
         return await _db.Trips
             .Where(t => t.UserId == user.Id && t.DeletedAt == null)
             .OrderByDescending(t => t.StartDate)
-            .Select(t => new TripDto(t.Id, t.Name, t.Destination, t.StartDate, t.DayCount, t.DefaultTravelMode))
+            .Select(t => new TripDto(t.Id, t.Name, t.Destination, t.StartDate, t.DayCount, t.DefaultTravelMode, t.IsDaily))
             .ToListAsync(ct);
     }
 }
