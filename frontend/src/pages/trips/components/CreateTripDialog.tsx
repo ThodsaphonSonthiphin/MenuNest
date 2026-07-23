@@ -81,15 +81,18 @@ export function CreateTripDialog({
   const [createTrip, {isLoading}] = useCreateTripMutation()
   const [serverError, setServerError] = useState<string | null>(null)
 
-  // Live end-date summary — start + (dayCount − 1) days, inclusive.
+  // Live end-date summary — start + (effective dayCount − 1) days, inclusive.
+  // Daily mode pins the trip to a single day, so the summary must reflect 1 — not
+  // the raw stepper value — or it misrepresents the trip about to be created (#49).
   const [startDate, dayCount, isDaily] = useWatch({control, name: ['startDate', 'dayCount', 'isDaily']})
+  const effectiveDayCount = isDaily ? 1 : dayCount
   const endLabel = useMemo(() => {
     const s = strToDate(startDate)
-    if (!s || !dayCount || dayCount < 1) return null
+    if (!s || !effectiveDayCount || effectiveDayCount < 1) return null
     const end = new Date(s)
-    end.setDate(end.getDate() + (dayCount - 1))
+    end.setDate(end.getDate() + (effectiveDayCount - 1))
     return thaiDate(end)
-  }, [startDate, dayCount])
+  }, [startDate, effectiveDayCount])
 
   const submit = handleSubmit(async (v) => {
     setServerError(null)
@@ -271,7 +274,7 @@ export function CreateTripDialog({
               <ArrowRightIcon />
             </span>
             <span>
-              สิ้นสุด <b>{endLabel}</b> · รวม <b>{dayCount} วัน</b>
+              สิ้นสุด <b>{endLabel}</b> · รวม <b>{effectiveDayCount} วัน</b>
             </span>
           </div>
         )}
