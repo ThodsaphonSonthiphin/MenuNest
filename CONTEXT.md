@@ -102,6 +102,17 @@ the glossary wins until the glossary is deliberately changed.
   and start time stay as the fallback for when the flag is off) and the date float does
   **not** extend to multi-day Trips (ADR-054, ADR-055, ADR-056). _Avoid_: server time,
   live start, auto start.
+- **Daily trip (ทริปประจำวัน)** — a **Trip** the owner has marked with the `IsDaily` switch
+  (UI "โหมดประจำวัน") to run **repeatedly as "today"**, e.g. a commute (issue #49). "แดรี่เดินทาง"
+  resolves to *daily* (recurring), **not** a memory *diary*: **nothing is recorded per run** —
+  opening it just re-projects the one master plan as today (ADR-130). Enabling the switch is a
+  single **behaviour** change (ADR-132): it requires the Trip be **single-day** (guarded — ADR-133),
+  forces the Day's **Current-time-start** on and **locks** it, and **hides Weather-based retiming**
+  apply on that trip (ADR-134). Daily trips surface in a **"ประจำวัน" section** at the top of
+  `/trips`, with a badge and a "วันนี้" card instead of a fixed date (ADR-136); tapping one just
+  opens today's **Itinerary** (ADR-135, no auto **Navigate hand-off**). A **User** may have many.
+  _Avoid_: recurring trip, routine, template; **diary / แดรี่บันทึก** (the memory reading, rejected —
+  ADR-130); evergreen (informal — that names the *mechanism*, **Current-time-start**).
 - **Timing flag** — a warning shown on a **Stop** in the **Smart Schedule** when its
   computed arrival is problematic, stating the reason and a suggested fix in words
   (ADR-019). Three types by **reason** — **closed** (place shut at arrival),
