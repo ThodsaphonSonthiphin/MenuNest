@@ -406,3 +406,24 @@
   outline: 2px solid var(--teal);
   outline-offset: 2px;
 }
+
+/* -------- Daily-trip section + card (issue #49) -------- */
+.trips-title-ic { font-size: 1.3rem; vertical-align: -3px; color: var(--trp-teal-dark); margin-right: 4px; }
+.trips-section { display: flex; flex-direction: column; gap: 10px; }
+.trips-section-lab {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 0.8rem; font-weight: 700; color: var(--trp-text-muted); letter-spacing: 0.02em;
+}
+.trips-section-lab svg { width: 14px; height: 14px; color: var(--trp-teal-dark); }
+.trip-card--daily { border-color: #d6ebee; background: linear-gradient(180deg, #fbfeff, #fff); }
+.trip-badge-daily {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 4px;
+  background: var(--trp-teal-soft); color: var(--trp-teal-dark);
+  border-radius: 999px; padding: 2px 9px 2px 7px; font-size: 0.66rem; font-weight: 700;
+}
+.trip-badge-daily svg { width: 12px; height: 12px; }
+.trip-card-today {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 0.78rem; font-weight: 700; color: var(--trp-teal);
+}
+.trip-card-today .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--trp-teal); }
