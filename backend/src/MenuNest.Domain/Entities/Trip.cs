@@ -17,17 +17,19 @@ public sealed class Trip : Entity
     public DateOnly StartDate { get; private set; }
     public int DayCount { get; private set; }
     public TravelMode DefaultTravelMode { get; private set; }
+    public bool IsDaily { get; private set; }
     public DateTime? DeletedAt { get; private set; }
 
     private Trip() { } // EF
 
     public static Trip Create(
         Guid userId, string name, DateOnly startDate, int dayCount,
-        TravelMode defaultTravelMode, string? destination = null)
+        TravelMode defaultTravelMode, string? destination = null, bool isDaily = false)
     {
         if (userId == Guid.Empty) throw new DomainException("UserId is required.");
         if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Trip name is required.");
         if (dayCount < 1) throw new DomainException("A trip must have at least one day.");
+        if (isDaily && dayCount != 1) throw new DomainException("A daily trip must be a single day.");
 
         return new Trip
         {
@@ -37,6 +39,7 @@ public sealed class Trip : Entity
             StartDate = startDate,
             DayCount = dayCount,
             DefaultTravelMode = defaultTravelMode,
+            IsDaily = isDaily,
         };
     }
 
@@ -58,8 +61,18 @@ public sealed class Trip : Entity
     public void Reschedule(DateOnly startDate, int dayCount)
     {
         if (dayCount < 1) throw new DomainException("A trip must have at least one day.");
+        if (IsDaily && dayCount > 1)
+            throw new DomainException("A daily trip must stay a single day. Turn off daily mode first.");
         StartDate = startDate;
         DayCount = dayCount;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SetDaily(bool isDaily)
+    {
+        if (isDaily && DayCount != 1)
+            throw new DomainException("A daily trip must be a single day.");
+        IsDaily = isDaily;
         UpdatedAt = DateTime.UtcNow;
     }
 
