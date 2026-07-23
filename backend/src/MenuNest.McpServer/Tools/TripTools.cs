@@ -17,6 +17,7 @@ using MenuNest.Application.UseCases.Trips.RemoveStop;
 using MenuNest.Application.UseCases.Trips.ReorderStops;
 using MenuNest.Application.UseCases.Trips.SetDayStartTime;
 using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
+using MenuNest.Application.UseCases.Trips.SetTripDaily;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Application.UseCases.Trips.GetStopHourlyForecast;
 using MenuNest.Application.UseCases.Trips.RetimeStopToWeather;
@@ -61,6 +62,13 @@ public sealed class TripTools(IMediator mediator)
         [Description("Default travel mode: Drive, Walk, or Transit")] TravelMode defaultTravelMode,
         CancellationToken ct)
         => await mediator.Send(new UpdateTripCommand(tripId, name, destination, startDate, dayCount, defaultTravelMode), ct);
+
+    [McpServerTool, Description("Turn a trip's 'daily' mode on or off. A daily trip must be single-day (dayCount==1) — enabling a multi-day trip is rejected; remove the extra days first. Enabling also forces the day to always start from the current time (evergreen 'today'). Returns the updated trip.")]
+    public async Task<TripDto> set_trip_daily(
+        [Description("Trip ID")] Guid tripId,
+        [Description("true to make the trip a daily/recurring 'run-as-today' route; false to turn daily mode off")] bool isDaily,
+        CancellationToken ct)
+        => await mediator.Send(new SetTripDailyCommand(tripId, isDaily), ct);
 
     [McpServerTool, Description("Delete a trip by ID")]
     public async Task delete_trip(
