@@ -138,5 +138,26 @@ public sealed class RetimeStopToHourRelationalTests : IDisposable
         (await _db.ItineraryDays.FirstAsync(d => d.Id == dayIds[2])).Date.Should().Be(new DateOnly(2026, 9, 11));
     }
 
+    [Fact]
+    public async Task Daily_trip_same_day_retime_never_unpins_use_current_time_as_start()
+    {
+        // Daily trips are single-day by construction; seed one and mark it daily post-create.
+        var (trip, dayIds, anchor) = SeedTrip(new DateOnly(2026, 7, 23), 1, anchorDayIndex: 0);
+        // SeedTrip clears the tracker before returning, so `trip` is detached; re-fetch to mutate + persist.
+        var trackedTrip = await _db.Trips.FirstAsync(t => t.Id == trip.Id);
+        trackedTrip.SetDaily(true);
+        var day = await _db.ItineraryDays.FirstAsync(d => d.Id == dayIds[0]);
+        day.SetUseCurrentTimeAsStart(true);
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        // Same-day retime (no cross-day shift): must leave UseCurrentTimeAsStart untouched (still true).
+        await Build().Handle(
+            new RetimeStopToHourCommand(trip.Id, dayIds[0], anchor.Id, new TimeOnly(8, 30), new DateOnly(2026, 7, 23)),
+            CancellationToken.None);
+
+        (await _db.ItineraryDays.FirstAsync(d => d.Id == dayIds[0])).UseCurrentTimeAsStart.Should().BeTrue();
+    }
+
     public void Dispose() { _db.Dispose(); _conn.Dispose(); }
 }
