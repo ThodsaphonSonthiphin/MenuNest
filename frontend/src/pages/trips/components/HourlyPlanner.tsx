@@ -118,6 +118,7 @@ export function HourlyPlanner({
             type="button"
             className={`sd-qbtn${picked?.displayLocal === dayA.displayLocal ? ' sel' : ''}`}
             onClick={() => setPicked(dayA)}
+            disabled={isDaily}
           >
             <SunIcon /> กลางวันเย็นสุด รู้สึก {Math.round(dayA.feelsLikeC as number)}°
           </button>
@@ -127,6 +128,7 @@ export function HourlyPlanner({
             type="button"
             className={`sd-qbtn night${picked?.displayLocal === dayN.displayLocal ? ' sel' : ''}`}
             onClick={() => setPicked(dayN)}
+            disabled={isDaily}
           >
             <MoonIcon /> กลางคืนเย็นสุด รู้สึก {Math.round(dayN.feelsLikeC as number)}°
           </button>
