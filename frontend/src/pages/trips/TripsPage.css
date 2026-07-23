@@ -427,3 +427,18 @@
   font-size: 0.78rem; font-weight: 700; color: var(--trp-teal);
 }
 .trip-card-today .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--trp-teal); }
+
+.create-trip-dialog .ctd-daily {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left;
+  border: 1.5px solid var(--border); border-radius: 14px; background: var(--surface);
+  padding: 12px 14px; font: inherit; cursor: pointer;
+}
+.create-trip-dialog .ctd-daily.on { border-color: var(--teal); background: var(--teal-soft); }
+.create-trip-dialog .ctd-daily-ic { display: flex; font-size: 18px; color: var(--teal); }
+.create-trip-dialog .ctd-daily-txt { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.create-trip-dialog .ctd-daily-txt b { font-size: 14px; color: var(--ink); }
+.create-trip-dialog .ctd-daily-txt small { font-size: 11.5px; color: var(--muted); }
+.create-trip-dialog .ctd-daily-track { flex: none; width: 40px; height: 24px; border-radius: 999px; background: #cbd5e1; position: relative; transition: background .15s; }
+.create-trip-dialog .ctd-daily-knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,.25); transition: left .15s; }
+.create-trip-dialog .ctd-daily.on .ctd-daily-track { background: var(--teal); }
+.create-trip-dialog .ctd-daily.on .ctd-daily-knob { left: 19px; }

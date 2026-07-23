@@ -13,6 +13,7 @@ import {
   MapPinIcon,
   MinusIcon,
   PlusIcon,
+  RepeatIcon,
   SuitcaseIcon,
   TransitIcon,
   WalkIcon,
@@ -24,6 +25,7 @@ interface FormValues {
   startDate: string        // stored as "yyyy-MM-dd" string for the API
   dayCount: number
   defaultTravelMode: TravelMode
+  isDaily: boolean
 }
 
 // The backend TravelMode enum has exactly these three values (Drive/Walk/Transit,
@@ -73,13 +75,14 @@ export function CreateTripDialog({
       startDate: today,
       dayCount: 3,
       defaultTravelMode: 'Drive',
+      isDaily: false,
     },
   })
   const [createTrip, {isLoading}] = useCreateTripMutation()
   const [serverError, setServerError] = useState<string | null>(null)
 
   // Live end-date summary — start + (dayCount − 1) days, inclusive.
-  const [startDate, dayCount] = useWatch({control, name: ['startDate', 'dayCount']})
+  const [startDate, dayCount, isDaily] = useWatch({control, name: ['startDate', 'dayCount', 'isDaily']})
   const endLabel = useMemo(() => {
     const s = strToDate(startDate)
     if (!s || !dayCount || dayCount < 1) return null
@@ -95,8 +98,9 @@ export function CreateTripDialog({
         name: v.name.trim(),
         destination: v.destination.trim() || null,
         startDate: v.startDate,
-        dayCount: v.dayCount,
+        dayCount: v.isDaily ? 1 : v.dayCount,
         defaultTravelMode: v.defaultTravelMode,
+        isDaily: v.isDaily,
       }).unwrap()
       onCreated(t.id)
     } catch (e) {
@@ -174,6 +178,30 @@ export function CreateTripDialog({
           />
         </div>
 
+        {/* Daily mode */}
+        <div className="ctd-field">
+          <Controller
+            control={control}
+            name="isDaily"
+            render={({field}) => (
+              <button
+                type="button"
+                className={`ctd-daily${field.value ? ' on' : ''}`}
+                role="switch"
+                aria-checked={field.value}
+                onClick={() => field.onChange(!field.value)}
+              >
+                <span className="ctd-daily-ic"><RepeatIcon /></span>
+                <span className="ctd-daily-txt">
+                  <b>ทริปประจำวัน</b>
+                  <small>เดินทางเส้นเดิมซ้ำทุกวัน — บังคับ 1 วัน, เริ่มเป็น "วันนี้" อัตโนมัติ</small>
+                </span>
+                <span className="ctd-daily-track"><span className="ctd-daily-knob" /></span>
+              </button>
+            )}
+          />
+        </div>
+
         {/* Start date + day count — two columns */}
         <div className="ctd-row2">
           <div className="ctd-field">
@@ -215,19 +243,17 @@ export function CreateTripDialog({
                     type="button"
                     className="ctd-step"
                     aria-label="ลดจำนวนวัน"
-                    disabled={field.value <= MIN_DAYS}
+                    disabled={isDaily || field.value <= MIN_DAYS}
                     onClick={() => field.onChange(Math.max(MIN_DAYS, field.value - 1))}
                   >
                     <MinusIcon />
                   </button>
-                  <span className="ctd-step-val" aria-live="polite">
-                    {field.value}
-                  </span>
+                  <span className="ctd-step-val" aria-live="polite">{isDaily ? 1 : field.value}</span>
                   <button
                     type="button"
                     className="ctd-step"
                     aria-label="เพิ่มจำนวนวัน"
-                    disabled={field.value >= MAX_DAYS}
+                    disabled={isDaily || field.value >= MAX_DAYS}
                     onClick={() => field.onChange(Math.min(MAX_DAYS, field.value + 1))}
                   >
                     <PlusIcon />

@@ -970,3 +970,24 @@
 .stop-season-note { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; background: #fdece8; }
 .stop-season-note strong { color: #d4462a; font-size: 13px; } .stop-season-note span { color: #6b625b; font-size: 12.5px; }
 .stop-card.season-bad { border-top: 2px solid #d4462a; } .stop-card.season-good { border-top: 2px solid #1f9d6b; }
+
+/* Daily-mode switch in the trip header (issue #49) */
+.daily-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.04);
+  color: #9fb0c4; border-radius: 999px; padding: 3px 10px; margin-left: 8px;
+  font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; vertical-align: middle;
+}
+.daily-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+.daily-toggle-ic { width: 13px; height: 13px; }
+.daily-toggle-track { width: 26px; height: 15px; border-radius: 999px; background: #4a5568; position: relative; transition: background .15s; }
+.daily-toggle-knob { position: absolute; top: 2px; left: 2px; width: 11px; height: 11px; border-radius: 50%; background: #fff; transition: left .15s; }
+.daily-toggle.on { border-color: var(--teal); background: rgba(14,143,158,0.18); color: #fff; }
+.daily-toggle.on .daily-toggle-track { background: var(--teal); }
+.daily-toggle.on .daily-toggle-knob { left: 13px; }
+.trip-topbar-ic { width: 18px; height: 18px; vertical-align: -3px; color: #9fb0c4; }
+/* Mobile header uses light tokens — override the dark chrome there */
+.trip-detail-meta .daily-toggle { border-color: var(--trp-border); background: transparent; color: var(--trp-text-muted); }
+.trip-detail-meta .daily-toggle.on { border-color: var(--teal); background: rgba(14,143,158,0.08); color: var(--teal-deep); }
+.trip-detail-meta .daily-toggle .daily-toggle-track { background: #cbd5e1; }
+.trip-detail-meta .daily-toggle.on .daily-toggle-track { background: var(--teal); }
