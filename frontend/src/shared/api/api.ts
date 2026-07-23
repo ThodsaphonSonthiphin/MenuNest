@@ -495,7 +495,7 @@ export type TravelMode = 'Drive' | 'Walk' | 'Transit'
 export type RouteSource = 'Routed' | 'Estimated'
 export type PlaceCategory = 'Stay' | 'Eat' | 'See' | 'Cafe' | 'Shop' | 'Other'
 
-export interface TripDto { id: string; name: string; destination: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode }
+export interface TripDto { id: string; name: string; destination: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode; isDaily: boolean }
 export interface ReviewLink {
     url: string
     label: string | null
@@ -1356,12 +1356,16 @@ export const api = createApi({
             query: (id) => `/api/trips/${id}`,
             providesTags: (_r, _e, id) => [{type: 'TripDetail', id}],
         }),
-        createTrip: build.mutation<TripDto, {name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode}>({
+        createTrip: build.mutation<TripDto, {name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode; isDaily?: boolean}>({
             query: (b) => ({url: '/api/trips', method: 'POST', body: b}),
             invalidatesTags: ['Trips'],
         }),
         updateTrip: build.mutation<TripDto, {id: string; name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode}>({
             query: ({id, ...b}) => ({url: `/api/trips/${id}`, method: 'PUT', body: b}),
+            invalidatesTags: (_r, _e, a) => ['Trips', {type: 'TripDetail', id: a.id}, {type: 'TripItinerary', id: a.id}],
+        }),
+        setTripDaily: build.mutation<TripDto, {id: string; isDaily: boolean}>({
+            query: ({id, isDaily}) => ({url: `/api/trips/${id}/daily`, method: 'PATCH', body: {isDaily}}),
             invalidatesTags: (_r, _e, a) => ['Trips', {type: 'TripDetail', id: a.id}, {type: 'TripItinerary', id: a.id}],
         }),
         deleteTrip: build.mutation<void, string>({
@@ -1670,6 +1674,7 @@ export const {
     useGetTripQuery,
     useCreateTripMutation,
     useUpdateTripMutation,
+    useSetTripDailyMutation,
     useDeleteTripMutation,
     useResolvePlaceMutation,
     useListTripPlacesQuery,
