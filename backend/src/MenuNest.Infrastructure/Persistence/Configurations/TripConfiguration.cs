@@ -17,6 +17,7 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         b.Property(t => t.StartDate).IsRequired();
         b.Property(t => t.DayCount).IsRequired();
         b.Property(t => t.DefaultTravelMode).HasConversion<int>();
+        b.Property(t => t.IsDaily).IsRequired().HasDefaultValue(false);
         b.HasIndex(t => new { t.UserId, t.DeletedAt });
         b.HasOne<User>().WithMany().HasForeignKey(t => t.UserId).OnDelete(DeleteBehavior.NoAction);
     }
