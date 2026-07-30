@@ -6,7 +6,12 @@ import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { GoogleLogin } from '@react-oauth/google'
 import { loginRequest } from '../../shared/auth/msalConfig'
 import { setGoogleToken, isGoogleAuthenticated } from '../../shared/auth/googleAuth'
-import { isReauthBounce } from '../../shared/auth/reauth'
+import {
+  clearInteractiveLoginStarted,
+  isReauthBounce,
+  markInteractiveLoginStarted,
+  takeInteractiveLoginStarted,
+} from '../../shared/auth/reauth'
 import { setUser } from '../../shared/telemetry/appInsights'
 
 function decodeJwtSub(token: string): string | null {
@@ -35,6 +40,35 @@ export function LoginPage() {
     }
   }, [isAuthenticated, instance])
 
+  // An interactive sign-in that just completed must always be let into
+  // the app — even on a ?reauth=expired URL, where the guard below would
+  // otherwise re-render this card forever. MSAL caches the page that
+  // started the redirect (redirectStartPage → ORIGIN_URI) and, with the
+  // default navigateToLoginRequestUrl, hard-navigates back to it before
+  // processing the response hash. So a sign-in started from
+  // /login?reauth=expired lands back on /login?reauth=expired with the
+  // marker intact, the guard suppresses the bounce-to-"/", and the user
+  // is stuck clicking a button that authenticates successfully every
+  // time and never goes anywhere. handleSignIn below pins the start page
+  // to the origin so the bounce doesn't happen at all; this effect is the
+  // safety net for any other route back here holding the marker.
+  useEffect(() => {
+    // msal-react holds inProgress at Startup/HandleRedirect until
+    // handleRedirectPromise settles, so None here means the redirect is
+    // fully resolved and isAuthenticated is trustworthy.
+    if (inProgress !== InteractionStatus.None) return
+    if (isAuthenticated) {
+      if (takeInteractiveLoginStarted()) {
+        navigate('/', { replace: true })
+      }
+    } else {
+      // Settled with no session: whatever interactive attempt got us here
+      // is over (declined consent, cancelled, error). Drop the flag so it
+      // can't wave a later, unrelated render into the app.
+      clearInteractiveLoginStarted()
+    }
+  }, [isAuthenticated, inProgress, navigate])
+
   // If the user lands on /login while already authenticated (e.g. via
   // a direct URL or after a stale redirect), send them back into the
   // app instead of making them sign in again. The exception is a 401
@@ -50,10 +84,27 @@ export function LoginPage() {
   }
 
   const handleSignIn = () => {
-    instance.loginRedirect(loginRequest).catch((err) => {
-      // eslint-disable-next-line no-console
-      console.error('Sign-in failed', err)
-    })
+    markInteractiveLoginStarted()
+    instance
+      .loginRedirect({
+        ...loginRequest,
+        // Come back to the app root rather than to this /login URL. MSAL
+        // defaults redirectStartPage to the current href and returns
+        // there before handling the response hash — which, since
+        // redirectUri is the bare origin, is always a wasted full reload,
+        // and on a ?reauth=expired URL is an infinite loop (the restored
+        // marker makes the guard above re-render this card after a
+        // *successful* sign-in). Pinning it to the origin makes the
+        // landing URL match, so MSAL handles the hash in place.
+        redirectStartPage: `${window.location.origin}/`,
+      })
+      .catch((err) => {
+        // The redirect never left the page — don't leave a stale flag
+        // behind to wave the next render into the app.
+        clearInteractiveLoginStarted()
+        // eslint-disable-next-line no-console
+        console.error('Sign-in failed', err)
+      })
   }
 
   const pending = inProgress !== InteractionStatus.None
