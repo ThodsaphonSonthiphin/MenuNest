@@ -31,7 +31,7 @@ Two existing conventions pull against each other here. ADR-013 mandates commit-o
 
 ### Rejected
 
-- **Hard-block (B)** — dropping 2 days holding 6 stops would become six manual stop deletions, each of which is itself unconfirmed today (`StopEditorDialog.tsx:113-121`). No other MenuNest surface blocks like this, and it punishes the honest case to prevent the careless one.
+- **Hard-block (B)** — dropping 2 days holding 6 stops would become six manual stop deletions, each of which is itself unconfirmed today (`StopEditorDialog.tsx:113-121`). Rejected on **cost, not novelty**: MenuNest does block like this in two places already — `DeleteTripPlaceHandler.cs:26-27` refuses to remove a Place while a Stop still references it (*"ลบไม่ได้ — สถานที่นี้ถูกจัดลงตารางแล้ว ลบจุดในแผนก่อน"*), and ADR-133 refuses daily-enable on a multi-day trip. The difference is the remedy: both of those name a cheap, targeted next step, whereas clearing a shrink's way means six separate destructive taps through a UI that confirms none of them. Blocking is the established pattern; it is simply the wrong trade here.
 - **Undo window (C)** — there is no restore endpoint, so "undo" means deferring the entire PUT behind a timer the way `AccountDetailPage` does. That holds name, destination, start date and travel mode hostage too, and needs an unmount-commit guard so navigating away cannot lose the edit. Far more machinery than a confirm, for a worse guarantee.
 - **Confirming every shrink** — a red modal on a harmless 5 → 3 over empty days trains tap-through, which costs the signal precisely on the shrink that destroys six stops.
 
