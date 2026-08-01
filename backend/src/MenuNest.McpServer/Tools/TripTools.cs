@@ -53,7 +53,7 @@ public sealed class TripTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new CreateTripCommand(name, destination, startDate, dayCount, defaultTravelMode, isDaily), ct);
 
-    [McpServerTool, Description("Update a trip's fields (full replace — passing null for destination CLEARS it). WARNING: lowering dayCount deletes the trailing itinerary days AND their stops (cascade).")]
+    [McpServerTool, Description("Update a trip's fields (full replace — passing null for destination CLEARS it). WARNING: lowering dayCount deletes the trailing itinerary days AND their stops (cascade). The server REFUSES such a shrink unless allowStopLoss is true, and the refusal names how many stops and which days would be lost — read it, tell the user, and only re-send with allowStopLoss=true if they accept that loss. It cannot be undone.")]
     public async Task<TripDto> update_trip(
         [Description("Trip ID")] Guid tripId,
         [Description("Trip name")] string name,
@@ -61,8 +61,9 @@ public sealed class TripTools(IMediator mediator)
         [Description("Start date, YYYY-MM-DD")] DateOnly startDate,
         [Description("Number of itinerary days (1 or more); lowering removes trailing days and their stops")] int dayCount,
         [Description("Default travel mode: Drive, Walk, or Transit")] TravelMode defaultTravelMode,
+        [Description("Pass false normally. Only true to CONFIRM deleting the stops on the days a lower dayCount removes — unrecoverable.")] bool allowStopLoss,
         CancellationToken ct)
-        => await mediator.Send(new UpdateTripCommand(tripId, name, destination, startDate, dayCount, defaultTravelMode), ct);
+        => await mediator.Send(new UpdateTripCommand(tripId, name, destination, startDate, dayCount, defaultTravelMode, allowStopLoss), ct);
 
     [McpServerTool, Description("Turn a trip's 'daily' mode on or off. A daily trip must be single-day (dayCount==1) — enabling a multi-day trip is rejected; remove the extra days first. Enabling also forces the day to always start from the current time (evergreen 'today'). Returns the updated trip.")]
     public async Task<TripDto> set_trip_daily(

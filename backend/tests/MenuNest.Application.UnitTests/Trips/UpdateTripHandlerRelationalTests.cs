@@ -137,6 +137,28 @@ public sealed class UpdateTripHandlerRelationalTests : IDisposable
             new DateOnly(2026, 11, 14), new DateOnly(2026, 11, 15), new DateOnly(2026, 11, 16));
     }
 
+    [Fact]
+    public async Task Shrink_with_AllowStopLoss_drops_the_days_and_cascades_their_stops()
+    {
+        var tripId = SeedTrip(new DateOnly(2026, 11, 14), 3);
+        var day3 = await _db.ItineraryDays.Where(d => d.TripId == tripId)
+            .OrderBy(d => d.Date).Skip(2).FirstAsync();
+        var place = TripPlace.Create(tripId, "Cafe", 18.80, 98.92, PlaceCategory.Eat);
+        _db.TripPlaces.Add(place);
+        _db.Stops.Add(Stop.Create(day3.Id, place.Id, 0, 60, TravelMode.Drive));
+        await _db.SaveChangesAsync();
+        _db.ChangeTracker.Clear();
+
+        await Build().Handle(
+            new UpdateTripCommand(tripId, "Trip", null, new DateOnly(2026, 11, 14), 2, TravelMode.Drive,
+                AllowStopLoss: true),
+            CancellationToken.None);
+
+        (await DayDatesAsync(tripId)).Should().Equal(new DateOnly(2026, 11, 14), new DateOnly(2026, 11, 15));
+        (await _db.Stops.CountAsync()).Should().Be(0, "the dropped day's stops cascade-delete");
+        (await _db.TripPlaces.CountAsync()).Should().Be(1, "the place pool survives — Stop->TripPlace is NoAction");
+    }
+
     public void Dispose()
     {
         _db.Dispose();

@@ -33,6 +33,25 @@ public sealed class UpdateTripHandler : ICommandHandler<UpdateTripCommand, TripD
             .OrderBy(d => d.Date)
             .ToListAsync(ct);
 
+        // Days beyond the new count are about to be removed, and their Stops cascade with them
+        // (Stop->ItineraryDay FK, ON DELETE CASCADE — StopConfiguration.cs:22). Stop has no soft
+        // delete and there is no restore endpoint, so that loss is unrecoverable: refuse unless
+        // the caller has explicitly confirmed it (ADR-140). The SPA sets the flag only after the
+        // user confirms (ADR-138); MCP exposes it so the agent path stops being silent. A shrink
+        // over EMPTY days is an ordinary edit and passes without ceremony.
+        var dropped = days.Skip(c.DayCount).ToList();
+        if (dropped.Count > 0 && !c.AllowStopLoss)
+        {
+            var droppedIds = dropped.Select(d => d.Id).ToList();
+            var atRisk = await _db.Stops.CountAsync(s => droppedIds.Contains(s.ItineraryDayId), ct);
+            if (atRisk > 0)
+                throw new DomainException(
+                    $"Shrinking this trip to {c.DayCount} day(s) would delete {atRisk} scheduled stop(s) " +
+                    $"on day(s) {c.DayCount + 1}-{days.Count} " +
+                    $"({dropped[0].Date:yyyy-MM-dd} to {dropped[^1].Date:yyyy-MM-dd}). " +
+                    "Re-send with allowStopLoss = true to confirm.");
+        }
+
         // Add missing trailing days
         for (var i = days.Count; i < c.DayCount; i++)
             _db.ItineraryDays.Add(ItineraryDay.Create(trip.Id, c.StartDate.AddDays(i)));

@@ -67,6 +67,37 @@ public class UpdateTripHandlerTests
     }
 
     [Fact]
+    public async Task UpdateTrip_refuses_a_shrink_that_would_delete_stops()
+    {
+        using var fx = new HandlerTestFixture();
+        var trip = Trip.Create(fx.User.Id, "Trip", new DateOnly(2026, 11, 1), 3, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        var days = new List<ItineraryDay>();
+        for (var i = 0; i < 3; i++)
+        {
+            var d = ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1).AddDays(i));
+            days.Add(d);
+            fx.Db.ItineraryDays.Add(d);
+        }
+        var place = TripPlace.Create(trip.Id, "Cafe", 18.80, 98.92, PlaceCategory.Eat);
+        fx.Db.TripPlaces.Add(place);
+        fx.Db.Stops.Add(Stop.Create(days[2].Id, place.Id, 0, 60, TravelMode.Drive)); // sits on day 3
+        await fx.Db.SaveChangesAsync();
+
+        // 3 -> 2 days: day 3 (and its one stop) would go.
+        var cmd = new UpdateTripCommand(trip.Id, "Trip", null, new DateOnly(2026, 11, 1), 2, TravelMode.Drive);
+
+        var thrown = await FluentActions
+            .Awaiting(() => Build(fx).Handle(cmd, CancellationToken.None).AsTask())
+            .Should().ThrowAsync<DomainException>();
+        thrown.Which.Message.Should().Contain("1 scheduled stop").And.Contain("day(s) 3-3");
+
+        // Nothing was persisted — the day and its stop are still there.
+        (await fx.Db.ItineraryDays.CountAsync(d => d.TripId == trip.Id)).Should().Be(3);
+        (await fx.Db.Stops.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
     public async Task UpdateTrip_throws_when_trip_not_found()
     {
         using var fx = new HandlerTestFixture();
