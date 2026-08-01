@@ -51,6 +51,17 @@ the glossary wins until the glossary is deliberately changed.
   list of **Stops** and a **day start time** (default 09:00) from which the **Smart
   Schedule** cascades. Each Day carries its own start time, edited per-Day.
   _Avoid_: Date.
+- **Shrink** — reducing a **Trip**'s day count, which drops the **trailing** Days (latest-dated
+  first) and **destroys** their **Stops** with them, including each Stop's **Visited** flag,
+  notes and **Dwell**, and the Day's own start time. The **one irreversible destruction** in
+  MenuNest: there is no undo and no restore — deliberately *unlike* deleting a whole Trip,
+  which is recoverable. Permitted, but only behind an explicit confirmation naming the days,
+  the count and the **Places** about to be lost, and only where that loss is knowable
+  (ADR-138, ADR-139); the API refuses one outright unless the caller explicitly opts in
+  (ADR-140). Growing the day count is not a Shrink and is never destructive, and a
+  **daily trip** can never shrink — it is always single-day.
+  _Avoid_: trim, shorten, cut days; **Reschedule** (moving the start date — it re-dates the
+  kept Days and destroys nothing); **delete** (that is removing the whole **Trip**, which is soft).
 - **Place** — a saved location the user wants to visit, anchored to a Google
   **`place_id`** (the only Maps datum stored indefinitely — see ADR-007). Carries a
   cached snapshot (name, coordinates, address, opening hours) sourced from a live
