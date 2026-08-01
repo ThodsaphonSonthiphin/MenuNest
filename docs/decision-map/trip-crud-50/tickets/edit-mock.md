@@ -4,7 +4,7 @@ type: prototype
 mode: HITL
 status: open
 assignee: 
-blocked_by: [edit-surface, delete-ux]
+blocked_by: [edit-surface, delete-ux, past-dated-trip-edits]
 gist: 
 ---
 
