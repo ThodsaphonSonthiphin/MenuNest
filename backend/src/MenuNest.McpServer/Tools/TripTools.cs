@@ -58,7 +58,7 @@ public sealed class TripTools(IMediator mediator)
         [Description("Trip ID")] Guid tripId,
         [Description("Trip name")] string name,
         [Description("Optional destination")] string? destination,
-        [Description("Start date, YYYY-MM-DD")] DateOnly startDate,
+        [Description("Start date, YYYY-MM-DD. It may move FORWARD freely, but CHANGING it to a date already in the past is refused; re-sending the trip's existing past date is fine.")] DateOnly startDate,
         [Description("Number of itinerary days (1 or more); lowering removes trailing days and their stops")] int dayCount,
         [Description("Default travel mode: Drive, Walk, or Transit")] TravelMode defaultTravelMode,
         [Description("Pass false normally. Only true to CONFIRM deleting the stops on the days a lower dayCount removes — unrecoverable.")] bool allowStopLoss,

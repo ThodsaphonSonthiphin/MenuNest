@@ -32,6 +32,10 @@ public sealed class UpdateTripHandlerRelationalTests : IDisposable
     private readonly User _user;
     private readonly Mock<IUserProvisioner> _users;
 
+    // Fixed, never the system clock: every date in this file is a hardcoded 2026-11-x, so a
+    // real clock would turn the suite into a time bomb that detonates in December 2026 (ADR-146).
+    private readonly IClock _clock = new FixedClock(new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+
     public UpdateTripHandlerRelationalTests()
     {
         // A private, in-memory SQLite DB that lives as long as the open connection.
@@ -52,7 +56,7 @@ public sealed class UpdateTripHandlerRelationalTests : IDisposable
             .ReturnsAsync(_user);
     }
 
-    private UpdateTripHandler Build() => new(_db, _users.Object, new UpdateTripValidator());
+    private UpdateTripHandler Build() => new(_db, _users.Object, new UpdateTripValidator(), _clock);
 
     /// <summary>Seeds a trip with <paramref name="dayCount"/> contiguous days from
     /// <paramref name="start"/>, then detaches everything so the handler loads fresh.</summary>

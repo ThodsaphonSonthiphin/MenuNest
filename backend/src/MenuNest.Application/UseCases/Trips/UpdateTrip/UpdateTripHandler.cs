@@ -13,9 +13,10 @@ public sealed class UpdateTripHandler : ICommandHandler<UpdateTripCommand, TripD
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly IValidator<UpdateTripCommand> _validator;
+    private readonly IClock _clock;
 
-    public UpdateTripHandler(IApplicationDbContext db, IUserProvisioner users, IValidator<UpdateTripCommand> validator)
-    { _db = db; _users = users; _validator = validator; }
+    public UpdateTripHandler(IApplicationDbContext db, IUserProvisioner users, IValidator<UpdateTripCommand> validator, IClock clock)
+    { _db = db; _users = users; _validator = validator; _clock = clock; }
 
     public async ValueTask<TripDto> Handle(UpdateTripCommand c, CancellationToken ct)
     {
@@ -24,6 +25,18 @@ public sealed class UpdateTripHandler : ICommandHandler<UpdateTripCommand, TripD
         var trip = await _db.Trips
             .FirstOrDefaultAsync(t => t.Id == c.TripId && t.UserId == user.Id && t.DeletedAt == null, ct)
             ?? throw new DomainException("Trip not found.");
+
+        // Guard: the start date may move, but never onto a date already in the past — a
+        // Backdate (ADR-146). What is governed is where the date LANDS, never which direction
+        // it moved, so 14 Nov -> 12 Nov is fine while both are ahead. An UNCHANGED date always
+        // passes, which is what keeps renaming / re-counting a trip that already started
+        // working under this full-replace PUT. Same floor and same reasoning as
+        // RetimeStopToHourHandler.cs:36-41 — one day of slack keeps a legitimate viewer-local
+        // "today" that is still UTC-yesterday from being falsely rejected (MenuNest is Thai-first
+        // at UTC+7, but it is a *travel* app).
+        if (c.StartDate != trip.StartDate &&
+            c.StartDate < DateOnly.FromDateTime(_clock.UtcNow).AddDays(-1))
+            throw new DomainException("Cannot move a trip to a start date that is already in the past.");
 
         trip.UpdateDetails(c.Name, c.Destination, c.DefaultTravelMode);
         trip.Reschedule(c.StartDate, c.DayCount);
