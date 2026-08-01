@@ -51,7 +51,8 @@ public sealed class TripsController : ControllerBase
 
     [HttpPut("api/trips/{id:guid}")]
     public async Task<ActionResult<TripDto>> Update(Guid id, [FromBody] UpdateTripBody body, CancellationToken ct)
-        => Ok(await _mediator.Send(new UpdateTripCommand(id, body.Name, body.Destination, body.StartDate, body.DayCount, body.DefaultTravelMode), ct));
+        => Ok(await _mediator.Send(new UpdateTripCommand(id, body.Name, body.Destination, body.StartDate,
+            body.DayCount, body.DefaultTravelMode, body.AllowStopLoss), ct));
 
     [HttpDelete("api/trips/{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -149,7 +150,10 @@ public sealed class TripsController : ControllerBase
 
 public sealed record UpdateTripBody(
     string Name, string? Destination, DateOnly StartDate, int DayCount,
-    MenuNest.Domain.Enums.TravelMode DefaultTravelMode);
+    MenuNest.Domain.Enums.TravelMode DefaultTravelMode,
+    // Optional: a client that omits it gets `false`, so TripDateEditor's date-only PUT
+    // (which never shrinks) needs no change at all — ADR-142.
+    bool AllowStopLoss = false);
 
 public sealed record AddPlaceBody(
     string Name, double Lat, double Lng, PlaceCategory Category,
