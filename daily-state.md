@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-07-21T21:34:19+07:00'
+updated: '2026-08-01T16:40:02+07:00'
 ---
 
 ## Log
@@ -401,3 +401,45 @@ feat(discover): show hourly weather strip in the place-detail sheet (closes #47)
 EOF
 )
 - 2026-07-21T21:34:19+07:00 — (commit)
+- 2026-07-22T17:34:42+07:00 — docs(trips): best-time windows design â€” ADR 126-129 + spec + plan + glossary (#38) — Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
+- 2026-07-22T18:01:19+07:00 — (commit)
+- 2026-07-22T18:13:28+07:00 — feat(trips): pure resolveBestTime for multi-window best-time (#38)
+- 2026-07-22T19:52:46+07:00 — (commit)
+- 2026-07-23T16:59:35+07:00 — (commit)
+- 2026-07-23T17:00:05+07:00 — docs(trips): daily-trips design - ADR 130-137 + spec + plan + glossary (#49)
+- 2026-07-23T17:06:49+07:00 — feat(trips): Trip.IsDaily flag + single-day guards + migration (#49)
+- 2026-07-23T17:14:24+07:00 — feat(trips): expose IsDaily on TripDto (#49)
+- 2026-07-23T17:20:57+07:00 — $(cat <<'EOF'
+feat(trips): SetTripDaily command - guard + force evergreen (#49)
+EOF
+)
+- 2026-07-23T17:28:46+07:00 — $(cat <<'EOF'
+feat(trips): SetTripDaily PATCH endpoint + set_trip_daily MCP tool (#49)
+EOF
+)
+- 2026-07-23T17:37:01+07:00 — feat(trips): create-as-daily (CreateTrip + validator + MCP) (#49)
+- 2026-07-23T17:47:53+07:00 — $(cat <<'EOF'
+feat(trips): backend-enforce evergreen on daily trips (retime + set-current-time) (#49)
+EOF
+)
+- 2026-07-23T18:00:14+07:00 — feat(trips): api types for IsDaily + setTripDaily mutation (#49)
+- 2026-07-23T18:13:08+07:00 — $(cat <<'EOF'
+feat(trips): à¸›à¸£à¸°à¸ˆà¸³à¸§à¸±à¸™ section + daily card on /trips; drop emoji (#49)
+EOF
+)
+- 2026-07-23T18:25:18+07:00 — $(cat <<'EOF'
+feat(trips): daily-mode switch on detail + create dialog; drop map emoji (#49)
+EOF
+)
+- 2026-07-23T18:36:15+07:00 — $(cat <<'EOF'
+feat(trips): lock current-time toggle + hide retiming apply on daily trips (#49)
+EOF
+)
+- 2026-07-23T18:51:48+07:00 — fix(trips): disable weather quick-pick pills on daily trips (#49)
+- 2026-07-23T18:52:52+07:00 — (commit)
+- 2026-07-23T18:53:53+07:00 — (commit)
+- 2026-07-23T21:50:44+07:00 — (commit)
+- 2026-07-30T08:49:12+07:00 — (commit)
+- 2026-08-01T15:29:18+07:00 — fix(auth): break the Microsoft sign-in loop on /login?reauth=expired (closes #51) (62701f3)
+- 2026-08-01T15:43:20+07:00 — docs(trips): decision map for trip CRUD - edit every field and delete (#50) (bf81ae9)
+- 2026-08-01T16:40:02+07:00 — docs(trips): decision-map trip-crud - shrink policy + edit surface (#50) (640cafe)
