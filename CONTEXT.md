@@ -62,6 +62,16 @@ the glossary wins until the glossary is deliberately changed.
   **daily trip** can never shrink — it is always single-day.
   _Avoid_: trim, shorten, cut days; **Reschedule** (moving the start date — it re-dates the
   kept Days and destroys nothing); **delete** (that is removing the whole **Trip**, which is soft).
+- **Backdate** — a **Reschedule** whose *new* start date lands in the past. Refused by both
+  writers of `Trip.StartDate` (ADR-146), and offered by neither date picker. What matters is
+  **where the date lands, never which direction it moved**: pulling a trip from 14 Nov to
+  12 Nov is not a Backdate while both are still ahead. Unlike a **Shrink** it destroys nothing —
+  it is refused because a start date is not a record of the past, and because the app has no
+  way to show a trip that already happened.
+  _Avoid_: past trip (that is a **Trip**'s current *state*, not an edit — a trip whose start date
+  is already behind us is **fully editable**: its name, day count and travel mode change
+  normally, and its date may still move *forward*); backward move, shift backward, rewind
+  (all name the direction, which is not what is governed).
 - **Place** — a saved location the user wants to visit, anchored to a Google
   **`place_id`** (the only Maps datum stored indefinitely — see ADR-007). Carries a
   cached snapshot (name, coordinates, address, opening hours) sourced from a live
@@ -122,6 +132,8 @@ the glossary wins until the glossary is deliberately changed.
   apply on that trip (ADR-134). Daily trips surface in a **"ประจำวัน" section** at the top of
   `/trips`, with a badge and a "วันนี้" card instead of a fixed date (ADR-136); tapping one just
   opens today's **Itinerary** (ADR-135, no auto **Navigate hand-off**). A **User** may have many.
+  A daily trip has **no visible start date at all** — every surface reads *today*, and its stored
+  start date survives only as the fallback for when the switch is turned off (ADR-144).
   _Avoid_: recurring trip, routine, template; **diary / แดรี่บันทึก** (the memory reading, rejected —
   ADR-130); evergreen (informal — that names the *mechanism*, **Current-time-start**).
 - **Timing flag** — a warning shown on a **Stop** in the **Smart Schedule** when its

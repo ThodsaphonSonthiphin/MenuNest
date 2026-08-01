@@ -3,6 +3,7 @@
 **Date:** 2026-08-01
 **Status:** Accepted
 **Relates to:** issue #50; decision-map `trip-crud-50`, ticket `edit-surface`. Preserves ADR-012/013. Sibling to ADR-141. Verified safe against ADR-140's `AllowStopLoss` guard.
+**Amended by ADR-146** — "needs no change" below was verified against ADR-140 only. ADR-146 adds a second domain guard on `Trip.StartDate`, which `TripDateEditor` *does* write, so it now takes `minDate={today}`. Everything else in this ADR stands.
 
 ```mermaid
 flowchart TD
