@@ -12,7 +12,7 @@ namespace MenuNest.Application.UnitTests.Trips;
 public class UpdateTripHandlerTests
 {
     private static UpdateTripHandler Build(HandlerTestFixture fx)
-        => new(fx.Db, fx.UserProvisioner.Object, new UpdateTripValidator());
+        => new(fx.Db, fx.UserProvisioner.Object, new UpdateTripValidator(), fx.Clock);
 
     [Fact]
     public async Task UpdateTrip_realigns_day_dates()
@@ -123,5 +123,57 @@ public class UpdateTripHandlerTests
         await FluentActions.Awaiting(() =>
             Build(fx).Handle(cmd, CancellationToken.None).AsTask()
         ).Should().ThrowAsync<DomainException>().WithMessage("Trip not found.");
+    }
+
+    [Fact]
+    public async Task UpdateTrip_refuses_moving_the_start_date_into_the_past()
+    {
+        using var fx = new HandlerTestFixture();          // clock fixed at 2026-01-01 UTC
+        var trip = Trip.Create(fx.User.Id, "Trip", new DateOnly(2026, 11, 1), 2, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        for (var i = 0; i < 2; i++)
+            fx.Db.ItineraryDays.Add(ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1).AddDays(i)));
+        await fx.Db.SaveChangesAsync();
+
+        var cmd = new UpdateTripCommand(trip.Id, "Trip", null, new DateOnly(2025, 12, 1), 2, TravelMode.Drive);
+
+        await FluentActions.Awaiting(() => Build(fx).Handle(cmd, CancellationToken.None).AsTask())
+            .Should().ThrowAsync<DomainException>()
+            .WithMessage("*already in the past*");
+    }
+
+    [Fact]
+    public async Task UpdateTrip_allows_renaming_a_trip_whose_start_date_is_already_past()
+    {
+        using var fx = new HandlerTestFixture();          // clock fixed at 2026-01-01 UTC
+        var trip = Trip.Create(fx.User.Id, "Old", new DateOnly(2025, 3, 1), 2, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        for (var i = 0; i < 2; i++)
+            fx.Db.ItineraryDays.Add(ItineraryDay.Create(trip.Id, new DateOnly(2025, 3, 1).AddDays(i)));
+        await fx.Db.SaveChangesAsync();
+
+        // The full-replace PUT re-sends the same (past) start date; only the name changed.
+        var cmd = new UpdateTripCommand(trip.Id, "Renamed", null, new DateOnly(2025, 3, 1), 2, TravelMode.Drive);
+        var dto = await Build(fx).Handle(cmd, CancellationToken.None);
+
+        dto.Name.Should().Be("Renamed");
+        dto.StartDate.Should().Be(new DateOnly(2025, 3, 1));
+    }
+
+    [Fact]
+    public async Task UpdateTrip_allows_a_backward_move_that_still_lands_in_the_future()
+    {
+        using var fx = new HandlerTestFixture();          // clock fixed at 2026-01-01 UTC
+        var trip = Trip.Create(fx.User.Id, "Trip", new DateOnly(2026, 11, 14), 2, TravelMode.Drive);
+        fx.Db.Trips.Add(trip);
+        for (var i = 0; i < 2; i++)
+            fx.Db.ItineraryDays.Add(ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 14).AddDays(i)));
+        await fx.Db.SaveChangesAsync();
+
+        // What is governed is where the date LANDS, not which direction it moved.
+        var cmd = new UpdateTripCommand(trip.Id, "Trip", null, new DateOnly(2026, 11, 12), 2, TravelMode.Drive);
+        var dto = await Build(fx).Handle(cmd, CancellationToken.None);
+
+        dto.StartDate.Should().Be(new DateOnly(2026, 11, 12));
     }
 }
