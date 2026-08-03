@@ -123,6 +123,13 @@ export function EditTripDialog({
   // hiding them would delete the only place the constraint is ever explained.
   const isDaily = trip.isDaily
   const todayYmd = dateToYmd(new Date()) ?? draft.startDate
+  // ADR-146: a Backdate is refused server-side, so never offer one. Memoised because a fresh
+  // Date object every render would churn the picker's prop identity.
+  const minDate = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
   // The persisted start date of a daily trip is displayed NOWHERE in the app (dailyCard has
   // no date row, TripDateEditor is always locked, GetItinerary projects the date to today),
   // so it is a fallback, not a value. DISPLAY today — but keep `draft.startDate` on the
@@ -305,6 +312,7 @@ export function EditTripDialog({
               value={ymdToDate(displayStartYmd)}
               format="dd MMM yyyy"
               disabled={isDaily}
+              minDate={minDate}
               onChange={(e: DatePickerChangeEvent) => {
                 const v = dateToYmd(e.value)
                 if (v) set('startDate', v)
