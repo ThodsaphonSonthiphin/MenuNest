@@ -32,3 +32,8 @@ export function endDate(start: Date | null, dayCount: number): Date | null {
   e.setDate(e.getDate() + (days - 1))
   return e
 }
+
+/** Thai Buddhist-era short date, e.g. "1 ส.ค. 2569" — the app-wide trip date label. */
+export function thaiDate(d: Date): string {
+  return d.toLocaleDateString('th-TH', {day: 'numeric', month: 'short', year: 'numeric'})
+}

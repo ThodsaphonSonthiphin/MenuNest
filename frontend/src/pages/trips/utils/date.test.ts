@@ -1,5 +1,5 @@
 import {describe, it, expect} from 'vitest'
-import {ymdToDate, dateToYmd, endDate} from './date'
+import {ymdToDate, dateToYmd, endDate, thaiDate} from './date'
 
 describe('ymdToDate', () => {
   it('parses "yyyy-MM-dd" into a local-midnight Date', () => {
@@ -58,5 +58,17 @@ describe('endDate', () => {
   })
   it('returns null when start is null', () => {
     expect(endDate(null, 3)).toBeNull()
+  })
+})
+
+describe('thaiDate', () => {
+  it('renders a Buddhist-era short Thai date', () => {
+    // 2026 CE -> 2569 BE. Only the year and day are asserted, because month abbreviations
+    // vary between ICU builds.
+    expect(thaiDate(new Date(2026, 7, 1))).toContain('2569')
+  })
+
+  it('does not shift the day across a timezone boundary', () => {
+    expect(thaiDate(new Date(2026, 7, 1))).toContain('1')
   })
 })
