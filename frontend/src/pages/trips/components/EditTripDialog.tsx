@@ -204,7 +204,13 @@ export function EditTripDialog({
         id: trip.id,
         name: d.name,
         destination: d.destination || null,
-        startDate: d.startDate,
+        // A dateLocked trip DISPLAYS today while `draft.startDate` holds the persisted
+        // fallback, so a day-count change must persist the date the summary pill promised,
+        // not the hidden one. Growing past a single day ends GetItinerary's projection
+        // (singleDay && useCurrentTimeAsStart), so that fallback would surface as the real
+        // start and land the new days on dates the user was never shown. Keyed on the count
+        // having CHANGED, so a rename never moves a locked trip's date (ADR-144).
+        startDate: dateLocked && d.dayCount !== trip.dayCount ? displayStartYmd : d.startDate,
         dayCount: d.dayCount,
         defaultTravelMode: d.defaultTravelMode,
         // Only ever true immediately after the user confirmed the loss above (ADR-140).
@@ -326,6 +332,13 @@ export function EditTripDialog({
               format="dd MMM yyyy"
               disabled={dateLocked}
               minDate={minDate}
+              // Pick-only, exactly like TripDateEditor. Left typeable, the field would accept text
+              // that never reaches the draft: with strictMode off a bad parse only sets an invalid
+              // flag (no message — validationMessage is ''), and the clear button commits null,
+              // which the guard below drops. Either way the field shows one date while the draft
+              // holds another, and an otherwise-clean save closes as if it had taken.
+              editable={false}
+              clearButton={false}
               onChange={(e: DatePickerChangeEvent) => {
                 const v = dateToYmd(e.value)
                 if (v) set('startDate', v)
