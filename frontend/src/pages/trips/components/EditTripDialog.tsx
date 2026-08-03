@@ -15,6 +15,7 @@ import {
   CarIcon,
   CheckIcon,
   ClockIcon,
+  InfoIcon,
   MapPinIcon,
   MinusIcon,
   PencilIcon,
@@ -88,12 +89,15 @@ export function EditTripDialog({
   trip,
   days,
   places,
+  overrideDate,
   onClose,
 }: {
   trip: TripDto
   /** The itinerary already in the RTK cache. `[]` means "not loaded" — a trip always has >=1 day. */
   days: ItineraryDayDto[]
   places: TripPlaceDto[]
+  /** The server-projected "today" for a daily trip's single current-time-start day (ADR-144). */
+  overrideDate?: string
   onClose: () => void
 }) {
   const [draft, setDraft] = useState<TripEditDraft>(() => draftFromTrip(trip))
@@ -108,6 +112,21 @@ export function EditTripDialog({
   // Never default the unknown count to zero: that is the failure mode this whole guard exists
   // to prevent. The other four fields stay editable throughout.
   const daysKnown = days.length > 0
+
+  // ── Daily trips (ADR-144) ────────────────────────────────────────────────────
+  // Two fields cannot mean anything here, for DIFFERENT reasons, so each carries its own
+  // copy. Both stay VISIBLE and disabled — the dialog has one shape for every trip, and
+  // hiding them would delete the only place the constraint is ever explained.
+  const isDaily = trip.isDaily
+  const todayYmd = dateToYmd(new Date()) ?? draft.startDate
+  // The persisted start date of a daily trip is displayed NOWHERE in the app (dailyCard has
+  // no date row, TripDateEditor is always locked, GetItinerary projects the date to today),
+  // so it is a fallback, not a value. DISPLAY today — but keep `draft.startDate` on the
+  // persisted value so the save never moves it and the dirty-diff never trips on it.
+  const displayStartYmd = isDaily ? (overrideDate?.slice(0, 10) ?? todayYmd) : draft.startDate
+  const dayCountDisabled = isDaily || !daysKnown
+  const dayCountValue = isDaily ? 1 : draft.dayCount
+
   const placeNameById = useMemo(
     () => Object.fromEntries(places.map((p) => [p.id, p.name])) as Record<string, string>,
     [places],
@@ -117,10 +136,12 @@ export function EditTripDialog({
     setDraft((d) => ({...d, [k]: v}))
 
   // Live end-date summary — most useful precisely when changing the day count.
+  // Follows the COERCED values (displayStartYmd, dayCountValue), not the raw draft, or the
+  // pill would misrepresent a daily trip — same reason CreateTripDialog coerces its own.
   const endLabel = useMemo(() => {
-    const e = endDate(ymdToDate(draft.startDate), draft.dayCount)
+    const e = endDate(ymdToDate(displayStartYmd), dayCountValue)
     return e ? thaiDate(e) : null
-  }, [draft.startDate, draft.dayCount])
+  }, [displayStartYmd, dayCountValue])
 
   const save = async () => {
     setSaveError(null)
@@ -234,51 +255,63 @@ export function EditTripDialog({
         <div className="ctd-row2">
           <div className="ctd-field">
             <label className="ctd-label">
-              วันเริ่ม <span className="ctd-req">*</span>
+              วันเริ่ม {!isDaily && <span className="ctd-req">*</span>}
             </label>
             <DatePicker
-              value={ymdToDate(draft.startDate)}
+              value={ymdToDate(displayStartYmd)}
               format="dd MMM yyyy"
+              disabled={isDaily}
               onChange={(e: DatePickerChangeEvent) => {
                 const v = dateToYmd(e.value)
                 if (v) set('startDate', v)
               }}
             />
+            {isDaily && (
+              <span className="ctd-why">
+                <InfoIcon />
+                ทริปประจำวันเริ่ม “วันนี้” เสมอ
+              </span>
+            )}
           </div>
 
           <div className="ctd-field">
             <label className="ctd-label">
-              จำนวนวัน {daysKnown && <span className="ctd-req">*</span>}
+              จำนวนวัน {!dayCountDisabled && <span className="ctd-req">*</span>}
             </label>
-            <div className={`ctd-stepper${daysKnown ? '' : ' is-disabled'}`}>
+            <div className={`ctd-stepper${dayCountDisabled ? ' is-disabled' : ''}`}>
               <button
                 type="button"
                 className="ctd-step"
                 aria-label="ลดจำนวนวัน"
-                disabled={!daysKnown || draft.dayCount <= MIN_DAYS}
+                disabled={dayCountDisabled || draft.dayCount <= MIN_DAYS}
                 onClick={() => set('dayCount', Math.max(MIN_DAYS, draft.dayCount - 1))}
               >
                 <MinusIcon />
               </button>
               <span className="ctd-step-val" aria-live="polite">
-                {draft.dayCount}
+                {dayCountValue}
               </span>
               <button
                 type="button"
                 className="ctd-step"
                 aria-label="เพิ่มจำนวนวัน"
-                disabled={!daysKnown || draft.dayCount >= MAX_DAYS}
+                disabled={dayCountDisabled || draft.dayCount >= MAX_DAYS}
                 onClick={() => set('dayCount', Math.min(MAX_DAYS, draft.dayCount + 1))}
               >
                 <PlusIcon />
               </button>
             </div>
-            {!daysKnown && (
+            {isDaily ? (
+              <span className="ctd-why">
+                <InfoIcon />
+                ทริปประจำวันเป็นวันเดียวเสมอ
+              </span>
+            ) : !daysKnown ? (
               <span className="ctd-why">
                 <ClockIcon />
                 กำลังโหลดแผนเที่ยว — ยังนับจุดแวะที่จะหายไม่ได้
               </span>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -289,7 +322,7 @@ export function EditTripDialog({
               <ArrowRightIcon />
             </span>
             <span>
-              สิ้นสุด <b>{endLabel}</b> · รวม <b>{draft.dayCount} วัน</b>
+              สิ้นสุด <b>{endLabel}</b> · รวม <b>{dayCountValue} วัน</b>
             </span>
           </div>
         )}
