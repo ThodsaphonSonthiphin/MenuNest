@@ -300,6 +300,7 @@ export function TripDetailPage() {
           trip={trip}
           days={dayRoute.days}
           places={places ?? []}
+          overrideDate={overrideDate}
           onClose={() => setEditOpen(false)}
         />
       )}
