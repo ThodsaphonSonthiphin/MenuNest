@@ -64,7 +64,6 @@ export interface ShrinkLoss {
   dateFrom: string // "yyyy-MM-dd"
   dateTo: string
   stops: ShrinkLossStop[]
-  visitedCount: number
 }
 
 /**
@@ -98,7 +97,6 @@ export function shrinkLoss(
     dateFrom: dropped[0].date.slice(0, 10),
     dateTo: dropped[dropped.length - 1].date.slice(0, 10),
     stops,
-    visitedCount: stops.filter((s) => s.isVisited).length,
   }
 }
 
