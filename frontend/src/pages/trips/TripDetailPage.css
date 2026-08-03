@@ -992,3 +992,55 @@
 .trip-detail-meta .daily-toggle.on { border-color: var(--teal); background: rgba(14,143,158,0.08); color: var(--teal-deep); }
 .trip-detail-meta .daily-toggle .daily-toggle-track { background: #cbd5e1; }
 .trip-detail-meta .daily-toggle.on .daily-toggle-track { background: var(--teal); }
+
+/* ============================================================
+   Edit-trip entry point (issue #50, ADR-141) — an explicit inline-SVG pencil BUTTON in
+   both header variants: light-on-dark in the desktop .trip-topbar, teal-on-white in the
+   mobile .trip-detail-header. A record-level action, so it is a real button rather than
+   ADR-012's tap-the-value treatment; a plain value is a weak affordance and this is a
+   brand-new capability with zero existing discoverability.
+   ============================================================ */
+.trip-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+}
+.trip-edit-btn svg { width: 15px; height: 15px; }
+.trip-edit-btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* Desktop dark top-bar. The row is align-items:baseline, so re-center this control. */
+.trip-topbar .trip-edit-btn {
+  margin-left: auto;
+  align-self: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  color: #dbe6f0;
+}
+.trip-topbar .trip-edit-btn:hover { background: rgba(255, 255, 255, 0.16); color: #fff; }
+
+/* Mobile light header — the name/meta block and the pencil share one top row. */
+.trip-detail-headtop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.trip-detail-headtext {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.trip-detail-headtop .trip-edit-btn {
+  border: 1px solid var(--trp-border);
+  background: var(--trp-bg-card);
+  color: var(--teal-deep);
+}
+.trip-detail-headtop .trip-edit-btn:hover { background: var(--teal-soft); border-color: var(--teal); }
