@@ -70,9 +70,9 @@ public sealed class UpdateTripHandler : ICommandHandler<UpdateTripCommand, TripD
             _db.ItineraryDays.Add(ItineraryDay.Create(trip.Id, c.StartDate.AddDays(i)));
 
         // Remove surplus trailing days. Stops on a dropped day cascade-delete (Stop→Day FK).
-        // This is intentional per ADR-009's "add/remove trailing days", but it is silent data
-        // loss: when an edit-trip UI is built, it must confirm before shrinking a trip that has
-        // scheduled stops on the days being removed.
+        // This is intentional per ADR-009's "add/remove trailing days"; the confirm-before-loss
+        // guard for scheduled stops on the days being removed sits above, in the AllowStopLoss
+        // check.
         foreach (var extra in days.Skip(c.DayCount))
             _db.ItineraryDays.Remove(extra);
 
