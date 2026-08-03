@@ -199,6 +199,7 @@ export function TripDetailPage() {
             days={dayRoute.days}
             places={places ?? []}
             overrideDate={overrideDate}
+            locked={currentDay}
             onClose={() => setEditOpen(false)}
           />
         )}
@@ -301,6 +302,7 @@ export function TripDetailPage() {
           days={dayRoute.days}
           places={places ?? []}
           overrideDate={overrideDate}
+          locked={currentDay}
           onClose={() => setEditOpen(false)}
         />
       )}

@@ -92,6 +92,7 @@ export function EditTripDialog({
   days,
   places,
   overrideDate,
+  locked,
   onClose,
 }: {
   trip: TripDto
@@ -100,6 +101,14 @@ export function EditTripDialog({
   places: TripPlaceDto[]
   /** The server-projected "today" for a daily trip's single current-time-start day (ADR-144). */
   overrideDate?: string
+  /**
+   * Mirrors TripDetailPage's own `currentDay` predicate: true when this trip's single day has
+   * useCurrentTimeAsStart set, REGARDLESS of isDaily — that flag is not exclusive to daily trips
+   * (SetDayUseCurrentTimeHandler only refuses turning it off on a daily trip). Without this the
+   * header locks the date and shows today while this dialog, one tap away, showed the persisted
+   * date and offered to change it — two surfaces disagreeing about the same field.
+   */
+  locked?: boolean
   onClose: () => void
 }) {
   const [draft, setDraft] = useState<TripEditDraft>(() => draftFromTrip(trip))
@@ -134,7 +143,11 @@ export function EditTripDialog({
   // no date row, TripDateEditor is always locked, GetItinerary projects the date to today),
   // so it is a fallback, not a value. DISPLAY today — but keep `draft.startDate` on the
   // persisted value so the save never moves it and the dirty-diff never trips on it.
-  const displayStartYmd = isDaily ? (overrideDate?.slice(0, 10) ?? todayYmd) : draft.startDate
+  // ADR-144's fallback also covers the non-daily "current-time-start" single day (`locked`,
+  // mirroring TripDetailPage's `currentDay`): its persisted date is likewise shown nowhere in
+  // the app while the flag is on, so the same display/draft split applies.
+  const dateLocked = isDaily || !!locked
+  const displayStartYmd = dateLocked ? (overrideDate?.slice(0, 10) ?? todayYmd) : draft.startDate
   const dayCountDisabled = isDaily || !daysKnown
   const dayCountValue = isDaily ? 1 : draft.dayCount
 
@@ -306,12 +319,12 @@ export function EditTripDialog({
         <div className="ctd-row2">
           <div className="ctd-field">
             <label className="ctd-label">
-              วันเริ่ม {!isDaily && <span className="ctd-req">*</span>}
+              วันเริ่ม {!dateLocked && <span className="ctd-req">*</span>}
             </label>
             <DatePicker
               value={ymdToDate(displayStartYmd)}
               format="dd MMM yyyy"
-              disabled={isDaily}
+              disabled={dateLocked}
               minDate={minDate}
               onChange={(e: DatePickerChangeEvent) => {
                 const v = dateToYmd(e.value)
@@ -322,6 +335,12 @@ export function EditTripDialog({
               <span className="ctd-why">
                 <InfoIcon />
                 ทริปประจำวันเริ่ม “วันนี้” เสมอ
+              </span>
+            )}
+            {!isDaily && locked && (
+              <span className="ctd-why">
+                <InfoIcon />
+                วันนี้เริ่มจากเวลาปัจจุบัน
               </span>
             )}
           </div>
