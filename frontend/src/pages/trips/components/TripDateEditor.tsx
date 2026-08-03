@@ -1,5 +1,5 @@
 // frontend/src/pages/trips/components/TripDateEditor.tsx
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useMemo, useRef, useState} from 'react'
 import {DatePicker} from '@syncfusion/react-calendars'
 import type {DatePickerChangeEvent} from '@syncfusion/react-calendars'
 import {useUpdateTripMutation, type TripDto} from '../../../shared/api/api'
@@ -22,7 +22,8 @@ function fmt(d: Date | null): string {
  * editor, ADR-012); picking a date commits immediately (ADR-013) via updateTrip,
  * which reschedules the trip and realigns the itinerary days server-side. Only the
  * start date changes here — dayCount and the other fields are carried through
- * unchanged, so no itinerary days are dropped (shrinking is out of scope). The
+ * unchanged, so no itinerary days are dropped (shrinking is out of scope). The picker is
+ * bounded by minDate so it cannot offer a Backdate the server would refuse (ADR-146). The
  * picked value shows optimistically and reverts on failure; the derived inclusive
  * end date follows for multi-day trips.
  */
@@ -96,6 +97,16 @@ export function TripDateEditor({
   const startDt = ymdToDate(displayYmd)
   const end = endDate(startDt, trip.dayCount)
 
+  // ADR-146 amends ADR-142: this component writes Trip.StartDate too, so it must not offer a
+  // pick the server always refuses. One prop — the existing onError + optimistic-revert path
+  // still handles a refusal that slips through. strictMode stays at its default false; enabled,
+  // it would auto-correct a past trip's out-of-range value and rewrite the displayed date.
+  const minDate = useMemo(() => {
+    const d = new Date()
+    d.setHours(0, 0, 0, 0)
+    return d
+  }, [])
+
   return (
     <span className="trip-date-edit">
       <DatePicker
@@ -107,6 +118,7 @@ export function TripDateEditor({
         openOnFocus
         clearButton={false}
         disabled={locked}
+        minDate={minDate}
       />
       {trip.dayCount > 1 && end && <span className="trip-date-end">– {fmt(end)}</span>}
     </span>
