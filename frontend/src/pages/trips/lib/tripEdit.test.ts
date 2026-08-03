@@ -101,14 +101,14 @@ describe('shrinkLoss', () => {
     expect(shrinkLoss(empty, NAMES, 1)).toBeNull()
   })
 
-  it('reports the day range, dates, names and visited count of a real loss', () => {
+  it('reports the day range, dates, names and visited flags of a real loss', () => {
     const loss = shrinkLoss(days, NAMES, 2)!
     expect(loss.dayFrom).toBe(3)
     expect(loss.dayTo).toBe(3)
     expect(loss.dateFrom).toBe('2026-08-03')
     expect(loss.dateTo).toBe('2026-08-03')
     expect(loss.stops.map((s) => s.name)).toEqual(['ร้านกาแฟ Ristr8to', 'ไนท์บาซาร์'])
-    expect(loss.visitedCount).toBe(1)
+    expect(loss.stops.map((s) => s.isVisited)).toEqual([true, false])
   })
 
   it('spans several dropped days and skips the empty one in between', () => {
