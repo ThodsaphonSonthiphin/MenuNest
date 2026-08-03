@@ -407,6 +407,34 @@
   outline-offset: 2px;
 }
 
+/* ============================================================
+   Edit-trip dialog extras (issue #50, ADR-141).
+   EditTripDialog reuses .create-trip-dialog wholesale so the two cannot drift; only
+   the pieces the create form does not have are declared here.
+   ============================================================ */
+
+/* Save-failure box — the backend message is English and is shown verbatim (ADR-145). */
+.create-trip-dialog .ctd-errbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.create-trip-dialog .ctd-errbox svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+  color: var(--error);
+}
+
 /* -------- Daily-trip section + card (issue #49) -------- */
 .trips-title-ic { font-size: 1.3rem; vertical-align: -3px; color: var(--trp-teal-dark); margin-right: 4px; }
 .trips-section { display: flex; flex-direction: column; gap: 10px; }

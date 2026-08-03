@@ -15,7 +15,8 @@ import { ItineraryTab } from './components/ItineraryTab'
 import { TripMap } from './components/TripMap'
 import { TripDateEditor } from './components/TripDateEditor'
 import { DailyToggle } from './components/DailyToggle'
-import { MapRouteIcon } from './components/TripFormIcons'
+import { EditTripDialog } from './components/EditTripDialog'
+import { MapRouteIcon, PencilIcon } from './components/TripFormIcons'
 import { useDayRoute } from './hooks/useDayRoute'
 import './trips-tokens.css'
 import './TripDetailPage.css'
@@ -30,6 +31,7 @@ export function TripDetailPage() {
   const bp = useBreakpoint()
   // Error surfaced by the inline trip-date edit (rescheduling failed).
   const [dateError, setDateError] = useState<string | null>(null)
+  const [editOpen, setEditOpen] = useState(false)
 
   // Capture the viewer's live location once per trip-detail visit — feeds the
   // Approach leg into each Day's first Stop (ADR-027). Denied, unsupported, or a
@@ -114,6 +116,17 @@ export function TripDetailPage() {
             </span>
           )}
           {dateError && <span className="trip-topbar-error">{dateError}</span>}
+          {trip && (
+            <button
+              type="button"
+              className="trip-edit-btn"
+              aria-label="แก้ไขทริป"
+              title="แก้ไขทริป"
+              onClick={() => setEditOpen(true)}
+            >
+              <PencilIcon />
+            </button>
+          )}
         </header>
 
         <div className="trip-detail-body">
@@ -180,6 +193,9 @@ export function TripDetailPage() {
         {editingPlace && (
           <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
         )}
+        {trip && editOpen && (
+          <EditTripDialog trip={trip} onClose={() => setEditOpen(false)} />
+        )}
       </section>
     )
   }
@@ -188,15 +204,30 @@ export function TripDetailPage() {
   return (
     <section className="trip-detail">
       <header className="trip-detail-header">
-        <div className="trip-detail-name">{trip?.name ?? '…'}</div>
-        {trip && (
-          <div className="trip-detail-meta">
-            {trip.destination && <>{trip.destination} · </>}
-            <TripDateEditor trip={trip} overrideDate={overrideDate} locked={currentDay} onError={setDateError} />
-            {trip.dayCount != null && <> · {trip.dayCount} วัน</>}
-            <DailyToggle trip={trip} onError={setDateError} />
+        <div className="trip-detail-headtop">
+          <div className="trip-detail-headtext">
+            <div className="trip-detail-name">{trip?.name ?? '…'}</div>
+            {trip && (
+              <div className="trip-detail-meta">
+                {trip.destination && <>{trip.destination} · </>}
+                <TripDateEditor trip={trip} overrideDate={overrideDate} locked={currentDay} onError={setDateError} />
+                {trip.dayCount != null && <> · {trip.dayCount} วัน</>}
+                <DailyToggle trip={trip} onError={setDateError} />
+              </div>
+            )}
           </div>
-        )}
+          {trip && (
+            <button
+              type="button"
+              className="trip-edit-btn"
+              aria-label="แก้ไขทริป"
+              title="แก้ไขทริป"
+              onClick={() => setEditOpen(true)}
+            >
+              <PencilIcon />
+            </button>
+          )}
+        </div>
         {dateError && <p className="trips-field-error">{dateError}</p>}
       </header>
 
@@ -257,6 +288,9 @@ export function TripDetailPage() {
 
       {editingPlace && (
         <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
+      )}
+      {trip && editOpen && (
+        <EditTripDialog trip={trip} onClose={() => setEditOpen(false)} />
       )}
       {addStopContext && (
         <div className="capture-overlay">
