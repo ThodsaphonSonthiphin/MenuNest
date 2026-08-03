@@ -18,6 +18,45 @@
   --uv-ext:#7d379f;  --uv-ext-bg:#f3e8fb;
 }
 
+/* ============================================================
+   Content styling for the two destructive confirms EditTripDialog raises (issue #50).
+   ConfirmProvider's Dialog is portaled to document.body with NO wrapper class, so these
+   rules must be GLOBAL — the same reason the --review fallback at the top of this file
+   is on :root. Only the message body is styled: the modal's own chrome is deliberately
+   left as raw Syncfusion, because useConfirm is mounted app-wide via AppLayout and
+   restyling it is out of scope for #50.
+   ============================================================ */
+.trip-confirm-loss {
+  margin: 10px 0 0;
+  padding: 11px 13px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.trip-confirm-loss ul { margin: 6px 0 0; padding-left: 18px; }
+.trip-confirm-loss li { margin: 2px 0; }
+.trip-confirm-tag {
+  display: inline-block;
+  margin-left: 5px;
+  padding: 0 7px;
+  vertical-align: 1px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 10.5px;
+  font-weight: 700;
+}
+.trip-confirm-final {
+  display: block;
+  margin-top: 9px;
+  color: #b91c1c;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
 .trips-page, .trip-detail {
   --teal:      #0e8f9e;
   --teal-deep: #0b7a87;

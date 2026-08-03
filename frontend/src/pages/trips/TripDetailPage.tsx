@@ -194,7 +194,12 @@ export function TripDetailPage() {
           <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
         )}
         {trip && editOpen && (
-          <EditTripDialog trip={trip} onClose={() => setEditOpen(false)} />
+          <EditTripDialog
+            trip={trip}
+            days={dayRoute.days}
+            places={places ?? []}
+            onClose={() => setEditOpen(false)}
+          />
         )}
       </section>
     )
@@ -290,7 +295,12 @@ export function TripDetailPage() {
         <PlaceEditorDialog tripId={tripId} place={editingPlace} onClose={() => dispatch(setPlaceEditor(null))} />
       )}
       {trip && editOpen && (
-        <EditTripDialog trip={trip} onClose={() => setEditOpen(false)} />
+        <EditTripDialog
+          trip={trip}
+          days={dayRoute.days}
+          places={places ?? []}
+          onClose={() => setEditOpen(false)}
+        />
       )}
       {addStopContext && (
         <div className="capture-overlay">

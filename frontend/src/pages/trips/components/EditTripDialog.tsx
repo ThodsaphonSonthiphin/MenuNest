@@ -4,15 +4,17 @@ import {Dialog} from '@syncfusion/react-popups'
 import {TextBox} from '@syncfusion/react-inputs'
 import {DatePicker} from '@syncfusion/react-calendars'
 import type {DatePickerChangeEvent} from '@syncfusion/react-calendars'
-import {useUpdateTripMutation, type TravelMode, type TripDto} from '../../../shared/api/api'
+import {useUpdateTripMutation, type ItineraryDayDto, type TravelMode, type TripDto, type TripPlaceDto} from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
-import {draftFromTrip, isDraftDirty, normalizeDraft, type TripEditDraft} from '../lib/tripEdit'
+import {useConfirm} from '../../../shared/hooks/useConfirm'
+import {capNames, draftFromTrip, isDraftDirty, normalizeDraft, shrinkLoss, type ShrinkLoss, type TripEditDraft} from '../lib/tripEdit'
 import {dateToYmd, endDate, thaiDate, ymdToDate} from '../utils/date'
 import {
   AlertIcon,
   ArrowRightIcon,
   CarIcon,
   CheckIcon,
+  ClockIcon,
   MapPinIcon,
   MinusIcon,
   PencilIcon,
@@ -31,6 +33,41 @@ const MODES: {label: string; value: TravelMode; icon: ReactNode}[] = [
 const MIN_DAYS = 1
 const MAX_DAYS = 60
 
+/** "yyyy-MM-dd" -> Thai BE label, falling back to the raw value if it will not parse. */
+function th(ymd: string): string {
+  const d = ymdToDate(ymd)
+  return d ? thaiDate(d) : ymd
+}
+
+/**
+ * What the confirm says before a Shrink destroys stops (ADR-138): the day range, the stop
+ * count, the place NAMES (capped for the 420px dialog), and a distinct tag on any stop
+ * already marked มาแล้ว — that is recorded history, and a bare number hides it.
+ */
+function ShrinkLossMessage({loss}: {loss: ShrinkLoss}) {
+  const {shown, moreCount} = capNames(loss.stops, 5)
+  const range = loss.dayFrom === loss.dayTo ? `วันที่ ${loss.dayFrom}` : `วันที่ ${loss.dayFrom}–${loss.dayTo}`
+  const dates = loss.dateFrom === loss.dateTo ? th(loss.dateFrom) : `${th(loss.dateFrom)} – ${th(loss.dateTo)}`
+  return (
+    <>
+      {range} ({dates}) จะถูกลบ พร้อม <b>จุดแวะ {loss.stops.length} จุด</b> บนวันนั้น
+      <div className="trip-confirm-loss">
+        จุดแวะที่จะหายไป
+        <ul>
+          {shown.map((s, i) => (
+            <li key={i}>
+              {s.name}
+              {s.isVisited && <span className="trip-confirm-tag">มาแล้ว</span>}
+            </li>
+          ))}
+          {moreCount > 0 && <li>…และอีก {moreCount} แห่ง</li>}
+        </ul>
+        <span className="trip-confirm-final">ลบแล้วกู้คืนไม่ได้</span>
+      </div>
+    </>
+  )
+}
+
 /**
  * Edit an existing trip's five fields (issue #50, ADR-141).
  *
@@ -47,11 +84,34 @@ const MAX_DAYS = 60
  * consistent option). The save is dirty-diffed, errors stay local with the dialog open,
  * and cancel closes with no warning — what is lost is typed text, not data.
  */
-export function EditTripDialog({trip, onClose}: {trip: TripDto; onClose: () => void}) {
+export function EditTripDialog({
+  trip,
+  days,
+  places,
+  onClose,
+}: {
+  trip: TripDto
+  /** The itinerary already in the RTK cache. `[]` means "not loaded" — a trip always has >=1 day. */
+  days: ItineraryDayDto[]
+  places: TripPlaceDto[]
+  onClose: () => void
+}) {
   const [draft, setDraft] = useState<TripEditDraft>(() => draftFromTrip(trip))
   const [nameError, setNameError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [updateTrip, {isLoading}] = useUpdateTripMutation()
+  const {confirm} = useConfirm()
+
+  // ADR-139: the day-count control is live ONLY where the itinerary is already cached, and
+  // is DISABLED — with its reason shown — while the count cannot be priced. This covers the
+  // in-flight window, the refire when geolocation resolves, and an outright fetch failure.
+  // Never default the unknown count to zero: that is the failure mode this whole guard exists
+  // to prevent. The other four fields stay editable throughout.
+  const daysKnown = days.length > 0
+  const placeNameById = useMemo(
+    () => Object.fromEntries(places.map((p) => [p.id, p.name])) as Record<string, string>,
+    [places],
+  )
 
   const set = <K extends keyof TripEditDraft>(k: K, v: TripEditDraft[K]) =>
     setDraft((d) => ({...d, [k]: v}))
@@ -76,6 +136,24 @@ export function EditTripDialog({trip, onClose}: {trip: TripDto; onClose: () => v
       onClose()
       return
     }
+
+    // ADR-138: exactly ONE confirm against the NET change, fired on save rather than on each
+    // tap of the minus button — 5 -> 3 is one decision, not two. It fires only when the dropped
+    // days really hold stops; a shrink over empty days is an ordinary edit. Priced entirely
+    // from the cache this dialog was already handed (ADR-139) — nothing is fetched for it.
+    let allowStopLoss = false
+    const loss = shrinkLoss(days, placeNameById, d.dayCount)
+    if (loss) {
+      const ok = await confirm({
+        title: `ลดจำนวนวันจาก ${days.length} เหลือ ${d.dayCount}?`,
+        message: <ShrinkLossMessage loss={loss} />,
+        confirmText: 'ลบวันและจุดแวะ',
+        destructive: true,
+      })
+      if (!ok) return
+      allowStopLoss = true
+    }
+
     try {
       await updateTrip({
         id: trip.id,
@@ -84,6 +162,8 @@ export function EditTripDialog({trip, onClose}: {trip: TripDto; onClose: () => v
         startDate: d.startDate,
         dayCount: d.dayCount,
         defaultTravelMode: d.defaultTravelMode,
+        // Only ever true immediately after the user confirmed the loss above (ADR-140).
+        allowStopLoss,
       }).unwrap()
       onClose()
     } catch (e) {
@@ -168,14 +248,14 @@ export function EditTripDialog({trip, onClose}: {trip: TripDto; onClose: () => v
 
           <div className="ctd-field">
             <label className="ctd-label">
-              จำนวนวัน <span className="ctd-req">*</span>
+              จำนวนวัน {daysKnown && <span className="ctd-req">*</span>}
             </label>
-            <div className="ctd-stepper">
+            <div className={`ctd-stepper${daysKnown ? '' : ' is-disabled'}`}>
               <button
                 type="button"
                 className="ctd-step"
                 aria-label="ลดจำนวนวัน"
-                disabled={draft.dayCount <= MIN_DAYS}
+                disabled={!daysKnown || draft.dayCount <= MIN_DAYS}
                 onClick={() => set('dayCount', Math.max(MIN_DAYS, draft.dayCount - 1))}
               >
                 <MinusIcon />
@@ -187,12 +267,18 @@ export function EditTripDialog({trip, onClose}: {trip: TripDto; onClose: () => v
                 type="button"
                 className="ctd-step"
                 aria-label="เพิ่มจำนวนวัน"
-                disabled={draft.dayCount >= MAX_DAYS}
+                disabled={!daysKnown || draft.dayCount >= MAX_DAYS}
                 onClick={() => set('dayCount', Math.min(MAX_DAYS, draft.dayCount + 1))}
               >
                 <PlusIcon />
               </button>
             </div>
+            {!daysKnown && (
+              <span className="ctd-why">
+                <ClockIcon />
+                กำลังโหลดแผนเที่ยว — ยังนับจุดแวะที่จะหายไม่ได้
+              </span>
+            )}
           </div>
         </div>
 
