@@ -1360,7 +1360,7 @@ export const api = createApi({
             query: (b) => ({url: '/api/trips', method: 'POST', body: b}),
             invalidatesTags: ['Trips'],
         }),
-        updateTrip: build.mutation<TripDto, {id: string; name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode}>({
+        updateTrip: build.mutation<TripDto, {id: string; name: string; destination?: string | null; startDate: string; dayCount: number; defaultTravelMode: TravelMode; allowStopLoss?: boolean}>({
             query: ({id, ...b}) => ({url: `/api/trips/${id}`, method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => ['Trips', {type: 'TripDetail', id: a.id}, {type: 'TripItinerary', id: a.id}],
         }),
