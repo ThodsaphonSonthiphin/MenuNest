@@ -13,7 +13,13 @@ export function DailyToggle({trip, onError}: {trip: TripDto; onError: (msg: stri
   const [setDaily, {isLoading}] = useSetTripDailyMutation()
   const canEnable = trip.dayCount === 1
   const blocked = !trip.isDaily && !canEnable
-  const blockedMsg = 'ทริปประจำวันต้องเป็นวันเดียว — ลบวันอื่นก่อนถึงจะเปิดได้'
+  // ADR-133 keeps this refusal NON-DESTRUCTIVE — the switch never performs the Shrink. But
+  // "ลบวันอื่น" IS a Shrink, the one irreversible destruction in MenuNest, so the message now
+  // names what it costs and points at the surface that does it behind a confirm (ADR-144).
+  // Built from trip.dayCount, already on TripDto — no new prop, no itinerary subscription.
+  const blockedMsg =
+    `ทริปประจำวันต้องเป็นวันเดียว — ทริปนี้มี ${trip.dayCount} วัน ` +
+    `ลดเหลือ 1 วันได้ที่ปุ่ม “แก้ไข” (จุดแวะบนวันที่ถูกลบจะหายไปด้วย)`
 
   const toggle = async () => {
     onError(null)

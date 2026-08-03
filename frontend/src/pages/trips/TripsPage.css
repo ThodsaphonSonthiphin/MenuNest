@@ -459,6 +459,14 @@
   color: #cbd5e1;
 }
 
+/* A disabled Syncfusion DatePicker must read as "deliberately locked", not as broken. */
+.create-trip-dialog .sf-input-group.sf-disabled,
+.create-trip-dialog .sf-input-group:has(.sf-input:disabled) {
+  border-color: #eef2f6 !important;
+  background: #f8fafc !important;
+}
+.create-trip-dialog .sf-input:disabled { color: #94a3b8; -webkit-text-fill-color: #94a3b8; }
+
 /* -------- Daily-trip section + card (issue #49) -------- */
 .trips-title-ic { font-size: 1.3rem; vertical-align: -3px; color: var(--trp-teal-dark); margin-right: 4px; }
 .trips-section { display: flex; flex-direction: column; gap: 10px; }
