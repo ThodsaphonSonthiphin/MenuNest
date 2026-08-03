@@ -4,10 +4,11 @@ import {Dialog} from '@syncfusion/react-popups'
 import {TextBox} from '@syncfusion/react-inputs'
 import {DatePicker} from '@syncfusion/react-calendars'
 import type {DatePickerChangeEvent} from '@syncfusion/react-calendars'
-import {useUpdateTripMutation, type ItineraryDayDto, type TravelMode, type TripDto, type TripPlaceDto} from '../../../shared/api/api'
+import {useNavigate} from 'react-router-dom'
+import {useDeleteTripMutation, useUpdateTripMutation, type ItineraryDayDto, type TravelMode, type TripDto, type TripPlaceDto} from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {useConfirm} from '../../../shared/hooks/useConfirm'
-import {capNames, draftFromTrip, isDraftDirty, normalizeDraft, shrinkLoss, type ShrinkLoss, type TripEditDraft} from '../lib/tripEdit'
+import {capNames, draftFromTrip, isDraftDirty, normalizeDraft, shrinkLoss, totalStops, type ShrinkLoss, type TripEditDraft} from '../lib/tripEdit'
 import {dateToYmd, endDate, thaiDate, ymdToDate} from '../utils/date'
 import {
   AlertIcon,
@@ -21,6 +22,7 @@ import {
   PencilIcon,
   PlusIcon,
   TransitIcon,
+  TrashIcon,
   WalkIcon,
 } from './TripFormIcons'
 
@@ -104,6 +106,8 @@ export function EditTripDialog({
   const [nameError, setNameError] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [updateTrip, {isLoading}] = useUpdateTripMutation()
+  const [deleteTrip, {isLoading: isDeleting}] = useDeleteTripMutation()
+  const navigate = useNavigate()
   const {confirm} = useConfirm()
 
   // ADR-139: the day-count control is live ONLY where the itinerary is already cached, and
@@ -190,6 +194,46 @@ export function EditTripDialog({
     } catch (e) {
       // The dialog STAYS OPEN on failure and shows the message inside itself. Backend
       // messages are English and are rendered verbatim (ADR-145).
+      setSaveError(getErrorMessage(e))
+    }
+  }
+
+  const handleDelete = async () => {
+    setSaveError(null)
+    // "N วัน · M จุดแวะ" identifies the trip at a glance and is free: ADR-139 already
+    // requires this dialog to open where the itinerary is cached. Omitted while unknown
+    // rather than guessed — the name alone still identifies it.
+    const ok = await confirm({
+      title: 'ลบทริปนี้?',
+      message: (
+        <>
+          <b>“{trip.name}”</b>
+          {daysKnown && (
+            <>
+              {' '}
+              · {days.length} วัน · {totalStops(days)} จุดแวะ
+            </>
+          )}
+          <div className="trip-confirm-loss">
+            {/* DeleteTripHandler is a pure soft delete — the stops are NOT erased, so the copy
+                must not say they are. What is true, and unguessable from "ลบทริป", is that
+                this trip's places also leave Discover. */}
+            สถานที่ในทริปนี้จะหายจาก <b>ไปไหนดี</b> ด้วย
+            <span className="trip-confirm-final">ลบแล้วกู้คืนไม่ได้</span>
+          </div>
+        </>
+      ),
+      confirmText: 'ลบทริป',
+      destructive: true,
+    })
+    if (!ok) return
+    try {
+      await deleteTrip(trip.id).unwrap()
+      // Leave immediately: staying put hits TripDetailPage's not-found guard, which reads as
+      // an error for something the user just asked for. No toast — the app has no shared toast
+      // system, and the trip's absence from /trips is the feedback (ADR-143).
+      navigate('/trips')
+    } catch (e) {
       setSaveError(getErrorMessage(e))
     }
   }
@@ -354,19 +398,29 @@ export function EditTripDialog({
           </div>
         )}
 
-        <div className="ctd-actions">
-          <button type="button" className="ctd-btn ctd-btn-ghost" onClick={onClose}>
-            ยกเลิก
+        <div className="ctd-actions ctd-actions-split">
+          <button
+            type="button"
+            className="ctd-btn ctd-btn-danger"
+            disabled={isLoading || isDeleting}
+            onClick={() => void handleDelete()}
+          >
+            <TrashIcon /> ลบทริป
           </button>
-          <button type="submit" className="ctd-btn ctd-btn-primary" disabled={isLoading}>
-            {isLoading ? (
-              '…'
-            ) : (
-              <>
-                <CheckIcon /> บันทึก
-              </>
-            )}
-          </button>
+          <div className="ctd-actions-r">
+            <button type="button" className="ctd-btn ctd-btn-ghost" onClick={onClose}>
+              ยกเลิก
+            </button>
+            <button type="submit" className="ctd-btn ctd-btn-primary" disabled={isLoading || isDeleting}>
+              {isLoading ? (
+                '…'
+              ) : (
+                <>
+                  <CheckIcon /> บันทึก
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </form>
     </Dialog>
