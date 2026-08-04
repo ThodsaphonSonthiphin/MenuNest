@@ -72,11 +72,21 @@ the glossary wins until the glossary is deliberately changed.
   is already behind us is **fully editable**: its name, day count and travel mode change
   normally, and its date may still move *forward*); backward move, shift backward, rewind
   (all name the direction, which is not what is governed).
-- **Place** — a saved location the user wants to visit, anchored to a Google
+- **Place** — a saved location the user wants to visit, normally anchored to a Google
   **`place_id`** (the only Maps datum stored indefinitely — see ADR-007). Carries a
   cached snapshot (name, coordinates, address, opening hours) sourced from a live
   Google Maps Platform API, never scraped.
+  A Place always sits in a **Trip**; the trip-less form is a **Saved place** (ADR-147).
   _Avoid_: Location, Spot, POI, Pin.
+- **Saved place** — a **User**-scoped saved location that belongs to **no Trip**: what a **Capture**
+  launched from **Discover** produces (issue #48, ADR-147). Carries the same cached snapshot as a
+  **Place** minus everything per-trip, and its Google **`place_id`** is **optional** — which is what
+  lets a coordinate or Plus Code capture exist at all. **Discover** shows a **union** of Saved places
+  and **Places** on live **Trips**, collapsed on `place_id`, so one physical place held on both sides
+  is **one** card. A Saved place is never **Visited** (that is per-**Stop**), shows no **Trip** chips,
+  and **survives** the deletion of a Trip it was later added to — mirroring the survival guarantee a
+  **Place profile** has (ADR-065). Distinct from a **Place profile**, which is enrichment only and
+  holds no name or coordinates. _Avoid_: library place, standalone place, orphan place, master place.
 - **Stop** — one entry in a Trip's itinerary: a reference to a **Place** plus a
   planned visit time and a **dwell** duration. Ordering Stops produces the route.
   _Avoid_: Visit, Waypoint, Item.
@@ -144,7 +154,8 @@ the glossary wins until the glossary is deliberately changed.
   overflow) vs **suggestion** (amber: off-window) (ADR-020, ADR-021). Only the single
   most-severe flag shows per Stop (priority overflow > closed > off-window); a
   well-timed Stop shows **no** flag. _Avoid_: warning, alert, "amber" as a noun.
-- **Capture** — bringing a Place into a Trip from Google Maps. The MVP-primary paths
+- **Capture** — bringing a Place into a Trip from Google Maps — or, launched from **Discover**,
+  producing a trip-less **Saved place** instead (issue #48, ADR-147). The MVP-primary paths
   are **live search** (type a name → Google Places autocomplete suggestions → pick one)
   and **map-tap** (tap a place on the in-app map), both handled client-side (ADR-014,
   ADR-015). **Pasting a link** is kept as a hidden fallback, resolved server-side
@@ -314,7 +325,8 @@ the glossary wins until the glossary is deliberately changed.
   fix "ย้ายทริปไปเดือนอื่น") — a standalone card region, **not** a **Timing flag** reason (ADR-076).
   _Avoid_: off-window (that is the time-of-day **Timing flag**), out-of-season.
 - **Discover (ไปไหนดี)** — the map-forward, **User**-scoped view that surfaces the User's own saved
-  **Places** across **all** their **Trips** by proximity, for spontaneous "where should I go today"
+  **Places** across **all** their **Trips** — plus their trip-less **Saved place**s (ADR-147) — by
+  proximity, for spontaneous "where should I go today"
   browsing (issue #42). It closes the gap that Places are otherwise reachable only inside one Trip.
   Phase 1 sources **only already-saved Places** — no live Google nearby search (ADR-094); it is
   **map-forward and event-driven** (ADR-097), reads via a User-scoped `GET /api/places` (ADR-100), and
