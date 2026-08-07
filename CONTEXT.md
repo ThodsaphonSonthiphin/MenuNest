@@ -86,7 +86,15 @@ the glossary wins until the glossary is deliberately changed.
   is **one** card. A Saved place is never **Visited** (that is per-**Stop**), shows no **Trip** chips,
   and **survives** the deletion of a Trip it was later added to — mirroring the survival guarantee a
   **Place profile** has (ADR-065). Distinct from a **Place profile**, which is enrichment only and
-  holds no name or coordinates. _Avoid_: library place, standalone place, orphan place, master place.
+  holds no name or coordinates.
+  A Saved place with **no** `place_id` is **user-named** (the name is typed at **Capture**; an
+  address is merely *suggested* by a best-effort reverse geocode and stays optional), and it carries
+  its **Place note**, **Review link**s, **Best-time window**s and **Season period**s **on its own
+  row** rather than through a **Place profile** — which is keyed on `place_id` and therefore has no
+  master to offer it (ADR-148, reaffirming ADR-066). When such a Saved place is later added to a
+  **Trip**, the resulting **Place** points back at it so the two still collapse to **one** Discover
+  card. _Avoid_: library place, standalone place, orphan place, master place; **coordinate place**
+  is acceptable prose for the `place_id`-less form, but it is not a separate term.
 - **Stop** — one entry in a Trip's itinerary: a reference to a **Place** plus a
   planned visit time and a **dwell** duration. Ordering Stops produces the route.
   _Avoid_: Visit, Waypoint, Item.
