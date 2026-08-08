@@ -172,7 +172,18 @@ the glossary wins until the glossary is deliberately changed.
   the **Itinerary**'s add-stop picker ("เลือกจุดแวะ"); launched there it additionally adds the
   new Place as a **Stop** on the active **Day**, then returns to the itinerary (ADR-067, ADR-068,
   ADR-070). Share-from-Maps (PWA share target) and the browser bookmarklet are
-  Phase 2.
+  Phase 2. Both surfaces put Capture behind a **Capture mode** rather than leaving it always
+  on (ADR-016, ADR-150).
+- **Capture mode** — the armed state a map surface enters before it will accept a **Capture**.
+  While armed, **every** tap on the map belongs to capture and never to browsing; while
+  unarmed, the map behaves as if capture did not exist. On the trip **map** it is armed by
+  "+ เพิ่มสถานที่" and accepts a **map-tap** on a Google POI only (ADR-016); on **Discover** it
+  is armed by a **+** control and additionally reads a tap on empty ground as the *coordinate*
+  input for a **Saved place**, while a tap on one of the User's own pins only warns that the
+  place is already saved (ADR-150). Armed is always **visible** — a banner, dimmed own pins —
+  and it **survives** a successful save, so several places can be captured in one arming. No
+  tap ever writes: every path still ends at an explicit save. _Avoid_: add-mode, edit mode,
+  "selection mode".
 - **Navigate hand-off** — opening a day's route or a single **Stop** in the external
   **Google Maps** app via a client-side deep link (Maps URLs), for real turn-by-turn
   navigation. Distinct from the in-app **map** (which only displays); the hand-off
