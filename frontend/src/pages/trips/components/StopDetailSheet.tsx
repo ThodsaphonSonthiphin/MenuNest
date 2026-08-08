@@ -20,7 +20,10 @@ import {ReviewIcon} from './ReviewIcon'
 import {ClockIcon} from './ClockIcon'
 import {ThermoIcon, ChevronRightIcon} from './WeatherIcons'
 import {CheckIcon} from './FlagIcons'
-
+import { useGeolocation } from '../../../shared/hooks/useGeolocation'
+import { haversineKm } from '../../../shared/utils/distance'
+import { getProximityStatus } from '../lib/proximity'
+import { LocationDisplay } from './LocationDisplay'
 export function StopDetailSheet({
   place,
   stopId,
@@ -66,6 +69,10 @@ export function StopDetailSheet({
   const bestTimeWindows = place.bestTimeWindows ?? []
   const season = monthStatus(place.seasonPeriods, tripMonth)
 
+  const geo = useGeolocation({ enableHighAccuracy: true })
+  const distanceKm = geo.location ? haversineKm(geo.location, { lat: place.lat, lng: place.lng }) : null
+  const proximity = getProximityStatus(distanceKm)
+
   const header = (
     <div className="sd-head">
       <div className="sd-title">{place.name}</div>
@@ -107,6 +114,8 @@ export function StopDetailSheet({
           <WeatherChip kind="now" reading={nowReading} isLoading={weatherLoading} />
           <WeatherChip kind="arr" reading={arrivalReading} isLoading={weatherLoading} />
         </div>
+
+        <LocationDisplay place={place} distanceKm={distanceKm} status={proximity} />
 
         {planner && (
           <>

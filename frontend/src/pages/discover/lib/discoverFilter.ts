@@ -1,5 +1,5 @@
 import type {BestTimeWindow, DiscoverPlaceDto, PlaceCategory} from '../../../shared/api/api'
-import {haversineKm} from './distance'
+import {haversineKm} from '../../../shared/utils/distance'
 import {isOpenAt} from '../../trips/hooks/useSchedule'
 import {monthStatus} from '../../trips/lib/season'
 
