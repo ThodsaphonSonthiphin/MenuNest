@@ -77,3 +77,6 @@ who's viewing it and where they are. `GetItinerary` becomes a request with
 viewer-supplied, non-cached-per-trip input (optional lat/lng query params); a request
 without them behaves exactly as today. The Approach leg is never persisted on the
 `Stop` entity — it exists only in the response DTO for the request that computed it.
+
+### Amendment (2026-08-08)
+When a Day's switch is set to "continue from the previous Stop" (the switch-off behavior for the origin), the approach leg is dropped entirely. No viewer coordinates are sent to the API, the arrival cascade seeds Stop 1 exactly at DayStartTime, the approach segment is excluded from the total distance and time, and the map does not draw the 'you are here' pin or its polyline.
