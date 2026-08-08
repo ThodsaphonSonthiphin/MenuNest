@@ -1,0 +1,17 @@
+{
+  "target": { "slug": "67" },
+  "map": {
+    "title": "Decision map - route origin: continue from the previous Stop, or always from the current location (#67)",
+    "destination": "A user can toggle, per itinerary Day, whether that day's plan starts from their current location or from Stop 1, and the arrival times, the total distance, the finish time and the map's route all agree with that toggle - live on production with the migration applied.",
+    "notes": "Revisits ADR-027 (approach leg from the viewer's live location) and touches ADR-011 (navigate hand-off omits origin). Owner has already fixed two scope answers: the switch is per ItineraryDay, and on a multi-day trip it is set per day. The frontend has no component/visual test harness, so any UI change must be verified interactively before push (CLAUDE.md). EF migrations are applied to prod by hand. Every commit references #67."
+  },
+  "tickets": [
+    {
+      "key": "navigate-handoff-origin",
+      "title": "Navigate hand-off: should it use Stop 1 as origin when the switch is off?",
+      "type": "grilling",
+      "question": "Since the Day switch off drops the approach leg entirely, should the Google Maps Navigate hand-off (ADR-011) also specify Stop 1 as the origin instead of omitting it (which defaults to the live location)?",
+      "blocks": []
+    }
+  ]
+}
