@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<!--
+  =============================================================================
+  MODE PACK — tables (rows changing state under FK/cascade rules). Migrated from
+  the former template.html onto the shared engine. NARRATION MIGRATED: the old
+  outer .scene card + .scene-title-above-narration are dropped; this mode now uses
+  the engine's nested #narration (3-arg setNarration). The old .key-question panel
+  becomes the engine's shared .wt-panel.question. NOT standalone — verified by
+  ASSEMBLY. Registers modeRenderers['tables']. Row-state CSS + the .target-conflict
+  gradient lifted verbatim for visual parity.
+  =============================================================================
+-->
+<html lang="th"><head><meta charset="UTF-8"><title>mode pack — tables</title>
+<style>
+  /* ===== §CSS  (copy into the walkthrough's <style>, after the engine §CSS) ===== */
+  .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .db-table { background: var(--surface); border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .db-table-name { background: var(--border); padding: 8px 14px; font-family: 'Consolas', monospace; font-weight: 700; color: var(--accent); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-family: 'Consolas', monospace; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: var(--panel); color: var(--muted-2); font-weight: 600; font-size: 11px; text-transform: uppercase; }
+  tr.row-data { transition: background 0.4s, opacity 0.4s; position: relative; }
+  tr.row-data td { transition: color 0.4s; }
+  tr.row-data.target-delete { background: #3a1818; }
+  tr.row-data.target-delete td { color: var(--error-text); }
+  tr.row-data.target-setnull { background: #3a2810; }
+  tr.row-data.target-setnull td { color: var(--warn-text); }
+  tr.row-data.target-conflict { background: linear-gradient(90deg, #3a1818 0%, #3a2810 100%);
+                                animation: pulse-conflict 1s ease-in-out infinite; }
+  tr.row-data.deleted { opacity: 0.3; text-decoration: line-through; }
+  tr.row-data.fixed { background: #1a3320; }
+  tr.row-data.fixed td { color: var(--success-text); }
+  @keyframes pulse-conflict { 0%, 100% { box-shadow: inset 0 0 0 2px var(--conflict); } 50% { box-shadow: inset 0 0 0 2px var(--warn); } }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 700; margin-left: 6px; font-family: 'Consolas', monospace; }
+  .badge.delete { background: var(--error); color: #fff; }
+  .badge.setnull { background: var(--warn); color: var(--bg); }
+  .badge.conflict { background: var(--conflict); color: #fff; animation: blink 0.6s ease-in-out infinite alternate; }
+  @keyframes blink { from { opacity: 1; } to { opacity: 0.3; } }
+  .rules-panel { background: var(--surface); border-radius: 6px; padding: 14px 18px; border: 1px solid var(--border); }
+  .rules-title { color: var(--text-dim); font-size: 13px; font-weight: 700; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .rule { padding: 8px 12px; margin-bottom: 6px; border-radius: 4px; font-family: 'Consolas', monospace; font-size: 13px;
+          background: var(--panel); border-left: 3px solid var(--border-dim); transition: all 0.4s; }
+  .rule.active { border-left-color: var(--accent); background: var(--surface-active); box-shadow: 0 0 0 1px var(--accent); }
+  .rule .arrow { color: var(--accent); }
+  .rule .action-cas { color: var(--error-text); font-weight: 700; }
+  .rule .action-null { color: var(--warn-text); font-weight: 700; }
+  .rule .action-rst { color: var(--muted-2); font-weight: 700; }
+  .rule .action-noact { color: var(--success); font-weight: 700; }
+  .rule-explain { color: var(--muted-2); font-size: 11px; margin-top: 4px; font-family: inherit; }
+  /* ===== end §CSS ===== */
+</style></head>
+<body>
+<!-- ===== §HTML  (assembly inserts this at the engine's MODE CONTENT slot) ===== -->
+<div class="tables-grid">
+  <div class="db-table">
+    <div class="db-table-name">📁 DemoFamilies</div>
+    <table><thead><tr><th>Id</th><th>Name</th></tr></thead><tbody>
+      <tr class="row-data" id="rowF1"><td>F1</td><td>Demo Family <span id="badgeF1"></span></td></tr>
+    </tbody></table>
+  </div>
+  <div class="db-table">
+    <div class="db-table-name">🏷️ DemoCategories</div>
+    <table><thead><tr><th>Id</th><th>Name</th><th>FamilyId</th></tr></thead><tbody>
+      <tr class="row-data" id="rowC1"><td>C1</td><td>Food <span id="badgeC1"></span></td><td>F1</td></tr>
+      <tr class="row-data" id="rowC2"><td>C2</td><td>Travel <span id="badgeC2"></span></td><td>F1</td></tr>
+    </tbody></table>
+  </div>
+  <div class="db-table" style="grid-column: 1 / -1;">
+    <div class="db-table-name">💰 DemoTransactions</div>
+    <table><thead><tr><th>Id</th><th>Item</th><th>FamilyId</th><th>CatId</th></tr></thead><tbody>
+      <tr class="row-data" id="rowT1"><td>T1</td><td>Coffee 60฿ <span id="badgeT1"></span></td><td>F1</td><td id="catT1" data-default="C1">C1</td></tr>
+      <tr class="row-data" id="rowT2"><td>T2</td><td>Train ticket 200฿ <span id="badgeT2"></span></td><td>F1</td><td id="catT2" data-default="C2">C2</td></tr>
+    </tbody></table>
+  </div>
+</div>
+<div class="rules-panel">
+  <div class="rules-title">📜 กฎที่ตั้งไว้ (Rules in play)</div>
+  <div class="rule" id="rule1"><strong>Rule 1:</strong> DemoFamily <span class="arrow">→</span> DemoTransactions <span class="action-cas">CASCADE</span>
+    <span class="rule-explain">Demo: when family deleted, transactions cascade-delete</span></div>
+  <div class="rule" id="rule2"><strong>Rule 2:</strong> DemoCategory <span class="arrow">→</span> DemoTransactions <span class="action-null">SET NULL</span>
+    <span class="rule-explain">Demo: when category deleted, transaction CategoryId = null</span></div>
+</div>
+<div class="wt-panel question hidden" id="keyQuestion">
+  <div class="wt-panel-title">💡 คำถามสำคัญ</div>
+  <div id="keyQuestionBody"></div>
+</div>
+<!-- ===== end §HTML ===== -->
+
+<script>
+/* ===== §JS  (copy into the walkthrough's <script>, after the engine §JS) ===== */
+modeRenderers['tables'] = {
+  registry: { ID_LIST: ['F1', 'C1', 'C2', 'T1', 'T2'] },
+  clear(reg) {
+    reg.ID_LIST.forEach(id => { this.setRowClass(id, ''); this.setBadge(id, ''); });
+    document.querySelectorAll('.rule').forEach(r => r.classList.remove('active'));
+    document.querySelectorAll('[data-default]').forEach(el => { el.textContent = el.dataset.default; });
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setRowClass(rowId, cls) { const r = document.getElementById('row' + rowId); if (r) r.className = 'row-data' + (cls ? ' ' + cls : ''); },
+  setBadge(rowId, html) { const b = document.getElementById('badge' + rowId); if (b) b.innerHTML = html || ''; },
+  setCell(cellId, text) { const c = document.getElementById(cellId); if (c) c.textContent = text; },
+  setRule(ruleId, active) { const r = document.getElementById(ruleId); if (!r) return; r.classList.toggle('active', !!active); },
+  assertRegistryComplete() {
+    const rows = [].map.call(document.querySelectorAll('.row-data'), e => e.id.replace(/^row/, ''));
+    const miss = rows.filter(id => !this.registry.ID_LIST.includes(id))                  // DOM not in registry
+                .concat(this.registry.ID_LIST.filter(id => !document.getElementById('row' + id)));  // registry not in DOM
+    if (miss.length) throw new Error('tables registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+/* ===== end §JS ===== */
+
+/* ===== DEMO-BOOTSTRAP START — used as the authored bootstrap for verification ===== */
+MODE = 'tables';
+const { setRowClass, setBadge, setCell, setRule } = modeRenderers[MODE];
+const scenes = [
+  () => {
+    setNarration('', 'เริ่มต้น — ดูข้อมูลใน DB ก่อน', 'tables demo: 1 family, 2 categories, 2 transactions และ 2 กฎใน rules panel. กด <strong>ถัดไป →</strong>.');
+  },
+  () => {
+    setNarration('warn', 'Step 1 — User กดปุ่ม "Delete Family"', 'สมมติ user ลบ family F1 → <code>DELETE FROM DemoFamilies WHERE Id=\'F1\'</code>. SQL Server ตรวจกฎ FK ก่อนลบจริง.');
+    setRowClass('F1', 'target-delete'); setBadge('F1', '<span class="badge delete">DELETE</span>');
+  },
+  () => {
+    setNarration('error', 'Step 2 — Rule 1 fires: CASCADE', 'Rule 1: เมื่อ family ลบ ให้ <span class="action-cas">CASCADE</span> ลบ transaction ทุกแถวที่ FamilyId ตรงกัน → T1, T2.');
+    setRowClass('F1', 'target-delete'); setBadge('F1', '<span class="badge delete">DELETE</span>');
+    setRowClass('T1', 'target-delete'); setBadge('T1', '<span class="badge delete">DELETE</span>');
+    setRowClass('T2', 'target-delete'); setBadge('T2', '<span class="badge delete">DELETE</span>');
+    setRule('rule1', true);
+  },
+];
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();   // DOM ids ⊆ registry (runtime contract self-check)
+buildProgressDots();
+render(0);
+/* ===== DEMO-BOOTSTRAP END ===== */
+</script>
+</body></html>

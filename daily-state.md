@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-08-01T16:40:02+07:00'
+updated: '2026-08-08T09:49:55+07:00'
 ---
 
 ## Log
@@ -443,3 +443,23 @@ EOF
 - 2026-08-01T15:29:18+07:00 — fix(auth): break the Microsoft sign-in loop on /login?reauth=expired (closes #51) (62701f3)
 - 2026-08-01T15:43:20+07:00 — docs(trips): decision map for trip CRUD - edit every field and delete (#50) (bf81ae9)
 - 2026-08-01T16:40:02+07:00 — docs(trips): decision-map trip-crud - shrink policy + edit surface (#50) (640cafe)
+- 2026-08-01T22:14:59+07:00 — docs(trips): decision-map trip-crud - past-dated trips and the Backdate guard (#50) (9d47809)
+- 2026-08-01T22:33:13+07:00 — docs(trips): decision-map trip-crud - approved edit/delete mock (#50) (a75ddf4)
+- 2026-08-01T23:37:40+07:00 — docs(trips): implementation plan for trip edit and delete (#50) (28b2be8)
+- 2026-08-01T23:38:06+07:00 — feat(trips): UpdateTrip refuses a stop-destroying shrink unless AllowStopLoss (#50) (e690589)
+- 2026-08-01T23:50:14+07:00 — feat(trips): UpdateTrip refuses a Backdate, matching RetimeStopToHour (#50) (34e91fb)
+- 2026-08-03T17:33:25+07:00 — feat(trips): pure trip-edit draft, dirty-diff and shrink-loss logic (#50) (39f42ba)
+- 2026-08-03T17:44:17+07:00 — feat(trips): EditTripDialog opened by a pencil button in both trip headers (#50) (60ca841)
+- 2026-08-03T17:53:32+07:00 — feat(trips): confirm a stop-destroying day-count shrink before saving (#50) (9e6f332)
+- 2026-08-03T18:03:56+07:00 — feat(trips): daily trips disable date and day count with their own reasons (#50) (daad6c2)
+- 2026-08-03T18:12:53+07:00 — fix(trips): pass overrideDate to mobile/tablet EditTripDialog mount (#50) (065257d)
+- 2026-08-03T18:21:50+07:00 — feat(trips): delete a trip from the edit dialog footer (#50) (8d2c238)
+- 2026-08-03T18:29:41+07:00 — feat(trips): both start-date pickers stop offering a Backdate (#50) (a21dc44)
+- 2026-08-03T21:44:36+07:00 — fix(trips): EditTripDialog locks start date on non-daily current-time-start trips (#50) (6d0edec)
+- 2026-08-03T21:45:41+07:00 — docs(trips): fix stale comment claiming the shrink-loss guard is missing (#50) (a7ff6fd)
+- 2026-08-03T22:20:37+07:00 — fix(trips): EditTripDialog persists the date it displayed (#50) (c346924)
+- 2026-08-03T22:21:27+07:00 — refactor(trips): drop unread ShrinkLoss.visitedCount (#50) (a15abac)
+- 2026-08-04T09:21:13+07:00 — docs(places): ADR-147 + glossary for the Discover-captured place home (#48) (55175a0)
+- 2026-08-07T21:59:59+07:00 — docs(places): ADR-148 + glossary for coordinate places (#48) (7411bf2)
+- 2026-08-08T07:46:19+07:00 — docs(places): ADR-149 duplicate policy for Discover capture (#48) (d251edd)
+- 2026-08-08T09:49:55+07:00 — docs(places): ADR-150 + Capture mode glossary for the Discover map tap (#48) (2b3a154)

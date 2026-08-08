@@ -1,0 +1,25 @@
+#!/bin/sh
+# commit-msg hook: require a ticket / work-item reference in the commit message.
+# Installed by the ticket-trace skill. Bypass once with: git commit --no-verify
+# Override the pattern per-repo with: git config ticket.pattern '<extended regex>'
+
+msg_file="$1"
+first_line=$(head -n 1 "$msg_file")
+
+# Merge/revert/fixup commits are exempt
+case "$first_line" in
+  Merge*|Revert*|fixup!*|squash!*) exit 0 ;;
+esac
+
+pattern=$(git config ticket.pattern 2>/dev/null)
+[ -z "$pattern" ] && pattern='(#|\b)[0-9]{3,6}\b'
+
+# Ignore comment lines, search the rest of the message
+if sed -e 's/^#.*//' "$msg_file" | grep -Eq "$pattern"; then
+  exit 0
+fi
+
+echo "commit rejected: message must reference a ticket number (e.g. 'fix 5887' or 'feat: ... (#6084)')." >&2
+echo "  bypass once:        git commit --no-verify" >&2
+echo "  change the pattern: git config ticket.pattern '<regex>'" >&2
+exit 1

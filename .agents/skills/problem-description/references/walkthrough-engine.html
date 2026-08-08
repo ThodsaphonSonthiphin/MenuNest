@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+  =============================================================================
+  WALKTHROUGH ENGINE — single source of the shared step-engine (Phase 2).
+  This file is BOTH (a) the canonical engine copied into every generated
+  walkthrough and (b) a standalone runnable demo (open it directly).
+
+  A generated walkthrough is assembled at generation time as ONE self-contained
+  .html = engine § + ONE chosen mode pack § (references/mode-<name>.html)
+            + drawer § (references/term-drilldown.html)
+            + authored scenes[] + GLOSSARY.
+  See SKILL.md "How a walkthrough is assembled".
+
+  COPY THE THREE MARKED SECTIONS into the generated file:
+    1. §CSS  → into <style> (engine owns :root tokens, chrome, narration, panels).
+    2. §HTML → the container shell + the 5 SVG markerheads. Insert the chosen mode
+       pack's §HTML at the "MODE CONTENT" slot; insert the drawer §HTML before
+       </div> of .container.
+    3. §JS  → into <script>, FIRST (it declares RENDER_HOOKS/modeRenderers/MODE that
+       the drawer and the mode pack push/register into). Then drawer §JS, then mode
+       pack §JS, then the authored bootstrap (MODE=…, alias setters, scenes[], TOTAL,
+       buildProgressDots(), render(0)).
+  Everything marked "DEMO ONLY" is the standalone harness — do NOT copy it.
+
+  REGISTRATION-PUSH MODEL: the engine declares empty RENDER_HOOKS=[] and
+  modeRenderers={}; the drawer self-registers RENDER_HOOKS.push(closeDrawer); each
+  mode self-registers modeRenderers['<name>']={…}. Only ordering rule: engine §JS
+  precedes the drawer/mode §JS.
+  =============================================================================
+-->
+<html lang="th"><head><meta charset="UTF-8"><title>walkthrough engine — source + demo</title>
+<style>
+  /* ===== §CSS  (copy into the generated walkthrough's <style>) ===== */
+  :root {
+    --bg:#0a0e14; --panel:#1a2330; --surface:#0f1722; --surface-2:#0f1419;
+    --border:#2a3441; --border-dim:#3d4a5f; --surface-active:#233040;
+    --text:#e0e6ed; --text-dim:#b8c4cf; --muted:#6b7785; --muted-2:#8a96a3;
+    --accent:#5fb4ff; --accent-bright:#7ed4ff;
+    --amber:#ffd479; --warn:#ffaa00; --warn-text:#ffaa44;
+    --magic:#b070ff; --magic-text:#d4a4ff; --magic-bg:#2a1a3a;
+    --success:#4ade80; --success-text:#a3e8b9;
+    --error:#ff5757; --error-text:#ff8888; --conflict:#ff3030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 22px; margin: 0 0 4px; }
+  h2 { color: var(--text-dim); font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: var(--amber); font-size: 0.9em; }
+
+  /* progress dots */
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: var(--panel); color: var(--muted);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: var(--accent); }
+  .step-dot.current { background: var(--accent); color: var(--bg); transform: scale(1.2); }
+
+  /* narration — the canonical NESTED shape (badge+title+body inside #narration) */
+  .narration {
+    background: var(--panel); padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid var(--accent); margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: var(--warn);    background: #2a2018; }
+  .narration.error   { border-color: var(--error);   background: #2a1818; }
+  .narration.success { border-color: var(--success); background: #182a1f; }
+  .narration.magic   { border-color: var(--magic);   background: #1f1830; }
+  .narration .step-badge { background: var(--accent); color: var(--bg);
+                           padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                           font-weight: 700; display: inline-block; margin-right: 8px; }
+  .narration .step-title { color: var(--accent); font-weight: 700; font-size: 16px;
+                           display: block; margin: 8px 0 6px; }
+  .narration.warn    .step-title { color: var(--amber); }
+  .narration.error   .step-title { color: var(--error-text); }
+  .narration.success .step-title { color: var(--success-text); }
+  .narration.magic   .step-title { color: var(--magic-text); }
+
+  /* shared hidden panel (replaces the old .extra-panel/.toggleable/.key-question) */
+  .wt-panel { background: var(--panel); border-radius: 6px; padding: 14px 18px;
+              margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .wt-panel .wt-panel-title { font-weight: 700; margin-bottom: 6px; }
+  .wt-panel.question { background: #1f1830; border: 2px solid var(--magic); }
+  .wt-panel.question .wt-panel-title { color: var(--magic-text); }
+  .wt-panel.race     { background: #2a1818; border: 2px solid var(--error); }
+  .wt-panel.race .wt-panel-title { color: var(--error-text); }
+  .wt-panel.summary  { background: #182a1f; border: 2px solid var(--success); }
+  .wt-panel.summary .wt-panel-title { color: var(--success-text); }
+
+  /* controls */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button { background: var(--accent); color: var(--bg); border: none;
+           padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 700;
+           cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover:not(:disabled)  { background: var(--accent-bright); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: var(--border); color: var(--text); }
+  button.tertiary:hover:not(:disabled) { background: var(--border-dim); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hidden { display: none !important; }
+  /* ===== end §CSS ===== */
+
+  /* DEMO ONLY — chrome for the standalone engine demo. Do not copy. */
+  .demo-box { display:inline-block; min-width:140px; margin:8px; padding:14px 18px;
+              border-radius:8px; border:2px solid var(--border); background:var(--panel);
+              color:var(--text-dim); font-weight:700; transition:all .3s; }
+  .demo-box.active { border-color:var(--accent); color:var(--accent-bright);
+                     box-shadow:0 0 8px #5fb4ff88; }
+  .demo-box.done   { border-color:var(--success); color:var(--success-text); }
+</style></head>
+<body>
+<!-- ===== §HTML  (copy the container shell + markers into the generated walkthrough) ===== -->
+<div class="container">
+  <h1>[INSERT: walkthrough title]</h1>
+  <h2>กด <strong>ถัดไป →</strong> เพื่อดูทีละ step</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">เริ่มต้น</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <!-- ===== MODE CONTENT — assembly inserts the chosen mode pack's §HTML here ===== -->
+  <!-- DEMO ONLY content (standalone engine demo; assembly drops this block): -->
+  <div id="demoContent" style="text-align:center">
+    <div class="demo-box" id="dboxA">A</div>
+    <div class="demo-box" id="dboxB">B</div>
+    <div class="demo-box" id="dboxC">C</div>
+  </div>
+  <!-- end DEMO ONLY -->
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← ย้อนกลับ</button>
+    <button id="nextBtn">ถัดไป →</button>
+    <button id="resetBtn" class="tertiary">↻ เริ่มใหม่</button>
+  </div>
+
+  <!-- term drill-down drawer §HTML inlined here at generation -->
+</div>
+
+<!-- The engine owns the fixed 5 markerheads; SVG modes select from them (ADR 0022). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/></marker>
+  <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/></marker>
+  <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b070ff"/></marker>
+  <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ade80"/></marker>
+  <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5757"/></marker>
+</defs></svg>
+<!-- ===== end §HTML ===== -->
+
+<script>
+/* ===== §JS  (copy into the generated walkthrough's <script>, FIRST) ===== */
+
+let currentStep = 0;
+let TOTAL = 0;                 // the authored bootstrap sets TOTAL = scenes.length - 1
+let MODE = null;              // the authored bootstrap sets MODE = '<mode name>'
+const RENDER_HOOKS = [];      // cross-cutting per-render actions; capabilities self-register (e.g. drawer pushes closeDrawer)
+const modeRenderers = {};     // modes self-register: modeRenderers['<name>'] = { registry, clear, <setters> }
+
+function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+// canonical 3-arg narration (nested shape). setSceneTitle kept for scenes that set only the title.
+function setNarration(cls, title, bodyHTML) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = bodyHTML || '';
+}
+function setSceneTitle(text) { document.getElementById('sceneTitle').textContent = text; }
+
+function buildProgressDots() {
+  const p = document.getElementById('stepProgress');
+  p.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot'; d.textContent = i; d.id = 'dot' + i;
+    p.appendChild(d);
+  }
+}
+
+function render(step) {
+  RENDER_HOOKS.forEach(h => h());                 // runs FIRST (drawer closes here), before any paint
+  const R = modeRenderers[MODE];
+  if (R && R.clear) R.clear(R.registry);          // engine calls the mode's reset generically
+  if (typeof scenes !== 'undefined' && scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = 'Step ' + step + ' / ' + TOTAL;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+/* ===== end §JS ===== */
+
+/* DEMO ONLY — standalone engine harness: a built-in _demo mode + bootstrap. Do not copy. */
+modeRenderers['_demo'] = {
+  registry: { BOXES: ['dboxA', 'dboxB', 'dboxC'] },
+  clear(reg) { reg.BOXES.forEach(id => { const el = document.getElementById(id); if (el) el.className = 'demo-box'; }); },
+  setBox(id, state) { const el = document.getElementById(id); if (el) el.className = 'demo-box' + (state ? ' ' + state : ''); },
+  assertRegistryComplete() { return true; },
+};
+MODE = '_demo';
+const _R = modeRenderers[MODE];
+const setBox = _R.setBox;
+const scenes = [
+  () => { setNarration('', 'เริ่มต้น — engine demo', 'นี่คือ <code>walkthrough-engine.html</code> รันเดี่ยว. กด ถัดไป → เพื่อดู render loop ทำงาน. แทนที่ด้วย mode pack + scenes จริงตอน generate.'); },
+  () => { setNarration('warn', 'Step 1 — box A active', 'engine เรียก renderer ของ mode ผ่าน modeRenderers[MODE].'); setBox('dboxA', 'active'); },
+  () => { setNarration('success', 'Step 2 — A done, B active', 'RENDER_HOOKS รันก่อน แล้ว R.clear() แล้ว scenes[step]().'); setBox('dboxA', 'done'); setBox('dboxB', 'active'); },
+];
+TOTAL = scenes.length - 1;
+buildProgressDots();
+render(0);
+</script>
+</body></html>

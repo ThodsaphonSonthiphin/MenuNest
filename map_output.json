@@ -1,0 +1,139 @@
+{
+  "backend": "github",
+  "map": {
+    "id": "67",
+    "dbId": 5095458571,
+    "key": "route-origin-toggle-67",
+    "name": "Decision map - route origin: continue from the previous Stop, or always from the current location (#67)",
+    "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/67",
+    "destination": "A user can toggle, per itinerary Day, whether that day's plan starts from their current location or from Stop 1, and the arrival times, the total distance, the finish time and the map's route all agree with that toggle - live on production with the migration applied."
+  },
+  "tickets": [
+    {
+      "key": "approach-leg-consumers",
+      "id": "68",
+      "dbId": 5095538019,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Approach leg consumers - which code paths read the index-0 leg today?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/68",
+      "type": "research",
+      "mode": "AFK",
+      "status": "closed",
+      "assignee": null,
+      "blockedBy": [],
+      "gist": "Every leg-0 consumer on main (d251edd) already handles it absent; the real risk is null vs a zero leg, diverging in anyEstimated, StopEditorDialog and Routes cost."
+    },
+    {
+      "key": "day-flag-persistence",
+      "id": "71",
+      "dbId": 5095538292,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Persistence - what column, and what default for the Days that already exist?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/71",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "switch-semantics"
+      ],
+      "gist": null
+    },
+    {
+      "key": "mcp-day-flag",
+      "id": "73",
+      "dbId": 5095538484,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "MCP surface - does the flag get a tool, and does get_itinerary report it?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/73",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "switch-semantics"
+      ],
+      "gist": null
+    },
+    {
+      "key": "navigate-handoff-origin",
+      "id": "75",
+      "dbId": 5095640779,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Navigate hand-off: should it use Stop 1 as origin when the switch is off?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/75",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [],
+      "gist": null
+    },
+    {
+      "key": "prod-rollout",
+      "id": "74",
+      "dbId": 5095538584,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Prod rollout - apply the migration by hand and verify the switch on production",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/74",
+      "type": "task",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "day-flag-persistence"
+      ],
+      "gist": null
+    },
+    {
+      "key": "switch-semantics",
+      "id": "69",
+      "dbId": 5095538105,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Switch off - exactly which outputs change?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/69",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "closed",
+      "assignee": "ThodsaphonSonthiphin",
+      "blockedBy": [
+        "approach-leg-consumers"
+      ],
+      "gist": "When the Day's switch is set to 'continue from previous Stop', the approach leg is dropped entirely: no viewer coordinates are sent, Stop 1 arrives at DayStartTime, and the map hides the 'you are here' pin."
+    },
+    {
+      "key": "switch-ui-mock",
+      "id": "72",
+      "dbId": 5095538373,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Visual mock for the Day switch, approved before any code",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/72",
+      "type": "prototype",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "time-flag-interaction",
+        "switch-semantics"
+      ],
+      "gist": null
+    },
+    {
+      "key": "time-flag-interaction",
+      "id": "70",
+      "dbId": 5095538199,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Two Day flags - how does this compose with UseCurrentTimeAsStart (and IsDaily)?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/70",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "switch-semantics"
+      ],
+      "gist": null
+    }
+  ],
+  "divergence": []
+}

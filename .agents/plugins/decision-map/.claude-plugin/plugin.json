@@ -1,0 +1,15 @@
+{
+  "name": "decision-map",
+  "displayName": "Decision Map",
+  "version": "0.7.0",
+  "description": "Plan work too big for one agent session as a map of decision tickets kept in your repo as markdown (docs/decision-map/): chart the map, then resolve one decision per session until the way is clear. Two backends ship: local markdown under docs/decision-map/, and GitHub Issues using native sub-issues and blocked-by dependencies (ADR 0062). Azure DevOps is still gated on its half of the marker-survival probe (ADR 0059). `lint` is the runnable check on a map's own health. Adapts the wayfinder idea to this marketplace's plugins and safety gates.",
+  "author": {
+    "name": "ThodsaphonSonthiphin",
+    "email": "thodsaphon.sonthipin@cartagena.no",
+    "url": "https://github.com/ThodsaphonSonthiphin"
+  },
+  "homepage": "https://github.com/ThodsaphonSonthiphin/workflow-daily-work",
+  "repository": "https://github.com/ThodsaphonSonthiphin/workflow-daily-work",
+  "license": "MIT",
+  "keywords": ["planning", "decision-tickets", "wayfinder", "multi-session", "frontier", "local-markdown", "daily-work"]
+}

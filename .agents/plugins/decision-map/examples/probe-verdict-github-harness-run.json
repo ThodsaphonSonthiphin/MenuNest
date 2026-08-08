@@ -1,0 +1,470 @@
+{
+  "probeVersion": "1",
+  "runId": "a3241a4a",
+  "tracker": "github",
+  "target": "ThodsaphonSonthiphin/decision-map-probe",
+  "startedAt": "2026-08-01T08:50:19.037186+00:00",
+  "finishedAt": "2026-08-01T08:51:01.538856+00:00",
+  "preflight": {
+    "ghVersion": "gh version 2.93.0 (2026-05-27)",
+    "ghHasFirstClassSubIssueFlags": false,
+    "repoPrivate": true,
+    "repoPermissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "ownerType": "User",
+    "coreRateRemaining": 5000
+  },
+  "steps": {
+    "1": {
+      "status": "pass",
+      "detail": "marker round trip through the API (write, read back, byte-compare every decision-map marker comment after CRLF normalisation)",
+      "evidence": {
+        "map": {
+          "what": "map: markers after API write+read",
+          "match": true,
+          "markers": [
+            "<!-- decision-map:... -->",
+            "<!-- decision-map:fog:start -->",
+            "<!-- decision-map:fog:end -->",
+            "<!-- decision-map:scope:start -->",
+            "<!-- decision-map:scope:end -->"
+          ],
+          "bodyWasNull": false
+        },
+        "ok": {
+          "what": "ok: markers after API write+read",
+          "match": true,
+          "markers": [
+            "<!-- decision-map:key:probe-key-alpha -->",
+            "<!-- decision-map:gist:start -->",
+            "<!-- decision-map:gist:end -->"
+          ],
+          "bodyWasNull": false
+        },
+        "bad": {
+          "what": "bad: markers after API write+read",
+          "match": true,
+          "markers": [
+            "<!-- decision-map:key:probe--key-beta -->",
+            "<!-- decision-map:gist:start -->",
+            "<!-- decision-map:gist:end -->"
+          ],
+          "bodyWasNull": false
+        }
+      }
+    },
+    "2": {
+      "status": "pass",
+      "detail": "a conforming key must survive; a key containing `--` is observed, not required to survive (the contract rejects it at chart time either way)",
+      "evidence": {
+        "conformingKey": "probe-key-alpha",
+        "conformingKeySurvivedApi": true,
+        "doubleHyphenKey": "probe--key-beta",
+        "doubleHyphenSurvivedApi": true,
+        "markersSeenOnDoubleHyphenItem": [
+          "'<!-- decision-map:key:probe--key-beta -->'",
+          "'<!-- decision-map:gist:start -->'",
+          "'<!-- decision-map:gist:end -->'"
+        ],
+        "interpretation": "the API stores `--` verbatim, so the no-`--` rule is defensive against downstream renderers, not the API -- keep the rule, but the contract's justification should say so"
+      }
+    },
+    "3": {
+      "status": "skipped",
+      "detail": "the deciding test: the rich-text / web editor, not the API, is what rewrites bodies -- NOT CONFIRMED: pass --assume-edited only once a human really did edit it, otherwise this proves nothing",
+      "evidence": {
+        "humanEditConfirmed": false,
+        "map": {
+          "what": "map: markers after the web-UI edit",
+          "match": true,
+          "markers": [
+            "<!-- decision-map:... -->",
+            "<!-- decision-map:fog:start -->",
+            "<!-- decision-map:fog:end -->",
+            "<!-- decision-map:scope:start -->",
+            "<!-- decision-map:scope:end -->"
+          ]
+        },
+        "ok": {
+          "what": "ok: markers after the web-UI edit",
+          "match": true,
+          "markers": [
+            "<!-- decision-map:key:probe-key-alpha -->",
+            "<!-- decision-map:gist:start -->",
+            "<!-- decision-map:gist:end -->"
+          ]
+        }
+      }
+    },
+    "4": {
+      "status": "pass",
+      "detail": "close the item and reopen it, then re-read the marker",
+      "evidence": {
+        "stateWhenClosed": "closed",
+        "stateWhenReopened": "open",
+        "what": "markers after close + reopen",
+        "match": true,
+        "markers": [
+          "<!-- decision-map:key:probe-key-alpha -->",
+          "<!-- decision-map:gist:start -->",
+          "<!-- decision-map:gist:end -->"
+        ]
+      }
+    },
+    "5": {
+      "status": "pass",
+      "detail": "the real join call shape end to end -- enumerate the map's children ONCE and recover every key from the same pass",
+      "evidence": {
+        "keysRecovered": [
+          "probe--key-beta",
+          "probe-key-alpha"
+        ],
+        "blockingEdge": {
+          "url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/6",
+          "repository_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe",
+          "labels_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/6/labels{/name}",
+          "comments_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/6/comments",
+          "events_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/6/events",
+          "html_url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe/issues/6",
+          "id": 5036245327,
+          "node_id": "I_kwDOTqARVM8AAAABLC8BTw",
+          "number": 6,
+          "title": "[decision-map-probe] a3241a4a ticket probe--key-beta (delete me)",
+          "user": {
+            "login": "ThodsaphonSonthiphin",
+            "id": 23155323,
+            "node_id": "MDQ6VXNlcjIzMTU1MzIz",
+            "avatar_url": "https://avatars.githubusercontent.com/u/23155323?v=4",
+            "gravatar_id": "",
+            "url": "https://api.github.com/users/ThodsaphonSonthiphin",
+            "html_url": "https://github.com/ThodsaphonSonthiphin",
+            "followers_url": "https://api.github.com/users/ThodsaphonSonthiphin/followers",
+            "following_url": "https://api.github.com/users/ThodsaphonSonthiphin/following{/other_user}",
+            "gists_url": "https://api.github.com/users/ThodsaphonSonthiphin/gists{/gist_id}",
+            "starred_url": "https://api.github.com/users/ThodsaphonSonthiphin/starred{/owner}{/repo}",
+            "subscriptions_url": "https://api.github.com/users/ThodsaphonSonthiphin/subscriptions",
+            "organizations_url": "https://api.github.com/users/ThodsaphonSonthiphin/orgs",
+            "repos_url": "https://api.github.com/users/ThodsaphonSonthiphin/repos",
+            "events_url": "https://api.github.com/users/ThodsaphonSonthiphin/events{/privacy}",
+            "received_events_url": "https://api.github.com/users/ThodsaphonSonthiphin/received_events",
+            "type": "User",
+            "user_view_type": "public",
+            "site_admin": false
+          },
+          "labels": [],
+          "state": "open",
+          "locked": false,
+          "assignees": [],
+          "milestone": null,
+          "comments": 0,
+          "created_at": "2026-08-01T08:50:27Z",
+          "updated_at": "2026-08-01T08:50:27Z",
+          "closed_at": null,
+          "author_association": "OWNER",
+          "active_lock_reason": null,
+          "sub_issues_summary": {
+            "total": 0,
+            "completed": 0,
+            "percent_completed": 0
+          },
+          "parent_issue_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/4",
+          "issue_dependencies_summary": {
+            "blocked_by": 1,
+            "total_blocked_by": 1,
+            "blocking": 0,
+            "total_blocking": 0
+          },
+          "repository": {
+            "id": 1319113044,
+            "node_id": "R_kgDOTqARVA",
+            "name": "decision-map-probe",
+            "full_name": "ThodsaphonSonthiphin/decision-map-probe",
+            "private": true,
+            "owner": {
+              "login": "ThodsaphonSonthiphin",
+              "id": 23155323,
+              "node_id": "MDQ6VXNlcjIzMTU1MzIz",
+              "avatar_url": "https://avatars.githubusercontent.com/u/23155323?v=4",
+              "gravatar_id": "",
+              "url": "https://api.github.com/users/ThodsaphonSonthiphin",
+              "html_url": "https://github.com/ThodsaphonSonthiphin",
+              "followers_url": "https://api.github.com/users/ThodsaphonSonthiphin/followers",
+              "following_url": "https://api.github.com/users/ThodsaphonSonthiphin/following{/other_user}",
+              "gists_url": "https://api.github.com/users/ThodsaphonSonthiphin/gists{/gist_id}",
+              "starred_url": "https://api.github.com/users/ThodsaphonSonthiphin/starred{/owner}{/repo}",
+              "subscriptions_url": "https://api.github.com/users/ThodsaphonSonthiphin/subscriptions",
+              "organizations_url": "https://api.github.com/users/ThodsaphonSonthiphin/orgs",
+              "repos_url": "https://api.github.com/users/ThodsaphonSonthiphin/repos",
+              "events_url": "https://api.github.com/users/ThodsaphonSonthiphin/events{/privacy}",
+              "received_events_url": "https://api.github.com/users/ThodsaphonSonthiphin/received_events",
+              "type": "User",
+              "user_view_type": "public",
+              "site_admin": false
+            },
+            "html_url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe",
+            "description": "Throwaway: decision-map phase-2 marker-survival probe (ADR 0059). Safe to delete.",
+            "fork": false,
+            "url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe",
+            "forks_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/forks",
+            "keys_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/keys{/key_id}",
+            "collaborators_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/collaborators{/collaborator}",
+            "teams_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/teams",
+            "hooks_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/hooks",
+            "issue_events_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/events{/number}",
+            "events_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/events",
+            "assignees_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/assignees{/user}",
+            "branches_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/branches{/branch}",
+            "tags_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/tags",
+            "blobs_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/git/blobs{/sha}",
+            "git_tags_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/git/tags{/sha}",
+            "git_refs_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/git/refs{/sha}",
+            "trees_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/git/trees{/sha}",
+            "statuses_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/statuses/{sha}",
+            "languages_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/languages",
+            "stargazers_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/stargazers",
+            "contributors_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/contributors",
+            "subscribers_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/subscribers",
+            "subscription_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/subscription",
+            "commits_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/commits{/sha}",
+            "git_commits_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/git/commits{/sha}",
+            "comments_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/comments{/number}",
+            "issue_comment_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/comments{/number}",
+            "contents_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/contents/{+path}",
+            "compare_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/compare/{base}...{head}",
+            "merges_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/merges",
+            "archive_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/{archive_format}{/ref}",
+            "downloads_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/downloads",
+            "issues_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues{/number}",
+            "pulls_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/pulls{/number}",
+            "milestones_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/milestones{/number}",
+            "notifications_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/notifications{?since,all,participating}",
+            "labels_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/labels{/name}",
+            "releases_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/releases{/id}",
+            "deployments_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/deployments",
+            "created_at": "2026-08-01T08:29:50Z",
+            "updated_at": "2026-08-01T08:29:51Z",
+            "pushed_at": "2026-08-01T08:29:51Z",
+            "git_url": "git://github.com/ThodsaphonSonthiphin/decision-map-probe.git",
+            "ssh_url": "git@github.com:ThodsaphonSonthiphin/decision-map-probe.git",
+            "clone_url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe.git",
+            "svn_url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe",
+            "homepage": null,
+            "size": 0,
+            "stargazers_count": 0,
+            "watchers_count": 0,
+            "language": null,
+            "has_issues": true,
+            "has_projects": true,
+            "has_wiki": true,
+            "has_pages": false,
+            "has_discussions": false,
+            "forks_count": 0,
+            "mirror_url": null,
+            "archived": false,
+            "disabled": false,
+            "open_issues_count": 6,
+            "license": null,
+            "allow_forking": true,
+            "is_template": false,
+            "web_commit_signoff_required": false,
+            "has_pull_requests": true,
+            "pull_request_creation_policy": "all",
+            "topics": [],
+            "visibility": "private",
+            "forks": 0,
+            "open_issues": 6,
+            "watchers": 0,
+            "default_branch": "Demo",
+            "permissions": {
+              "admin": true,
+              "maintain": true,
+              "push": true,
+              "triage": true,
+              "pull": true
+            }
+          },
+          "body": "<!-- decision-map:key:probe--key-beta -->\ndecision-map phase-2 marker-survival PROBE -- run a3241a4a, key `probe--key-beta`.\nCreated by a script; it will be closed or deleted. Do not edit unless asked.\n\n<!-- decision-map:gist:start -->\nprobe gist line -- one flattened line, as frontmatter would hold it\n<!-- decision-map:gist:end -->\n\nUser-supplied text under test (must survive byte-identical, still escaped):\n&lt;!-- decision-map:key:probe-forged-by-user -->",
+          "reactions": {
+            "url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/6/reactions",
+            "total_count": 0,
+            "+1": 0,
+            "-1": 0,
+            "laugh": 0,
+            "hooray": 0,
+            "confused": 0,
+            "heart": 0,
+            "rocket": 0,
+            "eyes": 0
+          },
+          "timeline_url": "https://api.github.com/repos/ThodsaphonSonthiphin/decision-map-probe/issues/6/timeline",
+          "performed_via_github_app": null,
+          "state_reason": null,
+          "pinned_comment": null
+        },
+        "calls": 1,
+        "childCount": 2,
+        "bodiesArrivedInListing": true,
+        "nullBodies": [],
+        "subIssuesSummary": {
+          "total": 2,
+          "completed": 0,
+          "percent_completed": 0
+        },
+        "children": [
+          {
+            "number": 5,
+            "id": 5036245193,
+            "state": "open",
+            "stateReason": null,
+            "markers": [
+              "<!-- decision-map:key:probe-key-alpha -->",
+              "<!-- decision-map:gist:start -->",
+              "<!-- decision-map:gist:end -->"
+            ]
+          },
+          {
+            "number": 6,
+            "id": 5036245327,
+            "state": "open",
+            "stateReason": null,
+            "markers": [
+              "<!-- decision-map:key:probe--key-beta -->",
+              "<!-- decision-map:gist:start -->",
+              "<!-- decision-map:gist:end -->"
+            ]
+          }
+        ],
+        "rerunAfterCloseReopen": {
+          "calls": 1,
+          "childCount": 2,
+          "bodiesArrivedInListing": true,
+          "nullBodies": [],
+          "subIssuesSummary": {
+            "total": 2,
+            "completed": 0,
+            "percent_completed": 0
+          },
+          "children": [
+            {
+              "number": 5,
+              "id": 5036245193,
+              "state": "open",
+              "stateReason": "reopened",
+              "markers": [
+                "<!-- decision-map:key:probe-key-alpha -->",
+                "<!-- decision-map:gist:start -->",
+                "<!-- decision-map:gist:end -->"
+              ]
+            },
+            {
+              "number": 6,
+              "id": 5036245327,
+              "state": "open",
+              "stateReason": null,
+              "markers": [
+                "<!-- decision-map:key:probe--key-beta -->",
+                "<!-- decision-map:gist:start -->",
+                "<!-- decision-map:gist:end -->"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "6": {
+      "status": "pass",
+      "detail": "GitHub backend availability: native sub-issues + native issue dependencies (the contract's task-list fallback is obsolete)",
+      "evidence": {
+        "subIssuesEndpoint": "ok",
+        "blockedByEndpoint": "ok",
+        "blockingEndpoint": "ok",
+        "documentedLimits": {
+          "subIssuesPerParent": 100,
+          "nestingLevels": 8,
+          "dependenciesPerRelationshipType": 50,
+          "secondaryWriteLimitPerMinute": 80
+        },
+        "taskListFallbackNeeded": false
+      }
+    }
+  },
+  "additionalSteps": {
+    "7": {
+      "status": "pass",
+      "detail": "escaped user text survived byte-identical after the API round trip",
+      "evidence": {
+        "expected": "'&lt;!-- decision-map:key:probe-forged-by-user -->'",
+        "reEncoded": false,
+        "decoded": false
+      }
+    },
+    "7_afterWebEdit": {
+      "status": "pass",
+      "detail": "escaped user text survived byte-identical after the web-UI edit",
+      "evidence": {
+        "expected": "'&lt;!-- decision-map:key:probe-forged-by-user -->'",
+        "reEncoded": false,
+        "decoded": false
+      }
+    },
+    "R2": {
+      "status": "pass",
+      "detail": "fallback rung 2 carrier: does the marker survive inside a tool-owned comment?",
+      "evidence": {
+        "commentFormat": null,
+        "what": "comment markers",
+        "match": true,
+        "markers": [
+          "<!-- decision-map:manifest:start -->",
+          "<!-- decision-map:manifest:end -->"
+        ]
+      }
+    }
+  },
+  "markerSurvives": null,
+  "fallbackRung": null,
+  "fallbackRungName": null,
+  "fallbackRungRationale": "undecided: step 3 (the web-UI edit) is the deciding test and it has not been run. Do not write join code on steps 1/4 alone.",
+  "contractActions": [
+    "The no-`--` key rule stays (rejection is the safe side), but its stated justification is wrong for this tracker: the API stores `--` verbatim. Restate it as a defence against downstream renderers.",
+    "The join is ONE paginated pass: bodies arrive in the child listing, so delete 'then read each issue's body' from the GitHub join cell.",
+    "Sub-issues and native dependencies are both live: delete the task-list fallback, the `blocked-by: #<n>` body line, and the plan-conditional from the Backend-mappings table."
+  ],
+  "itemsCreated": [
+    {
+      "kind": "map",
+      "id": 4,
+      "url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe/issues/4"
+    },
+    {
+      "kind": "ticket",
+      "id": 5,
+      "url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe/issues/5"
+    },
+    {
+      "kind": "ticket",
+      "id": 6,
+      "url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe/issues/6"
+    }
+  ],
+  "cleanup": {
+    "map": {
+      "id": 4,
+      "result": "closed"
+    },
+    "ok": {
+      "id": 5,
+      "result": "closed"
+    },
+    "bad": {
+      "id": 6,
+      "result": "closed"
+    }
+  },
+  "cleanedUp": true
+}

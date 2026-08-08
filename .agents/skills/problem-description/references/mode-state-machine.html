@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+  =============================================================================
+  MODE PACK — state-machine. One entity's legal state transitions; the conflict
+  step is an ILLEGAL or STUCK transition.
+  NOT standalone — verified by ASSEMBLY with walkthrough-engine.html (the engine
+  is never duplicated into a pack; DRY, ADR 0019/0020). To verify: run the
+  assembler (scripts/assemble-walkthrough.py) with this pack, or generate a
+  walkthrough per SKILL.md, and open the assembled file.
+
+  Registers exactly one renderer: modeRenderers['state-machine'].
+  Five semantic states map onto the existing palette (zero new tokens):
+    current = .current (accent) · passed = .passed (success) ·
+    illegal/stuck = .illegal/.stuck (error) · key transition = .key (magic) ·
+    reachable-idle = .dimmed.
+  SVG edges select the engine's fixed 5 markerheads (zero new <marker> defs).
+  =============================================================================
+-->
+<html lang="th"><head><meta charset="UTF-8"><title>mode pack — state-machine</title>
+<style>
+  /* ===== §CSS  (copy into the walkthrough's <style>, after the engine §CSS) ===== */
+  .sm-wrap { background: var(--surface-2); border: 1px solid var(--panel);
+             border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.sm { width: 100%; height: auto; display: block; }
+  .sm-node rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .sm-node .sm-label { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700;
+                       fill: var(--text-dim); transition: fill 0.4s; }
+  .sm-node.current rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3;
+                          filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .sm-node.current .sm-label { fill: var(--accent-bright); }
+  .sm-node.passed rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .sm-node.passed .sm-label { fill: var(--success-text); }
+  .sm-node.illegal rect, .sm-node.stuck rect { fill: #2a1818; stroke: var(--error); stroke-width: 3;
+                          filter: drop-shadow(0 0 8px #ff575788); }
+  .sm-node.illegal .sm-label, .sm-node.stuck .sm-label { fill: var(--error-text); }
+  .sm-node.key rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3;
+                      filter: drop-shadow(0 0 10px #b070ff88); }
+  .sm-node.key .sm-label { fill: var(--magic-text); }
+  .sm-node.dimmed { opacity: 0.35; }
+
+  .sm-edge { fill: none; stroke: var(--border-dim); stroke-width: 2;
+             transition: stroke 0.3s, stroke-width 0.3s; }
+  .sm-edge.active  { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: sm-flow 1.8s linear infinite; }
+  .sm-edge.passed  { stroke: var(--success); stroke-width: 2.5; }
+  .sm-edge.illegal { stroke: var(--error); stroke-width: 3; }
+  .sm-edge.key     { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); }
+  .sm-edge.dimmed  { opacity: 0.2; }
+  @keyframes sm-flow { to { stroke-dashoffset: -24; } }
+  .sm-elabel { fill: var(--muted-2); font-family: 'Consolas', monospace; font-size: 11px; }
+  .sm-elabel.illegal { fill: var(--error-text); }
+  /* ===== end §CSS ===== */
+</style></head>
+<body>
+<!-- ===== §HTML  (assembly inserts this at the engine's MODE CONTENT slot) ===== -->
+<div class="sm-wrap">
+  <svg class="sm" viewBox="0 0 1000 240" xmlns="http://www.w3.org/2000/svg">
+    <!-- transition labels (static) -->
+    <text class="sm-elabel" x="188" y="78" text-anchor="middle">confirm</text>
+    <text class="sm-elabel" x="385" y="78" text-anchor="middle">allocate</text>
+    <text class="sm-elabel" x="582" y="78" text-anchor="middle">load</text>
+    <text class="sm-elabel" x="779" y="78" text-anchor="middle">discharge</text>
+    <text class="sm-elabel illegal" x="484" y="205" text-anchor="middle">re-activate ❌</text>
+    <!-- edges (declared before nodes so nodes paint on top) -->
+    <path class="sm-edge" id="ePlanConf"  d="M 170 90 L 207 90" marker-end="url(#arrowhead)"/>
+    <path class="sm-edge" id="eConfAlloc" d="M 367 90 L 404 90" marker-end="url(#arrowhead)"/>
+    <path class="sm-edge" id="eAllocLoad" d="M 564 90 L 601 90" marker-end="url(#arrowhead)"/>
+    <path class="sm-edge" id="eLoadDisch" d="M 761 90 L 798 90" marker-end="url(#arrowhead)"/>
+    <path class="sm-edge" id="eDischPlan" d="M 878 125 Q 484 215 90 125" marker-end="url(#arrowhead)"/>
+    <!-- nodes -->
+    <g class="sm-node" id="stPlanning">   <rect x="10"  y="55" width="160" height="70" rx="10"/><text class="sm-label" x="90"  y="96" text-anchor="middle">Planning</text></g>
+    <g class="sm-node" id="stConfirmed">  <rect x="207" y="55" width="160" height="70" rx="10"/><text class="sm-label" x="287" y="96" text-anchor="middle">Confirmed</text></g>
+    <g class="sm-node" id="stAllocated">  <rect x="404" y="55" width="160" height="70" rx="10"/><text class="sm-label" x="484" y="96" text-anchor="middle">Allocated</text></g>
+    <g class="sm-node" id="stLoaded">     <rect x="601" y="55" width="160" height="70" rx="10"/><text class="sm-label" x="681" y="96" text-anchor="middle">Loaded</text></g>
+    <g class="sm-node" id="stDischarged"><rect x="798" y="55" width="160" height="70" rx="10"/><text class="sm-label" x="878" y="96" text-anchor="middle">Discharged</text></g>
+  </svg>
+</div>
+<div class="wt-panel question hidden" id="smQuestion">
+  <div class="wt-panel-title">💡 คำถามสำคัญ</div>
+  <div id="smQuestionBody"></div>
+</div>
+<!-- ===== end §HTML ===== -->
+
+<script>
+/* ===== §JS  (copy into the walkthrough's <script>, after the engine §JS) ===== */
+modeRenderers['state-machine'] = {
+  registry: {
+    NODE_LIST: ['stPlanning', 'stConfirmed', 'stAllocated', 'stLoaded', 'stDischarged'],
+    EDGE_LIST: ['ePlanConf', 'eConfAlloc', 'eAllocLoad', 'eLoadDisch', 'eDischPlan'],
+  },
+  clear(reg) {
+    reg.NODE_LIST.forEach(id => { const el = document.getElementById(id); if (el) el.setAttribute('class', 'sm-node'); });
+    reg.EDGE_LIST.forEach(id => this.setEdge(id, ''));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+    document.querySelectorAll('[data-default]').forEach(el => { el.textContent = el.dataset.default; });
+  },
+  setNode(id, state) {
+    const el = document.getElementById(id);
+    if (el) el.setAttribute('class', 'sm-node' + (state ? ' ' + state : ''));
+  },
+  setEdge(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'sm-edge' + (state ? ' ' + state : ''));
+    const markers = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)',
+                      passed: 'url(#arrowhead-done)', illegal: 'url(#arrowhead-error)', key: 'url(#arrowhead-magic)' };
+    el.setAttribute('marker-end', markers[state] || 'url(#arrowhead)');
+  },
+  assertRegistryComplete() {
+    const nodes = [].map.call(document.querySelectorAll('.sm-node'), e => e.id);
+    const edges = [].map.call(document.querySelectorAll('.sm-edge'), e => e.id);
+    const all = this.registry.NODE_LIST.concat(this.registry.EDGE_LIST);
+    const miss = nodes.filter(id => !this.registry.NODE_LIST.includes(id))    // DOM not in registry
+                .concat(edges.filter(id => !this.registry.EDGE_LIST.includes(id)))
+                .concat(all.filter(id => !document.getElementById(id)));      // registry not in DOM (typo/orphan)
+    if (miss.length) throw new Error('state-machine registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+/* ===== end §JS ===== */
+
+/* ===== DEMO-BOOTSTRAP START — the assembler uses this as the authored bootstrap for verification ===== */
+MODE = 'state-machine';
+const { setNode, setEdge } = modeRenderers[MODE];
+const ALL_NODES = modeRenderers[MODE].registry.NODE_LIST;
+const scenes = [
+  // 0 — overview
+  () => {
+    setNarration('', 'Lifecycle ของ BookingItem', 'สถานะที่ถูกกฎหมายของ 1 booking item: <code>Planning → Confirmed → Allocated → Loaded → Discharged</code>. แต่ละ step จะ highlight สถานะ/transition เดียว.');
+    ALL_NODES.forEach(id => setNode(id, 'dimmed'));
+  },
+  // 1 — start at Planning
+  () => {
+    setNarration('', 'Step 1 — เริ่มที่ Planning', 'booking ถูกสร้างในสถานะ <code>Planning</code> (statuscode เริ่มต้น).');
+    setNode('stPlanning', 'current');
+  },
+  // 2 — confirm + allocate
+  () => {
+    setNarration('warn', 'Step 2 — confirm → allocate', 'พนักงานยืนยันแล้วจัดสรรพื้นที่: Planning ✓ → Confirmed ✓ → Allocated (current).');
+    setNode('stPlanning', 'passed'); setEdge('ePlanConf', 'passed');
+    setNode('stConfirmed', 'passed'); setEdge('eConfAlloc', 'passed');
+    setNode('stAllocated', 'current');
+  },
+  // 3 — load + discharge
+  () => {
+    setNarration('success', 'Step 3 — load → discharge', 'ของถูก load ขึ้นเรือและ discharge ปลายทาง: ถึงสถานะสุดท้าย <code>Discharged</code>.');
+    ['stPlanning','stConfirmed','stAllocated','stLoaded'].forEach(id => setNode(id, 'passed'));
+    ['ePlanConf','eConfAlloc','eAllocLoad','eLoadDisch'].forEach(id => setEdge(id, 'passed'));
+    setNode('stDischarged', 'current');
+  },
+  // 4 — key question
+  () => {
+    setNarration('magic', 'Step 4 — คำถาม', 'ผู้ใช้กดปุ่ม "re-activate" บน booking ที่ Discharged แล้ว.');
+    setNode('stDischarged', 'key');
+    show('smQuestion');
+    document.getElementById('smQuestionBody').innerHTML = 'booking ที่ <b>Discharged</b> แล้ว จะกลับไป <b>Planning</b> ได้ไหม? เกิดอะไรขึ้น?';
+  },
+  // 5 — illegal transition reveal
+  () => {
+    setNarration('error', 'Step 5 — transition ที่ผิดกฎ', 'ระบบ <b>ปฏิเสธ</b>: ไม่มี edge Discharged → Planning. โค้ดมี guard กันไว้ (เทียบ <code>QuoteService</code> ที่ fault การ re-activate จากสถานะที่ไม่ใช่ Draft). สถานะค้างที่ Discharged.');
+    setNode('stDischarged', 'stuck');
+    setNode('stPlanning', 'illegal');
+    setEdge('eDischPlan', 'illegal');
+  },
+];
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();   // DOM ids ⊆ registry (runtime contract self-check)
+buildProgressDots();
+render(0);
+/* ===== DEMO-BOOTSTRAP END ===== */
+</script>
+</body></html>

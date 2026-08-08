@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!--
+  =============================================================================
+  MODE PACK — diagram (flow between components; values move A→B→C). Migrated from
+  the former template-diagram.html onto the shared engine: the step-engine, the
+  :root tokens, the 5 markerheads, narration and controls now come from
+  walkthrough-engine.html. This pack carries only the diagram-specific renderer +
+  SVG content. NOT standalone — verified by ASSEMBLY (scripts/assemble-walkthrough.py).
+  Registers modeRenderers['diagram']. State CSS lifted verbatim (existing hexes) for
+  visual parity. Marker fills use the engine's fixed 5 markerheads (no new defs).
+  =============================================================================
+-->
+<html lang="th"><head><meta charset="UTF-8"><title>mode pack — diagram</title>
+<style>
+  /* ===== §CSS  (copy into the walkthrough's <style>, after the engine §CSS) ===== */
+  .diagram-wrapper { background: var(--surface-2); border: 1px solid var(--panel);
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .comp rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .comp .comp-title { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: var(--text-dim); transition: fill 0.4s; }
+  .comp .comp-sub { font-family: 'Consolas', monospace; font-size: 11px; fill: var(--muted); transition: fill 0.4s; }
+  .comp .comp-val { font-family: 'Consolas', monospace; font-size: 12px; fill: var(--amber); transition: fill 0.4s; }
+  .comp.active rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .comp.active .comp-title { fill: var(--accent-bright); }
+  .comp.active .comp-sub { fill: var(--text-dim); }
+  .comp.firing rect { fill: #2a2818; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 8px #ffd47988); animation: pulse-fire 1.2s ease-in-out infinite; }
+  .comp.firing .comp-title { fill: var(--amber); }
+  @keyframes pulse-fire { 0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); } 50% { filter: drop-shadow(0 0 16px #ffd479dd); } }
+  .comp.locked rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3; filter: drop-shadow(0 0 10px #b070ff88); }
+  .comp.locked .comp-title { fill: var(--magic-text); }
+  .comp.locked .comp-val { fill: var(--magic-text); }
+  .comp.blocked rect { fill: #2a1f10; stroke: var(--warn); stroke-width: 2; animation: blink-block 1s ease-in-out infinite alternate; }
+  .comp.blocked .comp-title { fill: var(--warn-text); }
+  @keyframes blink-block { from { opacity: 0.55; } to { opacity: 0.9; } }
+  .comp.done rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .comp.done .comp-title { fill: var(--success-text); }
+  .comp.done .comp-val { fill: var(--success-text); }
+  .comp.error rect { fill: #2a1818; stroke: var(--error); stroke-width: 3; filter: drop-shadow(0 0 10px #ff575788); }
+  .comp.error .comp-title { fill: var(--error-text); }
+  .comp.dimmed { opacity: 0.35; }
+  .arrow { fill: none; stroke: var(--border-dim); stroke-width: 2; transition: stroke 0.3s, stroke-width 0.3s; }
+  .arrow.active { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.magic { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); }
+  .arrow.done { stroke: var(--success); stroke-width: 2.5; }
+  .arrow.error { stroke: var(--error); stroke-width: 3; }
+  .arrow.dimmed { opacity: 0.2; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .flow-label { fill: var(--amber); font-family: 'Consolas', monospace; font-size: 12px; font-weight: 700; pointer-events: none; }
+  .flow-label-bg { fill: #2a2818; stroke: var(--amber); stroke-width: 1.5; }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label { fill: var(--magic-text); }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: var(--magic); }
+  .flow-label-group.error .flow-label { fill: var(--error-text); }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: var(--error); }
+  /* ===== end §CSS ===== */
+</style></head>
+<body>
+<!-- ===== §HTML  (assembly inserts this at the engine's MODE CONTENT slot) ===== -->
+<div class="diagram-wrapper">
+  <svg class="diagram" viewBox="0 0 1000 400" xmlns="http://www.w3.org/2000/svg">
+    <g class="comp" id="compClient">
+      <rect x="60" y="150" width="220" height="100" rx="10"/>
+      <text class="comp-title" x="170" y="190" text-anchor="middle">📱 Demo Client</text>
+      <text class="comp-sub"   x="170" y="215" text-anchor="middle">request initiator</text>
+    </g>
+    <g class="comp" id="compServer">
+      <rect x="390" y="150" width="220" height="100" rx="10"/>
+      <text class="comp-title" x="500" y="185" text-anchor="middle">⚙️ Demo Server</text>
+      <text class="comp-sub"   x="500" y="208" text-anchor="middle">handler</text>
+      <text class="comp-val"   x="500" y="232" text-anchor="middle" id="serverState">state: idle</text>
+    </g>
+    <g class="comp" id="compDB">
+      <rect x="720" y="150" width="220" height="100" rx="10"/>
+      <text class="comp-title" x="830" y="185" text-anchor="middle">🗄️ Demo DB</text>
+      <text class="comp-sub"   x="830" y="208" text-anchor="middle">key=demo-key</text>
+      <text class="comp-val"   x="830" y="232" text-anchor="middle" id="dbVal">value: 0</text>
+    </g>
+    <path class="arrow" id="arrCS" d="M 280 200 L 390 200" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrSD" d="M 610 200 L 720 200" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrDS" d="M 720 215 Q 665 280 610 215" marker-end="url(#arrowhead)"/>
+    <g class="flow-label-group" id="lblCS">
+      <rect class="flow-label-bg" x="295" y="178" width="100" height="22" rx="5"/>
+      <text class="flow-label"    x="345" y="194" text-anchor="middle">request</text>
+    </g>
+    <g class="flow-label-group" id="lblSD">
+      <rect class="flow-label-bg" x="625" y="160" width="80" height="22" rx="5"/>
+      <text class="flow-label"    x="665" y="176" text-anchor="middle">read</text>
+    </g>
+    <g class="flow-label-group" id="lblDS">
+      <rect class="flow-label-bg" x="610" y="270" width="100" height="22" rx="5"/>
+      <text class="flow-label"    x="660" y="286" text-anchor="middle">value=42</text>
+    </g>
+  </svg>
+</div>
+<!-- ===== end §HTML ===== -->
+
+<script>
+/* ===== §JS  (copy into the walkthrough's <script>, after the engine §JS) ===== */
+modeRenderers['diagram'] = {
+  registry: {
+    COMPONENTS: ['compClient', 'compServer', 'compDB'],
+    ARROWS: ['arrCS', 'arrSD', 'arrDS'],
+    LABELS: ['lblCS', 'lblSD', 'lblDS'],
+    LIVE: { serverState: 'state: idle', dbVal: 'value: 0' },
+  },
+  clear(reg) {
+    reg.COMPONENTS.forEach(id => this.setComp(id, ''));
+    reg.ARROWS.forEach(id => this.setArrow(id, ''));
+    reg.LABELS.forEach(id => this.setLabel(id, false));
+    Object.keys(reg.LIVE).forEach(id => this.setText(id, reg.LIVE[id]));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setComp(id, state) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : '')); },
+  setArrow(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+    const m = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)', magic: 'url(#arrowhead-magic)', done: 'url(#arrowhead-done)', error: 'url(#arrowhead-error)' };
+    el.setAttribute('marker-end', m[state] || 'url(#arrowhead)');
+  },
+  setLabel(id, show, variant) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : '')); },
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+  assertRegistryComplete() {
+    const got = { comp: '.comp', arrow: '.arrow', flow: '.flow-label-group' };
+    const lists = { comp: this.registry.COMPONENTS, arrow: this.registry.ARROWS, flow: this.registry.LABELS };
+    const miss = [];
+    // DOM not in registry
+    Object.keys(got).forEach(k => [].forEach.call(document.querySelectorAll(got[k]), e => { if (e.id && !lists[k].includes(e.id)) miss.push(e.id); }));
+    // registry not in DOM (typo/orphan) — incl. the LIVE text fields
+    [].concat(this.registry.COMPONENTS, this.registry.ARROWS, this.registry.LABELS, Object.keys(this.registry.LIVE))
+      .forEach(id => { if (!document.getElementById(id)) miss.push(id); });
+    if (miss.length) throw new Error('diagram registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+/* ===== end §JS ===== */
+
+/* ===== DEMO-BOOTSTRAP START — used as the authored bootstrap for verification ===== */
+MODE = 'diagram';
+const { setComp, setArrow, setLabel, setText } = modeRenderers[MODE];
+const scenes = [
+  () => {
+    setNarration('', 'เริ่มต้น — ดูภาพรวม', 'Diagram demo: 3 components (Client, Server, DB) เชื่อมด้วย arrows. แต่ละ step highlight อย่างเดียว.');
+  },
+  () => {
+    setNarration('warn', 'Step 1 — Client ส่ง request', 'Client เรียก API → request เดินทางผ่าน arrow แรก.');
+    setComp('compClient', 'firing'); setArrow('arrCS', 'active'); setLabel('lblCS', true);
+    setComp('compServer', 'active'); setText('serverState', 'state: received');
+  },
+  () => {
+    setNarration('', 'Step 2 — Server query DB', 'Server แปลง request เป็น query → ส่งไป DB.');
+    setComp('compClient', 'done'); setArrow('arrCS', 'done');
+    setComp('compServer', 'active'); setText('serverState', 'state: querying');
+    setArrow('arrSD', 'active'); setLabel('lblSD', true); setComp('compDB', 'active');
+  },
+  () => {
+    setNarration('success', 'Step 3 — DB คืน value 42', 'DB คืน value=42 ไป Server. จบ demo.');
+    setComp('compClient', 'done'); setArrow('arrCS', 'done');
+    setComp('compServer', 'done'); setText('serverState', 'state: ✓ done');
+    setArrow('arrSD', 'done'); setArrow('arrDS', 'active'); setLabel('lblDS', true);
+    setComp('compDB', 'done'); setText('dbVal', 'value: 42');
+  },
+];
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();   // DOM ids ⊆ registry (runtime contract self-check)
+buildProgressDots();
+render(0);
+/* ===== DEMO-BOOTSTRAP END ===== */
+</script>
+</body></html>

@@ -1,0 +1,64 @@
+{
+  "1-marker-roundtrip": {
+    "pass": true,
+    "detail": "byte-identical (122 chars); the earlier False was a jq/rstrip artifact in the probe itself",
+    "issue": 1,
+    "sent_len": 122,
+    "got_len": 121,
+    "sent_repr": "'Question\\n\\n<!-- decision-map:key:auth-model -->\\n\\n<!-- decision-map:fog:start -->\\n- one\\n- two\\n<!-- decision-map:fog:end -->\\n'",
+    "got_repr": "'Question\\n\\n<!-- decision-map:key:auth-model -->\\n\\n<!-- decision-map:fog:start -->\\n- one\\n- two\\n<!-- decision-map:fog:end -->'"
+  },
+  "2-double-hyphen-key": {
+    "pass": true,
+    "detail": "`--` marker survives the API verbatim=True",
+    "issue": 2,
+    "survived_api": true,
+    "got_repr": "'Question\\n\\n<!-- decision-map:key:foo--bar -->'"
+  },
+  "4-close-reopen": {
+    "pass": true,
+    "detail": "marker present after close+reopen=True; body byte-identical=False"
+  },
+  "X-key-forging": {
+    "pass": true,
+    "detail": "title stored verbatim with a forged marker in it: True; key markers in body=1",
+    "issue": 3,
+    "title": "Auth <!-- decision-map:key:injected --> model"
+  },
+  "6a-sub-issues-list": {
+    "pass": true,
+    "detail": "GET sub_issues OK, 0 items"
+  },
+  "6b-sub-issues-add": {
+    "pass": true,
+    "detail": "POST sub_issues OK",
+    "parent": 1,
+    "child": 2,
+    "child_id": 5036168435
+  },
+  "6c-sub-issues-enumerate": {
+    "pass": true,
+    "detail": "children enumerated: [2]",
+    "children": [
+      2
+    ]
+  },
+  "D-blocked-by-api": {
+    "pass": true,
+    "detail": "native dependencies exist and are WRITABLE: POST /issues/{n}/dependencies/blocked_by with issue_id; readable both directions; issue payload carries issue_dependencies_summary"
+  },
+  "3-webui-edit": {
+    "pass": true,
+    "detail": "human edited the body in the browser (added a line INSIDE the fog region); all 3 markers byte-intact, no CRLF introduced, +4 chars = exactly what was typed",
+    "url": "https://github.com/ThodsaphonSonthiphin/decision-map-probe/issues/1",
+    "verified_at": "2026-08-01T08:35:45Z"
+  },
+  "_meta": {
+    "repo": "ThodsaphonSonthiphin/decision-map-probe",
+    "created_issues": [
+      1,
+      2,
+      3
+    ]
+  }
+}

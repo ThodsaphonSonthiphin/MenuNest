@@ -17,7 +17,14 @@
       "Bash(curl -sL \"https://github.com/user-attachments/assets/383d63ce-8ed8-4e5f-a0c7-1525e559e5a1\" -o \"C:/Users/THODSA~1.SON/AppData/Local/Temp/claude/c--Repo2-t-menunest/a22bb559-a448-400e-a880-f374b079ff5b/scratchpad/issue47.jpg\")",
       "Bash(python \"C:/Users/THODSA~1.SON/AppData/Local/Temp/claude/c--Repo2-t-menunest/ed7ab123-9dbd-4237-aa37-84ac0361d963/scratchpad/reflect_apply.py\")",
       "Bash(cd \"c:/Repo2/t/menunest/frontend/src/pages/discover\" && echo \"=== .disc-wx / .disc-hr CSS \\(shipped\\) ===\" && grep -n \"disc-wx\\\\|disc-hr\" DiscoverPage.css && echo \"\" && echo \"=== full shipped block ===\" && sed -n '/Hourly weather strip/,/disc-wx-empty/p' DiscoverPage.css)",
-      "Bash(python scripts/assemble-walkthrough.py --help)"
+      "Bash(python scripts/assemble-walkthrough.py --help)",
+      "Bash(gh auth *)",
+      "Bash(npx vitest *)",
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/local_map_ops.py\" read --map trip-crud-50)",
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 55 --repo ThodsaphonSonthiphin/MenuNest)",
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 53 --repo ThodsaphonSonthiphin/MenuNest)",
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 59 --repo ThodsaphonSonthiphin/MenuNest)",
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 69 --repo ThodsaphonSonthiphin/MenuNest)"
     ],
     "additionalDirectories": [
       "c:\\Repo2\\t\\menunest\\docs\\adr",

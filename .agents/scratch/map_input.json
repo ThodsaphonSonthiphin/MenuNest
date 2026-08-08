@@ -1,0 +1,38 @@
+{
+  "target": { "slug": "77" },
+  "map": {
+    "title": "Decision map - คำนวนระยะทางไม่ถูก จากจุดที่ถึงแล้วไปจุดถัดไป",
+    "destination": "ระบบสามารถแสดงตำแหน่งปัจจุบันให้คัดลอกได้ คำนวณระยะทางจากตำแหน่งปัจจุบันไปยังเป้าหมายได้อย่างถูกต้อง และตรวจสอบได้ว่าอยู่ใกล้หรือถึงจุดหมายแล้วหรือยัง",
+    "notes": "",
+    "notYetSpecified": [],
+    "outOfScope": []
+  },
+  "tickets": [
+    { 
+      "key": "location-fetching", 
+      "title": "Location Fetching - ใช้เครื่องมืออะไรดึงพิกัดและจัดการเมื่อผู้ใช้ไม่อนุญาต?",
+      "type": "grilling", 
+      "question": "เราจะใช้ API หรือ Library ใดในการดึงพิกัด และถ้าผู้ใช้ไม่อนุญาต (Deny location) เราจะมี Fallback flow อย่างไร?",
+      "blocks": ["distance-calculation", "ui-presentation"] 
+    },
+    { 
+      "key": "ui-presentation", 
+      "title": "UI Presentation - ตำแหน่งปัจจุบันและปุ่ม Copy จะแสดงผลอย่างไร?",
+      "type": "prototype", 
+      "question": "ตำแหน่งจะถูกแสดงในรูปแบบไหน (ละติจูด/ลองจิจูด หรือที่อยู่?) และปุ่ม Copy จะอยู่ที่หน้าจอไหนบ้าง?" 
+    },
+    { 
+      "key": "distance-calculation", 
+      "title": "Distance Calculation - ใช้อะไรคำนวณระยะทาง?",
+      "type": "grilling", 
+      "question": "เราจะใช้อัลกอริทึม (เช่น Haversine) หรือ Service ภายนอก (เช่น Google Maps Distance API) ในการคำนวณระยะทางจากพิกัดปัจจุบันถึงจุดหมาย?",
+      "blocks": ["proximity-threshold"] 
+    },
+    { 
+      "key": "proximity-threshold", 
+      "title": "Proximity Threshold - เกณฑ์การเข้าใกล้และถึงจุดหมายคือเท่าใด?",
+      "type": "grilling", 
+      "question": "ระยะห่างกี่เมตร/กิโลเมตร ถึงจะถือว่า 'ใกล้ถึงเป้าหมาย' และระยะเท่าไรถึงแปลว่า 'ถึงเป้าหมายแล้ว'?" 
+    }
+  ]
+}

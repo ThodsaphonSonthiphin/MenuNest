@@ -1,0 +1,181 @@
+meta:
+  project: bookstore
+  org: Codex
+  language: th
+  profile: academic
+  authors: [Pon]
+  date: "2026-07-06"
+
+problem:
+  current_problems:
+    - {id: P1, text: ลูกค้าไม่ทราบว่ามีสินค้าหรือไม่}
+    - {id: P2, text: ค้นหาหนังสือได้ยาก}
+  objectives:
+    - {id: O1, text: แสดงสต็อกจริงบนเว็บ, problems: [P1]}
+    - {id: O2, text: ค้นหาสินค้าออนไลน์ได้, problems: [P2]}
+  benefits:
+    - {id: B1, text: ยอดขายเพิ่มขึ้น, objectives: [O1, O2]}
+
+actors:
+  - {id: ACT-CUST, name: ลูกค้า, desc: ผู้ซื้อหนังสือ}
+  - {id: ACT-SALE, name: พนักงานขาย, desc: ดูแลคำสั่งซื้อ}
+  - {id: ACT-MGR, name: ผู้จัดการ, desc: ยืนยันการชำระเงิน}
+  - {id: ACT-SHIP, name: พนักงานส่งสินค้า, desc: จัดส่ง}
+
+scope:
+  - {id: FR-1, actor: ACT-CUST, capability: สั่งซื้อสินค้า, use_cases: [UC-ORDER]}
+  - {id: FR-2, actor: ACT-CUST, capability: ตั้งกระทู้สอบถาม, use_cases: [UC-FORUM]}
+  - {id: FR-3, actor: ACT-MGR, capability: ยืนยันการชำระเงิน, use_cases: [UC-PAY]}
+  - {id: FR-4, actor: ACT-SHIP, capability: ยืนยันการส่งสินค้า, use_cases: [UC-SHIP]}
+
+use_cases:
+  - id: UC-ORDER
+    name: สั่งซื้อสินค้า
+    actors: [ACT-CUST]
+    objectives: [O1, O2]
+    preconditions: [ล็อกอินแล้ว]
+    postconditions: [ใบสั่งซื้อถูกบันทึกและสต็อกถูกจอง]
+    main_flow:
+      - {step: 1, actor: ACT-CUST, action: เพิ่มสินค้าลงตะกร้า,
+         system_response: แสดงตะกร้าและสต็อกคงเหลือ,
+         fields: [ENT-PRODUCT.stock_qty]}
+      - {step: 2, actor: ACT-CUST, action: ยืนยันคำสั่งซื้อ,
+         system_response: สร้างใบสั่งซื้อสถานะรอชำระเงิน,
+         fields: [ENT-ORDER.order_status]}
+    extensions:
+      - {at_step: 1, condition: สินค้าหมด,
+         flow: ระบบแจ้งว่าหมดและเสนอสินค้าใกล้เคียง, fields: []}
+    special_reqs: []
+    entities: [ENT-PRODUCT, ENT-ORDER]
+    screens: [SCR-CART]
+  - id: UC-PAY
+    name: ยืนยันการชำระเงิน
+    actors: [ACT-MGR]
+    objectives: [O1]
+    preconditions: [มีใบสั่งซื้อรอชำระ]
+    postconditions: [ใบสั่งซื้อเปลี่ยนเป็นสถานะชำระแล้ว]
+    main_flow:
+      - {step: 1, actor: ACT-MGR, action: ตรวจไฟล์อนุมัติจากธนาคาร,
+         system_response: อัปเดตสถานะการชำระ,
+         fields: [ENT-PAYMENT.verify_code, ENT-ORDER.order_status]}
+    extensions:
+      - {at_step: 1, condition: ยอดเงินไม่ตรง,
+         flow: ระบบตีกลับรายการและแจ้งผู้จัดการ, fields: []}
+    special_reqs: []
+    entities: [ENT-PAYMENT, ENT-ORDER]
+    screens: [SCR-PAY]
+  - id: UC-SHIP
+    name: ยืนยันการส่งสินค้า
+    actors: [ACT-SHIP]
+    objectives: [O1]
+    preconditions: [ใบสั่งซื้อชำระแล้ว]
+    postconditions: [ใบสั่งซื้อเปลี่ยนเป็นสถานะส่งแล้ว]
+    main_flow:
+      - {step: 1, actor: ACT-SHIP, action: บันทึกเลขพัสดุ,
+         system_response: เปลี่ยนสถานะเป็นส่งแล้ว,
+         fields: [ENT-ORDER.order_status]}
+    extensions:
+      - {at_step: 1, condition: ลูกค้าคืนสินค้า,
+         flow: เปลี่ยนสถานะเป็นรับคืนและแจ้งผู้จัดการ, fields: []}
+    special_reqs: []
+    entities: [ENT-ORDER]
+    screens: [SCR-SHIP]
+  - id: UC-FORUM
+    name: ตั้งกระทู้สอบถาม
+    actors: [ACT-CUST]
+    objectives: [O2]
+    preconditions: [ล็อกอินแล้ว]
+    postconditions: [กระทู้ถูกบันทึกและแสดงบนเว็บบอร์ด]
+    main_flow:
+      - {step: 1, actor: ACT-CUST, action: โพสต์คำถาม,
+         system_response: บันทึกและแสดงกระทู้, fields: [ENT-TOPIC.title]}
+    extensions: []
+    special_reqs: []
+    entities: [ENT-TOPIC]
+    screens: [SCR-FORUM]
+
+entities:
+  - id: ENT-PRODUCT
+    name: สินค้า
+    fields:
+      - {name: product_id, type: string, size: 20, desc: รหัสสินค้า, pk: true}
+      - {name: product_name, type: string, size: 120, desc: ชื่อหนังสือ,
+         sample: ศาสตร์การปฏิญาณเพื่อการบำบัดรักษา}
+      - {name: unit_price, type: decimal, size: 9, desc: ราคาต่อหน่วย}
+      - {name: stock_qty, type: integer, size: 10, desc: จำนวนคงเหลือ}
+  - id: ENT-ORDER
+    name: ใบสั่งซื้อ
+    operations: ["calculateTotal()", "cancel()"]
+    fields:
+      - {name: order_id, type: string, size: 20, desc: เลขใบสั่งซื้อ, pk: true}
+      - {name: product_id, type: string, size: 20, desc: สินค้า,
+         fk: ENT-PRODUCT.product_id}
+      - {name: total_amount, type: decimal, size: 9, desc: ยอดรวม}
+      - {name: order_status, type: string, size: 20, desc: สถานะใบสั่งซื้อ}
+  - id: ENT-PAYMENT
+    name: การชำระเงิน
+    fields:
+      - {name: verify_code, type: string, size: 20, desc: รหัสอนุมัติ, pk: true}
+      - {name: order_id, type: string, size: 20, desc: ใบสั่งซื้อ,
+         fk: ENT-ORDER.order_id}
+      - {name: amount, type: decimal, size: 9, desc: จำนวนเงิน}
+  - id: ENT-TOPIC
+    name: กระทู้
+    fields:
+      - {name: topic_id, type: string, size: 20, desc: รหัสกระทู้, pk: true}
+      - {name: title, type: string, size: 200, desc: หัวข้อกระทู้}
+
+relationships:
+  - {from: ENT-ORDER, to: ENT-PRODUCT, type: association,
+     from_card: "*", to_card: "1", label: อ้างถึงสินค้า}
+  - {from: ENT-PAYMENT, to: ENT-ORDER, type: association,
+     from_card: "1", to_card: "1", label: ชำระเงินให้}
+
+states:
+  - entity: ENT-ORDER
+    field: order_status
+    states: [awaiting_payment, paid, shipped, returned, cancelled]
+    transitions:
+      - {from: awaiting_payment, to: paid, trigger: ยืนยันชำระเงิน, uc: UC-PAY}
+      - {from: paid, to: shipped, trigger: ยืนยันส่งสินค้า, uc: UC-SHIP}
+      - {from: shipped, to: returned, trigger: ลูกค้าคืนสินค้า, uc: UC-SHIP}
+      - {from: awaiting_payment, to: cancelled, trigger: เกิน 7 วันไม่ชำระ, uc: UC-PAY}
+
+nfrs:
+  - {id: NFR-1, category: performance, requirement: หน้า login ตอบสนอง,
+     metric: <= 3 วินาที, objectives: [O1]}
+  - {id: NFR-2, category: security, requirement: ไม่เก็บ CVV ในระบบ,
+     metric: ตรวจ schema, use_cases: [UC-PAY]}
+
+security:
+  - {id: SEC-1, concern: ข้อมูลบัตรเครดิต,
+     control: ส่งต่อให้ payment gateway ไม่เก็บเอง, use_cases: [UC-PAY]}
+
+architecture:
+  style: web client-server
+  components:
+    - {name: web, responsibility: UI + ตะกร้า}
+    - {name: api, responsibility: ธุรกรรมและสต็อก}
+    - {name: db, responsibility: จัดเก็บข้อมูล}
+  deployment: single VM + managed database
+
+screens:
+  - {id: SCR-CART, name: ตะกร้าสินค้า, use_cases: [UC-ORDER]}
+  - {id: SCR-PAY, name: ยืนยันการชำระเงิน, use_cases: [UC-PAY]}
+  - {id: SCR-SHIP, name: ยืนยันการส่งสินค้า, use_cases: [UC-SHIP]}
+  - {id: SCR-FORUM, name: เว็บบอร์ด, use_cases: [UC-FORUM]}
+
+plan:
+  phases:
+    - {name: วางแผน, from: "2026-07", to: "2026-07"}
+    - {name: วิเคราะห์, from: "2026-08", to: "2026-09"}
+    - {name: ออกแบบ, from: "2026-10", to: "2026-10"}
+    - {name: พัฒนาและทดสอบ, from: "2026-11", to: "2026-12"}
+
+budget:
+  - {item: Server, category: hardware, amount: 20000}
+  - {item: Managed DB, category: software, amount: 12000}
+
+literature:
+  - {topic: payment gateway, source: ธนาคารกรุงเทพ Merchant iPay,
+     relevance: แนวทางรับชำระโดยไม่เก็บข้อมูลบัตรเอง}

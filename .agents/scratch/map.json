@@ -1,0 +1,79 @@
+{
+  "backend": "github",
+  "map": {
+    "id": "77",
+    "dbId": 5096427063,
+    "key": "77",
+    "name": "\u0e04\u0e33\u0e19\u0e27\u0e19\u0e23\u0e30\u0e22\u0e30\u0e17\u0e32\u0e07\u0e44\u0e21\u0e48\u0e16\u0e39\u0e01 \u0e08\u0e32\u0e01\u0e08\u0e38\u0e14\u0e17\u0e35\u0e48\u0e16\u0e36\u0e07\u0e41\u0e25\u0e49\u0e27\u0e44\u0e1b\u0e08\u0e38\u0e14\u0e16\u0e31\u0e14\u0e44\u0e1b",
+    "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/77",
+    "destination": ""
+  },
+  "tickets": [
+    {
+      "key": "distance-calculation",
+      "id": "80",
+      "dbId": 5098093256,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Distance Calculation - \u0e43\u0e0a\u0e49\u0e2d\u0e30\u0e44\u0e23\u0e04\u0e33\u0e19\u0e27\u0e13\u0e23\u0e30\u0e22\u0e30\u0e17\u0e32\u0e07?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/80",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "location-fetching"
+      ],
+      "gist": null
+    },
+    {
+      "key": "location-fetching",
+      "id": "78",
+      "dbId": 5098093020,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Location Fetching - \u0e43\u0e0a\u0e49\u0e40\u0e04\u0e23\u0e37\u0e48\u0e2d\u0e07\u0e21\u0e37\u0e2d\u0e2d\u0e30\u0e44\u0e23\u0e14\u0e36\u0e07\u0e1e\u0e34\u0e01\u0e31\u0e14\u0e41\u0e25\u0e30\u0e08\u0e31\u0e14\u0e01\u0e32\u0e23\u0e40\u0e21\u0e37\u0e48\u0e2d\u0e1c\u0e39\u0e49\u0e43\u0e0a\u0e49\u0e44\u0e21\u0e48\u0e2d\u0e19\u0e38\u0e0d\u0e32\u0e15?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/78",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [],
+      "gist": null
+    },
+    {
+      "key": "proximity-threshold",
+      "id": "81",
+      "dbId": 5098093406,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Proximity Threshold - \u0e40\u0e01\u0e13\u0e11\u0e4c\u0e01\u0e32\u0e23\u0e40\u0e02\u0e49\u0e32\u0e43\u0e01\u0e25\u0e49\u0e41\u0e25\u0e30\u0e16\u0e36\u0e07\u0e08\u0e38\u0e14\u0e2b\u0e21\u0e32\u0e22\u0e04\u0e37\u0e2d\u0e40\u0e17\u0e48\u0e32\u0e43\u0e14?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/81",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "distance-calculation"
+      ],
+      "gist": null
+    },
+    {
+      "key": "ui-presentation",
+      "id": "79",
+      "dbId": 5098093131,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "UI Presentation - \u0e15\u0e33\u0e41\u0e2b\u0e19\u0e48\u0e07\u0e1b\u0e31\u0e08\u0e08\u0e38\u0e1a\u0e31\u0e19\u0e41\u0e25\u0e30\u0e1b\u0e38\u0e48\u0e21 Copy \u0e08\u0e30\u0e41\u0e2a\u0e14\u0e07\u0e1c\u0e25\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e44\u0e23?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/79",
+      "type": "prototype",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "location-fetching"
+      ],
+      "gist": null
+    }
+  ],
+  "divergence": [
+    "map 'title' in the input differs from the map as stored; left unchanged. To apply it you must re-chart, but --force fully rewrites every item named in the input and DISCARDS their recorded resolutions, claims and blocking edges -- editing the map by hand is usually the right move instead",
+    "map 'destination' in the input differs from the map as stored; left unchanged. To apply it you must re-chart, but --force fully rewrites every item named in the input and DISCARDS their recorded resolutions, claims and blocking edges -- editing the map by hand is usually the right move instead"
+  ]
+}

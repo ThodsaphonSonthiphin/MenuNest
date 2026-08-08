@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!--
+  =============================================================================
+  TERM DRILL-DOWN — single source of truth for the problem-description drawer.
+  This file is BOTH (a) the canonical copy of the drill-down primitive and
+  (b) a standalone runnable demo (open it directly in a browser).
+
+  TO ADD DRILL-DOWN TO A GENERATED WALKTHROUGH (see SKILL.md Phase 4):
+    1. Copy the §CSS block into the walkthrough's <style> (before its .hidden rule).
+    2. Copy the §HTML block in just before the </div> that closes .container.
+    3. Copy the §JS block into the walkthrough's <script>, after the DOM helpers.
+    4. In the walkthrough's render(step), add closeDrawer() as the FIRST line.
+    5. Replace the demo GLOSSARY with your terms (sourced from CONTEXT.md) and
+       mark terms in narration using the .term span with the data-term attribute
+       set to the matching GLOSSARY key.
+  Everything marked "DEMO ONLY" is the standalone harness — do NOT copy it.
+  =============================================================================
+-->
+<html lang="th"><head><meta charset="UTF-8"><title>term drill-down — source + demo</title>
+<style>
+  /* DEMO ONLY — page chrome + a local .hidden so this file runs standalone. Do not copy;
+     a generated walkthrough already defines .hidden and its own body/narration styles.
+     The :root below mirrors the engine tokens the §CSS references so the drawer is themed
+     when this file is opened raw; in a generated walkthrough the engine's :root provides them. */
+  :root { --accent:#5fb4ff; --accent-bright:#7ed4ff; --panel:#1a2330; --muted:#6b7785;
+          --text:#e0e6ed; --muted-2:#8a96a3; --border:#2a3441; --surface-active:#233040; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px; background:#0a0e14; color:#e0e6ed;
+         font-family:'Segoe UI','Tahoma',sans-serif; }
+  .narration { background:#1a2330; padding:14px 18px; border-radius:6px;
+               border-left:3px solid #5fb4ff; font-size:15px; line-height:1.7; max-width:680px; }
+  button { background:#5fb4ff; color:#0a0e14; border:none; padding:8px 16px;
+           border-radius:6px; font-weight:700; cursor:pointer; }
+  button.tertiary { background:#2a3441; color:#e0e6ed; }
+  .hidden { display: none !important; }
+
+  /* ===== §CSS  (copy into the walkthrough's <style>, before its .hidden rule) ===== */
+  /* Colors are engine :root tokens (var(--token)), so a palette change in the engine
+     propagates here too; the standalone demo's :root above supplies them when opened raw. */
+  .term { border-bottom: 1px dotted var(--accent); color: var(--accent); cursor: help; }
+  .term:hover { color: var(--accent-bright); }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 86vw;
+    background: var(--panel); border-left: 2px solid var(--accent);
+    box-shadow: -8px 0 24px #00000088;
+    padding: 18px 20px; overflow-y: auto; z-index: 50;
+  }
+  .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .drawer-term { color: var(--accent-bright); font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .drawer-source { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                   letter-spacing: 0.5px; margin: 2px 0 12px; }
+  .drawer-def { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+  .drawer-seealso-title { font-size: 11px; color: var(--muted-2); text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 8px; }
+  .seealso-chip {
+    display: inline-block; background: var(--panel); border: 1px solid var(--border);
+    color: var(--accent); border-radius: 14px; padding: 4px 12px;
+    margin: 0 6px 6px 0; font-size: 13px; cursor: pointer;
+  }
+  .seealso-chip:hover { background: var(--surface-active); border-color: var(--accent); }
+  .drawer-btns { display: flex; gap: 8px; margin-top: 18px; }
+  /* ===== end §CSS ===== */
+</style></head>
+<body>
+  <!-- DEMO ONLY — sample narration + a button that simulates render() closing the drawer. -->
+  <div class="narration" id="narration">
+    ทดสอบ: ทุก scene เป็น <span class="term" data-term="idempotent">idempotent</span>
+    และ DB ใช้ <span class="term" data-term="demo-key">demo key</span> เป็น lookup. ลองคลิกศัพท์.
+  </div>
+  <p><button id="simNext">ถัดไป → (จำลอง render(): ปิด drawer)</button></p>
+
+  <!-- ===== §HTML  (copy in just before the </div> that closes .container) ===== -->
+  <aside id="termDrawer" class="drawer hidden" aria-label="term definition">
+    <div class="drawer-head">
+      <span class="drawer-term" id="drawerTerm"></span>
+      <button class="tertiary" id="drawerClose" title="ปิด">✕</button>
+    </div>
+    <div class="drawer-source" id="drawerSource"></div>
+    <div class="drawer-def" id="drawerDef"></div>
+    <div class="drawer-seealso-title hidden" id="drawerSeeAlsoTitle">ดูเพิ่ม</div>
+    <div id="drawerSeeAlso"></div>
+    <div class="drawer-btns">
+      <button class="tertiary hidden" id="drawerBack">← ย้อน</button>
+    </div>
+  </aside>
+  <!-- ===== end §HTML ===== -->
+
+<script>
+/* ===== §JS  (copy into the walkthrough's <script>, after the DOM helper functions) ===== */
+
+/* GLOSSARY is provided by the generated walkthrough's authored bootstrap (inlined from
+   CONTEXT.md at authoring time): an object keyed by slug -> {term, short, seeAlso, source}
+   where source is 'CONTEXT.md' | 'authored'. The §JS below only READS it; the standalone
+   demo declares a demo GLOSSARY in its DEMO-ONLY block at the bottom of this file. */
+
+let drawerStack = [];   // GLOSSARY keys visited this open, for ← back
+
+function renderTerm(key) {
+  const entry = GLOSSARY[key];
+  if (!entry) return;
+  document.getElementById('drawerTerm').textContent = entry.term;
+  document.getElementById('drawerSource').textContent =
+    entry.source === 'CONTEXT.md' ? 'จาก CONTEXT.md' : 'อธิบายเพิ่มเติม';
+  document.getElementById('drawerDef').textContent = entry.short;
+  const wrap = document.getElementById('drawerSeeAlso');
+  wrap.innerHTML = '';
+  const related = (entry.seeAlso || []).filter(k => GLOSSARY[k]);
+  if (related.length) {
+    document.getElementById('drawerSeeAlsoTitle').classList.remove('hidden');
+    related.forEach(k => {
+      const chip = document.createElement('span');
+      chip.className = 'seealso-chip';
+      chip.textContent = GLOSSARY[k].term;
+      chip.dataset.hop = k;
+      wrap.appendChild(chip);
+    });
+  } else {
+    document.getElementById('drawerSeeAlsoTitle').classList.add('hidden');
+  }
+  document.getElementById('drawerBack').classList.toggle('hidden', drawerStack.length <= 1);
+}
+
+function openTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+  document.getElementById('termDrawer').classList.remove('hidden');
+}
+
+function hopTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+}
+
+function backTerm() {
+  if (drawerStack.length <= 1) return;
+  drawerStack.pop();
+  renderTerm(drawerStack[drawerStack.length - 1]);
+}
+
+function closeDrawer() {
+  drawerStack = [];
+  document.getElementById('termDrawer').classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  const termEl = e.target.closest('[data-term]');
+  if (termEl) { openTerm(termEl.dataset.term); return; }
+  const hopEl = e.target.closest('[data-hop]');
+  if (hopEl) { hopTerm(hopEl.dataset.hop); return; }
+});
+document.getElementById('drawerClose').onclick = closeDrawer;
+document.getElementById('drawerBack').onclick  = backTerm;
+
+// Self-register with the walkthrough engine so stepping closes the drawer
+// (Phase 2 RENDER_HOOKS model). Guarded so this file still runs standalone.
+if (typeof RENDER_HOOKS !== 'undefined' && RENDER_HOOKS.indexOf(closeDrawer) === -1) RENDER_HOOKS.push(closeDrawer);
+/* ===== end §JS ===== */
+
+/* DEMO ONLY — a demo GLOSSARY (the real one is authored in the walkthrough bootstrap) +
+   the sim button that mimics render() closing the drawer on a step change. */
+const GLOSSARY = {
+  'idempotent': { term: 'idempotent', short: 'an operation that lands on the same state no matter how many times it runs — the rule every scene in a walkthrough follows.', seeAlso: ['demo-key'], source: 'authored' },
+  'demo-key':   { term: 'demo key', short: 'the lookup key the demo DB stores its value under.', seeAlso: [], source: 'CONTEXT.md' },
+};
+document.getElementById('simNext').onclick = closeDrawer;
+</script>
+</body></html>
