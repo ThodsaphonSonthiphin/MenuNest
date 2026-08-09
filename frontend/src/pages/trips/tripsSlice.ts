@@ -14,7 +14,7 @@ interface TripsState {
   activeStopId: string | null
   createTripOpen: boolean
   addMode: boolean
-  itineraryMapCollapsed: boolean
+  itineraryMapExpanded: boolean
   stopEditorStopId: string | null
   placeEditorPlaceId: string | null
   viewerLocation: {lat: number; lng: number} | null
@@ -24,7 +24,7 @@ interface TripsState {
 const initialState: TripsState = {
   activeDayId: null, activeTab: 'itinerary', placesView: 'map',
   placeCategoryFilter: 'all', activeStopId: null,
-  createTripOpen: false, addMode: false, itineraryMapCollapsed: false,
+  createTripOpen: false, addMode: false, itineraryMapExpanded: false,
   stopEditorStopId: null,
   placeEditorPlaceId: null,
   viewerLocation: null,
@@ -42,7 +42,7 @@ const tripsSlice = createSlice({
     setActiveStop(s, a: PayloadAction<string | null>) { s.activeStopId = a.payload },
     setCreateTripOpen(s, a: PayloadAction<boolean>) { s.createTripOpen = a.payload },
     setAddMode(s, a: PayloadAction<boolean>) { s.addMode = a.payload },
-    setItineraryMapCollapsed(s, a: PayloadAction<boolean>) { s.itineraryMapCollapsed = a.payload },
+    setItineraryMapExpanded(s, a: PayloadAction<boolean>) { s.itineraryMapExpanded = a.payload },
     setStopEditor(s, a: PayloadAction<string | null>) { s.stopEditorStopId = a.payload },
     setPlaceEditor(s, a: PayloadAction<string | null>) { s.placeEditorPlaceId = a.payload },
     setViewerLocation(s, a: PayloadAction<{lat: number; lng: number} | null>) { s.viewerLocation = a.payload },
@@ -53,7 +53,7 @@ const tripsSlice = createSlice({
 
 export const {
   setActiveDay, setActiveTab, setPlacesView, setPlaceCategoryFilter,
-  setActiveStop, setCreateTripOpen, setAddMode, setItineraryMapCollapsed, setStopEditor,
+  setActiveStop, setCreateTripOpen, setAddMode, setItineraryMapExpanded, setStopEditor,
   setViewerLocation,
   setPlaceEditor,
   startAddStopCapture, endAddStopCapture,
