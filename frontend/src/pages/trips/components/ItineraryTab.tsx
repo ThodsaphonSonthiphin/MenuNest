@@ -25,7 +25,7 @@ import {
 } from '../../../shared/api/api'
 import type {ItineraryDayDto, TripPlaceDto} from '../../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../../store/index'
-import {setActiveDay, setStopEditor, setItineraryMapCollapsed, startAddStopCapture} from '../tripsSlice'
+import {setActiveDay, setStopEditor, setItineraryMapExpanded, startAddStopCapture} from '../tripsSlice'
 import {useSchedule} from '../hooks/useSchedule'
 import {useStopWeather} from '../hooks/useStopWeather'
 import {SegmentedTabs} from './SegmentedTabs'
@@ -38,7 +38,7 @@ import {StopDetailSheet} from './StopDetailSheet'
 import {DayStartEditor} from './DayStartEditor'
 import {NavIcon} from './NavIcon'
 import {TripMap} from './TripMap'
-import {ChevronUpIcon, ChevronDownIcon, MapRouteIcon} from './TripFormIcons'
+import {ChevronDownIcon, MapRouteIcon} from './TripFormIcons'
 import type {DayRoute} from '../hooks/useDayRoute'
 import {buildDayNavUrl, buildStopNavUrl, getWaypointCap} from '../lib/navUrl'
 import {monthOfDate} from '../lib/season'
@@ -131,7 +131,7 @@ export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: strin
   const {uvWarnThreshold, feelsLikeWarnThreshold} = useCurrentUser()
   const activeDayId = useAppSelector((s) => s.trips.activeDayId)
   const editorStopId = useAppSelector((s) => s.trips.stopEditorStopId)
-  const mapCollapsed = useAppSelector((s) => s.trips.itineraryMapCollapsed)
+  const mapExpanded = useAppSelector((s) => s.trips.itineraryMapExpanded)
   const viewerLocation = useAppSelector((s) => s.trips.viewerLocation)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -250,39 +250,43 @@ export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: strin
       />
 
       {dayRoute && (
-        <div className={`itin-map-band${mapCollapsed ? ' collapsed' : ''}`}>
-          <TripMap
-            places={places ?? []}
-            route={dayRoute.route}
-            segments={dayRoute.segments}
-            viewerLocation={dayRoute.viewerLocation}
-            gestureHandling="cooperative"
-            fitPadding={BAND_FIT_PADDING}
-          />
-          {mapCollapsed ? (
-            <button
-              type="button"
-              className="itin-map-strip"
-              aria-label="แสดงแผนที่เส้นทาง"
-              aria-expanded={false}
-              onClick={() => dispatch(setItineraryMapCollapsed(false))}
-            >
-              <MapRouteIcon className="itin-map-strip-lead" />
-              <span>แสดงแผนที่เส้นทาง</span>
-              <ChevronDownIcon className="itin-map-strip-chev" />
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="itin-map-collapse"
-              aria-label="ย่อแผนที่"
-              aria-expanded={true}
-              onClick={() => dispatch(setItineraryMapCollapsed(true))}
-            >
-              <ChevronUpIcon />
-            </button>
-          )}
-        </div>
+        <>
+          {mapExpanded && <div className="itin-map-band-placeholder" />}
+          <div className={`itin-map-band${mapExpanded ? ' full-screen' : ''}`}>
+            <TripMap
+              places={places ?? []}
+              route={dayRoute.route}
+              segments={dayRoute.segments}
+              viewerLocation={dayRoute.viewerLocation}
+              gestureHandling={mapExpanded ? 'greedy' : 'none'}
+              fitPadding={BAND_FIT_PADDING}
+            />
+            {mapExpanded ? (
+              <button
+                type="button"
+                className="itin-map-collapse"
+                aria-label="ย่อแผนที่"
+                aria-expanded={true}
+                onClick={() => dispatch(setItineraryMapExpanded(false))}
+              >
+                <ChevronDownIcon />
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="itin-map-expand-overlay"
+                aria-label="ขยายแผนที่"
+                aria-expanded={false}
+                onClick={() => dispatch(setItineraryMapExpanded(true))}
+              >
+                <div className="itin-map-expand-badge">
+                  <MapRouteIcon />
+                  <span>แตะเพื่อขยายแผนที่</span>
+                </div>
+              </button>
+            )}
+          </div>
+        </>
       )}
 
       <div className="day-summary">

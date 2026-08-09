@@ -578,21 +578,29 @@
   border-radius: 12px;
   transition: height 0.2s ease;
 }
-.itinerary-tab .itin-map-band.collapsed { height: 44px; }
+.itinerary-tab .itin-map-band-placeholder { height: 188px; }
+.itinerary-tab .itin-map-band.full-screen {
+  position: fixed;
+  inset: 0;
+  height: 100dvh;
+  z-index: 1000;
+  border-radius: 0;
+  margin: 0;
+}
 .itinerary-tab .itin-map-band .trip-map {
   height: 100%;
   min-height: 0;
 }
-/* Collapse affordance (expanded state) — small round icon button, top-right over the map */
+/* Collapse affordance (full-screen state) — small round icon button, top-right over the map */
 .itinerary-tab .itin-map-collapse {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: calc(env(safe-area-inset-top, 0px) + 10px);
+  right: calc(env(safe-area-inset-right, 0px) + 10px);
   z-index: 2;
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   border: 0;
-  border-radius: 9px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.95);
   color: var(--ink);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
@@ -601,28 +609,36 @@
   justify-content: center;
   cursor: pointer;
 }
-.itinerary-tab .itin-map-collapse svg { width: 18px; height: 18px; }
-/* Expand affordance (collapsed state) — opaque full-band strip over the clipped map */
-.itinerary-tab .itin-map-strip {
+.itinerary-tab .itin-map-collapse svg { width: 24px; height: 24px; }
+/* Expand affordance (inline state) — transparent button covering the map */
+.itinerary-tab .itin-map-expand-overlay {
   position: absolute;
   inset: 0;
   z-index: 2;
   width: 100%;
   height: 100%;
   border: 0;
-  background: var(--surface);
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 10px;
+  cursor: pointer;
+}
+.itinerary-tab .itin-map-expand-badge {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 8px 16px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 14px;
-  cursor: pointer;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--teal-deep);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  pointer-events: none; /* Let the parent button handle clicks */
 }
-.itinerary-tab .itin-map-strip span { flex: 1; text-align: left; }
-.itinerary-tab .itin-map-strip svg { width: 16px; height: 16px; flex: none; }
-.itinerary-tab .itin-map-strip-chev { color: var(--muted); }
+.itinerary-tab .itin-map-expand-badge svg { width: 16px; height: 16px; flex: none; }
 
 /* Review link (TikTok) affordance — trailing icon + popover (ADR-052) */
 .stop-review-wrap { position: relative; display: flex; }
