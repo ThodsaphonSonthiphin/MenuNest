@@ -28,7 +28,7 @@ export function PlaceLinkFallbackDialog({onResolved, onClose}: PlaceLinkFallback
   }
 
   return (
-    <Dialog open onClose={onClose} modal target={document.body} header="วางลิงก์จาก Google Maps" className="place-link-fallback-dialog">
+    <Dialog open onClose={onClose} modal target={document.body} header="วางลิงก์จาก Google Maps" className="place-link-fallback-dialog" {...{zIndex: 1300} as any}>
       <div className="add-place-sheet">
         <div className="trip-form-field">
           <label className="trip-form-label">วางลิงก์จาก Google Maps</label>
