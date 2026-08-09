@@ -25,6 +25,7 @@ export function useStopWeather(
   // RTK Query collapses the batch args to a stable cache key via the endpoint's serializeQueryArgs,
   // so passing fresh arrays each render does not cause refetch churn.
   const stops = scheduled
+    .filter(s => !s.stop.isVisited)
     .map((s) => {
       const p = placesById[s.stop.tripPlaceId]
       return p ? {stopId: s.stop.id, lat: p.lat, lng: p.lng, arrivalIso: arrivalIso(day.date, s.arrival)} : null
