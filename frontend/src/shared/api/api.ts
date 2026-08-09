@@ -514,7 +514,7 @@ export interface ChecklistItem {
     id: string
     name: string
 }
-export interface PlaceChecklistEntry {
+export interface StopChecklistEntry {
     id: string
     checklistItemId: string
     name: string
@@ -526,13 +526,12 @@ export interface TripPlaceDto {
     openingHoursJson: string | null
     feeNote: string | null; notes: string | null
     reviewLinks: ReviewLink[]
-    checklist: PlaceChecklistEntry[]
     hasProfile: boolean
     seasonPeriods: SeasonPeriod[]
     bestTimeWindows: BestTimeWindow[]
 }
 export interface LegDto { seconds: number; meters: number; encodedPolyline: string | null; source: RouteSource }
-export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean }
+export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean; checklist: StopChecklistEntry[] }
 export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; useCurrentTimeAsStart: boolean; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
 export interface PlaceTripRefDto { tripId: string; tripName: string }
@@ -1403,32 +1402,40 @@ export const api = createApi({
             query: () => `/api/checklist-items`,
             providesTags: [{type: 'ChecklistItems', id: 'LIST'}],
         }),
-        attachChecklistItem: build.mutation<PlaceChecklistEntry, {tripId: string; placeId: string; name: string}>({
-            query: ({tripId, placeId, name}) => ({url: `/api/trips/${tripId}/places/${placeId}/checklist`, method: 'POST', body: {name}}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'ChecklistItems', id: 'LIST'}],
+        attachChecklistItem: build.mutation<StopChecklistEntry, {tripId: string; stopId: string; name: string}>({
+            query: ({tripId, stopId, name}) => ({url: `/api/trips/${tripId}/stops/${stopId}/checklist`, method: 'POST', body: {name}}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}, {type: 'ChecklistItems', id: 'LIST'}],
         }),
-        detachChecklistItem: build.mutation<void, {tripId: string; placeId: string; entryId: string}>({
-            query: ({tripId, placeId, entryId}) => ({url: `/api/trips/${tripId}/places/${placeId}/checklist/${entryId}`, method: 'DELETE'}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}],
+        detachChecklistItem: build.mutation<void, {tripId: string; stopId: string; entryId: string}>({
+            query: ({tripId, stopId, entryId}) => ({url: `/api/trips/${tripId}/stops/${stopId}/checklist/${entryId}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
         }),
-        setChecklistEntryChecked: build.mutation<void, {tripId: string; placeId: string; entryId: string; isChecked: boolean}>({
-            query: ({tripId, placeId, entryId, isChecked}) => ({
-                url: `/api/trips/${tripId}/places/${placeId}/checklist/${entryId}`, method: 'PATCH', body: {isChecked},
+        setChecklistEntryChecked: build.mutation<void, {tripId: string; stopId: string; entryId: string; isChecked: boolean}>({
+            query: ({tripId, stopId, entryId, isChecked}) => ({
+                url: `/api/trips/${tripId}/stops/${stopId}/checklist/${entryId}/checked`, method: 'PUT', body: {isChecked},
             }),
-            // Optimistic, NON-invalidating (ADR-042 / ADR-060). placesById is fed by listTripPlaces,
-            // keyed by the plain tripId string -- a single-entry patch (simpler than setStopVisited's fan-out).
-            onQueryStarted: async ({tripId, placeId, entryId, isChecked}, {dispatch, queryFulfilled}) => {
-                const patch = dispatch(
-                    api.util.updateQueryData('listTripPlaces', tripId, (draft) => {
-                        const place = draft.find((p) => p.id === placeId)
-                        const entry = place?.checklist.find((e) => e.id === entryId)
-                        if (entry) entry.isChecked = isChecked
-                    }),
-                )
+            // Optimistic, NON-invalidating (ADR-042 / ADR-060).
+            onQueryStarted: async ({tripId, stopId, entryId, isChecked}, {dispatch, queryFulfilled, getState}) => {
+                const entries = api.util.selectInvalidatedBy(getState(), [{type: 'TripItinerary', id: tripId}])
+                const patches = entries
+                    .filter((e) => e.endpointName === 'getItinerary')
+                    .map((e) =>
+                        dispatch(
+                            api.util.updateQueryData('getItinerary', e.originalArgs as any, (draft) => {
+                                for (const day of draft) {
+                                    const stop = day.stops.find(s => s.id === stopId)
+                                    if (stop) {
+                                        const entry = stop.checklist.find(c => c.id === entryId)
+                                        if (entry) entry.isChecked = isChecked
+                                    }
+                                }
+                            })
+                        )
+                    )
                 try {
                     await queryFulfilled
                 } catch {
-                    patch.undo()
+                    patches.forEach((patch) => patch.undo())
                 }
             },
         }),

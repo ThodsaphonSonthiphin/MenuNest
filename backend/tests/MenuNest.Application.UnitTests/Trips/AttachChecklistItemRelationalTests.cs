@@ -35,14 +35,18 @@ public sealed class AttachChecklistItemRelationalTests : IDisposable
         _users.Setup(u => u.GetOrProvisionCurrentAsync(It.IsAny<CancellationToken>())).ReturnsAsync(_user);
     }
 
-    private (Guid tripId, Guid placeId) Seed()
+    private (Guid tripId, Guid StopId) Seed()
     {
         var trip = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
         _db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1));
+        _db.ItineraryDays.Add(day);
         var place = TripPlace.Create(trip.Id, "A place", 0, 0, PlaceCategory.See);
         _db.TripPlaces.Add(place);
+        var stop = Stop.Create(day.Id, place.Id, 0, 60, TravelMode.Drive);
+        _db.Stops.Add(stop);
         _db.SaveChanges();
-        return (trip.Id, place.Id);
+        return (trip.Id, stop.Id);
     }
 
     private AttachChecklistItemHandler Handler() => new(_db, _users.Object, _validator);
@@ -50,21 +54,21 @@ public sealed class AttachChecklistItemRelationalTests : IDisposable
     [Fact]
     public async Task New_name_creates_library_item_and_entry()
     {
-        var (tripId, placeId) = Seed();
-        var dto = await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, " ร่ม "), CancellationToken.None);
+        var (tripId, StopId) = Seed();
+        var dto = await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, " ร่ม "), CancellationToken.None);
         dto.Name.Should().Be("ร่ม");
         dto.IsChecked.Should().BeFalse();
         (await _db.ChecklistItems.CountAsync(i => i.UserId == _user.Id && i.Name == "ร่ม")).Should().Be(1);
-        (await _db.PlaceChecklistEntries.CountAsync(e => e.TripPlaceId == placeId)).Should().Be(1);
+        (await _db.StopChecklistEntries.CountAsync(e => e.StopId == StopId)).Should().Be(1);
     }
 
     [Fact]
     public async Task Existing_name_is_reused_case_insensitively_no_duplicate_item()
     {
-        var (tripId, placeId) = Seed();
+        var (tripId, StopId) = Seed();
         _db.ChecklistItems.Add(ChecklistItem.Create(_user.Id, "Umbrella"));
         await _db.SaveChangesAsync();
-        var dto = await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "umbrella"), CancellationToken.None);
+        var dto = await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, "umbrella"), CancellationToken.None);
         dto.Name.Should().Be("Umbrella");
         (await _db.ChecklistItems.CountAsync(i => i.UserId == _user.Id)).Should().Be(1);
     }
@@ -72,45 +76,45 @@ public sealed class AttachChecklistItemRelationalTests : IDisposable
     [Fact]
     public async Task Attaching_same_item_twice_is_idempotent()
     {
-        var (tripId, placeId) = Seed();
-        var first = await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "ร่ม"), CancellationToken.None);
-        var second = await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "ร่ม"), CancellationToken.None);
+        var (tripId, StopId) = Seed();
+        var first = await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, "ร่ม"), CancellationToken.None);
+        var second = await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, "ร่ม"), CancellationToken.None);
         second.Id.Should().Be(first.Id);
-        (await _db.PlaceChecklistEntries.CountAsync(e => e.TripPlaceId == placeId)).Should().Be(1);
+        (await _db.StopChecklistEntries.CountAsync(e => e.StopId == StopId)).Should().Be(1);
     }
 
     [Fact]
     public async Task Rejects_trip_not_owned()
     {
-        var (_, placeId) = Seed();
+        var (_, StopId) = Seed();
         var stranger = new Mock<IUserProvisioner>();
         stranger.Setup(u => u.GetOrProvisionCurrentAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(User.CreateFromExternalLogin("oidX", "x@x.com", "X", AuthProvider.Microsoft));
         var handler = new AttachChecklistItemHandler(_db, stranger.Object, _validator);
-        var act = () => handler.Handle(new AttachChecklistItemCommand(Guid.NewGuid(), placeId, "ร่ม"), CancellationToken.None).AsTask();
+        var act = () => handler.Handle(new AttachChecklistItemCommand(Guid.NewGuid(), StopId, "ร่ม"), CancellationToken.None).AsTask();
         await act.Should().ThrowAsync<DomainException>();
     }
 
     [Fact]
     public async Task Attaching_beyond_max_per_place_throws()
     {
-        var (tripId, placeId) = Seed();
-        for (var i = 0; i < PlaceChecklistEntry.MaxPerPlace; i++)
-            await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, $"item {i}"), CancellationToken.None);
+        var (tripId, StopId) = Seed();
+        for (var i = 0; i < StopChecklistEntry.MaxPerStop; i++)
+            await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, $"item {i}"), CancellationToken.None);
 
-        var act = () => Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "one too many"), CancellationToken.None).AsTask();
+        var act = () => Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, "one too many"), CancellationToken.None).AsTask();
 
         await act.Should().ThrowAsync<DomainException>();
-        (await _db.PlaceChecklistEntries.CountAsync(e => e.TripPlaceId == placeId)).Should().Be(PlaceChecklistEntry.MaxPerPlace);
+        (await _db.StopChecklistEntries.CountAsync(e => e.StopId == StopId)).Should().Be(StopChecklistEntry.MaxPerStop);
     }
 
     [Fact]
     public async Task Whitespace_is_collapsed_and_reused()
     {
-        var (tripId, placeId) = Seed();
-        var first = await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "  ร่ม   ใหญ่  "), CancellationToken.None);
+        var (tripId, StopId) = Seed();
+        var first = await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, "  ร่ม   ใหญ่  "), CancellationToken.None);
         first.Name.Should().Be("ร่ม ใหญ่");
-        await Handler().Handle(new AttachChecklistItemCommand(tripId, placeId, "ร่ม ใหญ่"), CancellationToken.None);
+        await Handler().Handle(new AttachChecklistItemCommand(tripId, StopId, "ร่ม ใหญ่"), CancellationToken.None);
         (await _db.ChecklistItems.CountAsync(i => i.UserId == _user.Id)).Should().Be(1);
     }
 

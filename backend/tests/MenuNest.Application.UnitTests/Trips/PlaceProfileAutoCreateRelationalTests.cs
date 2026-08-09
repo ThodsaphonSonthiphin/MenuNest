@@ -42,19 +42,23 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
         return m;
     }
 
-    private Guid AddPlace(string? placeId)
+    private (Guid placeId, Guid stopId) AddPlace(string? placeId)
     {
         var place = TripPlace.Create(_trip.Id, "P", 1, 2, PlaceCategory.See, placeId);
         _db.TripPlaces.Add(place);
+        var day = ItineraryDay.Create(_trip.Id, new DateOnly(2026, 11, 1));
+        _db.ItineraryDays.Add(day);
+        var stop = Stop.Create(day.Id, place.Id, 0, 60, TravelMode.Drive);
+        _db.Stops.Add(stop);
         _db.SaveChanges();
         _db.ChangeTracker.Clear();
-        return place.Id;
+        return (place.Id, stop.Id);
     }
 
     [Fact]
     public async Task First_save_with_enrichment_auto_creates_the_master()
     {
-        var placeId = AddPlace("places/AC1");
+        var (placeId, stopId) = AddPlace("places/AC1");
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
             new[] { new BestTimeWindowDto(new TimeOnly(9, 0), new TimeOnly(11, 0), null) }, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
@@ -65,9 +69,9 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
     }
 
     [Fact]
-    public async Task Second_save_does_not_overwrite_an_existing_master()
+    public async Task Subsequent_saves_update_the_master()
     {
-        var placeId = AddPlace("places/AC2");
+        var (placeId, stopId) = AddPlace("places/AC2");
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
             new[] { new BestTimeWindowDto(new TimeOnly(9, 0), new TimeOnly(11, 0), null) }, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
@@ -79,32 +83,9 @@ public sealed class PlaceProfileAutoCreateRelationalTests : IDisposable
     }
 
     [Fact]
-    public async Task Checklist_attach_alone_does_not_create_a_master_but_a_later_save_does()
-    {
-        var placeId = AddPlace("places/AC3");
-        await new AttachChecklistItemHandler(_db, Users().Object, new AttachChecklistItemValidator())
-            .Handle(new AttachChecklistItemCommand(_trip.Id, placeId, "passport"), default);
-
-        // Attach alone does NOT mint a master (decoupled from the #23 hot path, ADR-064 post-scrutinize).
-        (await _db.Set<PlaceProfile>().CountAsync(p => p.GooglePlaceId == "places/AC3")).Should().Be(0);
-
-        // A subsequent editor Save creates the master, capturing the already-attached item.
-        await new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator())
-            .Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
-                new[] { new BestTimeWindowDto(new TimeOnly(9, 0), new TimeOnly(11, 0), null) }, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);
-
-        var profile = await _db.Set<PlaceProfile>().FirstOrDefaultAsync(p => p.GooglePlaceId == "places/AC3");
-        profile.Should().NotBeNull();
-        var itemNames = await (from x in _db.Set<PlaceProfileChecklistItem>()
-                               join i in _db.ChecklistItems on x.ChecklistItemId equals i.Id
-                               where x.PlaceProfileId == profile!.Id select i.Name).ToListAsync();
-        itemNames.Should().ContainSingle().Which.Should().Be("passport");
-    }
-
-    [Fact]
     public async Task Save_with_no_place_id_creates_no_master()
     {
-        var placeId = AddPlace(null);
+        var (placeId, _) = AddPlace(null);
         var handler = new UpdateTripPlaceHandler(_db, Users().Object, new UpdateTripPlaceValidator());
         await handler.Handle(new UpdateTripPlaceCommand(_trip.Id, placeId, "P", PlaceCategory.See, null, null, null,
             new[] { new BestTimeWindowDto(new TimeOnly(9, 0), new TimeOnly(11, 0), null) }, Array.Empty<ReviewLinkDto>(), Array.Empty<SeasonPeriodDto>()), default);

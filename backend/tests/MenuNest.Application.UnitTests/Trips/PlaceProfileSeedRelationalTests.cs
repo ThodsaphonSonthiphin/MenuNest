@@ -67,7 +67,6 @@ public sealed class PlaceProfileSeedRelationalTests : IDisposable
         dto.HasProfile.Should().BeTrue();
         dto.BestTimeWindows.Should().ContainSingle().Which.Start.Should().Be(new TimeOnly(16, 0));
         dto.ReviewLinks.Should().ContainSingle();
-        dto.Checklist.Should().ContainSingle().Which.Name.Should().Be("sunscreen");
     }
 
     [Fact]
@@ -78,7 +77,6 @@ public sealed class PlaceProfileSeedRelationalTests : IDisposable
             default);
         dto.HasProfile.Should().BeFalse();
         dto.BestTimeWindows.Should().BeEmpty();
-        dto.Checklist.Should().BeEmpty();
     }
 
     [Fact]
@@ -89,7 +87,6 @@ public sealed class PlaceProfileSeedRelationalTests : IDisposable
             new AddTripPlaceCommand(_trip.Id, "Manual", 1, 2, PlaceCategory.See, null, null, null, null, null),
             default);
         dto.HasProfile.Should().BeFalse();
-        dto.Checklist.Should().BeEmpty();
     }
 
     [Fact]

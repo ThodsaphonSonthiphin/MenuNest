@@ -131,7 +131,6 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
             photoUrl: selected.photoUrl,
             openingHoursJson: selected.openingHoursJson,
             reviewLinks: sanitizeReviewDrafts(reviewDrafts),
-            checklist: [],
           }).unwrap()
         ).id
       createdRef.current = placeId

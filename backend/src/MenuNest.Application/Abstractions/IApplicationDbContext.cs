@@ -47,7 +47,7 @@ public interface IApplicationDbContext
     DbSet<ItineraryDay> ItineraryDays { get; }
     DbSet<Stop> Stops { get; }
     DbSet<ChecklistItem> ChecklistItems { get; }
-    DbSet<PlaceChecklistEntry> PlaceChecklistEntries { get; }
+    DbSet<StopChecklistEntry> StopChecklistEntries { get; }
     DbSet<PlaceProfile> PlaceProfiles { get; }
     DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems { get; }
 

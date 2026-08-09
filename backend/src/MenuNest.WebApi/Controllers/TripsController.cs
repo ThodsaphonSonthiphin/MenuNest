@@ -90,17 +90,17 @@ public sealed class TripsController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<ChecklistItemDto>>> ListChecklistItems(CancellationToken ct)
         => Ok(await _mediator.Send(new ListChecklistItemsQuery(), ct));
 
-    [HttpPost("api/trips/{id:guid}/places/{placeId:guid}/checklist")]
-    public async Task<ActionResult<PlaceChecklistEntryDto>> AttachChecklistItem(Guid id, Guid placeId, [FromBody] AttachChecklistBody b, CancellationToken ct)
-        => Ok(await _mediator.Send(new AttachChecklistItemCommand(id, placeId, b.Name), ct));
+    [HttpPost("api/trips/{id:guid}/stops/{stopId:guid}/checklist")]
+    public async Task<ActionResult<StopChecklistEntryDto>> AttachChecklistItem(Guid id, Guid stopId, [FromBody] AttachChecklistBody b, CancellationToken ct)
+        => Ok(await _mediator.Send(new AttachChecklistItemCommand(id, stopId, b.Name), ct));
 
-    [HttpDelete("api/trips/{id:guid}/places/{placeId:guid}/checklist/{entryId:guid}")]
-    public async Task<IActionResult> DetachChecklistItem(Guid id, Guid placeId, Guid entryId, CancellationToken ct)
-    { await _mediator.Send(new DetachChecklistItemCommand(id, placeId, entryId), ct); return NoContent(); }
+    [HttpDelete("api/trips/{id:guid}/stops/{stopId:guid}/checklist/{entryId:guid}")]
+    public async Task<IActionResult> DetachChecklistItem(Guid id, Guid stopId, Guid entryId, CancellationToken ct)
+    { await _mediator.Send(new DetachChecklistItemCommand(id, stopId, entryId), ct); return NoContent(); }
 
-    [HttpPatch("api/trips/{id:guid}/places/{placeId:guid}/checklist/{entryId:guid}")]
-    public async Task<ActionResult<PlaceChecklistEntryDto>> SetChecklistItemChecked(Guid id, Guid placeId, Guid entryId, [FromBody] SetChecklistCheckedBody b, CancellationToken ct)
-        => Ok(await _mediator.Send(new SetChecklistEntryCheckedCommand(id, placeId, entryId, b.IsChecked), ct));
+    [HttpPut("api/trips/{id:guid}/stops/{stopId:guid}/checklist/{entryId:guid}/checked")]
+    public async Task<ActionResult<StopChecklistEntryDto>> SetChecklistItemChecked(Guid id, Guid stopId, Guid entryId, [FromBody] SetChecklistCheckedBody b, CancellationToken ct)
+        => Ok(await _mediator.Send(new SetChecklistEntryCheckedCommand(id, stopId, entryId, b.IsChecked), ct));
 
     [HttpGet("api/trips/{id:guid}/itinerary")]
     public async Task<ActionResult<IReadOnlyList<ItineraryDayDto>>> GetItinerary(

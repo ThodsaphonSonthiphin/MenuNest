@@ -53,6 +53,16 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
         var places = await _db.TripPlaces.Where(p => placeIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, ct);
 
+        var stopIds = stops.Select(s => s.Id).ToList();
+        var checklistEntries = await (from e in _db.StopChecklistEntries
+                                      join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
+                                      where stopIds.Contains(e.StopId)
+                                      orderby e.CreatedAt, e.Id
+                                      select new { e.StopId, Dto = new StopChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked) })
+                                     .ToListAsync(ct);
+        var checklistByStop = checklistEntries.GroupBy(x => x.StopId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<StopChecklistEntryDto>)g.Select(x => x.Dto).ToList());
+
         var dayStopsById = days.ToDictionary(
             d => d.Id, d => stops.Where(s => s.ItineraryDayId == d.Id).OrderBy(s => s.Sequence).ToList());
 
@@ -94,7 +104,8 @@ public sealed class GetItineraryHandler : IQueryHandler<GetItineraryQuery, IRead
                 LegDto? leg = legByKey.TryGetValue((day.Id, i), out var l)
                     ? new LegDto(l.Seconds, l.Meters, l.EncodedPolyline, l.Source)
                     : null;
-                stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg, s.IsVisited));
+                var checklist = checklistByStop.TryGetValue(s.Id, out var cl) ? cl : Array.Empty<StopChecklistEntryDto>();
+                stopDtos.Add(new StopDto(s.Id, s.TripPlaceId, s.Sequence, s.DwellMinutes, s.TravelModeToReach, leg, s.IsVisited, checklist));
             }
             // A Day flagged UseCurrentTimeAsStart tracks the real clock on every read (the
             // persisted DayStartTime is left untouched as the fallback for when the flag is

@@ -4,7 +4,7 @@ import {
   useAttachChecklistItemMutation,
   useDetachChecklistItemMutation,
   useSetChecklistEntryCheckedMutation,
-  type PlaceChecklistEntry,
+  type StopChecklistEntry,
 } from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {ChecklistIcon} from './ChecklistIcon'
@@ -19,12 +19,12 @@ import {
 
 export function ChecklistSection({
   tripId,
-  placeId,
+  stopId,
   checklist,
 }: {
   tripId: string
-  placeId: string
-  checklist: PlaceChecklistEntry[]
+  stopId: string
+  checklist: StopChecklistEntry[]
 }) {
   const {data: library} = useListChecklistItemsQuery()
   const [attachChecklist] = useAttachChecklistItemMutation()
@@ -42,17 +42,17 @@ export function ChecklistSection({
     setCkError(null)
     if (!isValidChecklistName(name)) { setCkError('ชื่อไม่ถูกต้อง หรือยาวเกิน 100 ตัวอักษร'); return }
     if (checklist.length >= MAX_CHECKLIST_ITEMS_PER_PLACE) { setCkError(`เพิ่มได้สูงสุด ${MAX_CHECKLIST_ITEMS_PER_PLACE} รายการ`); return }
-    try { await attachChecklist({tripId, placeId, name: normalizeChecklistName(name)}).unwrap(); setCkDraft('') }
+    try { await attachChecklist({tripId, stopId, name: normalizeChecklistName(name)}).unwrap(); setCkDraft('') }
     catch (err) { setCkError(getErrorMessage(err)) }
   }
   const toggleChecklist = async (entryId: string, next: boolean) => {
     setCkError(null)
-    try { await setChecklistChecked({tripId, placeId, entryId, isChecked: next}).unwrap() }
+    try { await setChecklistChecked({tripId, stopId, entryId, isChecked: next}).unwrap() }
     catch (err) { setCkError(getErrorMessage(err)) }
   }
   const removeChecklist = async (entryId: string) => {
     setCkError(null)
-    try { await detachChecklist({tripId, placeId, entryId}).unwrap() }
+    try { await detachChecklist({tripId, stopId, entryId}).unwrap() }
     catch (err) { setCkError(getErrorMessage(err)) }
   }
 

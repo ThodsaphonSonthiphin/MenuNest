@@ -24,12 +24,6 @@ public static class PlaceProfileSync
         place.SetReviewLinks(profile.ReviewLinks);
         place.SetSeasonPeriods(profile.SeasonPeriods);
         place.SetNotes(profile.Notes);
-        var itemIds = await db.PlaceProfileChecklistItems
-            .Where(x => x.PlaceProfileId == profile.Id)
-            .Select(x => x.ChecklistItemId)
-            .ToListAsync(ct);
-        foreach (var itemId in itemIds)
-            db.PlaceChecklistEntries.Add(PlaceChecklistEntry.Create(place.Id, itemId));
         return true;
     }
 
@@ -66,14 +60,6 @@ public static class PlaceProfileSync
         profile.SetReviewLinks(place.ReviewLinks);
         profile.SetSeasonPeriods(place.SeasonPeriods);
         profile.SetNotes(place.Notes);
-
-        var currentItemIds = await db.PlaceChecklistEntries
-            .Where(e => e.TripPlaceId == place.Id).Select(e => e.ChecklistItemId).ToListAsync(ct);
-        var links = await db.PlaceProfileChecklistItems.Where(x => x.PlaceProfileId == profile.Id).ToListAsync(ct);
-        db.PlaceProfileChecklistItems.RemoveRange(links.Where(x => !currentItemIds.Contains(x.ChecklistItemId)));
-        var have = links.Select(x => x.ChecklistItemId).ToHashSet();
-        foreach (var id in currentItemIds.Where(id => !have.Contains(id)))
-            db.PlaceProfileChecklistItems.Add(PlaceProfileChecklistItem.Create(profile.Id, id));
     }
 
     /// <summary>Overwrite ONLY the master's Notes + ReviewLinks from the place (write-through, ADR-103).

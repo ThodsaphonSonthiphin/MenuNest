@@ -34,19 +34,23 @@ public sealed class ChecklistPersistenceRelationalTests : IDisposable
         _db.Trips.Add(trip);
         var place = TripPlace.Create(trip.Id, "A place", 0, 0, PlaceCategory.See);
         _db.TripPlaces.Add(place);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1));
+        _db.ItineraryDays.Add(day);
+        var stop = Stop.Create(day.Id, place.Id, 0, 60, TravelMode.Drive);
+        _db.Stops.Add(stop);
         var item = ChecklistItem.Create(_user.Id, "ร่ม");
         _db.ChecklistItems.Add(item);
-        var entry = PlaceChecklistEntry.Create(place.Id, item.Id);
+        var entry = StopChecklistEntry.Create(stop.Id, item.Id);
         entry.SetChecked(true);
-        _db.PlaceChecklistEntries.Add(entry);
+        _db.StopChecklistEntries.Add(entry);
         await _db.SaveChangesAsync();
 
         _db.ChangeTracker.Clear();
         var readItem = await _db.ChecklistItems.AsNoTracking().FirstAsync(i => i.Id == item.Id);
-        var readEntry = await _db.PlaceChecklistEntries.AsNoTracking().FirstAsync(e => e.Id == entry.Id);
+        var readEntry = await _db.StopChecklistEntries.AsNoTracking().FirstAsync(e => e.Id == entry.Id);
         readItem.Name.Should().Be("ร่ม");
         readItem.UserId.Should().Be(_user.Id);
-        readEntry.TripPlaceId.Should().Be(place.Id);
+        readEntry.StopId.Should().Be(stop.Id);
         readEntry.ChecklistItemId.Should().Be(item.Id);
         readEntry.IsChecked.Should().BeTrue();
     }

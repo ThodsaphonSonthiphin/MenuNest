@@ -53,7 +53,7 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<ItineraryDay> ItineraryDays => Set<ItineraryDay>();
     public DbSet<Stop> Stops => Set<Stop>();
     public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
-    public DbSet<PlaceChecklistEntry> PlaceChecklistEntries => Set<PlaceChecklistEntry>();
+    public DbSet<StopChecklistEntry> StopChecklistEntries => Set<StopChecklistEntry>();
     public DbSet<PlaceProfile> PlaceProfiles => Set<PlaceProfile>();
     public DbSet<PlaceProfileChecklistItem> PlaceProfileChecklistItems => Set<PlaceProfileChecklistItem>();
 

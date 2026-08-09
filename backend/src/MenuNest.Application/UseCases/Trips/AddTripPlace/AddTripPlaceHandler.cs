@@ -28,23 +28,14 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
         var seeded = await PlaceProfileSync.SeedIntoAsync(_db, user.Id, place, ct);
         await _db.SaveChangesAsync(ct);
 
-        var checklist = seeded
-            ? await (from e in _db.PlaceChecklistEntries
-                     join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
-                     where e.TripPlaceId == place.Id
-                     orderby e.CreatedAt, e.Id
-                     select new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked)).ToListAsync(ct)
-            : (IReadOnlyList<PlaceChecklistEntryDto>)Array.Empty<PlaceChecklistEntryDto>();
-        return ToDto(place, checklist, seeded);
+        return ToDto(place, seeded);
     }
 
-    internal static TripPlaceDto ToDto(TripPlace p) => ToDto(p, Array.Empty<PlaceChecklistEntryDto>(), false);
-
-    internal static TripPlaceDto ToDto(TripPlace p, IReadOnlyList<PlaceChecklistEntryDto> checklist, bool hasProfile = false) => new(
+    internal static TripPlaceDto ToDto(TripPlace p, bool hasProfile = false) => new(
         p.Id, p.TripId, p.GooglePlaceId, p.Name, p.Lat, p.Lng, p.Address, p.Category,
         p.PriceLevel, p.PhotoUrl, p.OpeningHoursJson, p.FeeNote, p.Notes,
         p.ReviewLinks.Select(r => new ReviewLinkDto(r.Url, r.Label)).ToList(),
-        checklist, hasProfile,
+        hasProfile,
         p.SeasonPeriods.Select(s => new SeasonPeriodDto(s.Kind, s.Months.ToList(), s.Note)).ToList(),
         p.BestTimeWindows.Select(w => new BestTimeWindowDto(w.Start, w.End, w.Note)).ToList());
 }

@@ -26,6 +26,7 @@ function day(id: string, date: string, stops: {id: string; placeId: string; visi
       travelModeToReach: 'Drive' as const,
       legToReach: null,
       isVisited: s.visited ?? false,
+      checklist: [],
     })),
   }
 }
