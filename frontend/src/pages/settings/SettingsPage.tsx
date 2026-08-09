@@ -20,7 +20,7 @@ export function SettingsPage() {
   const [updateSettings, { isLoading }] = useUpdateUserSettingsMutation()
   const [saved, setSaved] = useState(false)
   const { data: apiVersion, isLoading: apiLoading, isError: apiError } = useGetVersionQuery()
-  const buildDate = new Date(BUILD_TIME).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+  const buildDate = new Date(BUILD_TIME).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
 
   const options = homeOptions(!!familyId)
   const effective = homePath ?? '/budget'
