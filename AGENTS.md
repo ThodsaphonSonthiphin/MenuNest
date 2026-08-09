@@ -74,3 +74,6 @@ Examples (from real history):
 
 If a change genuinely has no ticket, open the issue first — the default
 expectation is that every commit maps to exactly one tracked item.
+
+## UI Portaling & Z-Index
+Syncfusion Dialogs portaled to document.body default to z-index 1000. If triggered from inside a high-z-index wrapper like .capture-overlay (1100) or .itin-reorder-overlay (1200), they will render invisibly behind it. Always explicitly set z-index: 1300 !important; via CSS class for global modals.
