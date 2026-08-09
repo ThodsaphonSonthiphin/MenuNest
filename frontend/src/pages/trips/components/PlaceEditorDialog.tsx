@@ -11,7 +11,7 @@ import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {catColor, catLabel} from '../placeCategory'
 import {BestTimeEditor} from './BestTimeEditor'
 import {ReviewLinksSection} from './ReviewLinksSection'
-import {ChecklistSection} from './ChecklistSection'
+
 import {PlaceSeasonEditor} from './PlaceSeasonEditor'
 import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
 
@@ -130,8 +130,6 @@ export function PlaceEditorDialog({
 
         <ReviewLinksSection drafts={reviewDrafts} onChange={(d) => { setReviewDrafts(d); setPushed(false) }} />
         <PlaceSeasonEditor periods={seasonPeriods} onChange={(p) => { setSeasonPeriods(p); setPushed(false) }} />
-
-        <ChecklistSection tripId={tripId} placeId={place.id} checklist={place.checklist ?? []} />
 
         {saveError && <p className="trips-field-error">{saveError}</p>}
 

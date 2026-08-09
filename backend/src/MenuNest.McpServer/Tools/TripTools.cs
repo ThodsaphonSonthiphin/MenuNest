@@ -223,28 +223,28 @@ public sealed class TripTools(IMediator mediator)
     public async Task<IReadOnlyList<ChecklistItemDto>> list_checklist_items(CancellationToken ct)
         => await mediator.Send(new ListChecklistItemsQuery(), ct);
 
-    [McpServerTool, Description("Attach a checklist item to a place BY NAME. Create-or-reuse: an existing library item of the same name (case-insensitive) for this user is reused; a new name creates one. Idempotent per (place,item). Returns the place checklist entry.")]
-    public async Task<PlaceChecklistEntryDto> attach_checklist_item(
+    [McpServerTool, Description("Attach a checklist item to a stop BY NAME. Create-or-reuse: an existing library item of the same name (case-insensitive) for this user is reused; a new name creates one. Idempotent per (stop,item). Returns the stop checklist entry.")]
+    public async Task<StopChecklistEntryDto> attach_checklist_item(
         [Description("Trip ID")] Guid tripId,
-        [Description("Place ID")] Guid placeId,
+        [Description("Stop ID")] Guid stopId,
         [Description("Checklist item name, e.g. ร่ม / passport / sunscreen")] string name,
         CancellationToken ct)
-        => await mediator.Send(new AttachChecklistItemCommand(tripId, placeId, name), ct);
+        => await mediator.Send(new AttachChecklistItemCommand(tripId, stopId, name), ct);
 
-    [McpServerTool, Description("Detach a checklist item from a place. Removes the place's entry ONLY; the reusable library item survives for other places.")]
+    [McpServerTool, Description("Detach a checklist item from a stop. Removes the stop's entry ONLY; the reusable library item survives for other stops.")]
     public async Task<bool> detach_checklist_item(
         [Description("Trip ID")] Guid tripId,
-        [Description("Place ID")] Guid placeId,
-        [Description("Place checklist entry ID (from the place's checklist)")] Guid entryId,
+        [Description("Stop ID")] Guid stopId,
+        [Description("Stop checklist entry ID (from the stop's checklist)")] Guid entryId,
         CancellationToken ct)
-        => await mediator.Send(new DetachChecklistItemCommand(tripId, placeId, entryId), ct);
+        => await mediator.Send(new DetachChecklistItemCommand(tripId, stopId, entryId), ct);
 
-    [McpServerTool, Description("Set the per-place checked ('prepared') state of a place checklist entry. Checked is independent per place.")]
-    public async Task<PlaceChecklistEntryDto> set_checklist_item_checked(
+    [McpServerTool, Description("Set the per-stop checked ('prepared') state of a stop checklist entry. Checked is independent per stop.")]
+    public async Task<StopChecklistEntryDto> set_checklist_item_checked(
         [Description("Trip ID")] Guid tripId,
-        [Description("Place ID")] Guid placeId,
-        [Description("Place checklist entry ID")] Guid entryId,
+        [Description("Stop ID")] Guid stopId,
+        [Description("Stop checklist entry ID")] Guid entryId,
         [Description("true = prepared/checked, false = not yet")] bool isChecked,
         CancellationToken ct)
-        => await mediator.Send(new SetChecklistEntryCheckedCommand(tripId, placeId, entryId, isChecked), ct);
+        => await mediator.Send(new SetChecklistEntryCheckedCommand(tripId, stopId, entryId, isChecked), ct);
 }

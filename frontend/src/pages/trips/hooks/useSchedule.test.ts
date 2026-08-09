@@ -7,6 +7,7 @@ const stop = (id: string, seq: number, dwell: number, legSec: number | null, vis
   id, tripPlaceId: `p${id}`, sequence: seq, dwellMinutes: dwell,
   travelModeToReach: 'Drive' as const, isVisited: visited,
   legToReach: legSec == null ? null : {seconds: legSec, meters: 1000, encodedPolyline: null, source: 'Estimated' as const},
+  checklist: [],
 })
 
 describe('computeSchedule', () => {
@@ -109,7 +110,7 @@ describe('computeSchedule overnight', () => {
 const mkPlace = (over: Partial<TripPlaceDto> = {}): TripPlaceDto => ({
   id: 'p', tripId: 't', googlePlaceId: null, name: 'x', lat: 0, lng: 0, address: null,
   category: 'See', priceLevel: null, photoUrl: null, bestTimeWindows: [],
-  openingHoursJson: null, feeNote: null, notes: null, reviewLinks: [], checklist: [], hasProfile: false,
+  openingHoursJson: null, feeNote: null, notes: null, reviewLinks: [], hasProfile: false,
   seasonPeriods: [], ...over,
 })
 const mkHours = (periods: unknown) => JSON.stringify({periods})

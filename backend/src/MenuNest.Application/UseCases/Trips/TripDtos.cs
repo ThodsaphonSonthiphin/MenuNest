@@ -14,7 +14,7 @@ public sealed record BestTimeWindowDto(TimeOnly Start, TimeOnly End, string? Not
 
 public sealed record ChecklistItemDto(Guid Id, string Name);
 
-public sealed record PlaceChecklistEntryDto(Guid Id, Guid ChecklistItemId, string Name, bool IsChecked);
+public sealed record StopChecklistEntryDto(Guid Id, Guid ChecklistItemId, string Name, bool IsChecked);
 
 public sealed record TripPlaceDto(
     Guid Id, Guid TripId, string? GooglePlaceId, string Name,
@@ -22,7 +22,6 @@ public sealed record TripPlaceDto(
     int? PriceLevel, string? PhotoUrl,
     string? OpeningHoursJson, string? FeeNote, string? Notes,
     IReadOnlyList<ReviewLinkDto> ReviewLinks,
-    IReadOnlyList<PlaceChecklistEntryDto> Checklist,
     bool HasProfile,
     IReadOnlyList<SeasonPeriodDto> SeasonPeriods,
     IReadOnlyList<BestTimeWindowDto> BestTimeWindows);
@@ -31,7 +30,8 @@ public sealed record LegDto(int Seconds, int Meters, string? EncodedPolyline, Ro
 
 public sealed record StopDto(
     Guid Id, Guid TripPlaceId, int Sequence, int DwellMinutes,
-    TravelMode TravelModeToReach, LegDto? LegToReach, bool IsVisited);
+    TravelMode TravelModeToReach, LegDto? LegToReach, bool IsVisited,
+    IReadOnlyList<StopChecklistEntryDto> Checklist);
 
 public sealed record ItineraryDayDto(
     Guid Id, DateOnly Date, TimeOnly DayStartTime, bool UseCurrentTimeAsStart, IReadOnlyList<StopDto> Stops);

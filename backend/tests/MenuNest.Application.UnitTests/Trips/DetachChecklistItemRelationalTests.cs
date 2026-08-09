@@ -38,19 +38,23 @@ public sealed class DetachChecklistItemRelationalTests : IDisposable
     {
         var trip = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
         _db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1));
+        _db.ItineraryDays.Add(day);
         var place = TripPlace.Create(trip.Id, "A place", 0, 0, PlaceCategory.See);
         _db.TripPlaces.Add(place);
+        var stop = Stop.Create(day.Id, place.Id, 0, 60, TravelMode.Drive);
+        _db.Stops.Add(stop);
         var item = ChecklistItem.Create(_user.Id, "ร่ม");
         _db.ChecklistItems.Add(item);
-        var entry = PlaceChecklistEntry.Create(place.Id, item.Id);
-        _db.PlaceChecklistEntries.Add(entry);
+        var entry = StopChecklistEntry.Create(stop.Id, item.Id);
+        _db.StopChecklistEntries.Add(entry);
         await _db.SaveChangesAsync();
 
         var handler = new DetachChecklistItemHandler(_db, _users.Object);
 
-        await handler.Handle(new DetachChecklistItemCommand(trip.Id, place.Id, entry.Id), CancellationToken.None);
+        await handler.Handle(new DetachChecklistItemCommand(trip.Id, stop.Id, entry.Id), CancellationToken.None);
 
-        (await _db.PlaceChecklistEntries.AnyAsync(e => e.Id == entry.Id)).Should().BeFalse();
+        (await _db.StopChecklistEntries.AnyAsync(e => e.Id == entry.Id)).Should().BeFalse();
         (await _db.ChecklistItems.AnyAsync(i => i.Id == item.Id)).Should().BeTrue(); // library survives
     }
 
@@ -59,12 +63,16 @@ public sealed class DetachChecklistItemRelationalTests : IDisposable
     {
         var trip = Trip.Create(_user.Id, "Trip", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
         _db.Trips.Add(trip);
+        var day = ItineraryDay.Create(trip.Id, new DateOnly(2026, 11, 1));
+        _db.ItineraryDays.Add(day);
         var place = TripPlace.Create(trip.Id, "A place", 0, 0, PlaceCategory.See);
         _db.TripPlaces.Add(place);
+        var stop = Stop.Create(day.Id, place.Id, 0, 60, TravelMode.Drive);
+        _db.Stops.Add(stop);
         var item = ChecklistItem.Create(_user.Id, "ร่ม");
         _db.ChecklistItems.Add(item);
-        var entry = PlaceChecklistEntry.Create(place.Id, item.Id);
-        _db.PlaceChecklistEntries.Add(entry);
+        var entry = StopChecklistEntry.Create(stop.Id, item.Id);
+        _db.StopChecklistEntries.Add(entry);
         await _db.SaveChangesAsync();
 
         var stranger = new Mock<IUserProvisioner>();
@@ -72,10 +80,10 @@ public sealed class DetachChecklistItemRelationalTests : IDisposable
             .ReturnsAsync(User.CreateFromExternalLogin("oidX", "x@x.com", "X", AuthProvider.Microsoft));
         var handler = new DetachChecklistItemHandler(_db, stranger.Object);
 
-        var act = () => handler.Handle(new DetachChecklistItemCommand(trip.Id, place.Id, entry.Id), CancellationToken.None).AsTask();
+        var act = () => handler.Handle(new DetachChecklistItemCommand(Guid.NewGuid(), stop.Id, entry.Id), CancellationToken.None).AsTask();
         await act.Should().ThrowAsync<DomainException>();
 
-        (await _db.PlaceChecklistEntries.AnyAsync(e => e.Id == entry.Id)).Should().BeTrue();
+        (await _db.StopChecklistEntries.AnyAsync(e => e.Id == entry.Id)).Should().BeTrue();
     }
 
     public void Dispose() { _db.Dispose(); _conn.Dispose(); }

@@ -198,7 +198,7 @@ export function StopEditorDialog({
         <ReviewLinksSection drafts={reviewDrafts} onChange={setReviewDrafts} />
         <PlaceSeasonEditor periods={seasonPeriods} onChange={setSeasonPeriods} />
 
-        {place && <ChecklistSection tripId={tripId} placeId={place.id} checklist={place.checklist ?? []} />}
+        {place && stop && <ChecklistSection tripId={tripId} stopId={stop.id} checklist={stop.checklist ?? []} />}
 
         {preview && (
           <div className="se-sched">

@@ -74,7 +74,6 @@ export function DiscoverPage() {
         photoUrl: place.photoUrl,
         openingHoursJson: place.openingHoursJson,
         reviewLinks: [],
-        checklist: [],
       }).unwrap()
       navigate(`/trips/${trip.id}`)
     } finally {

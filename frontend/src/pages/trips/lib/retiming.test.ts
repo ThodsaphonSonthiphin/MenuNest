@@ -2,10 +2,11 @@ import {describe, it, expect} from 'vitest'
 import {offsetMinutes, suggestedStartMinutes, classifyShift, coolestHour, minutesToHHMMSS, withinHorizon} from './retiming'
 import type {ItineraryDayDto, HourlyReadingDto} from '../../../shared/api/api'
 
-const stop = (id: string, seq: number, dwell: number, legSec: number | null) => ({
+const stop = (id: string, seq: number, dwell: number, legSec: number | null, visited = false) => ({
   id, tripPlaceId: `p${id}`, sequence: seq, dwellMinutes: dwell,
-  travelModeToReach: 'Drive' as const, isVisited: false,
+  travelModeToReach: 'Drive' as const, isVisited: visited,
   legToReach: legSec == null ? null : {seconds: legSec, meters: 1000, encodedPolyline: null, source: 'Estimated' as const},
+  checklist: [],
 })
 const day = (stops: ReturnType<typeof stop>[]): ItineraryDayDto =>
   ({id: 'd1', date: '2026-07-12', dayStartTime: '09:00:00', useCurrentTimeAsStart: false, stops})

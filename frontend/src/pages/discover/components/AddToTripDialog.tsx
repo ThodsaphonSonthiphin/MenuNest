@@ -24,7 +24,6 @@ export function AddToTripDialog({place, onClose, onDone}: Props) {
       photoUrl: place.photoUrl,
       openingHoursJson: place.openingHoursJson,
       reviewLinks: [],
-      checklist: [],
     }).unwrap()
     onDone(tripId)
   }

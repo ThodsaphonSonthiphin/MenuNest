@@ -28,7 +28,6 @@ public class TripToolsTests
             null, null,
             null, null, null,
             new List<ReviewLinkDto>(),
-            new List<PlaceChecklistEntryDto>(),
             true,
             new List<SeasonPeriodDto>(),
             new List<BestTimeWindowDto>());

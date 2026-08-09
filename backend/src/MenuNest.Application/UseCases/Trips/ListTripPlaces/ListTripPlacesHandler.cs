@@ -23,16 +23,6 @@ public sealed class ListTripPlacesHandler : IQueryHandler<ListTripPlacesQuery, I
             .OrderBy(p => p.Name)
             .ToListAsync(ct);
 
-        var placeIds = places.Select(p => p.Id).ToList();
-        var entries = await (from e in _db.PlaceChecklistEntries
-                             join i in _db.ChecklistItems on e.ChecklistItemId equals i.Id
-                             where placeIds.Contains(e.TripPlaceId)
-                             orderby e.CreatedAt, e.Id
-                             select new { e.TripPlaceId, Dto = new PlaceChecklistEntryDto(e.Id, e.ChecklistItemId, i.Name, e.IsChecked) })
-                            .ToListAsync(ct);
-        var byPlace = entries.GroupBy(x => x.TripPlaceId)
-            .ToDictionary(g => g.Key, g => (IReadOnlyList<PlaceChecklistEntryDto>)g.Select(x => x.Dto).ToList());
-
         var profiledIds = (await _db.PlaceProfiles
             .Where(p => p.UserId == user.Id)
             .Select(p => p.GooglePlaceId)
@@ -41,7 +31,6 @@ public sealed class ListTripPlacesHandler : IQueryHandler<ListTripPlacesQuery, I
         return places
             .Select(p => AddTripPlaceHandler.ToDto(
                 p,
-                byPlace.TryGetValue(p.Id, out var l) ? l : Array.Empty<PlaceChecklistEntryDto>(),
                 p.GooglePlaceId != null && profiledIds.Contains(p.GooglePlaceId)))
             .ToList();
     }

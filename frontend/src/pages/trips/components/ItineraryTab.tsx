@@ -56,7 +56,6 @@ function AddStopPicker({
   tripId,
   dayId,
   places,
-  existingTripPlaceIds,
   defaultTravelMode,
   onClose,
   onAddNew,
@@ -64,15 +63,12 @@ function AddStopPicker({
   tripId: string
   dayId: string
   places: TripPlaceDto[]
-  existingTripPlaceIds: Set<string>
   defaultTravelMode: string
   onClose: () => void
   onAddNew: () => void
 }) {
   const [addStop] = useAddStopMutation()
   const [addError, setAddError] = useState<string | null>(null)
-
-  const available = places.filter((p) => !existingTripPlaceIds.has(p.id))
 
   return (
     <div className="add-stop-picker">
@@ -89,13 +85,13 @@ function AddStopPicker({
         </span>
       </button>
 
-      {available.length === 0 ? (
-        <p className="trips-muted">สถานที่ในคลังทั้งหมดอยู่ในแผนแล้ว</p>
+      {places.length === 0 ? (
+        <p className="trips-muted">คุณยังไม่มีสถานที่ในคลัง</p>
       ) : (
         <>
           <div className="add-stop-divider">หรือเลือกจากคลังสถานที่</div>
           <ul className="add-stop-list">
-            {available.map((p) => (
+            {places.map((p) => (
               <li key={p.id}>
                 <button
                   className="add-stop-item"
@@ -228,7 +224,6 @@ export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: strin
     }
   }
 
-  const existingTripPlaceIds = new Set(scheduled.map((s) => s.stop.tripPlaceId))
   const remaining = scheduled.filter((s) => !s.stop.isVisited)
   const done = scheduled.filter((s) => s.stop.isVisited)
   const visitedCount = done.length
@@ -441,7 +436,6 @@ export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: strin
           tripId={tripId}
           dayId={resolvedDayId}
           places={places ?? []}
-          existingTripPlaceIds={existingTripPlaceIds}
           defaultTravelMode={trip?.defaultTravelMode ?? 'Drive'}
           onClose={() => setPickerOpen(false)}
           onAddNew={() => {
