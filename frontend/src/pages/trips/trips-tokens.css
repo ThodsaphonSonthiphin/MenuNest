@@ -513,6 +513,7 @@
 
 .place-link-fallback-dialog {
   width: min(420px, calc(100vw - 24px)) !important;
+  z-index: 1300 !important;
 }
 
 /* ── Add-stop picker (ItineraryTab, T16) ── */
