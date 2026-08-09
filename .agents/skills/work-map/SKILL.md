@@ -187,10 +187,9 @@ session's work: there is no tool backstop, so a second `claim` exits `0` and
 silently replaces the first assignee, and the two sessions then resolve the same
 decision two different ways with no trace that it happened. Ask the user whether
 that session is still live, and say plainly that taking it over means the other
-session's answer will land on a ticket you have already changed. On the local
-backend the claim records whatever `--user` you passed, and an anonymous
+session's answer will land on a ticket you have already changed. On the local backend the claim records whatever `--user` you passed, and an anonymous
 claim (the bare default) names nobody, so the files cannot tell you who
-holds it. Always pass a real `--user`, as the command below does; for a claim
+holds it. On the GitHub backend, `--user` MUST be a valid GitHub username (e.g., from `gh auth status`), not a synthetic name, or the API will return a 422 error. Always pass a real `--user`, as the command below does; for a claim
 already holding an anonymous value, only the user can identify it.
 
 Then, the moment the user picks or accepts, **claim it — before any work at
@@ -244,7 +243,7 @@ resolution.
 
 | Type | Mode | How you resolve it |
 |---|---|---|
-| `grilling` | HITL | Load `grill-with-docs` the way your harness loads skills — or `grill-then-plan` when this ticket's outcome is meant to be a written plan. **If the ticket is fix-shaped and the cause is not yet verified, verify the cause first with `debug-mantra`: never plan a fix on an unverified cause** (ADR 0003/0011). |
+| `grilling` | HITL | Load `grill-with-docs` the way your harness loads skills — or `grill-then-plan` when this ticket's outcome is meant to be a written plan. **Do NOT ask the questions inline yourself. You MUST explicitly recommend the `/grill-me` slash command or invoke the `grill-with-docs` skill.** **If the ticket is fix-shaped and the cause is not yet verified, verify the cause first with `debug-mantra`: never plan a fix on an unverified cause** (ADR 0003/0011). |
 | `prototype` | HITL | Produce the cheap artifact through the ui-mockup mechanism — before the first render, read `references/ui-mockup.md` **as bundled with the dev-workflows plugin** (in this repo, `plugins/dev-workflows/references/ui-mockup.md`; once installed it sits inside that plugin's own directory, wherever your harness put it — the plugin-root path every other file reference in this skill uses points at decision-map, so it cannot address another plugin's file). A Claude Design design-system home is preferred per ADR 0032; a rendered artifact, then a self-contained local `.html`, are fallbacks 2 and 3, used only when the ones above are unavailable. The user reacts to the artifact; their reaction is the decision. Link the artifact onto the ticket with `comment`. |
 | `research` | AFK | Normally already resolved by the chart-time subagents. If it is still open: dispatch a research subagent now, the way your harness runs them, and record its findings with `--body-file` in Step 4. |
 | `task` | either | Do the thing if you can do it unattended; otherwise hand the user a **precise** checklist and wait. Record what was done, and the facts later tickets depend on — a task ticket's value to the map is the facts it leaves behind. |
