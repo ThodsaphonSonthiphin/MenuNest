@@ -123,6 +123,9 @@ export function composeFlags(
   let overflowShown = false
   return scheduled.map(s => {
     let flag: TimingFlag | null = null
+    if (s.stop.isVisited) {
+      return {...s, flag: null}
+    }
     if (!overflowShown && s.arrivedAfterMidnight) {
       flag = {reason: 'overflow', severity: 'problem', arrival: s.arrival}
       overflowShown = true
@@ -138,15 +141,18 @@ export function composeFlags(
   })
 }
 
-/** Forward cascade: arrival[0] = dayStart; depart = arrival + dwell; arrival[i+1] = depart + leg (ADR-008). */
 export function computeSchedule(day: ItineraryDayDto): ScheduledStop[] {
   const result: ScheduledStop[] = []
   let cursor = toMin(day.dayStartTime)
   for (const stop of [...day.stops].sort((a, b) => a.sequence - b.sequence)) {
-    const arrival = cursor + (stop.legToReach ? Math.round(stop.legToReach.seconds / 60) : 0)
-    const depart = arrival + stop.dwellMinutes
-    result.push({stop, arrival: fromMin(arrival), depart: fromMin(depart), overnight: arrival >= 1440 || depart >= 1440, arrivedAfterMidnight: arrival >= 1440})
-    cursor = depart
+    if (stop.isVisited) {
+      result.push({stop, arrival: '--:--', depart: '--:--', overnight: false, arrivedAfterMidnight: false})
+    } else {
+      const arrival = cursor + (stop.legToReach ? Math.round(stop.legToReach.seconds / 60) : 0)
+      const depart = arrival + stop.dwellMinutes
+      result.push({stop, arrival: fromMin(arrival), depart: fromMin(depart), overnight: arrival >= 1440 || depart >= 1440, arrivedAfterMidnight: arrival >= 1440})
+      cursor = depart
+    }
   }
   return result
 }
@@ -166,7 +172,8 @@ export function useSchedule(day: ItineraryDayDto, placesById: Record<string, Tri
     const scheduled = composeFlags(computeSchedule(day), placesById, dayOfWeek(day.date))
     const totalTravelSeconds = sumTravelSeconds(day.stops)
     const remainingTravelSeconds = sumTravelSeconds(day.stops, {excludeVisited: true})
-    const dayEnd = scheduled.length ? scheduled[scheduled.length - 1].depart : day.dayStartTime.slice(0, 5)
+    const validScheduled = scheduled.filter(s => !s.stop.isVisited)
+    const dayEnd = validScheduled.length ? validScheduled[validScheduled.length - 1].depart : day.dayStartTime.slice(0, 5)
     return {scheduled, dayEnd, totalTravelSeconds, remainingTravelSeconds}
   }, [day, placesById])
 }

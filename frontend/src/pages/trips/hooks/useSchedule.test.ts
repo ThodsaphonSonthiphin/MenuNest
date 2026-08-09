@@ -257,13 +257,16 @@ describe('sumTravelSeconds', () => {
     expect(sumTravelSeconds([stop('1', 0, 60, null, false)], {excludeVisited: true})).toBe(0)
   })
 
-  it('computeSchedule ignores isVisited (arrival/depart identical either way)', () => {
-    const base = [stop('1', 0, 60, null), stop('2', 1, 45, 25 * 60)]
-    const day = (v: boolean): ItineraryDayDto => ({
+  it('excludes visited Stops from time cascade, setting arrival/depart to --:--', () => {
+    const base = [stop('1', 0, 60, null, true), stop('2', 1, 45, 25 * 60, false)]
+    const day: ItineraryDayDto = {
       id: 'd', date: '2026-11-14', dayStartTime: '09:00:00', useCurrentTimeAsStart: false,
-      stops: base.map((s) => ({...s, isVisited: v})),
-    })
-    expect(computeSchedule(day(true)).map((s) => [s.arrival, s.depart]))
-      .toEqual(computeSchedule(day(false)).map((s) => [s.arrival, s.depart]))
+      stops: base,
+    }
+    const s = computeSchedule(day)
+    expect(s[0].arrival).toBe('--:--')
+    expect(s[0].depart).toBe('--:--')
+    expect(s[1].arrival).toBe('09:25')
+    expect(s[1].depart).toBe('10:10')
   })
 })

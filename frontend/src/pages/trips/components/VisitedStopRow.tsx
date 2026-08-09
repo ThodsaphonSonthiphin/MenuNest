@@ -24,7 +24,7 @@ export function VisitedStopRow({
           aria-label={`เอาออกจากรายการมาแล้ว: ${place.name}`}
         />
       </label>
-      <span className="di-time">{arrival}</span>
+      {arrival !== '--:--' && <span className="di-time">{arrival}</span>}
       <span className="di-name">{catEmoji(place.category)} {place.name}</span>
     </div>
   )
