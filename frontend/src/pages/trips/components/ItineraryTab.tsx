@@ -420,6 +420,7 @@ export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: strin
                       onOpenDetail={() => setDetailStopId(s.stop.id)}
                       uvWarn={uvWarnThreshold}
                       feelsWarn={feelsLikeWarnThreshold}
+                      order={i + 1}
                     />
                   )}
                 </Fragment>

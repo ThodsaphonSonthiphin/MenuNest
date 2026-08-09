@@ -91,9 +91,12 @@ export function useDayRoute(tripId: string) {
 
   const {scheduled, dayEnd} = useSchedule(day ?? EMPTY_DAY, placesById)
 
+  const remaining = scheduled.filter((s) => !s.stop.isVisited)
+  const remainingCount = remaining.length
+
   const route = useMemo<RouteStop[]>(
     () =>
-      scheduled
+      remaining
         .map((s, i) => {
           const p = placesById[s.stop.tripPlaceId]
           // Drop stops with no place or non-finite coords — they would make the
@@ -111,7 +114,7 @@ export function useDayRoute(tripId: string) {
           }
         })
         .filter((r): r is RouteStop => r !== null),
-    [scheduled, placesById],
+    [remaining, placesById],
   )
 
   const segments = useMemo<RouteSegment[]>(() => {
@@ -125,7 +128,7 @@ export function useDayRoute(tripId: string) {
       points.push({lat: viewerLocation.lat, lng: viewerLocation.lng, alive: true, encodedPolyline: null, source: 'Estimated'})
     }
     points.push(
-      ...scheduled.map((s) => {
+      ...remaining.map((s) => {
         const p = placesById[s.stop.tripPlaceId]
         const alive = !!p && Number.isFinite(p.lat) && Number.isFinite(p.lng)
         return {
@@ -138,18 +141,13 @@ export function useDayRoute(tripId: string) {
       }),
     )
     return buildSegments(points)
-  }, [scheduled, placesById, viewerLocation])
+  }, [remaining, placesById, viewerLocation])
 
   // Mirrors the point-mapper's `?? 'Estimated'` rule.
-  const anyEstimated = scheduled.some((s) => !!s.stop.legToReach && s.stop.legToReach.source !== 'Routed')
+  const anyEstimated = remaining.some((s) => !!s.stop.legToReach && s.stop.legToReach.source !== 'Routed')
 
-  // ADR-047 / Issue #84: Distance must not be calculated from places already visited.
-  // We exclude the leg INTO any visited stop.
   const totalKm =
     scheduled.reduce((m, s) => m + (s.stop.isVisited ? 0 : (s.stop.legToReach?.meters ?? 0)), 0) / 1000
-
-  const remaining = scheduled.filter((s) => !s.stop.isVisited)
-  const remainingCount = remaining.length
 
   const dayStart = remainingCount ? remaining[0].arrival.slice(0, 5) : (day?.dayStartTime ?? '').slice(0, 5)
   const spanMin = remainingCount ? Math.max(0, toMin(dayEnd) - toMin(dayStart)) : 0

@@ -53,6 +53,7 @@ export function ItineraryStopCard({
   onOpenDetail,
   uvWarn,
   feelsWarn,
+  order,
 }: {
   id: string
   place: TripPlaceDto
@@ -65,6 +66,7 @@ export function ItineraryStopCard({
   onOpenDetail?: () => void
   uvWarn?: number | null
   feelsWarn?: number | null
+  order?: number
 }) {
   const {attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging} =
     useSortable({id})
@@ -101,7 +103,7 @@ export function ItineraryStopCard({
       {reorderMode ? (
         <div className="stop-body static">
           <div className="stop-text">
-            <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
+            <div className="stop-name">{order != null ? `${order}. ` : ''}{catEmoji(place.category)} {place.name}</div>
             <StopSummaryLine summary={summary} />
           </div>
         </div>
@@ -110,7 +112,7 @@ export function ItineraryStopCard({
         // "opens detail" affordance — is one tap target, not just the text column (#34).
         <button className="stop-body" onClick={onOpenDetail} aria-label={`ดูรายละเอียด: ${place.name}`}>
           <div className="stop-text">
-            <div className="stop-name">{catEmoji(place.category)} {place.name}</div>
+            <div className="stop-name">{order != null ? `${order}. ` : ''}{catEmoji(place.category)} {place.name}</div>
             <StopSummaryLine summary={summary} />
           </div>
           <span className="stop-chevron" aria-hidden="true">
