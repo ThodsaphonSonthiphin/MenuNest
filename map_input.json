@@ -1,17 +1,32 @@
 {
-  "target": { "slug": "67" },
+  "target": { "slug": "trips-paging-filtering" },
   "map": {
-    "title": "Decision map - route origin: continue from the previous Stop, or always from the current location (#67)",
-    "destination": "A user can toggle, per itinerary Day, whether that day's plan starts from their current location or from Stop 1, and the arrival times, the total distance, the finish time and the map's route all agree with that toggle - live on production with the migration applied.",
-    "notes": "Revisits ADR-027 (approach leg from the viewer's live location) and touches ADR-011 (navigate hand-off omits origin). Owner has already fixed two scope answers: the switch is per ItineraryDay, and on a multi-day trip it is set per day. The frontend has no component/visual test harness, so any UI change must be verified interactively before push (CLAUDE.md). EF migrations are applied to prod by hand. Every commit references #67."
+    "title": "Decision map - Trips Paging, Sorting, and Filtering",
+    "destination": "หน้า Trips โหลดข้อมูลทีละ 10 รายการ, สามารถเรียงตามวันที่หรือชื่อได้, และกรองข้อมูลตามชื่อทริปหรือสถานที่ได้ การทำงานทั้งหมดนี้ดึงข้อมูลจาก API แบบ Server-side โดยเก็บ State ใน URL",
+    "notes": "ใช้งานบน GitHub Issues repo: ThodsaphonSonthiphin/MenuNest",
+    "notYetSpecified": [],
+    "outOfScope": []
   },
   "tickets": [
     {
-      "key": "navigate-handoff-origin",
-      "title": "Navigate hand-off: should it use Stop 1 as origin when the switch is off?",
+      "key": "backend-api-readiness",
+      "title": "Backend API - Is it ready for paging, sorting, and filtering?",
+      "type": "research",
+      "question": "ตรวจสอบว่า Backend API สำหรับดึงข้อมูล Trips มีรองรับ Paging (ทีละ 10), Sorting (วันที่, ชื่อ), และ Filtering (ชื่อ, สถานที่) หรือไม่ หากไม่มีต้องแก้อะไรบ้าง?",
+      "blocks": ["frontend-ui-implementation"]
+    },
+    {
+      "key": "ui-component-selection",
+      "title": "UI Component - Which library/pattern for pagination and filters?",
       "type": "grilling",
-      "question": "Since the Day switch off drops the approach leg entirely, should the Google Maps Navigate hand-off (ADR-011) also specify Stop 1 as the origin instead of omitting it (which defaults to the live location)?",
-      "blocks": []
+      "question": "จะใช้ UI Library ตัวไหนสำหรับ Pagination, Sort Dropdown, และ Filter Input? (เช่น Material-UI, เขียนเองด้วย Tailwind, ฯลฯ)",
+      "blocks": ["frontend-ui-implementation"]
+    },
+    {
+      "key": "frontend-ui-implementation",
+      "title": "Frontend UI - Implement Trips Paging, Sorting, and Filtering",
+      "type": "task",
+      "question": "สร้าง UI สำหรับ Paging, Sorting, Filtering ในหน้า Trips และเชื่อมต่อกับ API โดยเก็บ State ลงใน URL Query String"
     }
   ]
 }
