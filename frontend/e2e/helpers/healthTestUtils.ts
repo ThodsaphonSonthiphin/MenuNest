@@ -13,6 +13,7 @@ export const buildGoogleToken = (payload: GoogleTokenPayload = {}): string => {
       sub: payload.sub ?? 'user-1',
       name: payload.name ?? 'Test User',
       email: payload.email ?? 'test@menunest.app',
+      exp: Math.floor(Date.now() / 1000) + 3600,
     }),
   ).toString('base64')
   return `header.${encoded}.signature`
@@ -21,7 +22,7 @@ export const buildGoogleToken = (payload: GoogleTokenPayload = {}): string => {
 export const applyGoogleAuth = async (page: Page, payload?: GoogleTokenPayload) => {
   const token = buildGoogleToken(payload)
   await page.addInitScript((value) => {
-    sessionStorage.setItem('google_id_token', value)
+    localStorage.setItem('google_id_token', value)
   }, token)
   return token
 }

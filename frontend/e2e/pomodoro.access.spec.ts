@@ -11,7 +11,7 @@ base.describe('Pomodoro — access (anonymous)', () => {
 authed.describe('Pomodoro — access (authed)', () => {
   authed('authed user without a family can reach /pomodoro', async ({ authedPage: page }) => {
     // The healthFixture's googleAuth helper does NOT inject any family
-    // context — it only mints a Google id-token in sessionStorage. That
+    // context — it only mints a Google id-token in localStorage. That
     // mirrors a real user who has signed in but never joined a family,
     // which is exactly the access shape we need to verify.
     await page.goto('/pomodoro')
