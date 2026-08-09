@@ -511,6 +511,10 @@
   min-width: 0;
 }
 
+.place-link-fallback-dialog {
+  width: min(420px, calc(100vw - 24px)) !important;
+}
+
 /* ── Add-stop picker (ItineraryTab, T16) ── */
 .add-stop-picker {
   background: var(--surface);
