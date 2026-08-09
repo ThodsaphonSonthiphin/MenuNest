@@ -43,7 +43,7 @@ export function buildStopSummary({
   }
   return {
     weather,
-    dwellText: `อยู่ ${formatDurationMinutes(dwellMinutes)}`,
+    dwellText: dwellMinutes === 0 ? 'ไม่กำหนดเวลาที่อยู่' : `อยู่ ${formatDurationMinutes(dwellMinutes)}`,
     flag: flag ? {severity: flag.severity, label: flagText(flag).reasonLine} : null,
     alerts: weatherAlertBadges(arrivalReading, uvWarn ?? null, feelsWarn ?? null),
   }

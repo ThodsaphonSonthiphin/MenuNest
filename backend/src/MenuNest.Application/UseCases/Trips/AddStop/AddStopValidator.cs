@@ -7,6 +7,6 @@ public sealed class AddStopValidator : AbstractValidator<AddStopCommand>
         RuleFor(x => x.TripId).NotEmpty();
         RuleFor(x => x.DayId).NotEmpty();
         RuleFor(x => x.TripPlaceId).NotEmpty();
-        RuleFor(x => x.DwellMinutes).GreaterThan(0);
+        RuleFor(x => x.DwellMinutes).GreaterThanOrEqualTo(0);
     }
 }

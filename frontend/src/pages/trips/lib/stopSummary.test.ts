@@ -47,6 +47,11 @@ describe('buildStopSummary', () => {
     expect(s.dwellText).toBe('อยู่ 1 ชม. 30 น.')
   })
 
+  it('shows special text when dwell is 0', () => {
+    const s = buildStopSummary({dwellMinutes: 0, flag: null})
+    expect(s.dwellText).toBe('ไม่กำหนดเวลาที่อยู่')
+  })
+
   it('surfaces a timing flag as its severity + reason line', () => {
     const flag: TimingFlag = {reason: 'closed', severity: 'problem', closedKind: 'on-break', reopenAt: '13:00'}
     const s = buildStopSummary({dwellMinutes: 60, flag})

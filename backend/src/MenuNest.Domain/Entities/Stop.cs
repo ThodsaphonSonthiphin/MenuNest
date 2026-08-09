@@ -27,7 +27,7 @@ public sealed class Stop : Entity
         if (itineraryDayId == Guid.Empty) throw new DomainException("ItineraryDayId is required.");
         if (tripPlaceId == Guid.Empty) throw new DomainException("TripPlaceId is required.");
         if (sequence < 0) throw new DomainException("Sequence cannot be negative.");
-        if (dwellMinutes <= 0) throw new DomainException("Dwell minutes must be positive.");
+        if (dwellMinutes < 0) throw new DomainException("Dwell minutes cannot be negative.");
 
         return new Stop
         {
@@ -48,7 +48,7 @@ public sealed class Stop : Entity
 
     public void SetDwell(int dwellMinutes)
     {
-        if (dwellMinutes <= 0) throw new DomainException("Dwell minutes must be positive.");
+        if (dwellMinutes < 0) throw new DomainException("Dwell minutes cannot be negative.");
         DwellMinutes = dwellMinutes;
         UpdatedAt = DateTime.UtcNow;
     }

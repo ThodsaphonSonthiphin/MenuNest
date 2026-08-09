@@ -48,6 +48,8 @@ export function StopEditorDialog({
   const place = placesById[stop.tripPlaceId]
 
   const [dwell, setDwell] = useState(stop.dwellMinutes)
+  const [isFlexible, setIsFlexible] = useState(stop.dwellMinutes === 0)
+  const [previousDwell, setPreviousDwell] = useState(stop.dwellMinutes > 0 ? stop.dwellMinutes : 60)
   const [mode, setMode] = useState<TravelMode>(stop.travelModeToReach)
   const [bestTimeWindows, setBestTimeWindows] = useState<BestTimeWindow[]>(place?.bestTimeWindows ?? [])
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -141,6 +143,17 @@ export function StopEditorDialog({
     </div>
   )
 
+  const handleFlexibleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const flex = e.target.checked
+    setIsFlexible(flex)
+    if (flex) {
+      setPreviousDwell(dwell > 0 ? dwell : 60)
+      setDwell(0)
+    } else {
+      setDwell(previousDwell)
+    }
+  }
+
   return (
     <Dialog
       open
@@ -157,7 +170,11 @@ export function StopEditorDialog({
           <div className="se-sec-head">
             <span className="se-ico">⏱️</span>จะอยู่ที่นี่กี่นาที
           </div>
-          <DwellStepper value={dwell} onChange={setDwell} />
+          <label className="se-flex-check" style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px', cursor: 'pointer'}}>
+            <input type="checkbox" checked={isFlexible} onChange={handleFlexibleChange} style={{width: '16px', height: '16px', cursor: 'pointer'}} />
+            ไม่กำหนดเวลาที่อยู่
+          </label>
+          {!isFlexible && <DwellStepper value={dwell} onChange={setDwell} />}
         </section>
 
         <section className="se-sec">
