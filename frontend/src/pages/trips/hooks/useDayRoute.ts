@@ -140,22 +140,24 @@ export function useDayRoute(tripId: string) {
     return buildSegments(points)
   }, [scheduled, placesById, viewerLocation])
 
-  // Mirror the point-mapper's `?? 'Estimated'` rule: a present leg whose source is
-  // missing/undefined (stale/partial payload) counts as Estimated too, so the summary
-  // flag never disagrees with what `segments` renders. `legToReach === null` (e.g. the
-  // first stop) still doesn't count.
+  // Mirrors the point-mapper's `?? 'Estimated'` rule.
   const anyEstimated = scheduled.some((s) => !!s.stop.legToReach && s.stop.legToReach.source !== 'Routed')
 
+  // ADR-047 / Issue #84: Distance must not be calculated from places already visited.
+  // We exclude the leg INTO any visited stop.
   const totalKm =
-    scheduled.reduce((m, s) => m + (s.stop.legToReach?.meters ?? 0), 0) / 1000
+    scheduled.reduce((m, s) => m + (s.stop.isVisited ? 0 : (s.stop.legToReach?.meters ?? 0)), 0) / 1000
 
-  const dayStart = (day?.dayStartTime ?? '').slice(0, 5)
-  const spanMin = route.length ? Math.max(0, toMin(dayEnd) - toMin(dayStart)) : 0
+  const remaining = scheduled.filter((s) => !s.stop.isVisited)
+  const remainingCount = remaining.length
+
+  const dayStart = remainingCount ? remaining[0].arrival.slice(0, 5) : (day?.dayStartTime ?? '').slice(0, 5)
+  const spanMin = remainingCount ? Math.max(0, toMin(dayEnd) - toMin(dayStart)) : 0
   const spanText =
     spanMin >= 60 ? `~${Math.floor(spanMin / 60)}ชม ${spanMin % 60}น` : `~${spanMin}น`
 
-  const summaryText = route.length
-    ? `${route.length} จุด · ${anyEstimated ? '~' : ''}${totalKm.toFixed(1)} กม · ${spanText}${anyEstimated ? ' · ระยะโดยประมาณ' : ''}`
+  const summaryText = remainingCount
+    ? `${remainingCount} จุด · ${anyEstimated ? '~' : ''}${totalKm.toFixed(1)} กม · ${spanText}${anyEstimated ? ' · ระยะโดยประมาณ' : ''}`
     : ''
 
   return {
