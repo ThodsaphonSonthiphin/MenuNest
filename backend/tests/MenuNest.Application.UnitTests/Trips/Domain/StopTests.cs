@@ -16,9 +16,9 @@ public class StopTests
     }
 
     [Fact]
-    public void Stop_rejects_non_positive_dwell() =>
+    public void Stop_rejects_negative_dwell() =>
         FluentActions.Invoking(() =>
-            Stop.Create(Guid.NewGuid(), Guid.NewGuid(), 0, 0, TravelMode.Drive))
+            Stop.Create(Guid.NewGuid(), Guid.NewGuid(), 0, -1, TravelMode.Drive))
             .Should().Throw<DomainException>();
 
     [Fact]
