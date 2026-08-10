@@ -36,16 +36,24 @@ export function TripsPage() {
     
     // Robustly extract the search string
     let searchString = '';
-    if (event.search && event.search.length > 0 && event.search[0].value) {
-      searchString = event.search[0].value;
-    } else if (event.action && event.action.requestType === 'searching' && event.action.searchString) {
-      searchString = event.action.searchString;
-    } else if (event.action && event.action.requestType === 'searching' && event.action.value) {
-      searchString = event.action.value;
-    } else if (typeof event.searchString === 'string') {
-      searchString = event.searchString;
-    } else if (event.searchSettings && event.searchSettings.value) {
-      searchString = event.searchSettings.value;
+    
+    // 1. If this is explicitly a search action, trust its payload (even if empty)
+    if (event.action && event.action.requestType === 'searching') {
+      if (typeof event.action.searchString === 'string') {
+        searchString = event.action.searchString;
+      } else if (typeof event.action.value === 'string') {
+        searchString = event.action.value;
+      }
+    } 
+    // 2. Otherwise, for paging/sorting events, preserve the active search string
+    else {
+      if (event.search && event.search.length > 0 && typeof event.search[0].value === 'string') {
+        searchString = event.search[0].value;
+      } else if (typeof event.searchString === 'string') {
+        searchString = event.searchString;
+      } else if (event.searchSettings && typeof event.searchSettings.value === 'string') {
+        searchString = event.searchSettings.value;
+      }
     }
 
     if (searchString) {
