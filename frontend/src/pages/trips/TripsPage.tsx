@@ -33,8 +33,8 @@ export function TripsPage() {
     if (event.skip !== undefined) p.set('skip', event.skip.toString())
     if (event.take !== undefined) p.set('take', event.take.toString())
     
-    if (event.search && event.search.length > 0 && event.search[0].key) {
-      p.set('search', event.search[0].key)
+    if (event.search && event.search.length > 0 && event.search[0].value) {
+      p.set('search', event.search[0].value)
       // Reset to first page on search
       if (p.get('search') !== search) {
          p.set('skip', '0')
@@ -72,9 +72,10 @@ export function TripsPage() {
       {!error && (
         <div className="trips-grid-container" style={{ marginTop: '24px' }}>
           <Grid 
-            dataSource={data?.result || []}
+            dataSource={{ result: data?.result || [], count: data?.count || 0 }}
             sortSettings={{enabled: true}}
             filterSettings={{enabled: false}}
+            searchSettings={{enabled: true}}
             toolbar={['Search']}
             pageSettings={{ enabled: true, pageSize: take, currentPage: (skip / take) + 1, totalRecordsCount: data?.count || 0 }}
             onDataRequest={handleDataRequest}
