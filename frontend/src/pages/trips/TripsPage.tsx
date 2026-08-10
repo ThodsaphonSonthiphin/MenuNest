@@ -75,7 +75,7 @@ export function TripsPage() {
             dataSource={{ result: data?.result || [], count: data?.count || 0 }}
             sortSettings={{enabled: true}}
             filterSettings={{enabled: false}}
-            searchSettings={{enabled: true}}
+            searchSettings={{enabled: true, fields: ['name', 'destination']}}
             toolbar={['Search']}
             pageSettings={{ enabled: true, pageSize: take, currentPage: (skip / take) + 1, totalRecordsCount: data?.count || 0 }}
             onDataRequest={handleDataRequest}
