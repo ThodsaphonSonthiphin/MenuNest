@@ -77,3 +77,14 @@ expectation is that every commit maps to exactly one tracked item.
 
 ## UI Portaling & Z-Index
 Syncfusion Dialogs portaled to document.body default to z-index 1000. If triggered from inside a high-z-index wrapper like .capture-overlay (1100) or .itin-reorder-overlay (1200), they will render invisibly behind it. Always explicitly set z-index: 1300 !important; via CSS class for global modals.
+
+## Syncfusion React Grid Typings
+Do not guess Syncfusion Grid props or event names. Always check `node_modules/@syncfusion/react-grid/src/grid/types/grid.interfaces.d.ts` (or equivalent interface files) for exact names. For example, events are camelCase (e.g., `onRowSelect`, not `onRowSelected`), hover is `enableHover`, and configurations require objects (e.g., `pageSettings`, `filterSettings`) rather than top-level booleans.
+
+## Dynamic Sorting Implementation
+When implementing dynamic API sorting in EF Core, use an explicit `switch` statement covering every supported UI column (e.g., `name`, `destination`, `daycount`) rather than ternary chains. Any unsupported column must fall through to a default `_`, ensuring all explicitly allowed UI columns are mapped properly.
+
+## Syncfusion Pure React Architecture
+MenuNest uses the new Pure React Syncfusion wrappers (e.g., `@syncfusion/react-grid`), not the legacy EJ2 wrappers. 
+1. **DO NOT** attempt to use the EJ2 `<Inject services={[...]} />` pattern; features are bundled internally. 
+2. **CSS Imports:** Sub-features often live in their own packages. For example, Grid pagination requires importing `'@syncfusion/react-pager/styles/material.css'`. Always check for separated packages if UI components render unstyled.
