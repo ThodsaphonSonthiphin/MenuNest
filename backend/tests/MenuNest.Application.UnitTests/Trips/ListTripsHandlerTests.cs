@@ -21,9 +21,10 @@ public class ListTripsHandlerTests
         fx.Db.Trips.Add(deleted);
         await fx.Db.SaveChangesAsync();
 
-        var result = await new ListTripsHandler(fx.Db, fx.UserProvisioner.Object)
+        var paged = await new ListTripsHandler(fx.Db, fx.UserProvisioner.Object)
             .Handle(new ListTripsQuery(), CancellationToken.None);
 
-        result.Should().ContainSingle(t => t.Name == "Mine");
+        paged.Result.Should().ContainSingle(t => t.Name == "Mine");
+        paged.Count.Should().Be(1);
     }
 }

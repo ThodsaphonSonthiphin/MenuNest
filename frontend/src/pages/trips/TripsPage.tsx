@@ -1,11 +1,12 @@
 // frontend/src/pages/trips/TripsPage.tsx
-import {useNavigate} from 'react-router-dom'
+import {useNavigate, useSearchParams} from 'react-router-dom'
 import {Button, Color, Variant} from '@syncfusion/react-buttons'
-import {useListTripsQuery, type TripDto} from '../../shared/api/api'
+import {Grid, Columns, Column} from '@syncfusion/react-grid'
+import {useListTripsQuery} from '../../shared/api/api'
 import {useAppDispatch, useAppSelector} from '../../store/index'
 import {setCreateTripOpen} from './tripsSlice'
 import {CreateTripDialog} from './components/CreateTripDialog'
-import {SuitcaseIcon, RepeatIcon, CalendarIcon} from './components/TripFormIcons'
+import {SuitcaseIcon} from './components/TripFormIcons'
 import {getErrorMessage} from '../../shared/utils/getErrorMessage'
 import './trips-tokens.css'
 import './TripsPage.css'
@@ -13,39 +14,45 @@ import './TripsPage.css'
 export function TripsPage() {
   const nav = useNavigate()
   const dispatch = useAppDispatch()
+  const [searchParams, setSearchParams] = useSearchParams()
   const open = useAppSelector(s => s.trips.createTripOpen)
-  const {data: trips, isLoading, error} = useListTripsQuery()
 
-  const daily = trips?.filter(t => t.isDaily) ?? []
-  const regular = trips?.filter(t => !t.isDaily) ?? []
+  const skip = parseInt(searchParams.get('skip') || '0', 10)
+  const take = parseInt(searchParams.get('take') || '10', 10)
+  const search = searchParams.get('search') || ''
+  const sortColumn = searchParams.get('sortColumn') || ''
+  const sortDirection = searchParams.get('sortDirection') || ''
 
-  const dailyCard = (t: TripDto) => (
-    <button
-      key={t.id}
-      className="trip-card trip-card--daily"
-      data-testid="trip-card"
-      onClick={() => nav(`/trips/${t.id}`)}
-    >
-      <div className="trip-card-name">{t.name}</div>
-      <span className="trip-badge-daily"><RepeatIcon /> ประจำวัน</span>
-      <div className="trip-card-today"><span className="dot" /> วันนี้</div>
-    </button>
-  )
+  const {data, error} = useListTripsQuery({
+    skip, take, search, sortColumn, sortDirection
+  })
 
-  const regularCard = (t: TripDto) => (
-    <button
-      key={t.id}
-      className="trip-card"
-      data-testid="trip-card"
-      onClick={() => nav(`/trips/${t.id}`)}
-    >
-      <div className="trip-card-name">{t.name}</div>
-      <div className="trip-card-meta">
-        {t.destination ?? ''}{t.destination ? ' · ' : ''}{t.dayCount} วัน
-      </div>
-      <div className="trip-card-dates">{t.startDate}</div>
-    </button>
-  )
+  const handleDataRequest = (event: any) => {
+    const p = new URLSearchParams(searchParams)
+    
+    if (event.skip !== undefined) p.set('skip', event.skip.toString())
+    if (event.take !== undefined) p.set('take', event.take.toString())
+    
+    if (event.search && event.search.length > 0 && event.search[0].key) {
+      p.set('search', event.search[0].key)
+      // Reset to first page on search
+      if (p.get('search') !== search) {
+         p.set('skip', '0')
+      }
+    } else {
+      p.delete('search')
+    }
+
+    if (event.sort && event.sort.length > 0) {
+      p.set('sortColumn', event.sort[0].name || event.sort[0].field)
+      p.set('sortDirection', event.sort[0].direction)
+    } else {
+      p.delete('sortColumn')
+      p.delete('sortDirection')
+    }
+
+    setSearchParams(p)
+  }
 
   return (
     <section className="trips-page">
@@ -60,30 +67,32 @@ export function TripsPage() {
         </Button>
       </header>
 
-      {isLoading && <p className="trips-muted">กำลังโหลด…</p>}
       {error && <p className="trips-field-error">{getErrorMessage(error)}</p>}
-      {!isLoading && !error && trips?.length === 0 && (
-        <p className="trips-empty">ยังไม่มีทริป — สร้างทริปแรกของคุณ</p>
-      )}
-
-      {daily.length > 0 && (
-        <section className="trips-section">
-          <div className="trips-section-lab">
-            <RepeatIcon /> ประจำวัน <span className="trips-section-count">· {daily.length}</span>
-          </div>
-          <div className="trips-grid">{daily.map(dailyCard)}</div>
-        </section>
-      )}
-
-      {regular.length > 0 && (
-        <section className="trips-section">
-          {daily.length > 0 && (
-            <div className="trips-section-lab">
-              <CalendarIcon /> ทริป <span className="trips-section-count">· {regular.length}</span>
-            </div>
-          )}
-          <div className="trips-grid">{regular.map(regularCard)}</div>
-        </section>
+      
+      {!error && (
+        <div className="trips-grid-container" style={{ marginTop: '24px' }}>
+          <Grid 
+            dataSource={data?.result || []}
+            sortSettings={{enabled: true}}
+            filterSettings={{enabled: false}}
+            toolbar={['Search']}
+            pageSettings={{ enabled: true, pageSize: take, currentPage: (skip / take) + 1, totalRecordsCount: data?.count || 0 }}
+            onDataRequest={handleDataRequest}
+            onRowSelect={(args: any) => {
+              if (args.data && args.data.id) {
+                nav(`/trips/${args.data.id}`)
+              }
+            }}
+            enableHover={true}
+          >
+            <Columns>
+              <Column field="name" headerText="Trip Name" width="200" />
+              <Column field="destination" headerText="Destination" width="150" />
+              <Column field="startDate" headerText="Date" width="120" format="yMd" type="date" />
+              <Column field="dayCount" headerText="Days" width="80" textAlign="Right" />
+            </Columns>
+          </Grid>
+        </div>
       )}
 
       {open && (

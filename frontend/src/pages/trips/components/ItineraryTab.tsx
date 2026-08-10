@@ -143,7 +143,8 @@ export function ItineraryTab({tripId, isDaily = false, dayRoute}: {tripId: strin
 
   const {data: days, isLoading: itineraryLoading, error: itineraryError, refetch: refetchItinerary} = useGetItineraryQuery({tripId, tz: getViewerTimeZone(), lat: viewerLocation?.lat, lng: viewerLocation?.lng})
   const {data: places} = useListTripPlacesQuery(tripId)
-  const {data: trips} = useListTripsQuery()
+  const {data} = useListTripsQuery()
+  const trips = data?.result || []
   const [reorder] = useReorderStopsMutation()
   const [setStopVisited] = useSetStopVisitedMutation()
 
