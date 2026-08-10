@@ -1347,8 +1347,18 @@ export const api = createApi({
             invalidatesTags: [{type: 'ShareLink', id: 'LIST'}],
         }),
         // -------------------- Trips --------------------
-        listTrips: build.query<TripDto[], void>({
-            query: () => '/api/trips',
+        listTrips: build.query<{result: TripDto[], count: number}, {skip?: number, take?: number, search?: string, sortColumn?: string, sortDirection?: string} | void>({
+            query: (args) => {
+                if (!args) return '/api/trips';
+                const p = new URLSearchParams();
+                if (args.skip !== undefined) p.append('skip', args.skip.toString());
+                if (args.take !== undefined) p.append('take', args.take.toString());
+                if (args.search) p.append('search', args.search);
+                if (args.sortColumn) p.append('sortColumn', args.sortColumn);
+                if (args.sortDirection) p.append('sortDirection', args.sortDirection);
+                const ps = p.toString();
+                return ps ? `/api/trips?${ps}` : '/api/trips';
+            },
             providesTags: ['Trips'],
         }),
         getTrip: build.query<TripDto, string>({

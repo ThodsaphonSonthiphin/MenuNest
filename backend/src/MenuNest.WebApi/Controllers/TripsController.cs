@@ -27,6 +27,7 @@ using MenuNest.Application.UseCases.Trips.UpdateTrip;
 using MenuNest.Application.UseCases.Trips.UpdateTripPlace;
 using MenuNest.Application.UseCases.Trips.PushPlaceProfile;
 using MenuNest.Domain.Enums;
+using MenuNest.Application;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MenuNest.WebApi.Controllers;
@@ -38,8 +39,8 @@ public sealed class TripsController : ControllerBase
     public TripsController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("api/trips")]
-    public async Task<ActionResult<IReadOnlyList<TripDto>>> List(CancellationToken ct)
-        => Ok(await _mediator.Send(new ListTripsQuery(), ct));
+    public async Task<ActionResult<PagedResult<TripDto>>> List([FromQuery] ListTripsQuery query, CancellationToken ct)
+        => Ok(await _mediator.Send(query, ct));
 
     [HttpGet("api/trips/{id:guid}")]
     public async Task<ActionResult<TripDto>> Get(Guid id, CancellationToken ct)

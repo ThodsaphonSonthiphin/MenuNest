@@ -8,7 +8,8 @@ interface Props {
 }
 
 export function AddToTripDialog({place, onClose, onDone}: Props) {
-  const {data: trips = []} = useListTripsQuery()
+  const {data} = useListTripsQuery()
+  const trips = data?.result || []
   const [addTripPlace, {isLoading}] = useAddTripPlaceMutation()
 
   const add = async (tripId: string) => {

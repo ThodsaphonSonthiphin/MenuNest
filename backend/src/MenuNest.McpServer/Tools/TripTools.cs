@@ -34,7 +34,7 @@ public sealed class TripTools(IMediator mediator)
 {
     [McpServerTool, Description("List all trips owned by the current user")]
     public async Task<IReadOnlyList<TripDto>> list_trips(CancellationToken ct)
-        => await mediator.Send(new ListTripsQuery(), ct);
+        => (await mediator.Send(new ListTripsQuery(Take: 1000), ct)).Result;
 
     [McpServerTool, Description("Get one trip by ID")]
     public async Task<TripDto> get_trip(
