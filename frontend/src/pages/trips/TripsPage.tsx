@@ -68,11 +68,12 @@ export function TripsPage() {
       p.delete('sortDirection')
     }
 
-    // The Grid raises onDataRequest from inside its own render, so an
-    // unconditional setSearchParams re-renders it and it fires again — an
-    // infinite loop that freezes the grid under its loading spinner. Only
-    // navigate when the query string genuinely changed.
-    if (canonical(p) !== canonical(searchParams)) setSearchParams(p)
+    // The Grid raises onDataRequest from inside its own render, so navigating
+    // synchronously would update router state mid-render — React flags this and
+    // it re-renders the Grid, which fires again, looping until the grid freezes
+    // under its spinner. Defer past the render, and skip no-op navigations.
+    if (canonical(p) === canonical(searchParams)) return
+    queueMicrotask(() => setSearchParams(p))
   }
 
   return (
@@ -94,7 +95,14 @@ export function TripsPage() {
         <div className="trips-grid-container" style={{ marginTop: '24px' }}>
           <Grid 
             dataSource={{ result: data?.result || [], count: data?.count || 0 }}
-            sortSettings={{enabled: true}}
+            sortSettings={{
+              enabled: true,
+              // Seeded from the URL for the same reason as the search term: the
+              // list arrives sorted, so the header must show which column did it.
+              columns: sortColumn
+                ? [{field: sortColumn, direction: sortDirection || 'Ascending'}]
+                : [],
+            }}
             filterSettings={{enabled: false}}
             searchSettings={{enabled: true, fields: ['name', 'destination'], value: search}}
             toolbar={['Search']}
