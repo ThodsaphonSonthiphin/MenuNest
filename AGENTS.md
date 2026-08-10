@@ -88,3 +88,6 @@ When implementing dynamic API sorting in EF Core, use an explicit `switch` state
 MenuNest uses the new Pure React Syncfusion wrappers (e.g., `@syncfusion/react-grid`), not the legacy EJ2 wrappers. 
 1. **DO NOT** attempt to use the EJ2 `<Inject services={[...]} />` pattern; features are bundled internally. 
 2. **CSS Imports:** Sub-features often live in their own packages. For example, Grid pagination requires importing `'@syncfusion/react-pager/styles/material.css'`. Always check for separated packages if UI components render unstyled.
+
+## Syncfusion Remote Searching (Custom Binding)
+When using Custom Data Binding (`dataSource={{ result, count }}`) with remote searching enabled (`searchSettings={{enabled: true}}`), you **MUST** explicitly define the `fields` array in `searchSettings` (e.g., `fields: ['name', 'destination']`). Without local data to infer the schema from, the Pure React Grid will fail to populate the `SearchEvent` internally, silently hanging in the 'Loading' state and failing to fire `onDataRequest`.
