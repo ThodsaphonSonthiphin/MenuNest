@@ -28,13 +28,28 @@ export function TripsPage() {
   })
 
   const handleDataRequest = (event: any) => {
+    console.log('Grid DataRequestEvent:', event);
     const p = new URLSearchParams(searchParams)
     
     if (event.skip !== undefined) p.set('skip', event.skip.toString())
     if (event.take !== undefined) p.set('take', event.take.toString())
     
+    // Robustly extract the search string
+    let searchString = '';
     if (event.search && event.search.length > 0 && event.search[0].value) {
-      p.set('search', event.search[0].value)
+      searchString = event.search[0].value;
+    } else if (event.action && event.action.requestType === 'searching' && event.action.searchString) {
+      searchString = event.action.searchString;
+    } else if (event.action && event.action.requestType === 'searching' && event.action.value) {
+      searchString = event.action.value;
+    } else if (typeof event.searchString === 'string') {
+      searchString = event.searchString;
+    } else if (event.searchSettings && event.searchSettings.value) {
+      searchString = event.searchSettings.value;
+    }
+
+    if (searchString) {
+      p.set('search', searchString)
       // Reset to first page on search
       if (p.get('search') !== search) {
          p.set('skip', '0')
@@ -42,6 +57,8 @@ export function TripsPage() {
     } else {
       p.delete('search')
     }
+
+    console.log('Updating URL params to:', p.toString());
 
     if (event.sort && event.sort.length > 0) {
       p.set('sortColumn', event.sort[0].name || event.sort[0].field)
