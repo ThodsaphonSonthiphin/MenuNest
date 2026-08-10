@@ -11,6 +11,14 @@ import {getErrorMessage} from '../../shared/utils/getErrorMessage'
 import './trips-tokens.css'
 import './TripsPage.css'
 
+// Order-insensitive comparison, so a rebuilt URLSearchParams with the same
+// pairs in a different order is not mistaken for a change.
+function canonical(params: URLSearchParams): string {
+  const copy = new URLSearchParams(params)
+  copy.sort()
+  return copy.toString()
+}
+
 export function TripsPage() {
   const nav = useNavigate()
   const dispatch = useAppDispatch()
@@ -28,45 +36,29 @@ export function TripsPage() {
   })
 
   const handleDataRequest = (event: any) => {
-    console.log('Grid DataRequestEvent:', event);
     const p = new URLSearchParams(searchParams)
-    
+
     if (event.skip !== undefined) p.set('skip', event.skip.toString())
     if (event.take !== undefined) p.set('take', event.take.toString())
-    
-    // Robustly extract the search string
-    let searchString = '';
-    
-    // 1. If this is explicitly a search action, trust its payload (even if empty)
-    if (event.action && event.action.requestType === 'searching') {
-      if (typeof event.action.searchString === 'string') {
-        searchString = event.action.searchString;
-      } else if (typeof event.action.value === 'string') {
-        searchString = event.action.value;
-      }
-    } 
-    // 2. Otherwise, for paging/sorting events, preserve the active search string
-    else {
-      if (event.search && event.search.length > 0 && typeof event.search[0].value === 'string') {
-        searchString = event.search[0].value;
-      } else if (typeof event.searchString === 'string') {
-        searchString = event.searchString;
-      } else if (event.searchSettings && typeof event.searchSettings.value === 'string') {
-        searchString = event.searchSettings.value;
-      }
+
+    // Syncfusion reports the search two ways, and neither matches the obvious guess:
+    //   - the action is `requestType: 'Searching'` (capitalised) with the term on `value`
+    //   - the standing search is a predicate array whose term lives on `key`, not `value`
+    // A search action is authoritative even when its term is empty (that is the clear).
+    let searchString = ''
+    if (event.action && String(event.action.requestType).toLowerCase() === 'searching') {
+      searchString = typeof event.action.value === 'string' ? event.action.value : ''
+    } else if (Array.isArray(event.search) && event.search.length > 0) {
+      searchString = typeof event.search[0].key === 'string' ? event.search[0].key : ''
     }
 
     if (searchString) {
+      // A changed term restarts paging from the first page.
+      if (searchString !== search) p.set('skip', '0')
       p.set('search', searchString)
-      // Reset to first page on search
-      if (p.get('search') !== search) {
-         p.set('skip', '0')
-      }
     } else {
       p.delete('search')
     }
-
-    console.log('Updating URL params to:', p.toString());
 
     if (event.sort && event.sort.length > 0) {
       p.set('sortColumn', event.sort[0].name || event.sort[0].field)
@@ -76,7 +68,11 @@ export function TripsPage() {
       p.delete('sortDirection')
     }
 
-    setSearchParams(p)
+    // The Grid raises onDataRequest from inside its own render, so an
+    // unconditional setSearchParams re-renders it and it fires again — an
+    // infinite loop that freezes the grid under its loading spinner. Only
+    // navigate when the query string genuinely changed.
+    if (canonical(p) !== canonical(searchParams)) setSearchParams(p)
   }
 
   return (
@@ -100,7 +96,7 @@ export function TripsPage() {
             dataSource={{ result: data?.result || [], count: data?.count || 0 }}
             sortSettings={{enabled: true}}
             filterSettings={{enabled: false}}
-            searchSettings={{enabled: true, fields: ['name', 'destination']}}
+            searchSettings={{enabled: true, fields: ['name', 'destination'], value: search}}
             toolbar={['Search']}
             pageSettings={{ enabled: true, pageSize: take, currentPage: (skip / take) + 1, totalRecordsCount: data?.count || 0 }}
             onDataRequest={handleDataRequest}
