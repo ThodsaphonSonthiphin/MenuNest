@@ -1,7 +1,7 @@
 # ADR-147: A Discover-captured place lives in a new user-scoped **Saved place**, merged into Discover alongside trip Places
 
 **Date:** 2026-08-04
-**Status:** Accepted
+**Status:** **Superseded by [ADR-155](155-a-discover-capture-must-attach-to-a-trip.md)** (2026-08-11) — the owner reversed this decision on ticket #54, which was reopened and re-decided: a Discover capture must attach to a **Trip**, so `SavedPlace` is not built. Rejected option **E** below is now the chosen path. This ADR is kept as the record of what was believed on 2026-08-04 and of the four other options weighed; every mechanism it decides (the entity, the union, the `sp:`/`tp:` keys, the migration, the survives-trip-deletion guarantee) is void.
 **Relates to:** issue #48; decision-map `discover-add-place-48` (#53), ticket `place-home` (#54). Unblocks `coordinate-places` (#55), `duplicate-policy` (#61), `shared-capture` (#60), `mcp-surface` (#63). Consumes the measurements in ticket `plus-code-resolution` (#57). Extends the user-scoped-master pattern of ADR-063/065. Amends the CONTEXT.md definitions of **Capture**, **Place** and **Discover**; introduces **Saved place**.
 
 ```mermaid
