@@ -86,6 +86,10 @@ the glossary wins until the glossary is deliberately changed.
   profile** — which is keyed on `place_id` and therefore has no master to offer it (ADR-148,
   reaffirming ADR-066). **Coordinate place** is acceptable prose for the `place_id`-less form, but it
   is not a separate term.
+  Adding such a Place to a **second** Trip does not make a second Place: it stays **one** Place in
+  **Discover**, listing every Trip it sits on, and the note and links it was captured with travel
+  with it (ADR-156). Two *independent* Captures of the same physical spot are still two Places —
+  that is a matching question, not an identity one.
   _Avoid_: Location, Spot, POI, Pin; **Saved place** (retired with ADR-147 — a place outside a Trip
   cannot exist, and the glossary again has no word for one).
 - **Stop** — one entry in a Trip's itinerary: a reference to a **Place** plus a
