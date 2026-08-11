@@ -1,7 +1,7 @@
 # ADR-148: A coordinate place is **user-named**, carries its enrichment **on its own row**, and keeps one identity across trips via a dedupe-only `SavedPlaceId`
 
 **Date:** 2026-08-07
-**Status:** Accepted
+**Status:** **Partially superseded by [ADR-155](155-a-discover-capture-must-attach-to-a-trip.md)** (2026-08-11) — ADR-147 was reversed, so `SavedPlace` is not built and the **dedupe-only `SavedPlaceId`** named in this ADR's title has nothing to point at. **Void:** that mechanism, and with it the guarantee that one coordinate place keeps one identity across two Trips (re-opened as `coordinate-places` #55 / `duplicate-policy` #61). **Still stands:** a coordinate capture is **user-named**, and a `place_id`-less place carries its note, review links, best-time windows and season periods **on its own row** — which under ADR-155 is its `TripPlace` row, already served by `ListMyPlacesHandler:62-65`'s fallback to the representative `TripPlace`.
 **Relates to:** issue #48; decision-map `discover-add-place-48` (#53), ticket `coordinate-places` (#55). Consumes the measurements in `geocoding-cost` (#58) and `plus-code-resolution` (#57). **Amends ADR-147** (narrows its "no FK either way" wording, and reverses its "a coordinate capture gets no enrichment" consequence). **Reaffirms ADR-066**'s cut of non-`place_id` places from the `PlaceProfile` library. Unblocks `duplicate-policy` (#61). Amends the CONTEXT.md definition of **Saved place**.
 
 ```mermaid
