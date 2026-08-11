@@ -167,11 +167,14 @@ the glossary wins until the glossary is deliberately changed.
   are **live search** (type a name → Google Places autocomplete suggestions → pick one)
   and **map-tap** (tap a place on the in-app map), both handled client-side (ADR-014,
   ADR-015). **Pasting a link** is kept as a hidden fallback, resolved server-side
-  (ADR-007). Every path ends the same way: a Google `place_id` + snapshot → preview →
+  (ADR-007). Every path ends the same way: an identified place + snapshot → preview →
   category (plus optional **Review link**s — ADR-069) → save. Capture is also reachable from
   the **Itinerary**'s add-stop picker ("เลือกจุดแวะ"); launched there it additionally adds the
   new Place as a **Stop** on the active **Day**, then returns to the itinerary (ADR-067, ADR-068,
-  ADR-070). Share-from-Maps (PWA share target) and the browser bookmarklet are
+  ADR-070). Capture is also reachable with no screen at all, **over MCP**: there the preview is
+  the assistant reading the resolved place back to the User, and the User's reply is the
+  confirmation the preview sheet would otherwise have collected (issue #48, ADR-157).
+  Share-from-Maps (PWA share target) and the browser bookmarklet are
   Phase 2. Both surfaces put Capture behind a **Capture mode** rather than leaving it always
   on (ADR-016, ADR-150).
 - **Capture mode** — the armed state a map surface enters before it will accept a **Capture**.
