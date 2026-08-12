@@ -72,6 +72,31 @@ builder.Services
             ValidAudience = azureAd["ClientId"],
             ValidateIssuer = false,
         };
+        // Same shape as the Google scheme below, and for the same reason: since
+        // /api/session/exchange names BOTH provider schemes in its policy and
+        // AuthorizationMiddleware runs every scheme in the list without
+        // short-circuiting, a Google exchange also runs this handler and vice
+        // versa. See the Google block for why ctx.Fail must be called.
+        options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+        {
+            OnAuthenticationFailed = ctx =>
+            {
+                ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("MenuNest.Auth.Microsoft")
+                    .LogWarning(ctx.Exception, "Microsoft JWT authentication failed: {Reason}", ctx.Exception.Message);
+                ctx.Fail(ctx.Exception);
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = ctx =>
+            {
+                ctx.HttpContext.RequestServices
+                    .GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("MenuNest.Auth.Microsoft")
+                    .LogDebug("Microsoft JWT validated for sub {Sub}", ctx.Principal?.FindFirst("sub")?.Value);
+                return Task.CompletedTask;
+            },
+        };
     })
     .AddJwtBearer("Google", options =>
     {
@@ -97,6 +122,25 @@ builder.Services
                     .GetRequiredService<ILoggerFactory>()
                     .CreateLogger("MenuNest.Auth.Google")
                     .LogWarning(ctx.Exception, "Google JWT authentication failed: {Reason}", ctx.Exception.Message);
+                // ctx.Fail (which sets Result — the property itself is
+                // get-only) is load-bearing, not tidiness.
+                // JwtBearerHandler's outer catch — which also covers the
+                // ConfigurationManager metadata fetch — rethrows when this
+                // event leaves Result unset, so an unreachable
+                // accounts.google.com turns into an unhandled exception and
+                // ExceptionHandlingMiddleware answers 500. Since
+                // /api/session/exchange authenticates against BOTH provider
+                // schemes with no short-circuit, that 500 lands on a caller
+                // holding a perfectly good Entra token (and symmetrically the
+                // other way round).
+                //
+                // Trade-off, deliberate: a genuinely unreachable authority now
+                // degrades to a 401 instead of a 500, which is quieter. The
+                // LogWarning above is what keeps it observable — the
+                // ApplicationInsightsLoggerProvider captures Warning and above,
+                // so the outage is still visible in App Insights. This is not
+                // swallowing the error.
+                ctx.Fail(ctx.Exception);
                 return Task.CompletedTask;
             },
             OnTokenValidated = ctx =>

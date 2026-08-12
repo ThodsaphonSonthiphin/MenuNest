@@ -82,6 +82,46 @@ public sealed class AppSessionStoreTests
     }
 
     [Fact]
+    public async Task Issuing_reclaims_only_this_subjects_expired_rows()
+    {
+        // Nothing else reclaims AppSessions rows, so issue-time is the sweep.
+        // It must stay surgical: a live row for the same subject is another
+        // signed-in device (ADR-159), and another subject's rows are not ours.
+        using var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open();
+        using var db = NewDb(conn);
+
+        db.AppSessions.AddRange(
+            new AppSession
+            {
+                RefreshCode = "mine-expired",
+                Subject = "oid-1",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(-1),
+                CreatedAt = DateTime.UtcNow.AddDays(-400),
+            },
+            new AppSession
+            {
+                RefreshCode = "mine-live",
+                Subject = "oid-1",
+                ExpiresAt = DateTime.UtcNow.AddDays(10),
+                CreatedAt = DateTime.UtcNow,
+            },
+            new AppSession
+            {
+                RefreshCode = "theirs-expired",
+                Subject = "oid-2",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(-1),
+                CreatedAt = DateTime.UtcNow.AddDays(-400),
+            });
+        await db.SaveChangesAsync();
+
+        var fresh = await new AppSessionStore(db).IssueAsync("oid-1");
+
+        var remaining = await db.AppSessions.Select(s => s.RefreshCode).ToListAsync();
+        remaining.Should().BeEquivalentTo(new[] { "mine-live", "theirs-expired", fresh });
+    }
+
+    [Fact]
     public async Task Revoking_an_unknown_code_is_a_no_op()
     {
         using var conn = new SqliteConnection("DataSource=:memory:");
