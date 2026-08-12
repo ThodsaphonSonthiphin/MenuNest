@@ -4,7 +4,7 @@ import {apiScopes, msalInstance} from '../auth/msalConfig'
 import {getGoogleToken} from '../auth/googleAuth'
 import {handleAuthFailure} from '../auth/reauth'
 import {clearAppSession, getAppSession, isAppSessionExpired} from '../auth/appSession'
-import {refreshAppSession} from '../auth/appSessionApi'
+import {refreshAppSession, TransientSessionError} from '../auth/appSessionApi'
 import type {
     AttachedPhotoInfo,
     CreateCustomSymptomRequest,
@@ -68,9 +68,23 @@ export async function acquireAccessToken(): Promise<string | null> {
     const session = getAppSession()
     if (session) {
         if (!isAppSessionExpired(session.expiresAtMs)) return session.accessToken
-        const rotated = await refreshAppSession(session.refreshToken)
-        if (rotated) return rotated.accessToken
-        clearAppSession()
+        try {
+            const rotated = await refreshAppSession(session.refreshToken)
+            if (rotated) return rotated.accessToken
+            // refreshAppSession already cleared the dead session on an
+            // explicit refusal; this is a defensive no-op in that case.
+            clearAppSession()
+        } catch (err) {
+            if (err instanceof TransientSessionError) {
+                // The refresh request itself failed (network blip, API cold
+                // start) — that is not proof the session is dead. The 60s
+                // expiry leeway means the stored access token may still be
+                // valid, so fall back to it instead of discarding a
+                // long-lived session and forcing an interactive re-login.
+                return session.accessToken
+            }
+            throw err
+        }
     }
 
     // Try MSAL first (Microsoft)
