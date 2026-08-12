@@ -1,7 +1,7 @@
 import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { useGetMeQuery } from '../api/api'
 import { isGoogleAuthenticated, getGoogleToken, decodeGoogleIdToken, clearGoogleToken } from '../auth/googleAuth'
-import { clearAppSession, getAppSession } from '../auth/appSession'
+import { clearAppSession, getAppSession, hasAppSession } from '../auth/appSession'
 import { revokeAppSession } from '../auth/appSessionApi'
 
 /**
@@ -11,16 +11,23 @@ import { revokeAppSession } from '../auth/appSessionApi'
  * is the single source of truth for "who am I, and do I have a
  * family?" across the app.
  *
- * The query is skipped when neither MSAL nor Google has produced a
- * session yet, otherwise RTK Query would fire with no bearer token
- * and 401.
+ * The query is skipped when neither MSAL, Google, nor our own durable app
+ * session has produced credentials yet, otherwise RTK Query would fire with
+ * no bearer token and 401.
+ *
+ * The app-session check matters on its own: after a browser restart,
+ * msal-browser v5 has purged its cache (ADR-161), so a Microsoft user who
+ * is still signed in has ONLY the app session — no MSAL account, no Google
+ * token. Without checking it here, this hook would report the user as
+ * signed out even though ProtectedRoute let them in, `/api/me` would never
+ * fire, and FamilyRequiredRoute would wrongly bounce them to /join-family.
  */
 export function useCurrentUser() {
   const { instance, accounts } = useMsal()
   const isMsalAuth = useIsAuthenticated()
   const account = accounts[0] ?? null
 
-  const isAuthenticated = isMsalAuth || isGoogleAuthenticated()
+  const isAuthenticated = isMsalAuth || isGoogleAuthenticated() || hasAppSession()
 
   const {
     data: me,

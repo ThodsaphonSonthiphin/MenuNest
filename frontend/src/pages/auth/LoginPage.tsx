@@ -153,12 +153,17 @@ export function LoginPage() {
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <GoogleLogin
-            onSuccess={async (credentialResponse) => {
+            onSuccess={(credentialResponse) => {
               if (credentialResponse.credential) {
                 setGoogleToken(credentialResponse.credential)
                 const sub = decodeJwtSub(credentialResponse.credential)
                 if (sub) setUser(sub)
-                await exchangeForAppSession(credentialResponse.credential)
+                // Fire-and-forget, matching the Microsoft path below: the
+                // exchange is an upgrade, never a gate, and `fetch` has no
+                // timeout — awaiting it here would leave a successfully
+                // signed-in user stuck on this card if the API is slow or
+                // cold-starting.
+                void exchangeForAppSession(credentialResponse.credential)
                 navigate('/', { replace: true })
               }
             }}

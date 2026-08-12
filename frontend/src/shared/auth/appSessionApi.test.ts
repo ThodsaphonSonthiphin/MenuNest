@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
-import {exchangeForAppSession, refreshAppSession, revokeAppSession} from './appSessionApi'
+import {TransientSessionError, exchangeForAppSession, refreshAppSession, revokeAppSession} from './appSessionApi'
 import {getAppSession, hasAppSession, storeAppSession} from './appSession'
 
 /** Minimal in-memory Storage stand-in — vitest runs in `node`, no DOM. */
@@ -111,15 +111,59 @@ describe('refreshAppSession', () => {
     expect(hasAppSession()).toBe(false)
   })
 
-  it('keeps the existing session and returns null on a network error, so a blip does not sign the user out', async () => {
+  it('keeps the existing session and throws TransientSessionError on a network error, so a blip does not sign the user out', async () => {
     stubStorage()
     storeAppSession({accessToken: 'a', refreshToken: 'r', expiresIn: 3600})
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('network down')))
 
-    const result = await refreshAppSession('r')
-
-    expect(result).toBeNull()
+    await expect(refreshAppSession('r')).rejects.toBeInstanceOf(TransientSessionError)
     expect(getAppSession()).toEqual(expect.objectContaining({accessToken: 'a', refreshToken: 'r'}))
+  })
+
+  it('keeps the existing session and throws TransientSessionError on an unparseable 200 body', async () => {
+    stubStorage()
+    storeAppSession({accessToken: 'a', refreshToken: 'r', expiresIn: 3600})
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => { throw new Error('bad json') },
+    }))
+
+    await expect(refreshAppSession('r')).rejects.toBeInstanceOf(TransientSessionError)
+    expect(getAppSession()).toEqual(expect.objectContaining({accessToken: 'a', refreshToken: 'r'}))
+  })
+
+  it('single-flights concurrent refresh calls into exactly one request (the backend refresh grant is single-use)', async () => {
+    stubStorage()
+    storeAppSession({accessToken: 'a', refreshToken: 'r', expiresIn: 3600})
+    let resolveFetch!: (v: unknown) => void
+    const fetchMock = vi.fn().mockReturnValue(new Promise((resolve) => { resolveFetch = resolve }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    // Two concurrent callers, e.g. an RTK Query prepareHeaders call and a
+    // useAuthDataManager mount, both racing to rotate the same session.
+    const first = refreshAppSession('r')
+    const second = refreshAppSession('r')
+
+    resolveFetch(jsonResponse(true, {accessToken: 'new-a', expiresIn: 3600, refreshToken: 'new-r'}))
+    const [firstResult, secondResult] = await Promise.all([first, second])
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(firstResult).toEqual(expect.objectContaining({accessToken: 'new-a'}))
+    expect(secondResult).toEqual(expect.objectContaining({accessToken: 'new-a'}))
+  })
+
+  it('starts a fresh request for a later, non-overlapping refresh call', async () => {
+    stubStorage()
+    storeAppSession({accessToken: 'a', refreshToken: 'r', expiresIn: 3600})
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(true, {accessToken: 'new-a', expiresIn: 3600, refreshToken: 'new-r'}),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await refreshAppSession('r')
+    await refreshAppSession('new-r')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 })
 
