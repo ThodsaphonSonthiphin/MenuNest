@@ -53,31 +53,11 @@ builder.Services
             var logger = context.RequestServices
                 .GetRequiredService<ILoggerFactory>()
                 .CreateLogger("MenuNest.Auth.PolicyScheme");
-            var authHeader = context.Request.Headers.Authorization.FirstOrDefault();
-            if (authHeader?.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                var token = authHeader["Bearer ".Length..];
-                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
-                if (handler.CanReadToken(token))
-                {
-                    var jwt = handler.ReadJwtToken(token);
-                    if (jwt.Issuer == "https://accounts.google.com")
-                    {
-                        logger.LogDebug("Bearer issuer {Issuer}; forwarding to Google scheme", jwt.Issuer);
-                        return "Google";
-                    }
-                    logger.LogDebug("Bearer issuer {Issuer}; forwarding to Microsoft scheme", jwt.Issuer);
-                }
-                else
-                {
-                    logger.LogDebug("Bearer token is not a readable JWT; forwarding to Microsoft scheme");
-                }
-            }
-            else
-            {
-                logger.LogDebug("No Bearer token on request; forwarding to Microsoft scheme");
-            }
-            return "Microsoft";
+            var appIssuer = builder.Configuration["MCP:ServerUrl"] ?? string.Empty;
+            var scheme = MenuNest.WebApi.Auth.BearerSchemeSelector.Select(
+                context.Request.Headers.Authorization.FirstOrDefault(), appIssuer);
+            logger.LogDebug("Forwarding bearer to {Scheme} scheme", scheme);
+            return scheme;
         };
     })
     .AddJwtBearer("Microsoft", options =>
