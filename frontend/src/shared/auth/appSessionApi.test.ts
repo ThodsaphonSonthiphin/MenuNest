@@ -100,6 +100,22 @@ describe('refreshAppSession', () => {
     expect(hasAppSession()).toBe(false)
   })
 
+  it('keeps the session another TAB already rotated instead of clearing it on the losing 400', async () => {
+    // Two tabs left open overnight both wake with the same expired session.
+    // The single-flight guard is module-scoped, so it does not span tabs: the
+    // loser presents the already-rotated (single-use) code and gets a 400. It
+    // must NOT clear the shared localStorage keys the winning tab just wrote —
+    // that would 401 both tabs back to /login.
+    stubStorage()
+    storeAppSession({accessToken: 'winner-a', refreshToken: 'winner-r', expiresIn: 3600})
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ok: false, status: 400, json: async () => ({})}))
+
+    const result = await refreshAppSession('stale-r')
+
+    expect(result).toEqual(expect.objectContaining({accessToken: 'winner-a', refreshToken: 'winner-r'}))
+    expect(hasAppSession()).toBe(true)
+  })
+
   it('clears the session and returns null on a 500 (Development shape), not just a 400', async () => {
     stubStorage()
     storeAppSession({accessToken: 'a', refreshToken: 'r', expiresIn: 3600})

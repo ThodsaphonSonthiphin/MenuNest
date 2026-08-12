@@ -80,10 +80,21 @@ async function doRefresh(refreshToken: string): Promise<AppSession | null> {
   }
 
   if (!res.ok) {
-    // Any non-200 means the server explicitly refused this refresh token —
-    // a malformed/absent body yields a bare 400 in Production and a 500 in
+    // The single-flight guard above is module-scoped, so it does not span
+    // browser TABS. Two tabs left open overnight both wake with the same
+    // expired session; the loser presents an already-rotated (single-use)
+    // code and gets a 400. Clearing here would wipe the SHARED localStorage
+    // keys the winning tab just wrote, 401-ing both tabs into /login — the
+    // exact symptom this feature exists to remove. Re-read storage: if the
+    // stored refresh token is no longer the one we presented, another tab
+    // already rotated successfully and its session is the live one.
+    const current = getAppSession()
+    if (current && current.refreshToken !== refreshToken) return current
+
+    // Otherwise this really is a refusal. Any non-200 counts — a
+    // malformed/absent body yields a bare 400 in Production and a 500 in
     // Development, so keying off the `invalid_grant` string in the body
-    // would strand the user. This IS a definitive refusal.
+    // would strand the user.
     clearAppSession()
     return null
   }

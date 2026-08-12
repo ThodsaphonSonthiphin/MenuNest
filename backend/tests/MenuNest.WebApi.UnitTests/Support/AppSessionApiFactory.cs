@@ -1,6 +1,8 @@
 using MenuNest.Infrastructure.BackgroundServices;
 using MenuNest.Infrastructure.Persistence;
+using MenuNest.WebApi.Auth;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -28,8 +30,11 @@ namespace MenuNest.WebApi.UnitTests.Support;
 /// <c>AppSessionStore</c> share one real store;</item>
 /// <item>the Microsoft/Google JWT bearer handlers are replaced by
 /// <see cref="TestProviderTokenHandler"/>, because validating a real provider token
-/// requires live OIDC metadata. The <c>MultiAuth</c> policy scheme, the fallback
-/// policy and the claims pipeline are all untouched.</item>
+/// requires live OIDC metadata. The <c>MultiAuth</c> policy scheme still runs the
+/// production <see cref="BearerSchemeSelector"/> routing — only the branches that end
+/// at a provider handler are diverted, so a token this app minted is still validated
+/// by the real <c>McpProxy</c> JWT bearer. The fallback policy, the exchange
+/// endpoint's own policy and the claims pipeline are all untouched.</item>
 /// </list>
 /// </summary>
 public sealed class AppSessionApiFactory : WebApplicationFactory<Program>
@@ -59,6 +64,16 @@ public sealed class AppSessionApiFactory : WebApplicationFactory<Program>
                 ["Jwt:SigningKey"] = "menunest-app-session-integration-tests-signing-key",
                 ["Cors:AllowedOrigins"] = "http://localhost:5173",
                 ["ApplicationInsights:ConnectionString"] = string.Empty,
+                // The Microsoft/Google JwtBearer schemes are now named directly by the
+                // exchange endpoint's policy, so their options really are constructed
+                // here (they used to be unreachable behind MultiAuth's selector).
+                // JwtBearerPostConfigureOptions rejects a non-HTTPS Authority, so the
+                // Authority has to be well-formed even though it is never dereferenced:
+                // both schemes forward to TestProviderTokenHandler before any token is
+                // validated, so no OIDC metadata is ever fetched.
+                ["AzureAd:Instance"] = "https://login.microsoftonline.com/",
+                ["AzureAd:ClientId"] = "00000000-0000-0000-0000-000000000000",
+                ["Google:ClientId"] = "menunest-tests.apps.googleusercontent.com",
             });
         });
 
@@ -92,17 +107,41 @@ public sealed class AppSessionApiFactory : WebApplicationFactory<Program>
             }
 
             // --- authentication --------------------------------------------------
-            // Add the test scheme and point the *production* MultiAuth policy scheme
-            // at it. MultiAuth stays the default scheme, so the fallback policy, the
+            // Add the test scheme and divert the two *provider* handlers to it.
+            // MultiAuth stays the default scheme, so the fallback policy, the
             // challenge path and the claims flow are all the real ones.
             services
                 .AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, TestProviderTokenHandler>(
                     TestProviderTokenHandler.SchemeName, _ => { });
 
-            services.PostConfigure<PolicySchemeOptions>(
-                "MultiAuth",
-                options => options.ForwardDefaultSelector = _ => TestProviderTokenHandler.SchemeName);
+            // MultiAuth keeps running the PRODUCTION issuer routing. Only the branches
+            // that land on a provider handler are diverted; a token this app minted
+            // still resolves to BearerSchemeSelector.AppIssued and is validated by the
+            // real McpProxy JWT bearer with the real OAuthJwt parameters. Substituting
+            // the selector wholesale (as this factory used to) stubbed out the single
+            // code path the durable session depends on, so nothing proved that a minted
+            // token was accepted anywhere or resolved to the same user.
+            services.PostConfigure<PolicySchemeOptions>("MultiAuth", options =>
+                options.ForwardDefaultSelector = context =>
+                {
+                    var scheme = BearerSchemeSelector.Select(
+                        context.Request.Headers.Authorization.FirstOrDefault(), AppIssuer);
+                    return scheme == BearerSchemeSelector.AppIssued
+                        ? scheme
+                        : TestProviderTokenHandler.SchemeName;
+                });
+
+            // Endpoints that name the provider schemes directly (the exchange policy)
+            // bypass MultiAuth entirely, so those two handlers need diverting too:
+            // validating a real Microsoft/Google token needs live OIDC metadata and a
+            // real signature. ForwardDefault covers authenticate AND challenge.
+            foreach (var providerScheme in new[] { BearerSchemeSelector.Microsoft, BearerSchemeSelector.Google })
+            {
+                services.PostConfigure<JwtBearerOptions>(
+                    providerScheme,
+                    options => options.ForwardDefault = TestProviderTokenHandler.SchemeName);
+            }
         });
     }
 

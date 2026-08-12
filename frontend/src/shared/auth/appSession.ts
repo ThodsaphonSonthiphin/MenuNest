@@ -15,14 +15,25 @@ export interface AppSession {
   expiresAtMs: number
 }
 
+/**
+ * All-or-nothing on the way in, matching {@link getAppSession} on the way out.
+ * Three separate writes can fail half way (quota exceeded, Safari private mode),
+ * leaving a NEW access token beside a STALE refresh token — all three keys
+ * present, so getAppSession's presence check waves it through, and the session
+ * can then never be renewed. A partial write must degrade to no session.
+ */
 export function storeAppSession(tokens: {
   accessToken: string
   refreshToken: string
   expiresIn: number
 }): void {
-  localStorage.setItem(ACCESS_KEY, tokens.accessToken)
-  localStorage.setItem(REFRESH_KEY, tokens.refreshToken)
-  localStorage.setItem(EXPIRES_KEY, String(Date.now() + tokens.expiresIn * 1000))
+  try {
+    localStorage.setItem(ACCESS_KEY, tokens.accessToken)
+    localStorage.setItem(REFRESH_KEY, tokens.refreshToken)
+    localStorage.setItem(EXPIRES_KEY, String(Date.now() + tokens.expiresIn * 1000))
+  } catch {
+    clearAppSession()
+  }
 }
 
 /**
