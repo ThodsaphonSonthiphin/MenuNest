@@ -1,0 +1,7 @@
+- generic [ref=e4]:
+  - generic [ref=e5]: 🪺
+  - heading "Nest" [level=1] [ref=e6]
+  - paragraph [ref=e7]: ทุกเรื่องของครอบครัว รวมไว้ที่เดียว
+  - button "Sign in with Microsoft" [ref=e8] [cursor=pointer]
+  - generic [ref=e9]: or
+  - paragraph [ref=e11]: Sign in with your Microsoft or Google account.

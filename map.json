@@ -1,0 +1,59 @@
+{
+  "backend": "github",
+  "map": {
+    "id": "87",
+    "dbId": 5100469451,
+    "key": "trips-paging-filtering",
+    "name": "Decision map - Trips Paging, Sorting, and Filtering",
+    "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/87",
+    "destination": "\u0e2b\u0e19\u0e49\u0e32 Trips \u0e42\u0e2b\u0e25\u0e14\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e17\u0e35\u0e25\u0e30 10 \u0e23\u0e32\u0e22\u0e01\u0e32\u0e23, \u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e40\u0e23\u0e35\u0e22\u0e07\u0e15\u0e32\u0e21\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48\u0e2b\u0e23\u0e37\u0e2d\u0e0a\u0e37\u0e48\u0e2d\u0e44\u0e14\u0e49, \u0e41\u0e25\u0e30\u0e01\u0e23\u0e2d\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e15\u0e32\u0e21\u0e0a\u0e37\u0e48\u0e2d\u0e17\u0e23\u0e34\u0e1b\u0e2b\u0e23\u0e37\u0e2d\u0e2a\u0e16\u0e32\u0e19\u0e17\u0e35\u0e48\u0e44\u0e14\u0e49 \u0e01\u0e32\u0e23\u0e17\u0e33\u0e07\u0e32\u0e19\u0e17\u0e31\u0e49\u0e07\u0e2b\u0e21\u0e14\u0e19\u0e35\u0e49\u0e14\u0e36\u0e07\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e08\u0e32\u0e01 API \u0e41\u0e1a\u0e1a Server-side \u0e42\u0e14\u0e22\u0e40\u0e01\u0e47\u0e1a State \u0e43\u0e19 URL"
+  },
+  "tickets": [
+    {
+      "key": "backend-api-readiness",
+      "id": "88",
+      "dbId": 5100469494,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Backend API - Is it ready for paging, sorting, and filtering?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/88",
+      "type": "research",
+      "mode": "AFK",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [],
+      "gist": null
+    },
+    {
+      "key": "frontend-ui-implementation",
+      "id": "90",
+      "dbId": 5100469691,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "Frontend UI - Implement Trips Paging, Sorting, and Filtering",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/90",
+      "type": "task",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [
+        "ui-component-selection",
+        "backend-api-readiness"
+      ],
+      "gist": null
+    },
+    {
+      "key": "ui-component-selection",
+      "id": "89",
+      "dbId": 5100469598,
+      "repo": "ThodsaphonSonthiphin/MenuNest",
+      "name": "UI Component - Which library/pattern for pagination and filters?",
+      "url": "https://github.com/ThodsaphonSonthiphin/MenuNest/issues/89",
+      "type": "grilling",
+      "mode": "HITL",
+      "status": "open",
+      "assignee": null,
+      "blockedBy": [],
+      "gist": null
+    }
+  ],
+  "divergence": []
+}
