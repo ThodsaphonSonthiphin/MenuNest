@@ -211,3 +211,10 @@ app.MapOAuthProxy();
 app.MapAppSession();
 
 app.Run();
+
+/// <summary>
+/// Top-level statements compile into an internal <c>Program</c> class. Declaring it
+/// public (and partial) makes it addressable as <c>WebApplicationFactory&lt;Program&gt;</c>
+/// from the test host. Behaviour-free marker — no runtime effect.
+/// </summary>
+public partial class Program { }
