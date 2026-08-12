@@ -188,8 +188,11 @@ export function useAuthDataManager(
     // Read the live session per request instead of closing over `token`: the
     // captured value is a snapshot from mount, and after a browser restart
     // MSAL is purged so `accounts` stays [] forever and this effect never
-    // re-runs to replace it.
-    const adaptor = new AuthAdaptor(() => getAppSession()?.accessToken ?? '', {
+    // re-runs to replace it. Fall back to `token` (the value the effect above
+    // already acquired via acquireAccessToken's MSAL/Google chain) when there
+    // is no app session yet — never fall back to '', which would send an
+    // empty bearer despite a perfectly valid provider token being in hand.
+    const adaptor = new AuthAdaptor(() => getAppSession()?.accessToken ?? token, {
       readUrl: readUrl ? `${API_BASE}${readUrl}` : undefined,
       transformResponse,
     })

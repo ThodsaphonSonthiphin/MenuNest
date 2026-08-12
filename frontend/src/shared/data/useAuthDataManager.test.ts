@@ -1,4 +1,4 @@
-import {describe, expect, it, vi} from 'vitest'
+import {afterEach, describe, expect, it, vi} from 'vitest'
 
 // useAuthDataManager.ts pulls in api.ts (→ msalConfig.ts, which builds a real
 // PublicClientApplication against `window.location.origin`) and
@@ -19,6 +19,7 @@ vi.mock('@azure/msal-react', () => ({
 }))
 
 import {AuthAdaptor} from './useAuthDataManager'
+import {getAppSession} from '../auth/appSession'
 
 /**
  * The only part of the `Request` contract `beforeSend` touches is `headers`,
@@ -27,6 +28,19 @@ import {AuthAdaptor} from './useAuthDataManager'
 function stubRequest() {
   return {headers: new Headers()} as unknown as Request
 }
+
+function stubStorage(initial: Record<string, string> = {}) {
+  const map = new Map(Object.entries(initial))
+  vi.stubGlobal('localStorage', {
+    getItem: vi.fn((k: string) => map.get(k) ?? null),
+    setItem: vi.fn((k: string, v: string) => void map.set(k, v)),
+    removeItem: vi.fn((k: string) => void map.delete(k)),
+  })
+}
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+})
 
 const dm = {} as never
 
@@ -66,5 +80,22 @@ describe('AuthAdaptor.beforeSend', () => {
 
     // Headers strips the trailing space the template literal leaves behind.
     expect(req.headers.get('Authorization')).toBe('Bearer')
+  })
+
+  it('falls back to the acquired provider token when there is no app session, instead of an empty bearer', () => {
+    // The regression this guards: useAuthDataManager's real getter is
+    // `() => getAppSession()?.accessToken ?? token`. With no app session
+    // stored (exchange failed, or never attempted) it must fall back to the
+    // MSAL/Google token the hook's effect already acquired — not to '', which
+    // would send `Authorization: Bearer ` with nothing after it even though a
+    // perfectly valid provider token is sitting in hand.
+    stubStorage() // no app session keys stored -> getAppSession() returns null
+    const providerToken = 'provider-tok'
+    const adaptor = new AuthAdaptor(() => getAppSession()?.accessToken ?? providerToken)
+    const req = stubRequest()
+
+    adaptor.beforeSend(dm, req)
+
+    expect(req.headers.get('Authorization')).toBe('Bearer provider-tok')
   })
 })
