@@ -62,6 +62,9 @@ public sealed class SqliteAppDbContext : DbContext, IApplicationDbContext
     public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
     public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
 
+    // Durable SPA sessions (ADR-161/162) — separate from the MCP proxy's store.
+    public DbSet<AppSession> AppSessions => Set<AppSession>();
+
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
