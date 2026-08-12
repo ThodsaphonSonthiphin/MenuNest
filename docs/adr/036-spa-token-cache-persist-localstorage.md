@@ -1,7 +1,13 @@
 # ADR-036: The ~1h re-login is an ephemeral token cache (sessionStorage), not a broken refresh token — fix by persisting the cache in localStorage
 
 **Date:** 2026-07-11
-**Status:** Accepted
+**Status:** **Superseded by ADR-161** (2026-08-12) -- its core premise, that `localStorage`
+persists a token cache across browser sessions, is **false for `@azure/msal-browser` v5**,
+which this repo has used since the initial scaffold. v5 encrypts the cache with a key held
+in a *session* cookie, so the browser-close case this ADR meant to fix was never addressed:
+production telemetry showed login-first sessions at 65% before the fix and 69% after. The
+`sessionStorage` -> `localStorage` move stays in place (it still helps the mobile tab-eviction
+case, this ADR's original target); it is the *conclusion about browser restarts* that is retracted.
 **Relates to:** ADR-001..004 (Entra/Google sign-in + MCP OAuth proxy). Root cause confirmed via App Insights (debug-mantra), not hypothesised.
 
 ```mermaid

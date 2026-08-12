@@ -31,6 +31,17 @@ the glossary wins until the glossary is deliberately changed.
 - **OAuth proxy** — MenuNest's in-app OAuth 2.1 Authorization-Server facade
   (`/oauth/*`) that brokers MCP authentication to Entra and mints the app's own
   JWT for `/mcp`. See ADR-003 / ADR-004.
+- **App session** — the **User**'s durable sign-in to the web SPA: a MenuNest-minted access JWT
+  plus a rotating refresh token, held under the SPA's **own** `localStorage` keys and backed by an
+  `AppSessions` row (ADR-161, ADR-162). Obtained by exchanging a Microsoft or Google sign-in once,
+  and refreshed **without** contacting the identity provider — which is what makes it
+  provider-agnostic. It lasts until the User logs out (or 365 days after its last use), and
+  **logging out revokes only the device that pressed it** (ADR-159).
+  Distinct from the **OAuth proxy**, which brokers *MCP* clients to Entra and does hold an upstream
+  Entra refresh token; the two share neither a table nor a code path. It is also **not** the MSAL
+  browser cache — that cache is destroyed on every browser close by design (msal-browser v5
+  encrypts it with a key in a session cookie), which is the whole reason an App session exists.
+  _Avoid_: login session, token cache, "the refresh token" (bare — say which one), MSAL session.
 
 ## App shell & navigation
 
