@@ -3,6 +3,7 @@ import { DataManager, WebApiAdaptor } from '@syncfusion/react-data'
 import type { DataOptions } from '@syncfusion/react-data'
 import { useMsal } from '@azure/msal-react'
 import { acquireAccessToken } from '../api/api'
+import { getAppSession } from '../auth/appSession'
 
 // `||` not `??`: an unset CI secret renders as '' (not undefined); '' ?? fallback
 // keeps the empty string → requests hit relative paths instead of the API.
@@ -17,14 +18,22 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5001'
  * 1. Injects `Authorization: Bearer <token>` on every request.
  * 2. Sends PUT to `url/{id}` (REST convention) instead of plain `url`.
  * 3. Optionally rewrites the GET URL and transforms the GET response.
+ *
+ * The first argument is a **getter**, not a token string — public API, changed
+ * deliberately. A captured string is fixed for the lifetime of the adaptor, and
+ * the adaptor outlives the 1-hour app-session access token: a page left open
+ * would send the same expired bearer forever. `beforeSend` is synchronous and
+ * cannot await a refresh, so the getter must return whatever token is valid
+ * *now*; pass one that reads the stored session (see `useAuthDataManager`) and
+ * the adaptor automatically picks up any rotation another caller has performed.
  */
 export class AuthAdaptor extends WebApiAdaptor {
-  private _token: string
+  private _getToken: () => string
   private _readUrl: string | undefined
   private _transformResponse: ((data: unknown) => unknown) | undefined
 
   constructor(
-    token: string,
+    getToken: () => string,
     opts?: {
       /** If provided, GET requests hit this URL instead of the base URL. */
       readUrl?: string
@@ -33,14 +42,16 @@ export class AuthAdaptor extends WebApiAdaptor {
     },
   ) {
     super()
-    this._token = token
+    this._getToken = getToken
     this._readUrl = opts?.readUrl
     this._transformResponse = opts?.transformResponse
   }
 
   override beforeSend(dm: DataManager, request: Request, settings?: unknown): void {
     super.beforeSend(dm, request, settings as never)
-    request.headers.set('Authorization', `Bearer ${this._token}`)
+    // Read per request, never once at construction — that is the whole point
+    // of taking a getter.
+    request.headers.set('Authorization', `Bearer ${this._getToken()}`)
   }
 
   override processQuery(
@@ -125,9 +136,17 @@ export interface UseAuthDataManagerOptions {
 /**
  * Returns a `DataManager` wired to a REST API endpoint with MSAL auth.
  *
- * The DataManager is recreated whenever the access token changes, so the
- * Grid always sends a valid Bearer header. Returns `null` until the first
- * token is acquired.
+ * Returns `null` until a first token has been acquired — that acquisition is
+ * what establishes (or refreshes) the durable app session, so it is the gate,
+ * not the source of the header.
+ *
+ * The Bearer header itself is read from the stored app session on **every**
+ * request, not captured when the DataManager is built. That is the actual
+ * guarantee: the Grid sends whatever access token is currently stored,
+ * including one an RTK Query call on the same page has just rotated in. It is
+ * NOT a guarantee that the token is unexpired — `beforeSend` is synchronous
+ * and cannot await a refresh, and this hook does not re-run on its own. If no
+ * session is stored the header goes out empty and the API answers 401.
  *
  * @example
  * ```tsx
@@ -166,7 +185,11 @@ export function useAuthDataManager(
   return useMemo(() => {
     if (!token) return null
 
-    const adaptor = new AuthAdaptor(token, {
+    // Read the live session per request instead of closing over `token`: the
+    // captured value is a snapshot from mount, and after a browser restart
+    // MSAL is purged so `accounts` stays [] forever and this effect never
+    // re-runs to replace it.
+    const adaptor = new AuthAdaptor(() => getAppSession()?.accessToken ?? '', {
       readUrl: readUrl ? `${API_BASE}${readUrl}` : undefined,
       transformResponse,
     })

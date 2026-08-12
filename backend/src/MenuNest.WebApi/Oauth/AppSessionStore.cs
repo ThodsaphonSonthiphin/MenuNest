@@ -16,6 +16,22 @@ public sealed class AppSessionStore(IApplicationDbContext db)
 
     public async Task<string> IssueAsync(string subject, CancellationToken ct = default)
     {
+        // Reclaim this subject's dead rows on the way in. Nothing else ever
+        // removes them: TakeAsync only fires on rotation and RevokeAsync only on
+        // logout, so a device that is reinstalled, or whose site data is cleared,
+        // strands a row for a full year. Doing it here needs no background
+        // service and is self-limiting — it runs on a path the user is already
+        // waiting on and touches only their own rows, and Subject is indexed.
+        //
+        // Expired rows ONLY. Deleting this subject's live rows would sign them
+        // out on every other device, which ADR-159 forbids: logout revokes just
+        // the device that pressed it.
+        var now = DateTime.UtcNow;
+        var dead = await db.AppSessions
+            .Where(s => s.Subject == subject && s.ExpiresAt <= now)
+            .ToListAsync(ct);
+        if (dead.Count > 0) db.AppSessions.RemoveRange(dead);
+
         var code = TokenUtil.Opaque();
         db.AppSessions.Add(new AppSession
         {
