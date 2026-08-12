@@ -3,6 +3,8 @@ import {InteractionRequiredAuthError} from '@azure/msal-browser'
 import {apiScopes, msalInstance} from '../auth/msalConfig'
 import {getGoogleToken} from '../auth/googleAuth'
 import {handleAuthFailure} from '../auth/reauth'
+import {clearAppSession, getAppSession, isAppSessionExpired} from '../auth/appSession'
+import {refreshAppSession} from '../auth/appSessionApi'
 import type {
     AttachedPhotoInfo,
     CreateCustomSymptomRequest,
@@ -60,7 +62,17 @@ import type {
  */
 let msalRedirectInProgress = false
 
-async function acquireAccessToken(): Promise<string | null> {
+export async function acquireAccessToken(): Promise<string | null> {
+    // 1. Our own durable session first — the only credential that survives a
+    //    browser restart, because msal-browser v5 purges its own cache (ADR-161).
+    const session = getAppSession()
+    if (session) {
+        if (!isAppSessionExpired(session.expiresAtMs)) return session.accessToken
+        const rotated = await refreshAppSession(session.refreshToken)
+        if (rotated) return rotated.accessToken
+        clearAppSession()
+    }
+
     // Try MSAL first (Microsoft)
     const account = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0]
     if (account && apiScopes.length > 0) {

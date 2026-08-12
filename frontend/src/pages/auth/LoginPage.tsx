@@ -4,7 +4,7 @@ import { InteractionStatus } from '@azure/msal-browser'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { Button, Color, Size, Variant } from '@syncfusion/react-buttons'
 import { GoogleLogin } from '@react-oauth/google'
-import { loginRequest } from '../../shared/auth/msalConfig'
+import { apiScopes, loginRequest } from '../../shared/auth/msalConfig'
 import { setGoogleToken, isGoogleAuthenticated } from '../../shared/auth/googleAuth'
 import {
   clearInteractiveLoginStarted,
@@ -13,6 +13,7 @@ import {
   takeInteractiveLoginStarted,
 } from '../../shared/auth/reauth'
 import { setUser } from '../../shared/telemetry/appInsights'
+import { exchangeForAppSession } from '../../shared/auth/appSessionApi'
 
 function decodeJwtSub(token: string): string | null {
   try {
@@ -39,6 +40,24 @@ export function LoginPage() {
       }
     }
   }, [isAuthenticated, instance])
+
+  // Exchange the Microsoft provider token for a durable app session (ADR-161)
+  // once MSAL has settled with an active account. Exchange is an upgrade,
+  // never a gate — sign-in has already succeeded via MSAL either way.
+  useEffect(() => {
+    if (inProgress !== InteractionStatus.None) return
+    if (isAuthenticated) {
+      const account = instance.getActiveAccount()
+      if (account) {
+        instance
+          .acquireTokenSilent({ scopes: apiScopes, account })
+          .then((r) => exchangeForAppSession(r.accessToken))
+          .catch(() => {
+            // Exchange is an upgrade, never a gate — sign-in already succeeded.
+          })
+      }
+    }
+  }, [isAuthenticated, inProgress, instance])
 
   // An interactive sign-in that just completed must always be let into
   // the app — even on a ?reauth=expired URL, where the guard below would
@@ -134,11 +153,12 @@ export function LoginPage() {
 
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <GoogleLogin
-            onSuccess={(credentialResponse) => {
+            onSuccess={async (credentialResponse) => {
               if (credentialResponse.credential) {
                 setGoogleToken(credentialResponse.credential)
                 const sub = decodeJwtSub(credentialResponse.credential)
                 if (sub) setUser(sub)
+                await exchangeForAppSession(credentialResponse.credential)
                 navigate('/', { replace: true })
               }
             }}
