@@ -16,6 +16,10 @@
     </PackageReference>
     <PackageReference Include="FluentAssertions" Version="8.9.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <!-- Boots the real Program.cs in an in-process TestServer so routing, the
+         authorization FallbackPolicy, DI and the app's own JSON configuration are
+         all exercised by the /api/session/* tests. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.7" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MenuNest.WebApi\MenuNest.WebApi.csproj" />
