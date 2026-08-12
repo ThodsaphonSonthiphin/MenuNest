@@ -35,6 +35,8 @@ builder.Services.AddScoped<MenuNest.WebApi.Oauth.ClientStore>();
 builder.Services.AddSingleton<MenuNest.WebApi.Oauth.PkceStateStore>();
 builder.Services.AddScoped<MenuNest.WebApi.Oauth.TokenStore>();
 builder.Services.AddSingleton<MenuNest.WebApi.Oauth.OAuthJwt>();
+builder.Services.AddScoped<MenuNest.WebApi.Oauth.AppSessionStore>();
+builder.Services.AddScoped<MenuNest.WebApi.Oauth.AppSessionService>();
 
 // Health module — polls FollowUpPings every minute to fire web pushes.
 builder.Services.AddHostedService<MenuNest.Infrastructure.BackgroundServices.FollowUpDispatcher>();
@@ -204,5 +206,8 @@ app.MapMcp("/mcp").RequireAuthorization("McpProxy");
 
 // OAuth proxy — discovery docs + DCR + authorize + callback + token
 app.MapOAuthProxy();
+
+// SPA durable-session endpoints (ADR-161) — exchange/refresh/logout
+app.MapAppSession();
 
 app.Run();
