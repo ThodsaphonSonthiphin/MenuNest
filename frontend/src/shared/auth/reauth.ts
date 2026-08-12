@@ -1,4 +1,5 @@
 import {clearGoogleToken} from './googleAuth'
+import {clearAppSession} from './appSession'
 
 // Query marker appended when a 401 forces us to /login. LoginPage reads
 // it (isReauthBounce) to suppress its auto-bounce-to-"/" — otherwise an
@@ -32,6 +33,7 @@ const INTERACTIVE_LOGIN_KEY = 'menunest.msal.interactive-login'
  * responsible for turning that 401 into a re-login.
  */
 export function handleAuthFailure(): void {
+  clearAppSession()
   clearGoogleToken()
   // A 401 proves the session is unusable, so spend the "just signed in
   // interactively" credit here: otherwise a fresh sign-in whose token the

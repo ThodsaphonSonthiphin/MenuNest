@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { DataManager, WebApiAdaptor } from '@syncfusion/react-data'
 import type { DataOptions } from '@syncfusion/react-data'
 import { useMsal } from '@azure/msal-react'
-import { apiScopes } from '../auth/msalConfig'
+import { acquireAccessToken } from '../api/api'
 
 // `||` not `??`: an unset CI secret renders as '' (not undefined); '' ?? fallback
 // keeps the empty string → requests hit relative paths instead of the API.
@@ -150,16 +150,13 @@ export function useAuthDataManager(
   const [token, setToken] = useState<string>('')
 
   useEffect(() => {
-    if (accounts.length === 0 || apiScopes.length === 0) return
-
     let cancelled = false
-    instance
-      .acquireTokenSilent({ scopes: apiScopes, account: accounts[0] })
-      .then((r) => {
-        if (!cancelled) setToken(r.accessToken)
+    acquireAccessToken()
+      .then((t) => {
+        if (!cancelled && t) setToken(t)
       })
       .catch(() => {
-        /* token failure is handled elsewhere (MSAL redirect) */
+        /* token failure is handled by the shared acquire path */
       })
     return () => {
       cancelled = true

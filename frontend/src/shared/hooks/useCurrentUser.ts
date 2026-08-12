@@ -1,6 +1,8 @@
 import { useMsal, useIsAuthenticated } from '@azure/msal-react'
 import { useGetMeQuery } from '../api/api'
 import { isGoogleAuthenticated, getGoogleToken, decodeGoogleIdToken, clearGoogleToken } from '../auth/googleAuth'
+import { clearAppSession, getAppSession } from '../auth/appSession'
+import { revokeAppSession } from '../auth/appSessionApi'
 
 /**
  * Thin facade over MSAL account info + the backend `/api/me`
@@ -31,7 +33,10 @@ export function useCurrentUser() {
   const googleToken = getGoogleToken()
   const googleUser = googleToken ? decodeGoogleIdToken(googleToken) : null
 
-  const signOut = () => {
+  const signOut = async () => {
+    const session = getAppSession()
+    if (session) await revokeAppSession(session.refreshToken)
+    clearAppSession()
     clearGoogleToken()
     if (isMsalAuth) {
       instance.logoutRedirect()
