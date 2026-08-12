@@ -63,6 +63,9 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
     public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
 
+    // Durable SPA sessions (ADR-161/162) — separate from the MCP proxy's store.
+    public DbSet<AppSession> AppSessions => Set<AppSession>();
+
     public new Task<int> SaveChangesAsync(CancellationToken ct = default) => base.SaveChangesAsync(ct);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -232,5 +235,9 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
         // ApplyConfigurationsFromAssembly) needs the keys declared explicitly here.
         modelBuilder.Entity<OAuthClient>().HasKey(c => c.ClientId);
         modelBuilder.Entity<OAuthRefreshToken>().HasKey(r => r.RefreshCode);
+
+        // Durable SPA sessions (ADR-161/162): same non-"Id" key situation as
+        // OAuthRefreshToken above — declare the key explicitly for InMemory.
+        modelBuilder.Entity<AppSession>().HasKey(s => s.RefreshCode);
     }
 }

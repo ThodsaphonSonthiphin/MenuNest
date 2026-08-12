@@ -61,6 +61,9 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
     public DbSet<OAuthRefreshToken> OAuthRefreshTokens => Set<OAuthRefreshToken>();
 
+    // Durable SPA sessions (ADR-161/162) — separate from the MCP proxy's store.
+    public DbSet<AppSession> AppSessions => Set<AppSession>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

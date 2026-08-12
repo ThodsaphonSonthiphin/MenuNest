@@ -55,5 +55,8 @@ public interface IApplicationDbContext
     DbSet<OAuthClient> OAuthClients { get; }
     DbSet<OAuthRefreshToken> OAuthRefreshTokens { get; }
 
+    // Durable SPA sessions (ADR-161/162) — separate from the MCP proxy's store.
+    DbSet<AppSession> AppSessions { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
