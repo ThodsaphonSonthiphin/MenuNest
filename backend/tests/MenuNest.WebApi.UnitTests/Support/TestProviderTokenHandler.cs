@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -61,11 +62,24 @@ public sealed class TestProviderTokenHandler(
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
+        var token = header[Prefix.Length..].Trim();
+
+        // A token this app minted is NOT a provider token, and the real Microsoft and
+        // Google handlers would refuse it (its `iss` is MCP:ServerUrl, matching neither
+        // Entra nor accounts.google.com). Say so explicitly rather than letting it fall
+        // through to a base64 FormatException, so the reason a minted token is rejected
+        // at /api/session/exchange is the same reason production rejects it.
+        if (new JwtSecurityTokenHandler().CanReadToken(token))
+        {
+            return Task.FromResult(AuthenticateResult.Fail(
+                "Not a provider token: a real JWT reaching this stand-in was minted by the app itself."));
+        }
+
         Dictionary<string, string>? payload;
         try
         {
             payload = JsonSerializer.Deserialize<Dictionary<string, string>>(
-                Encoding.UTF8.GetString(Convert.FromBase64String(header[Prefix.Length..].Trim())));
+                Encoding.UTF8.GetString(Convert.FromBase64String(token)));
         }
         catch (Exception ex)
         {

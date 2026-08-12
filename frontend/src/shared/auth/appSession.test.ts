@@ -44,6 +44,33 @@ describe('storeAppSession / getAppSession', () => {
     expect(getAppSession()).toBeNull()
   })
 
+  it('leaves no session at all when a write fails part way, rather than a mismatched one', () => {
+    // Quota exceeded / Safari private mode: the access token lands, the refresh
+    // token does not. All three keys would be present but the pair would be
+    // mismatched — getAppSession's presence check cannot see that, so the
+    // session would look fine and could never be renewed.
+    const map = new Map<string, string>([
+      ['menunest.session.access', 'old-a'],
+      ['menunest.session.refresh', 'old-r'],
+      ['menunest.session.expiresAt', String(Date.now() + 3_600_000)],
+    ])
+    let calls = 0
+    vi.stubGlobal('localStorage', {
+      getItem: vi.fn((k: string) => map.get(k) ?? null),
+      setItem: vi.fn((k: string, v: string) => {
+        calls += 1
+        if (calls === 2) throw new Error('QuotaExceededError')
+        map.set(k, v)
+      }),
+      removeItem: vi.fn((k: string) => void map.delete(k)),
+    })
+
+    expect(() => storeAppSession({accessToken: 'new-a', refreshToken: 'new-r', expiresIn: 3600}))
+      .not.toThrow()
+    expect(getAppSession()).toBeNull()
+    expect(hasAppSession()).toBe(false)
+  })
+
   it('returns null when the stored expiry is not a number', () => {
     stubStorage({
       'menunest.session.access': 'a',

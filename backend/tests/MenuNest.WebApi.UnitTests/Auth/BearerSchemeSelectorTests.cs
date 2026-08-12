@@ -36,6 +36,23 @@ public sealed class BearerSchemeSelectorTests
     }
 
     [Fact]
+    public void The_app_issuer_must_be_MCP_ServerUrl_verbatim_including_the_mcp_suffix()
+    {
+        // Global Constraint: OAuthJwt stamps `iss` = MCP:ServerUrl verbatim, /mcp
+        // suffix and all, and this comparison is an exact string match. A "cleanup"
+        // that passes a stripped base URL here would stop routing every app-minted
+        // token to the app scheme — i.e. break all authentication — and no other gate
+        // would notice.
+        const string strippedBaseUrl = "https://menunest.azurewebsites.net";
+
+        BearerSchemeSelector.Select($"Bearer {AppToken()}", strippedBaseUrl)
+            .Should().NotBe(
+                BearerSchemeSelector.AppIssued,
+                "the issuer is MCP:ServerUrl verbatim; a base URL without /mcp is a different string")
+            .And.Be(BearerSchemeSelector.Microsoft, "an unrecognised issuer falls back to Microsoft");
+    }
+
+    [Fact]
     public void A_google_token_still_goes_to_the_google_scheme()
     {
         BearerSchemeSelector.Select($"Bearer {TokenFrom("https://accounts.google.com")}", AppIssuer)

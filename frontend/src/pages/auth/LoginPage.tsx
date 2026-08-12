@@ -14,6 +14,7 @@ import {
 } from '../../shared/auth/reauth'
 import { setUser } from '../../shared/telemetry/appInsights'
 import { exchangeForAppSession } from '../../shared/auth/appSessionApi'
+import { hasAppSession } from '../../shared/auth/appSession'
 
 function decodeJwtSub(token: string): string | null {
   try {
@@ -45,6 +46,11 @@ export function LoginPage() {
   // once MSAL has settled with an active account. Exchange is an upgrade,
   // never a gate — sign-in has already succeeded via MSAL either way.
   useEffect(() => {
+    // Exchange exactly once. Every mint writes a NEW 365-day row and orphans
+    // the previous one for its full lifetime, and this effect re-runs on every
+    // render of /login — so an already-authenticated user bouncing through
+    // here would accumulate year-long sessions it can never revoke.
+    if (hasAppSession()) return
     if (inProgress !== InteractionStatus.None) return
     if (isAuthenticated) {
       const account = instance.getActiveAccount()
@@ -94,10 +100,16 @@ export function LoginPage() {
   // reauth bounce (?reauth=expired): the backend just rejected this
   // session, so bouncing it back in would loop — show the login UI so
   // the user can re-authenticate (or pick a different account).
+  //
+  // hasAppSession() is the third credential, and after a browser restart it
+  // is the ONLY one a Microsoft user has (MSAL v5 purges its own cache) —
+  // exactly the user this feature exists for. ProtectedRoute and
+  // useCurrentUser already accept it; without it here, a bookmark or stale
+  // link to /login shows them a sign-in card that "/" would have waved past.
   if (
     !isReauthBounce(window.location.search) &&
     inProgress === InteractionStatus.None &&
-    (isAuthenticated || isGoogleAuthenticated())
+    (isAuthenticated || isGoogleAuthenticated() || hasAppSession())
   ) {
     return <Navigate to="/" replace />
   }
