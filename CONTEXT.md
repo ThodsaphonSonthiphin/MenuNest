@@ -171,7 +171,10 @@ the glossary wins until the glossary is deliberately changed.
   category (plus optional **Review link**s — ADR-069) → save. Capture is also reachable from
   the **Itinerary**'s add-stop picker ("เลือกจุดแวะ"); launched there it additionally adds the
   new Place as a **Stop** on the active **Day**, then returns to the itinerary (ADR-067, ADR-068,
-  ADR-070). Capture is also reachable with no screen at all, **over MCP**: there the preview is
+  ADR-070). That picker also lists the **Place library** beneath the capture row, and picking an
+  existing Place from another **Trip** there is **not** a Capture — nothing is resolved and no
+  preview is shown; the row is copied into this Trip and scheduled in one tap (ADR-158).
+  Capture is also reachable with no screen at all, **over MCP**: there the preview is
   the assistant reading the resolved place back to the User, and the User's reply is the
   confirmation the preview sheet would otherwise have collected (issue #48, ADR-157).
   Share-from-Maps (PWA share target) and the browser bookmarklet are
@@ -346,8 +349,15 @@ the glossary wins until the glossary is deliberately changed.
   period** (**monthStatus**); shown as the **Weather diorama** + a status row ("เดือนนี้ควรเลี่ยง · <note>",
   fix "ย้ายทริปไปเดือนอื่น") — a standalone card region, **not** a **Timing flag** reason (ADR-076).
   _Avoid_: off-window (that is the time-of-day **Timing flag**), out-of-season.
-- **Discover (ไปไหนดี)** — the map-forward, **User**-scoped view that surfaces the User's own saved
-  **Places** across **all** their **Trips** by
+- **Place library (คลังสถานที่)** — the **set** of every **Place** a **User** has across **all**
+  their live **Trips**, deduped to one entry per physical place. It is a set, not a screen: two
+  surfaces read it — **Discover** renders it as a map, and the **Itinerary**'s add-stop picker lists
+  it as rows below the capture row (ADR-158). A Place enters it on any **Capture** and leaves it only
+  when every Trip carrying it is deleted; there is no membership of its own to manage, which is why
+  the glossary has no word for a Place *outside* the library (ADR-155 retired **Saved place**).
+  _Avoid_: saved places, my places, collection, favourites.
+- **Discover (ไปไหนดี)** — the map-forward, **User**-scoped view that surfaces the User's own
+  **Place library** by
   proximity, for spontaneous "where should I go today"
   browsing (issue #42). It closes the gap that Places are otherwise reachable only inside one Trip.
   Phase 1 sources **only already-saved Places** — no live Google nearby search (ADR-094); it is
@@ -357,7 +367,7 @@ the glossary wins until the glossary is deliberately changed.
 - **Discovery scope** — what bounds the set of **Places** shown in **Discover**: by default the area
   around the viewer's **live location**, changed by panning/zooming the map (the **map viewport is the
   scope**) or picking an area / **Trip** (ADR-095, ADR-097). Distinct from a **Trip** (which owns a
-  fixed pool) — a scope is just a spatial window over *all* the User's saved Places.
+  fixed pool) — a scope is just a spatial window over the whole **Place library**.
   _Avoid_: area filter, region.
 - **Discovery signal** — one of the four **free**, per-**Place** cues **Discover** layers on top of
   distance + **Category**, each a **User**-toggleable control (ADR-096): **open-now** (from opening
