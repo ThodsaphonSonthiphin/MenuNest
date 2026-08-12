@@ -24,7 +24,8 @@
       "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 55 --repo ThodsaphonSonthiphin/MenuNest)",
       "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 53 --repo ThodsaphonSonthiphin/MenuNest)",
       "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 59 --repo ThodsaphonSonthiphin/MenuNest)",
-      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 69 --repo ThodsaphonSonthiphin/MenuNest)"
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" read --map 69 --repo ThodsaphonSonthiphin/MenuNest)",
+      "Bash(python \"C:/Repo2/workflow daily work/plugins/decision-map/scripts/github_map_ops.py\" frontier --map 53 --repo ThodsaphonSonthiphin/MenuNest)"
     ],
     "additionalDirectories": [
       "c:\\Repo2\\t\\menunest\\docs\\adr",

@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-08-08T09:49:55+07:00'
+updated: '2026-08-12T14:53:47+07:00'
 ---
 
 ## Log
@@ -463,3 +463,22 @@ EOF
 - 2026-08-07T21:59:59+07:00 — docs(places): ADR-148 + glossary for coordinate places (#48) (7411bf2)
 - 2026-08-08T07:46:19+07:00 — docs(places): ADR-149 duplicate policy for Discover capture (#48) (d251edd)
 - 2026-08-08T09:49:55+07:00 — docs(places): ADR-150 + Capture mode glossary for the Discover map tap (#48) (2b3a154)
+- 2026-08-10T17:24:08+07:00 — fix(trips): make grid search filter and stop the render loop (#90) (a854661)
+- 2026-08-10T17:32:33+07:00 — fix(trips): seed grid sort from the URL and defer the search navigation (#90) (722bef6)
+- 2026-08-11T15:53:11+07:00 — docs(discover): ADR-155 reverses ADR-147 - a capture must attach to a Trip (#48) (283a39d)
+- 2026-08-11T16:54:03+07:00 — docs(discover): ADR-156 - a coordinate place keeps one identity via an opaque origin key (#48) (ce28a1b)
+- 2026-08-11T20:44:24+07:00 — docs(discover): ADR-157 - capture over MCP widens resolve_place and returns collisions (#48) (cae3efc)
+- 2026-08-12T09:08:32+07:00 — docs(trips): ADR-158 - the add-stop picker lists the Place library (#48) (12eb7e8)
+- 2026-08-12T09:59:52+07:00 — feat(auth): add AppSessions table for durable SPA sessions (#5) (bebf5d7)
+- 2026-08-12T10:09:41+07:00 — feat(auth): add AppSessionStore with single-use rotation and per-device revoke (#5) (7ecb9e3)
+- 2026-08-12T10:18:42+07:00 — feat(auth): mint and rotate app sessions without an IdP round-trip (#5) (3c621c2)
+- 2026-08-12T10:28:26+07:00 — feat(auth): route app-minted JWTs to the app scheme on /api/* (#5) (484f12f)
+- 2026-08-12T10:37:40+07:00 — feat(auth): add /api/session exchange, refresh and logout endpoints (#5) (c856db9)
+- 2026-08-12T10:50:09+07:00 — feat(auth): add the SPA app-session storage module (#5) (f22cab8)
+- 2026-08-12T11:34:44+07:00 — feat(auth): use the durable app session across both token paths (#5) (1e3f5cc)
+- 2026-08-12T13:09:39+07:00 — test(auth): cover acquireAccessToken precedence, single-flight refresh, and transient-failure fallback (#5) (7dbff6b)
+- 2026-08-12T13:32:16+07:00 — test(session): HTTP integration tests for the SPA session endpoints (#5) (85ba78c)
+- 2026-08-12T14:00:03+07:00 — fix(auth): restrict session exchange to provider tokens and harden the SPA session (#5) (130aa86)
+- 2026-08-12T14:36:09+07:00 — fix(auth): per-request bearer, symmetric auth-failure handling, session reclaim (#5) (913d7e2)
+- 2026-08-12T14:42:03+07:00 — fix(auth): fall back to the acquired provider token in AuthAdaptor (#5) (775c6ae)
+- 2026-08-12T14:53:47+07:00 — docs(auth): ADR 159-162 + spec and plan for the durable SPA session (#5) (0207b29)
