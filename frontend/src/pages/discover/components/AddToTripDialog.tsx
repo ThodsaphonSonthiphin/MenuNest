@@ -1,5 +1,6 @@
 import {useListTripsQuery, useAddTripPlaceMutation} from '../../../shared/api/api'
 import type {DiscoverPlaceView} from '../lib/discoverFilter'
+import {addTripPlaceArgsFor} from '../lib/originPassthrough'
 
 interface Props {
   place: DiscoverPlaceView
@@ -13,19 +14,7 @@ export function AddToTripDialog({place, onClose, onDone}: Props) {
   const [addTripPlace, {isLoading}] = useAddTripPlaceMutation()
 
   const add = async (tripId: string) => {
-    await addTripPlace({
-      tripId,
-      googlePlaceId: place.googlePlaceId,
-      name: place.name,
-      lat: place.lat,
-      lng: place.lng,
-      address: place.address,
-      category: place.category,
-      priceLevel: place.priceLevel,
-      photoUrl: place.photoUrl,
-      openingHoursJson: place.openingHoursJson,
-      reviewLinks: [],
-    }).unwrap()
+    await addTripPlace(addTripPlaceArgsFor(tripId, place)).unwrap()
     onDone(tripId)
   }
 
