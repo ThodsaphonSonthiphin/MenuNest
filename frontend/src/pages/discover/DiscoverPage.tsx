@@ -6,6 +6,7 @@ import {useListMyPlacesQuery, useAddTripPlaceMutation, useCreateTripMutation} fr
 import {useAppDispatch, useAppSelector} from '../../store'
 import {setAnchor, setScope, setCategoryFilter, toggleSignal, setSelectedKey} from './discoverSlice'
 import {applyDiscover, computePlaceView, type DiscoverPlaceView} from './lib/discoverFilter'
+import {addTripPlaceArgsFor} from './lib/originPassthrough'
 import {DiscoverMap} from './components/DiscoverMap'
 import {FilterBar} from './components/FilterBar'
 import {PlaceBottomSheet} from './components/PlaceBottomSheet'
@@ -62,19 +63,7 @@ export function DiscoverPage() {
         dayCount: 1,
         defaultTravelMode: 'Drive',
       }).unwrap()
-      await addTripPlace({
-        tripId: trip.id,
-        googlePlaceId: place.googlePlaceId,
-        name: place.name,
-        lat: place.lat,
-        lng: place.lng,
-        address: place.address,
-        category: place.category,
-        priceLevel: place.priceLevel,
-        photoUrl: place.photoUrl,
-        openingHoursJson: place.openingHoursJson,
-        reviewLinks: [],
-      }).unwrap()
+      await addTripPlace(addTripPlaceArgsFor(trip.id, place)).unwrap()
       navigate(`/trips/${trip.id}`)
     } finally {
       setCreatingTrip(false)

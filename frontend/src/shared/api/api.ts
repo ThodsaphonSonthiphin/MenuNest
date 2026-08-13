@@ -578,6 +578,8 @@ export interface DiscoverPlaceDto {
     trips: PlaceTripRefDto[]
     reviewLinks: ReviewLink[]
     notes: string | null
+    /** ADR-156: the group's already-flattened root TripPlace id. Pass it straight back on add. */
+    originTripPlaceId: string
 }
 export interface WeatherPointDto { stopId: string; lat: number; lng: number; arrivalIso?: string }
 export interface WeatherReadingDto {
@@ -1418,7 +1420,7 @@ export const api = createApi({
             query: () => '/api/places',
             providesTags: ['MyPlaces'],
         }),
-        addTripPlace: build.mutation<TripPlaceDto, {tripId: string} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeWindows' | 'feeNote' | 'notes' | 'hasProfile' | 'seasonPeriods'>>({
+        addTripPlace: build.mutation<TripPlaceDto, {tripId: string; originTripPlaceId?: string; notes?: string | null; bestTimeWindows?: BestTimeWindow[]; seasonPeriods?: SeasonPeriod[]} & Omit<TripPlaceDto, 'id' | 'tripId' | 'bestTimeWindows' | 'feeNote' | 'notes' | 'hasProfile' | 'seasonPeriods'>>({
             query: ({tripId, ...b}) => ({url: `/api/trips/${tripId}/places`, method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
