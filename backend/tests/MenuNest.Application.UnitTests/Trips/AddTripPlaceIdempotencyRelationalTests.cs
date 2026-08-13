@@ -87,6 +87,27 @@ public sealed class AddTripPlaceIdempotencyRelationalTests : IDisposable
         (await _db.TripPlaces.CountAsync(p => p.TripId == _trip.Id)).Should().Be(2);
     }
 
+    [Fact]
+    public async Task Master_exists_the_idempotent_response_reports_HasProfile_true()
+    {
+        _db.PlaceProfiles.Add(PlaceProfile.Create(_user.Id, "places/ChIJabc"));
+        await _db.SaveChangesAsync();
+
+        await NewAdd().Handle(Cmd("places/ChIJabc"), default);
+        var second = await NewAdd().Handle(Cmd("places/ChIJabc", "Cafe renamed"), default);
+
+        second.HasProfile.Should().BeTrue("a master already exists for this place_id");
+    }
+
+    [Fact]
+    public async Task No_master_the_idempotent_response_reports_HasProfile_false()
+    {
+        await NewAdd().Handle(Cmd("places/ChIJabc"), default);
+        var second = await NewAdd().Handle(Cmd("places/ChIJabc", "Cafe renamed"), default);
+
+        second.HasProfile.Should().BeFalse("no master was ever created for this place_id");
+    }
+
     public void Dispose()
     {
         _db.Dispose();

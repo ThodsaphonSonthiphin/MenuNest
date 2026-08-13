@@ -32,8 +32,7 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
                 .FirstOrDefaultAsync(p => p.TripId == c.TripId && p.GooglePlaceId == c.GooglePlaceId, ct);
             if (existing is not null)
             {
-                var hasMaster = await _db.PlaceProfiles
-                    .AnyAsync(p => p.UserId == user.Id && p.GooglePlaceId == c.GooglePlaceId, ct);
+                var hasMaster = await PlaceProfileSync.ExistsAsync(_db, user.Id, c.GooglePlaceId, ct);
                 return ToDto(existing, hasMaster);
             }
         }
