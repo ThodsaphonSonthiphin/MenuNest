@@ -7,6 +7,7 @@ using MenuNest.Application.UseCases.Trips;
 using MenuNest.Application.UseCases.Trips.AddTripPlace;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
+using MenuNest.Domain.ValueObjects;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Moq;
@@ -15,7 +16,8 @@ using Xunit;
 namespace MenuNest.Application.UnitTests.Trips;
 
 /// <summary>ADR-156 §2/§4: the handler stores the origin key VERBATIM (no lookup, no
-/// flattening) and applies the copied enrichment only when no PlaceProfile master did.</summary>
+/// flattening) and applies the copied enrichment per-field -- only the fields the master
+/// left empty, so a master that holds a value still wins.</summary>
 public sealed class AddTripPlaceOriginRelationalTests : IDisposable
 {
     private readonly DbConnection _conn;
@@ -97,6 +99,55 @@ public sealed class AddTripPlaceOriginRelationalTests : IDisposable
         _db.ChangeTracker.Clear();
         var saved = await _db.TripPlaces.SingleAsync(p => p.Id == dto.Id);
         saved.Notes.Should().Be("from the master", "SeedIntoAsync returned true, so the copy is not applied");
+    }
+
+    [Fact]
+    public async Task Master_exists_but_empty_for_a_field_does_not_block_that_fields_copy()
+    {
+        // The master has notes but no best-time windows and no season periods -- entirely
+        // ordinary, since those two are push-only (UpdateTripPlaceHandler never writes them
+        // through). SeedIntoAsync still returns true because a master row exists.
+        var profile = PlaceProfile.Create(_user.Id, "places/MASTER");
+        profile.SetNotes("from the master");
+        _db.PlaceProfiles.Add(profile);
+        await _db.SaveChangesAsync();
+
+        var dto = await NewAdd().Handle(
+            new AddTripPlaceCommand(_trip.Id, "Viewpoint", 18.79, 98.96, PlaceCategory.See,
+                "places/MASTER", null, null, null, null,
+                Notes: "from the copy",
+                BestTimeWindows: new[] { new BestTimeWindowDto(new TimeOnly(6, 30), new TimeOnly(9, 0), "cool") },
+                SeasonPeriods: new[] { new SeasonPeriodDto(SeasonKind.Good, new[] { 10, 11 }, "dry season") }),
+            default);
+
+        _db.ChangeTracker.Clear();
+        var saved = await _db.TripPlaces.SingleAsync(p => p.Id == dto.Id);
+        saved.Notes.Should().Be("from the master", "the master DOES hold a note, so it stays canonical");
+        saved.BestTimeWindows.Should().HaveCount(1, "the master's windows were empty, so the copy must fill them in");
+        saved.BestTimeWindows[0].Start.Should().Be(new TimeOnly(6, 30));
+        saved.SeasonPeriods.Should().HaveCount(1, "the master's seasons were empty, so the copy must fill them in");
+        saved.SeasonPeriods[0].Kind.Should().Be(SeasonKind.Good);
+    }
+
+    [Fact]
+    public async Task Master_that_holds_windows_still_wins_over_the_copy()
+    {
+        var profile = PlaceProfile.Create(_user.Id, "places/MASTER");
+        profile.SetBestTimeWindows(new[] { BestTimeWindow.Create(new TimeOnly(7, 0), new TimeOnly(8, 0), "master window") });
+        _db.PlaceProfiles.Add(profile);
+        await _db.SaveChangesAsync();
+
+        var dto = await NewAdd().Handle(
+            new AddTripPlaceCommand(_trip.Id, "Viewpoint", 18.79, 98.96, PlaceCategory.See,
+                "places/MASTER", null, null, null, null,
+                BestTimeWindows: new[] { new BestTimeWindowDto(new TimeOnly(6, 30), new TimeOnly(9, 0), "from the copy") }),
+            default);
+
+        _db.ChangeTracker.Clear();
+        var saved = await _db.TripPlaces.SingleAsync(p => p.Id == dto.Id);
+        saved.BestTimeWindows.Should().HaveCount(1);
+        saved.BestTimeWindows[0].Start.Should().Be(new TimeOnly(7, 0), "the master holds a value, so it stays canonical");
+        saved.BestTimeWindows[0].Note.Should().Be("master window");
     }
 
     public void Dispose()

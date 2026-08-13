@@ -107,8 +107,14 @@ Discover card, which is the exact defect ADR-156 exists to prevent (ADR-158 §6)
 - **R2.4** The group key becomes `GooglePlaceId ?? $"tp:{p.OriginTripPlaceId ?? p.Id}"`.
   `GooglePlaceId` still wins whenever present, so the column is inert for the common case.
 - **R2.5** `AddTripPlaceCommand` gains `Notes`, `ReviewLinks`, `BestTimeWindows` and
-  `SeasonPeriods`, applied **only when `PlaceProfileSync.SeedIntoAsync` returned `false`**. A
-  master, where one exists, stays canonical.
+  `SeasonPeriods`, applied **per field — only to whatever the master left empty**, not gated on
+  `PlaceProfileSync.SeedIntoAsync`'s return value as a whole. `SeedIntoAsync` returning `true`
+  only means a master **row** exists; `BestTimeWindows`/`SeasonPeriods` are push-only
+  (`UpdateTripPlaceHandler` never writes them through), so an existing master is routinely empty
+  for those two fields. An all-or-nothing gate on "a master exists" would silently drop them even
+  though the Discover card the user just tapped displayed them (read from `rep`, per
+  `ListMyPlacesHandler`'s own empty-aware fallback). A master that actually holds a value for a
+  field stays canonical for that field.
 
 ### 3. Duplicates — ADR-149
 

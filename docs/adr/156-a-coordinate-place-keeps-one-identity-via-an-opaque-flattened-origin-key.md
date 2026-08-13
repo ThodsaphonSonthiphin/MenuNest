@@ -112,6 +112,28 @@ if (!seeded) { /* apply the copied enrichment from the command */ }
 A master, where one exists, stays canonical (ADR-103's write-through is untouched); the copy is the
 fallback for exactly the case that has no master and never will.
 
+**Correction (post-push scrutinize, #48):** the gate above is wrong, and the bug it produces is
+exactly the one this ADR exists to fix. `seeded`/`SeedIntoAsync` returning `true` means only that a
+master **row** exists — it says nothing about which of that row's fields are populated. Notes and
+ReviewLinks write through on every edit (ADR-103, `UpdateTripPlaceHandler`), but BestTimeWindows
+and SeasonPeriods are **push-only**: they land on the master only via explicit
+push-to-master (`PlaceProfileSync.UpsertFromAsync`), never via the ordinary edit path. So "a master
+exists, with empty windows/seasons" is a routine state, not an edge case — reachable by (1) add a
+place with a `place_id`, no master yet; (2) edit its notes, which auto-creates a master from the
+place's enrichment at that moment (`EnsureCreatedAsync`), windows still empty; (3) edit again adding
+best-time windows to the place itself (not pushed to the master). The master now exists and has
+notes but no windows. Add that place to a second Trip and the all-or-nothing gate above skips
+`ApplyCopiedEnrichment` entirely because `seeded == true`, silently dropping the windows the
+Discover card had just displayed (`ListMyPlacesHandler` reads `BestTimeWindows`/`SeasonPeriods` from
+the representative TripPlace `rep`, never from the master, precisely because they're push-only).
+
+The actual rule is **per field**, not per row: `ApplyCopiedEnrichment` runs unconditionally, and
+each of the four fields copies from the command only if the master left that field empty on the
+freshly-seeded place (`place.Notes is null`, `place.BestTimeWindows.Count == 0`, etc.). A field the
+master *did* supply still wins — that half of the original intent is unchanged. `seeded` keeps its
+original, narrower meaning ("a master row exists") and keeps flowing unchanged into
+`ToDto(place, seeded)` as `hasProfile`; only the enrichment-copy gating changes.
+
 This mirrors what the codebase already does at this precise moment — `SeedIntoAsync:23-26` **copies**
 a master's enrichment into a freshly-created `TripPlace` rather than reading through to it. This
 decision extends that one behaviour to "source = the origin row", so both cases share one rule.

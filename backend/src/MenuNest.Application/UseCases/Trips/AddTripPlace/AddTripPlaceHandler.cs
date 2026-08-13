@@ -42,25 +42,29 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
             c.OriginTripPlaceId);
         _db.TripPlaces.Add(place);
         var seeded = await PlaceProfileSync.SeedIntoAsync(_db, user.Id, place, ct);
-        if (!seeded) ApplyCopiedEnrichment(place, c);
+        ApplyCopiedEnrichment(place, c);
         await _db.SaveChangesAsync(ct);
 
         return ToDto(place, seeded);
     }
 
     /// <summary>
-    /// ADR-156 §4: the origin row's enrichment, copied at add-time -- applied ONLY when no
-    /// PlaceProfile master supplied it, so a master stays canonical. Mirrors what
+    /// ADR-156 §4: the origin row's enrichment, copied at add-time -- applied PER FIELD, only
+    /// to whatever the master (if any) left empty, so a master that actually holds a value for
+    /// a field still wins for that field. `SeedIntoAsync` returning true only means a master
+    /// ROW exists; BestTimeWindows/SeasonPeriods are push-only (UpdateTripPlaceHandler never
+    /// writes them through), so an existing master is routinely empty for those two, and an
+    /// all-or-nothing gate on "a master exists" would silently drop them. Mirrors what
     /// PlaceProfileSync.SeedIntoAsync already does for the master case.
     /// </summary>
     private static void ApplyCopiedEnrichment(TripPlace place, AddTripPlaceCommand c)
     {
-        if (c.Notes is not null) place.SetNotes(c.Notes);
-        if (c.ReviewLinks is { Count: > 0 })
+        if (place.Notes is null && c.Notes is not null) place.SetNotes(c.Notes);
+        if (place.ReviewLinks.Count == 0 && c.ReviewLinks is { Count: > 0 })
             place.SetReviewLinks(c.ReviewLinks.Select(r => ReviewLink.Create(r.Url, r.Label)));
-        if (c.BestTimeWindows is { Count: > 0 })
+        if (place.BestTimeWindows.Count == 0 && c.BestTimeWindows is { Count: > 0 })
             place.SetBestTimeWindows(c.BestTimeWindows.Select(w => BestTimeWindow.Create(w.Start, w.End, w.Note)));
-        if (c.SeasonPeriods is { Count: > 0 })
+        if (place.SeasonPeriods.Count == 0 && c.SeasonPeriods is { Count: > 0 })
             place.SetSeasonPeriods(c.SeasonPeriods.Select(s => SeasonPeriod.Create(s.Kind, s.Months, s.Note)));
     }
 
