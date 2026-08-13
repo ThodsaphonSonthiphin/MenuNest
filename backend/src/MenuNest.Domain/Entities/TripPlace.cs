@@ -25,6 +25,14 @@ public sealed class TripPlace : Entity
     public string? FeeNote { get; private set; }
     public string? Notes { get; private set; }
 
+    /// <summary>
+    /// The existing TripPlace this row was copied FROM, when it was created by adding an
+    /// existing Discover place to a Trip. Opaque by design (ADR-156): no FK — deletes are
+    /// hard, so a dangling value is legal — and no index, because the only consumer groups
+    /// in memory. Always holds the ROOT, never an intermediate parent, so no chain can form.
+    /// </summary>
+    public Guid? OriginTripPlaceId { get; private set; }
+
     private readonly List<ReviewLink> _reviewLinks = new();
     public IReadOnlyList<ReviewLink> ReviewLinks => _reviewLinks;
 
@@ -39,7 +47,7 @@ public sealed class TripPlace : Entity
     public static TripPlace Create(
         Guid tripId, string name, double lat, double lng, PlaceCategory category,
         string? googlePlaceId = null, string? address = null, int? priceLevel = null,
-        string? photoUrl = null, string? openingHoursJson = null)
+        string? photoUrl = null, string? openingHoursJson = null, Guid? originTripPlaceId = null)
     {
         if (tripId == Guid.Empty) throw new DomainException("TripId is required.");
         if (string.IsNullOrWhiteSpace(name)) throw new DomainException("Place name is required.");
@@ -57,6 +65,7 @@ public sealed class TripPlace : Entity
             PriceLevel = priceLevel,
             PhotoUrl = photoUrl,
             OpeningHoursJson = openingHoursJson,
+            OriginTripPlaceId = originTripPlaceId,
         };
     }
 
