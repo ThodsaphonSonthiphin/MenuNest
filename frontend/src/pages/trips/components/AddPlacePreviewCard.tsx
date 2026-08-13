@@ -21,6 +21,11 @@ const CATS = (Object.keys(CAT_LABEL) as PlaceCategory[]).map((value) => ({
 
 export interface AddPlacePreviewCardProps {
   place: ResolvedPlaceDto
+  /** The name to save. Google's for a resolved place; user-typed for a coordinate capture. */
+  name: string
+  onNameChange(v: string): void
+  /** True for a coordinate capture, which has no Google name to show (R4.1). */
+  nameEditable: boolean
   category: PlaceCategory
   guessedCategory?: PlaceCategory
   onCategoryChange(c: PlaceCategory): void
@@ -35,7 +40,8 @@ export interface AddPlacePreviewCardProps {
 }
 
 export function AddPlacePreviewCard({
-  place, category, guessedCategory, onCategoryChange, onCancel, onAdd, saving, variant = 'floating',
+  place, name, onNameChange, nameEditable, category, guessedCategory, onCategoryChange,
+  onCancel, onAdd, saving, variant = 'floating',
   reviewDrafts, onReviewDraftsChange, confirmLabel = 'เพิ่มลงทริป', error,
 }: AddPlacePreviewCardProps) {
   return (
@@ -43,8 +49,22 @@ export function AddPlacePreviewCard({
       {variant === 'sheet' && <div className="add-preview-grip" />}
       <div className="add-preview-head">
         <div className="add-preview-title">
-          <div className="add-preview-name">{place.name}</div>
-          {place.address && <div className="add-preview-addr">{place.address}</div>}
+          {nameEditable ? (
+            <input
+              className="add-preview-name-input"
+              type="text"
+              value={name}
+              onChange={(e) => onNameChange(e.target.value)}
+              placeholder="ตั้งชื่อสถานที่นี้"
+              aria-label="ชื่อสถานที่"
+              autoFocus
+            />
+          ) : (
+            <div className="add-preview-name">{name}</div>
+          )}
+          {place.address
+            ? <div className="add-preview-addr">{place.address}</div>
+            : nameEditable && <div className="add-preview-addr">{place.lat.toFixed(5)}, {place.lng.toFixed(5)}</div>}
         </div>
         <button type="button" className="add-preview-close" aria-label="ปิด" onClick={onCancel}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>

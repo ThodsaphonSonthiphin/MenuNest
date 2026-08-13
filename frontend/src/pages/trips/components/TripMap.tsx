@@ -146,6 +146,10 @@ export function TripMap({
   const [tappedPlaceId, setTappedPlaceId] = useState<string | null>(null)
   // Stable callback keeps AddPlaceMode's tap-resolving effect from re-firing.
   const onTapConsumed = useCallback(() => setTappedPlaceId(null), [])
+  // The empty-ground point most recently tapped (add-mode only). Pushed down to
+  // AddPlaceMode, which turns it into a coordinate capture and clears it the same way.
+  const [tappedLatLng, setTappedLatLng] = useState<{lat: number; lng: number} | null>(null)
+  const onLatLngConsumed = useCallback(() => setTappedLatLng(null), [])
   // Coords of the currently-selected add-mode place. AddPlaceMode (a .trip-map
   // sibling of <Map>) reports these up; the temp teal pin is rendered inside <Map>
   // below, because AdvancedMarker needs the map subtree.
@@ -187,7 +191,13 @@ export function TripMap({
             if (placeId) {
               ev.stop() // suppress the default Google info window
               setTappedPlaceId(placeId)
+              return
             }
+            // ADR-164 §2: an empty-ground tap is not dead — it becomes a coordinate
+            // capture prefilled with the tapped point. No Geocoding call is made, which
+            // is what keeps this path at $0 (spec R8.2, R7.3).
+            const ll = ev.detail.latLng
+            if (ll) setTappedLatLng({lat: ll.lat, lng: ll.lng})
           }}
         >
           {routeMode ? (
@@ -249,6 +259,8 @@ export function TripMap({
             onExit={() => onExitAddMode?.()}
             tappedPlaceId={tappedPlaceId}
             onTapConsumed={onTapConsumed}
+            tappedLatLng={tappedLatLng}
+            onLatLngConsumed={onLatLngConsumed}
             onSelectedChange={setAddPin}
             addStopContext={addStopContext}
           />
