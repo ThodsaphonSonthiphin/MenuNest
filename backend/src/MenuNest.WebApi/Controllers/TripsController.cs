@@ -73,7 +73,8 @@ public sealed class TripsController : ControllerBase
     [HttpPost("api/trips/{id:guid}/places")]
     public async Task<ActionResult<TripPlaceDto>> AddPlace(Guid id, [FromBody] AddPlaceBody b, CancellationToken ct)
         => Ok(await _mediator.Send(new AddTripPlaceCommand(id, b.Name, b.Lat, b.Lng, b.Category,
-            b.GooglePlaceId, b.Address, b.PriceLevel, b.PhotoUrl, b.OpeningHoursJson), ct));
+            b.GooglePlaceId, b.Address, b.PriceLevel, b.PhotoUrl, b.OpeningHoursJson,
+            b.OriginTripPlaceId, b.Notes, b.ReviewLinks, b.BestTimeWindows, b.SeasonPeriods), ct));
 
     [HttpPut("api/trips/{id:guid}/places/{placeId:guid}")]
     public async Task<ActionResult<TripPlaceDto>> UpdatePlace(Guid id, Guid placeId, [FromBody] UpdatePlaceBody b, CancellationToken ct)
@@ -158,7 +159,14 @@ public sealed record UpdateTripBody(
 
 public sealed record AddPlaceBody(
     string Name, double Lat, double Lng, PlaceCategory Category,
-    string? GooglePlaceId, string? Address, int? PriceLevel, string? PhotoUrl, string? OpeningHoursJson);
+    string? GooglePlaceId, string? Address, int? PriceLevel, string? PhotoUrl, string? OpeningHoursJson,
+    // ADR-156 (#48): the copy-at-add-time payload. All five default so the Trips add-form's
+    // existing payload (which sends only the ten members above) keeps binding.
+    Guid? OriginTripPlaceId = null,
+    string? Notes = null,
+    IReadOnlyList<ReviewLinkDto>? ReviewLinks = null,
+    IReadOnlyList<BestTimeWindowDto>? BestTimeWindows = null,
+    IReadOnlyList<SeasonPeriodDto>? SeasonPeriods = null);
 
 public sealed record AttachChecklistBody(string Name);
 

@@ -91,9 +91,18 @@ than a conditional, and it costs nothing, since the key never consults it for a 
 
 ### 4. Enrichment is **copied** into the new row at add-time
 
-`AddTripPlaceCommand` gains `Notes`, `ReviewLinks`, `BestTimeWindows` and `SeasonPeriods`, and
-`api.ts:1395` stops `Omit`ting them. `AddTripPlaceHandler` applies them **only when the master did
-not**:
+`AddTripPlaceCommand` gains `Notes`, `ReviewLinks`, `BestTimeWindows` and `SeasonPeriods`.
+
+**Correction (post-implementation, #48 final review):** the sentence above originally said
+`api.ts:1395` "stops `Omit`ting them". Taken literally that would make `notes`, `bestTimeWindows`
+and `seasonPeriods` **required** on every `addTripPlace` call, which breaks the third caller —
+`AddPlaceMode.tsx`'s own Trips add-form path — that sends neither. What actually shipped, and what
+this ADR intends, keeps `api.ts:1395`'s `Omit` list unchanged and instead adds four members —
+`originTripPlaceId`, `notes`, `bestTimeWindows` and `seasonPeriods` — as **optional** on the
+left-hand explicit object that is intersected with it. `reviewLinks` needed no change: it was
+already a required field on `TripPlaceDto` before this ADR (since #36), and `AddPlaceMode.tsx`
+already always sends it. `AddTripPlaceHandler` applies the copied members **only when the master
+did not**:
 
 ```
 var seeded = await PlaceProfileSync.SeedIntoAsync(...);
@@ -192,6 +201,16 @@ class of problem** — it is exactly the state a `place_id` place occupies befor
 which is why the empty-aware fallback at `:62-65` exists. It is accepted here because a coordinate
 place can never have a master (ADR-066/148), so the alternative is not "keep them in sync" but
 "have only one row", which the rejected options above cover.
+
+**The copy itself becomes the group's representative the instant it is created.**
+`ApplyCopiedEnrichment` (§4) applies the copied fields through the entity's own `Set*` methods
+(`SetNotes`, `SetReviewLinks`, `SetBestTimeWindows`, `SetSeasonPeriods`), and every one of those
+stamps `UpdatedAt` on the brand-new row — even though the values it just wrote are byte-identical
+to the origin row's. So the new row's `UpdatedAt` is now the newest in the group, and
+`ListMyPlacesHandler:54`'s `UpdatedAt ?? CreatedAt` ordering picks it as the representative on the
+very next read. Nothing is visibly wrong, since the copied values match the origin exactly — but
+"most recently edited" now also means "most recently copied," which is worth knowing before relying
+on representative selection to mean the former.
 
 **`duplicate-policy` (#61) is unchanged and still owed an answer.** This ADR removes only the
 **self-inflicted** fork — the one the system creates in a single tap on a link it already holds.
