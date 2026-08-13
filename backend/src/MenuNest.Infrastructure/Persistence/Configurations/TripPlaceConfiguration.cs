@@ -72,6 +72,11 @@ internal sealed class TripPlaceConfiguration : IEntityTypeConfiguration<TripPlac
             .HasField("_bestTimeWindows")
             .UsePropertyAccessMode(PropertyAccessMode.Field)
             .HasDefaultValueSql("'[]'");
+        // ADR-156: opaque origin key. EF maps it automatically; this line exists to state
+        // that the bareness is deliberate — do NOT add HasOne() or HasIndex() here. Nothing
+        // queries by it (ListMyPlacesHandler groups in memory), and a FK would break the
+        // hard-delete path it must survive.
+        b.Property(p => p.OriginTripPlaceId);
         b.HasIndex(p => p.TripId);
         // dedupe re-pastes of the same Google place within a trip (filtered: only non-null)
         b.HasIndex(p => new { p.TripId, p.GooglePlaceId })
