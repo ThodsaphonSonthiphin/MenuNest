@@ -56,7 +56,9 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
     setSelected(dto)
     setName(dto.name)
     setCategory(dto.category)
-    setGuessedCategory(dto.category)
+    // A coordinate capture has no Google guess to badge — its 'Other' is our default,
+    // not Google's opinion, so the "เดาจาก Google" badge must not claim otherwise.
+    setGuessedCategory(needsTypedName(dto) ? undefined : dto.category)
     setReviewDrafts([])
     setFormError(null)
     createdRef.current = null // a different place — forget any half-created previous one
