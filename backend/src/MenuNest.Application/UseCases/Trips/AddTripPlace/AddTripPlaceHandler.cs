@@ -23,12 +23,30 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
         if (!owns) throw new DomainException("Trip not found.");
 
         var place = TripPlace.Create(c.TripId, c.Name, c.Lat, c.Lng, c.Category,
-            c.GooglePlaceId, c.Address, c.PriceLevel, c.PhotoUrl, c.OpeningHoursJson);
+            c.GooglePlaceId, c.Address, c.PriceLevel, c.PhotoUrl, c.OpeningHoursJson,
+            c.OriginTripPlaceId);
         _db.TripPlaces.Add(place);
         var seeded = await PlaceProfileSync.SeedIntoAsync(_db, user.Id, place, ct);
+        if (!seeded) ApplyCopiedEnrichment(place, c);
         await _db.SaveChangesAsync(ct);
 
         return ToDto(place, seeded);
+    }
+
+    /// <summary>
+    /// ADR-156 §4: the origin row's enrichment, copied at add-time -- applied ONLY when no
+    /// PlaceProfile master supplied it, so a master stays canonical. Mirrors what
+    /// PlaceProfileSync.SeedIntoAsync already does for the master case.
+    /// </summary>
+    private static void ApplyCopiedEnrichment(TripPlace place, AddTripPlaceCommand c)
+    {
+        if (c.Notes is not null) place.SetNotes(c.Notes);
+        if (c.ReviewLinks is { Count: > 0 })
+            place.SetReviewLinks(c.ReviewLinks.Select(r => ReviewLink.Create(r.Url, r.Label)));
+        if (c.BestTimeWindows is { Count: > 0 })
+            place.SetBestTimeWindows(c.BestTimeWindows.Select(w => BestTimeWindow.Create(w.Start, w.End, w.Note)));
+        if (c.SeasonPeriods is { Count: > 0 })
+            place.SetSeasonPeriods(c.SeasonPeriods.Select(s => SeasonPeriod.Create(s.Kind, s.Months, s.Note)));
     }
 
     internal static TripPlaceDto ToDto(TripPlace p, bool hasProfile = false) => new(
