@@ -38,7 +38,9 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
             .Distinct()
             .ToListAsync(ct)).ToHashSet();
 
-        var groups = rows.GroupBy(r => r.Place.GooglePlaceId ?? $"tp:{r.Place.Id}").ToList();
+        // ADR-156 §3: GooglePlaceId still wins whenever present, so the origin key is inert for
+        // the common case; it only groups place_id-less rows copied from one root.
+        var groups = rows.GroupBy(r => r.Place.GooglePlaceId ?? $"tp:{r.Place.OriginTripPlaceId ?? r.Place.Id}").ToList();
 
         var repGpids = groups
             .Select(g => g.OrderByDescending(r => r.Place.UpdatedAt ?? r.Place.CreatedAt).First().Place.GooglePlaceId)
@@ -80,7 +82,8 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
                 visited,
                 trips,
                 reviewLinks,
-                notes));
+                notes,
+                rep.OriginTripPlaceId ?? rep.Id));
         }
 
         return result.OrderBy(r => r.Name).ToList();
