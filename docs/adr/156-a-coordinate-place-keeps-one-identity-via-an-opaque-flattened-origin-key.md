@@ -112,7 +112,7 @@ if (!seeded) { /* apply the copied enrichment from the command */ }
 A master, where one exists, stays canonical (ADR-103's write-through is untouched); the copy is the
 fallback for exactly the case that has no master and never will.
 
-**Correction (post-push scrutinize, #48):** the gate above is wrong, and the bug it produces is
+**Correction (pre-push scrutinize, #48):** the gate above is wrong, and the bug it produces is
 exactly the one this ADR exists to fix. `seeded`/`SeedIntoAsync` returning `true` means only that a
 master **row** exists — it says nothing about which of that row's fields are populated. Notes and
 ReviewLinks write through on every edit (ADR-103, `UpdateTripPlaceHandler`), but BestTimeWindows
