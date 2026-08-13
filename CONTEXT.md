@@ -193,12 +193,17 @@ the glossary wins until the glossary is deliberately changed.
   on (ADR-016, ADR-150).
 - **Capture mode** — the armed state a map surface enters before it will accept a **Capture**.
   While armed, **every** tap on the map belongs to capture and never to browsing; while
-  unarmed, the map behaves as if capture did not exist. On the trip **map** it is armed by
-  "+ เพิ่มสถานที่" and accepts a **map-tap** on a Google POI only (ADR-016); on **Discover** it
-  is armed by a **+** control and additionally reads a tap on empty ground as the *coordinate*
-  input for a new **Place**, while a tap on one of the User's own pins only warns that the
-  place is already saved (ADR-150). Armed is always **visible** — a banner, dimmed own pins —
-  and it **survives** a successful save, so several places can be captured in one arming. No
+  unarmed, the map behaves as if capture did not exist. **Both** map surfaces read a tap the
+  same way (ADR-163): a **map-tap** on a Google POI opens the preview, a tap on empty ground
+  becomes the *coordinate* input for a new **Place**, and a tap on one of the User's own pins
+  only warns that the place is already saved (ADR-150). It is armed by "+ เพิ่มสถานที่" on the
+  trip **map** and by a **+** control on **Discover**. The empty-ground rule reached the trip map
+  with ADR-163, which **supersedes ADR-016's** POI-only restriction: ADR-016 rejected
+  *reverse-geocoding* an arbitrary point, and what ships keeps the raw coordinates and lets the
+  User name the place, so no Geocoding call is made. Armed is always **visible** — a banner,
+  dimmed own pins — and it **survives** a successful save, so several places can be captured in
+  one arming; on **Discover** the arming also remembers the **Trip** chosen at the previous save,
+  so a run of captures picks a Trip once (ADR-163). No
   tap ever writes: every path still ends at an explicit save. _Avoid_: add-mode, edit mode,
   "selection mode".
 - **Navigate hand-off** — opening a day's route or a single **Stop** in the external

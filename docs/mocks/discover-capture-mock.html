@@ -1,0 +1,605 @@
+<!-- @dsCard group="Screens" -->
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ไปไหนดี — เพิ่มสถานที่ (ลิงก์ · แตะ · พิกัด · Plus Code)</title>
+<style>
+  :root{
+    --teal:#0e8f9e;--teal-deep:#0b7a87;--teal-soft:#e3f5f6;
+    --ink:#0f172a;--page:#f8fafc;--surface:#fff;--border:#eef2f6;--muted:#94a3b8;
+    --warn:#b4791f;--warn-bg:#fff4e0;--warn-ink:#7a5310;
+    --bad:#b42318;--bad-bg:#fdeceb;
+    --visited:#15803d;--visited-bg:#e7f6ec;
+    --review:#c2255c;--review-bg:#fdeaf1;
+    --cat-eat:#e8590c;--cat-see:#0e8f9e;--cat-cafe:#9c6b3f;
+    --cat-stay:#7048e8;--cat-shop:#c2255c;--cat-other:#64748b;
+    --gps:#4285f4;--draft:#0e8f9e;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#eef2f6;color:var(--ink);
+    font-family:'IBM Plex Sans Thai','Sarabun',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    font-size:14px;line-height:1.5;padding:22px}
+  .wrap{max-width:1180px;margin:0 auto;display:grid;gap:26px;
+    grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start;justify-items:center}
+  .mono{font-family:'Spline Sans Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+  .col{display:flex;flex-direction:column;align-items:center;gap:10px;width:340px}
+  .tag{display:inline-block;background:var(--ink);color:#fff;border-radius:999px;
+    font-size:10.5px;font-weight:800;padding:3px 11px;letter-spacing:.02em}
+  .tag.open{background:#7a5310}
+  .col .cap{font-size:11px;color:#475569;text-align:center;line-height:1.5;padding:0 6px}
+  .col .cap b{color:var(--ink)}
+  .col .cap .adr{color:var(--teal-deep);font-weight:800}
+
+  /* ---------- phone frame ---------- */
+  .phone{width:340px;height:710px;border-radius:34px;background:#0b1220;
+    padding:10px;box-shadow:0 18px 50px rgba(15,23,42,.28);position:relative}
+  .screen{position:relative;width:100%;height:100%;border-radius:26px;overflow:hidden;background:var(--page)}
+
+  /* ---------- faux map ---------- */
+  .map{position:absolute;inset:0;background:
+    radial-gradient(120px 90px at 78% 20%, #cfe8ef 0 60%, transparent 62%),
+    radial-gradient(150px 120px at 22% 78%, #dbefd6 0 55%, transparent 57%),
+    linear-gradient(#eef4f2,#e8eef0)}
+  .map.armed::after{content:"";position:absolute;inset:0;background:rgba(11,18,32,.10);z-index:2}
+  .map .road{position:absolute;background:#fff;box-shadow:0 0 0 1px #e2e8ec}
+  .map .r1{left:-10%;right:-10%;top:34%;height:12px;transform:rotate(-6deg)}
+  .map .r2{left:-10%;right:-10%;top:62%;height:9px;transform:rotate(4deg)}
+  .map .r3{top:-10%;bottom:-10%;left:40%;width:11px;transform:rotate(7deg)}
+  .map .r4{top:-10%;bottom:-10%;left:70%;width:7px;transform:rotate(-3deg)}
+  .map-lbl{position:absolute;font-size:10px;color:#8aa0a6;font-weight:600}
+
+  /* ---------- markers ---------- */
+  .pin{position:absolute;transform:translate(-50%,-100%);display:flex;flex-direction:column;align-items:center;z-index:3}
+  .pin .dot{width:30px;height:30px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
+    border:2.5px solid #fff;box-shadow:0 4px 10px rgba(15,23,42,.28);display:flex;align-items:center;justify-content:center}
+  .pin .dot svg{width:15px;height:15px;transform:rotate(-45deg);color:#fff}
+  .pin.eat .dot{background:var(--cat-eat)} .pin.see .dot{background:var(--cat-see)}
+  .pin.cafe .dot{background:var(--cat-cafe)} .pin.stay .dot{background:var(--cat-stay)}
+  .pin.shop .dot{background:var(--cat-shop)} .pin.other .dot{background:var(--cat-other)}
+  .pin.dim{opacity:.34;filter:grayscale(.55)}
+  .pin.poi .dot{background:#64748b}
+
+  /* draft pin dropped by an empty-ground tap */
+  .pin.draft{z-index:7}
+  .pin.draft .dot{background:#fff;border:3px dashed var(--draft);border-radius:50% 50% 50% 2px;
+    width:34px;height:34px;box-shadow:0 8px 20px rgba(14,143,158,.45)}
+  .pin.draft .dot svg{color:var(--draft);width:15px;height:15px}
+  .ripple{position:absolute;transform:translate(-50%,-50%);z-index:6;width:62px;height:62px;border-radius:50%;
+    border:2px solid rgba(14,143,158,.5);background:rgba(14,143,158,.12)}
+
+  .gps{position:absolute;transform:translate(-50%,-50%);z-index:5;width:18px;height:18px;border-radius:50%;
+    background:var(--gps);border:3px solid #fff;box-shadow:0 0 0 8px rgba(66,133,244,.22),0 2px 6px rgba(0,0,0,.3)}
+
+  .callout{position:absolute;transform:translate(-50%,-100%);z-index:8;margin-top:-6px;
+    background:#fff;border-radius:10px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--ink);
+    white-space:nowrap;box-shadow:0 6px 16px rgba(0,0,0,.2)}
+  .callout::after{content:"";position:absolute;left:50%;bottom:-5px;transform:translateX(-50%);
+    border:6px solid transparent;border-top-color:#fff;border-bottom:0}
+
+  /* ---------- floating top bar ---------- */
+  .topbar{position:absolute;top:12px;left:12px;right:12px;z-index:10;display:flex;flex-direction:column;gap:8px}
+  .searchbar{display:flex;align-items:center;gap:9px;background:#fff;border-radius:13px;
+    padding:9px 11px;box-shadow:0 6px 20px rgba(15,23,42,.16)}
+  .searchbar .mag{width:17px;height:17px;color:var(--teal);flex:none}
+  .searchbar .title{font-size:15px;font-weight:800;color:var(--ink);flex:1}
+  .anchor{display:inline-flex;align-items:center;gap:5px;background:var(--teal-soft);color:var(--teal-deep);
+    border-radius:999px;padding:5px 10px;font-size:11.5px;font-weight:800;white-space:nowrap}
+  .anchor svg{width:13px;height:13px}
+  .anchor .cv{width:12px;height:12px;opacity:.7}
+
+  .filters{display:flex;gap:7px;overflow:hidden;padding-bottom:2px}
+  .fchip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--border);
+    color:#475569;border-radius:999px;padding:6px 11px;font-size:11px;font-weight:700;white-space:nowrap;
+    box-shadow:0 2px 8px rgba(15,23,42,.08)}
+  .fchip svg{width:12px;height:12px}
+  .fchip .sw{width:24px;height:14px;border-radius:999px;background:#cbd5e1;position:relative;flex:none}
+  .fchip .sw::after{content:"";position:absolute;top:1.5px;left:1.5px;width:11px;height:11px;border-radius:50%;background:#fff;transition:.15s}
+  .fchip.on{background:var(--teal);border-color:var(--teal);color:#fff;box-shadow:0 3px 10px rgba(14,143,158,.4)}
+  .fchip.on .sw{background:rgba(255,255,255,.5)} .fchip.on .sw::after{left:11px}
+  .fchip.cat{background:var(--ink);border-color:var(--ink);color:#fff}
+  .fchip.cat svg{color:#9fb0c4}
+
+  /* ---------- armed capture banner ---------- */
+  .armbar{display:flex;align-items:center;gap:9px;background:var(--ink);color:#e2e8f0;border-radius:13px;
+    padding:10px 12px;box-shadow:0 8px 24px rgba(15,23,42,.34)}
+  .armbar .ic{width:17px;height:17px;color:#7dd3df;flex:none}
+  .armbar .tx{flex:1;font-size:11.5px;font-weight:700;line-height:1.45}
+  .armbar .tx small{display:block;font-weight:600;color:#94a3b8;font-size:10.5px;margin-top:1px}
+  .armbar .cancel{flex:none;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);
+    color:#e2e8f0;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:800}
+  .armbar .cancel svg{width:11px;height:11px}
+
+  /* ---------- FABs ---------- */
+  .fab{position:absolute;right:14px;z-index:9;width:44px;height:44px;border-radius:50%;background:#fff;
+    box-shadow:0 5px 16px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;color:var(--teal-deep)}
+  .fab svg{width:20px;height:20px}
+  .fab.locate{bottom:210px}
+  .fab.capture{bottom:264px;width:52px;height:52px;background:var(--teal);color:#fff;
+    box-shadow:0 8px 22px rgba(14,143,158,.5);right:11px}
+  .fab.capture svg{width:24px;height:24px}
+  .fab.capture.on{background:var(--ink);box-shadow:0 8px 22px rgba(15,23,42,.5)}
+  .fab .flabel{position:absolute;right:60px;top:50%;transform:translateY(-50%);background:var(--ink);color:#fff;
+    border-radius:8px;padding:5px 9px;font-size:10.5px;font-weight:800;white-space:nowrap}
+  .fab .flabel::after{content:"";position:absolute;right:-4px;top:50%;transform:translateY(-50%);
+    border:5px solid transparent;border-left-color:var(--ink);border-right:0}
+
+  /* ---------- bottom sheet ---------- */
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:11;background:#fff;border-radius:20px 20px 0 0;
+    box-shadow:0 -10px 30px rgba(15,23,42,.16);padding:8px 14px 16px;max-height:72%;display:flex;flex-direction:column}
+  .grip{width:38px;height:4px;border-radius:999px;background:#cbd5e1;margin:4px auto 8px}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  .sheet-head .h{font-size:13px;font-weight:800;color:var(--ink)}
+  .sheet-head .n{font-size:11px;font-weight:700;color:var(--muted)}
+  .plist{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+
+  .prow{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:13px;padding:9px 10px;background:#fff}
+  .prow .catdot{flex:none;width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .prow .catdot svg{width:15px;height:15px;color:#fff}
+  .prow.eat .catdot{background:var(--cat-eat)} .prow.see .catdot{background:var(--cat-see)}
+  .prow.cafe .catdot{background:var(--cat-cafe)} .prow.other .catdot{background:var(--cat-other)}
+  .prow .b{flex:1;min-width:0}
+  .prow .pname{font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .prow .meta{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin-top:3px}
+  .badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;border-radius:999px;padding:2px 7px}
+  .badge svg{width:10px;height:10px}
+  .badge.open{background:var(--visited-bg);color:var(--visited)}
+  .badge.nohours{background:#f1f5f9;color:#64748b}
+  .badge.trip{background:#eef2ff;color:#4f5bd5}
+  .badge.dist{background:transparent;color:var(--muted);font-weight:800;padding-left:0}
+  .badge.src{background:var(--teal-soft);color:var(--teal-deep)}
+
+  /* ---------- capture sheet bits ---------- */
+  .segs{display:flex;gap:6px;background:var(--page);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:11px}
+  .seg{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border-radius:9px;padding:7px 2px;
+    font-size:10px;font-weight:800;color:#64748b;text-align:center;line-height:1.25}
+  .seg svg{width:15px;height:15px}
+  .seg.on{background:var(--teal);color:#fff;box-shadow:0 3px 10px rgba(14,143,158,.38)}
+
+  .field{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:12px;
+    padding:11px 12px;background:#fff}
+  .field.focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(14,143,158,.14)}
+  .field svg{width:15px;height:15px;color:var(--teal);flex:none}
+  .field .val{flex:1;min-width:0;font-size:12.5px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .field .val.ph{color:#b6c2cf}
+  .field .clr{flex:none;width:17px;height:17px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center}
+  .field .clr svg{width:9px;height:9px;color:#64748b}
+  .pair{display:flex;gap:8px}
+  .pair .field{flex:1}
+  .flabelx{font-size:10.5px;font-weight:800;color:#64748b;margin:0 0 5px 2px;letter-spacing:.02em}
+
+  .hint{display:flex;gap:7px;align-items:flex-start;font-size:10.5px;line-height:1.5;color:#64748b;
+    margin-top:8px;padding:0 2px}
+  .hint svg{width:13px;height:13px;color:var(--muted);flex:none;margin-top:1px}
+
+  .note{display:flex;gap:8px;align-items:flex-start;border-radius:12px;padding:10px 11px;font-size:11px;
+    font-weight:600;line-height:1.5;margin-top:10px}
+  .note svg{width:14px;height:14px;flex:none;margin-top:1px}
+  .note.warn{background:var(--warn-bg);color:var(--warn-ink)} .note.warn svg{color:var(--warn)}
+  .note.ok{background:var(--teal-soft);color:var(--teal-deep)} .note.ok svg{color:var(--teal)}
+  .note.bad{background:var(--bad-bg);color:var(--bad)} .note.bad svg{color:var(--bad)}
+  .note b{font-weight:800}
+  .note .lnk{color:inherit;font-weight:800;text-decoration:underline}
+
+  /* preview card */
+  .pv{display:flex;gap:11px;border:1.5px solid var(--teal);border-radius:14px;padding:11px;background:#fff;
+    box-shadow:0 6px 18px rgba(14,143,158,.16)}
+  .pv .thumb{flex:none;width:56px;height:56px;border-radius:11px;background:linear-gradient(135deg,#cfe8ef,#dbefd6);
+    display:flex;align-items:center;justify-content:center;color:var(--teal-deep)}
+  .pv .thumb svg{width:22px;height:22px}
+  .pv .b{flex:1;min-width:0}
+  .pv .nm{font-size:14.5px;font-weight:800;color:var(--ink);line-height:1.25}
+  .pv .ad{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .pv .mt{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+
+  /* trip picker */
+  .tsearch{display:flex;align-items:center;gap:8px;border:1.5px solid var(--border);border-radius:11px;
+    padding:9px 11px;background:var(--page);margin-bottom:9px}
+  .tsearch svg{width:14px;height:14px;color:var(--muted);flex:none}
+  .tsearch .val{font-size:12px;color:#b6c2cf}
+  .trow{display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:12px;
+    padding:10px;background:#fff}
+  .trow.sel{border-color:var(--teal);background:var(--teal-soft)}
+  .trow.new{border-style:dashed;border-color:var(--teal);color:var(--teal-deep)}
+  .trow .ti{flex:none;width:30px;height:30px;border-radius:9px;background:#eef2ff;color:#4f5bd5;
+    display:flex;align-items:center;justify-content:center}
+  .trow.new .ti{background:var(--teal-soft);color:var(--teal-deep)}
+  .trow .ti svg{width:15px;height:15px}
+  .trow .b{flex:1;min-width:0}
+  .trow .tn{font-size:13px;font-weight:800;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .trow.new .tn{color:var(--teal-deep)}
+  .trow .td{font-size:10.5px;color:var(--muted);margin-top:2px}
+  .trow .tick{flex:none;width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;
+    display:flex;align-items:center;justify-content:center}
+  .trow .tick svg{width:11px;height:11px}
+
+  /* category swatch row + review link row */
+  .cats{display:flex;gap:6px;flex-wrap:wrap}
+  .cpill{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);border-radius:999px;
+    padding:6px 10px;font-size:11px;font-weight:700;color:#475569;background:#fff}
+  .cpill svg{width:12px;height:12px}
+  .cpill.on{background:var(--cat-eat);border-color:var(--cat-eat);color:#fff}
+  .cpill.on svg{color:#fff}
+  .rlrow{display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:11px;
+    padding:9px 10px;background:#fff}
+  .rlrow .ri{flex:none;width:26px;height:26px;border-radius:8px;background:var(--review-bg);color:var(--review);
+    display:flex;align-items:center;justify-content:center}
+  .rlrow .ri svg{width:13px;height:13px}
+  .rlrow .b{flex:1;min-width:0;font-size:11.5px;color:var(--ink);font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rlrow .b small{display:block;font-weight:600;color:var(--muted);font-size:10px}
+
+  .acts{display:flex;gap:9px;margin-top:12px}
+  .acts.col{flex-direction:column}
+  .acts.col .abtn{width:100%;flex:none}
+  .abtn .caret{width:13px;height:13px;opacity:.85;margin-left:auto}
+  .abtn{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;border-radius:12px;
+    padding:12px;font-size:13.5px;font-weight:800;border:1.5px solid transparent}
+  .abtn svg{width:16px;height:16px}
+  .abtn.primary{background:var(--teal);color:#fff;box-shadow:0 6px 16px rgba(14,143,158,.4)}
+  .abtn.ghost{flex:none;background:#fff;border-color:var(--border);color:#334155;padding:12px 15px}
+
+  .openq{position:absolute;left:12px;right:12px;bottom:16px;z-index:14;background:rgba(122,83,16,.94);
+    color:#fff5e2;border-radius:12px;padding:10px 12px;font-size:10.5px;font-weight:600;line-height:1.5;
+    display:flex;gap:8px;align-items:flex-start;box-shadow:0 8px 22px rgba(15,23,42,.3)}
+  .openq svg{width:14px;height:14px;color:#ffd79a;flex:none;margin-top:1px}
+  .openq b{font-weight:800;color:#fff}
+  /* variant: sit under the armbar instead of over the sheet's action row */
+  .openq.top{top:80px;bottom:auto}
+
+  .footcap{max-width:1180px;margin:22px auto 0;font-size:10.5px;color:var(--muted);text-align:center;line-height:1.7}
+  .footcap b{color:#475569}
+  .legend{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:8px auto 0;max-width:760px}
+  .legend .lg{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;color:#475569}
+  .legend .sw2{width:13px;height:13px;border-radius:4px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5z"/></symbol>
+  <symbol id="i-cv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-locate" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-fork" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3v6a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M6 11v10M18 3c-1.7 0-3 2-3 5s1 4 3 4v9"/></symbol>
+  <symbol id="i-cup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M17 9h2a2 2 0 0 1 0 5h-2"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h4l2-2.5h6L17 8h4v11H3z"/><circle cx="12" cy="13" r="3.2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-trip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h8M16 18h4"/><circle cx="15" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a4 4 0 0 0 5.7.4l3-3a4 4 0 0 0-5.7-5.7l-1.7 1.7"/><path d="M14 11a4 4 0 0 0-5.7-.4l-3 3a4 4 0 0 0 5.7 5.7l1.7-1.7"/></symbol>
+  <symbol id="i-tap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11V6.5a2 2 0 0 1 4 0V13"/><path d="M13 11.5a1.8 1.8 0 0 1 3.6 0V13"/><path d="M16.6 12.5a1.8 1.8 0 0 1 3.6 0v3.2a5.5 5.5 0 0 1-5.5 5.5h-2a5 5 0 0 1-3.9-1.9L5 15.5a1.9 1.9 0 0 1 2.9-2.4L9 14"/></symbol>
+  <symbol id="i-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5 2.5 20h19z"/><path d="M12 9.5v4.5M12 17h.01"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-save" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M8 3v5h7M8 21v-6h8v6"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></symbol>
+  <symbol id="i-note" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18l-7-4-7 4z"/></symbol>
+</svg>
+
+<div class="wrap">
+
+  <!-- ============ FRAME 1 — Discover ปกติ, FAB ใหม่ ============ -->
+  <div class="col">
+    <span class="tag">1 · ปกติ — แตะหมุด = เลือก (ไม่เปลี่ยน)</span>
+    <div class="phone"><div class="screen">
+      <div class="map">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <span class="map-lbl" style="left:60%;top:16%">คลอง</span>
+        <span class="map-lbl" style="left:14%;top:70%">สวนสาธารณะ</span>
+        <div class="pin see" style="left:38%;top:40%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+        <div class="pin eat" style="left:60%;top:34%"><div class="dot"><svg><use href="#i-fork"/></svg></div></div>
+        <div class="pin cafe" style="left:30%;top:56%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+        <div class="pin shop" style="left:66%;top:56%"><div class="dot"><svg><use href="#i-pin"/></svg></div></div>
+        <div class="gps" style="left:49%;top:49%"></div>
+      </div>
+      <div class="topbar">
+        <div class="searchbar">
+          <svg class="mag"><use href="#i-mag"/></svg>
+          <span class="title">ไปไหนดี</span>
+          <span class="anchor"><svg><use href="#i-locate"/></svg>ใกล้ฉัน<svg class="cv"><use href="#i-cv"/></svg></span>
+        </div>
+        <div class="filters">
+          <span class="fchip cat"><svg><use href="#i-sliders"/></svg>ทั้งหมด<svg style="width:11px"><use href="#i-cv"/></svg></span>
+          <span class="fchip on"><span class="sw"></span>เปิดตอนนี้</span>
+          <span class="fchip on"><span class="sw"></span>ซ่อนที่ไปแล้ว</span>
+        </div>
+      </div>
+      <div class="fab capture"><span class="flabel">เพิ่มที่ใหม่</span><svg><use href="#i-plus"/></svg></div>
+      <div class="fab locate"><svg><use href="#i-locate"/></svg></div>
+      <div class="sheet" style="max-height:30%">
+        <div class="grip"></div>
+        <div class="sheet-head"><span class="h">ที่บันทึกไว้ในกรอบนี้</span><span class="n">18 ที่</span></div>
+        <div class="plist">
+          <div class="prow eat"><span class="catdot"><svg><use href="#i-fork"/></svg></span>
+            <div class="b"><div class="pname">ก๋วยเตี๋ยวเรือป้าตุ๋ย</div>
+              <div class="meta"><span class="badge open"><svg><use href="#i-clock"/></svg>เปิดอยู่</span><span class="badge trip">เชียงใหม่ ก.ย.</span><span class="badge dist">420 ม.</span></div>
+            </div></div>
+          <div class="prow cafe"><span class="catdot"><svg><use href="#i-cup"/></svg></span>
+            <div class="b"><div class="pname">Bear Hug Cafe</div>
+              <div class="meta"><span class="badge open"><svg><use href="#i-clock"/></svg>เปิดอยู่</span><span class="badge trip">ทริปเดย์</span><span class="badge dist">1.1 กม.</span></div>
+            </div></div>
+        </div>
+      </div>
+    </div></div>
+    <p class="cap">FAB ใหม่ <b>“เพิ่มที่ใหม่”</b> วางเหนือปุ่มหาตำแหน่ง ตอนยังไม่กด ทุกอย่างเหมือนเดิม —
+      แตะหมุดคือ <b>เลือก</b> ไม่ใช่เพิ่ม <span class="adr">(ADR-150 / #59)</span></p>
+  </div>
+
+  <!-- ============ FRAME 2 — armed capture mode ============ -->
+  <div class="col">
+    <span class="tag">2 · กด FAB → โหมดเพิ่มสถานที่</span>
+    <div class="phone"><div class="screen">
+      <div class="map armed">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <div class="pin see dim" style="left:38%;top:40%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+        <div class="pin eat dim" style="left:60%;top:34%"><div class="dot"><svg><use href="#i-fork"/></svg></div></div>
+        <div class="pin cafe dim" style="left:30%;top:56%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+        <div class="pin shop dim" style="left:66%;top:56%"><div class="dot"><svg><use href="#i-pin"/></svg></div></div>
+        <div class="pin poi" style="left:52%;top:70%"><div class="dot"><svg><use href="#i-pin"/></svg></div></div>
+        <span class="map-lbl" style="left:47%;top:73%;color:#475569;font-weight:700">ร้านหนังสือริมคลอง</span>
+        <div class="gps" style="left:49%;top:49%"></div>
+      </div>
+      <div class="topbar">
+        <div class="armbar">
+          <svg class="ic"><use href="#i-tap"/></svg>
+          <span class="tx">แตะจุดบนแผนที่เพื่อเพิ่ม<small>แตะสถานที่ของ Google = ดึงชื่อให้ · แตะพื้นที่ว่าง = ใช้พิกัด</small></span>
+          <span class="cancel"><svg><use href="#i-x"/></svg>ยกเลิก</span>
+        </div>
+      </div>
+      <div class="fab capture on"><svg><use href="#i-x"/></svg></div>
+      <div class="fab locate"><svg><use href="#i-locate"/></svg></div>
+      <div class="sheet" style="max-height:26%">
+        <div class="grip"></div>
+        <div class="sheet-head"><span class="h">หรือเพิ่มด้วยวิธีอื่น</span></div>
+        <div class="segs" style="margin-bottom:4px">
+          <span class="seg"><svg><use href="#i-link"/></svg>ลิงก์<br>Google Maps</span>
+          <span class="seg"><svg><use href="#i-cross"/></svg>พิกัด<br>lat, lng</span>
+          <span class="seg"><svg><use href="#i-grid"/></svg>Plus Code</span>
+        </div>
+        <div class="hint"><svg><use href="#i-info"/></svg><span>หมุดที่บันทึกไว้จะจางลงระหว่างอยู่ในโหมดนี้ — แตะหมุดของตัวเองจะขึ้นเตือนว่ามีอยู่แล้ว ไม่เพิ่มซ้ำ</span></div>
+      </div>
+    </div></div>
+    <p class="cap">โหมด armed: <b>FAB เปลี่ยนเป็นปิด + แถบดำบอกวิธี + หมุดเดิมจางลง</b> —
+      สามทางที่เหลืออยู่ในชีทล่าง ครบทั้งสี่ทางเข้า <span class="adr">(ADR-150 / #59)</span></p>
+  </div>
+
+  <!-- ============ FRAME 3 — empty-ground tap → draft pin ============ -->
+  <div class="col">
+    <span class="tag">3 · แตะพื้นที่ว่าง → หมุดร่าง + พิกัด</span>
+    <div class="phone"><div class="screen">
+      <div class="map armed">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <div class="pin see dim" style="left:38%;top:32%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+        <div class="pin eat dim" style="left:66%;top:28%"><div class="dot"><svg><use href="#i-fork"/></svg></div></div>
+        <div class="ripple" style="left:50%;top:41%"></div>
+        <div class="pin draft" style="left:50%;top:41%"><div class="dot"><svg><use href="#i-plus"/></svg></div></div>
+        <div class="callout" style="left:50%;top:33%">จุดที่แตะ · ลากปรับได้</div>
+      </div>
+      <div class="topbar">
+        <div class="armbar">
+          <svg class="ic"><use href="#i-cross"/></svg>
+          <span class="tx">เลือกจุดแล้ว<small>ลากหมุดเพื่อปรับตำแหน่ง</small></span>
+          <span class="cancel"><svg><use href="#i-x"/></svg>ยกเลิก</span>
+        </div>
+      </div>
+      <div class="sheet" style="max-height:52%">
+        <div class="grip"></div>
+        <div class="sheet-head"><span class="h">เพิ่มจากพิกัด</span><span class="n">ไม่มีค่าใช้จ่าย</span></div>
+        <div class="segs">
+          <span class="seg"><svg><use href="#i-link"/></svg>ลิงก์</span>
+          <span class="seg on"><svg><use href="#i-cross"/></svg>พิกัด</span>
+          <span class="seg"><svg><use href="#i-grid"/></svg>Plus Code</span>
+        </div>
+        <p class="flabelx">ละติจูด / ลองจิจูด</p>
+        <div class="pair">
+          <div class="field focus"><svg><use href="#i-cross"/></svg><span class="val mono">18.788412</span></div>
+          <div class="field focus"><span class="val mono">98.985317</span></div>
+        </div>
+        <div class="note ok"><svg><use href="#i-check"/></svg><span>อ่านค่าจากจุดที่แตะโดยตรง <b>ไม่เรียก Google</b> — ยังไม่มีชื่อสถานที่ ตั้งชื่อเองในขั้นถัดไป</span></div>
+        <div class="acts">
+          <span class="abtn ghost"><svg><use href="#i-x"/></svg></span>
+          <span class="abtn primary">ถัดไป<svg><use href="#i-cv" style="transform:rotate(-90deg)"/></svg></span>
+        </div>
+      </div>
+      <div class="openq top" style="background:rgba(11,122,135,.94)"><svg><use href="#i-check"/></svg><span><b>ตัดสินแล้ว (ADR-163):</b> กติกาแตะชุดนี้ใช้กับ<b>แผนที่ทริปด้วย</b> ไม่ใช่ Discover อย่างเดียว — supersede ADR-016 ข้อ 2 ที่เคยให้เมินการแตะพื้นที่ว่าง (เพราะที่ทำจริงคือเอาพิกัดดิบ ไม่ยิง Geocoding)</span></div>
+    </div></div>
+    <p class="cap">แตะพื้นที่ว่าง = <b>หย่อนหมุดร่างแล้วเข้าฟอร์มพิกัดทันที</b> ($0 ไม่เรียก Google)
+      <span class="adr">(ADR-150)</span> — และกติกานี้ใช้กับ<b>แผนที่ทริปด้วย</b> <span class="adr">(ADR-163)</span></p>
+  </div>
+
+  <!-- ============ FRAME 4 — link / Plus Code ============ -->
+  <div class="col">
+    <span class="tag">4 · วางลิงก์ หรือ Plus Code</span>
+    <div class="phone"><div class="screen">
+      <div class="map armed">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <div class="pin see dim" style="left:36%;top:26%"><div class="dot"><svg><use href="#i-cam"/></svg></div></div>
+        <div class="pin cafe dim" style="left:68%;top:30%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+      </div>
+      <div class="topbar">
+        <div class="armbar">
+          <svg class="ic"><use href="#i-link"/></svg>
+          <span class="tx">เพิ่มจากลิงก์<small>วางลิงก์ที่แชร์มาจาก Google Maps</small></span>
+          <span class="cancel"><svg><use href="#i-x"/></svg>ยกเลิก</span>
+        </div>
+      </div>
+      <div class="sheet" style="max-height:80%">
+        <div class="grip"></div>
+        <div class="sheet-head"><span class="h">เพิ่มจากลิงก์ / Plus Code</span></div>
+        <div class="segs">
+          <span class="seg on"><svg><use href="#i-link"/></svg>ลิงก์</span>
+          <span class="seg"><svg><use href="#i-cross"/></svg>พิกัด</span>
+          <span class="seg"><svg><use href="#i-grid"/></svg>Plus Code</span>
+        </div>
+        <p class="flabelx">ลิงก์ Google Maps</p>
+        <div class="field focus">
+          <svg><use href="#i-link"/></svg>
+          <span class="val mono" style="font-size:11px">google.com/maps/place/Wat+Phra+Singh/@18.788,98.98…</span>
+          <span class="clr"><svg><use href="#i-x"/></svg></span>
+        </div>
+        <div class="note warn"><svg><use href="#i-warn"/></svg><span><b>ลิงก์ย่อรองรับด้วย</b> — ทั้ง <span class="mono">maps.app.goo.gl</span> และโดเมนประเทศ เช่น <span class="mono">google.co.th</span> ต้องอ่านได้ ไม่ใช่แค่ <span class="mono">.com</span> <span class="adr">(#56)</span></span></div>
+
+        <p class="flabelx" style="margin-top:14px">Plus Code</p>
+        <div class="field">
+          <svg><use href="#i-grid"/></svg>
+          <span class="val mono">7P5RQ2FX+9M</span>
+        </div>
+        <div class="note ok"><svg><use href="#i-check"/></svg><span>ถอดรหัสในเครื่อง <b>ไม่เรียก Google และไม่มีค่าใช้จ่าย</b> — ได้พิกัดตรง ๆ ไม่ต้องเดาจากชื่อเมือง <span class="adr">(#57)</span></span></div>
+        <div class="acts">
+          <span class="abtn ghost"><svg><use href="#i-x"/></svg></span>
+          <span class="abtn primary">ค้นหา<svg><use href="#i-mag"/></svg></span>
+        </div>
+      </div>
+    </div></div>
+    <p class="cap">สองทางที่เหลือ ทั้งคู่ยิงเข้า <b>resolve_place ตัวเดียว</b> ฝั่งเซิร์ฟเวอร์
+      <span class="adr">(ADR-157 / #63)</span> — Plus Code ถอดออฟไลน์ $0</p>
+  </div>
+
+  <!-- ============ FRAME 5 — preview + near-match warning ============ -->
+  <div class="col">
+    <span class="tag">5 · พรีวิวผลลัพธ์ + เตือนที่ใกล้กัน</span>
+    <div class="phone"><div class="screen">
+      <div class="map armed">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+        <div class="pin cafe dim" style="left:44%;top:33%"><div class="dot"><svg><use href="#i-cup"/></svg></div></div>
+        <div class="ripple" style="left:50%;top:34%"></div>
+        <div class="pin draft" style="left:50%;top:34%"><div class="dot"><svg><use href="#i-plus"/></svg></div></div>
+      </div>
+      <div class="topbar">
+        <div class="armbar">
+          <svg class="ic"><use href="#i-check"/></svg>
+          <span class="tx">เจอแล้ว — ตรวจก่อนบันทึก</span>
+          <span class="cancel"><svg><use href="#i-x"/></svg>ยกเลิก</span>
+        </div>
+      </div>
+      <div class="sheet" style="max-height:66%">
+        <div class="grip"></div>
+        <div class="sheet-head"><span class="h">ใช่ที่นี่ไหม</span><span class="n">จากลิงก์</span></div>
+        <div class="pv">
+          <span class="thumb"><svg><use href="#i-cam"/></svg></span>
+          <div class="b">
+            <div class="nm">วัดพระสิงห์วรมหาวิหาร</div>
+            <div class="ad">2 ถ.สามล้าน ต.พระสิงห์ อ.เมืองเชียงใหม่</div>
+            <div class="mt">
+              <span class="badge open"><svg><use href="#i-clock"/></svg>เปิดอยู่ · ปิด 20:00</span>
+              <span class="badge src"><svg><use href="#i-link"/></svg>จากลิงก์</span>
+            </div>
+          </div>
+        </div>
+        <div class="note warn"><svg><use href="#i-warn"/></svg>
+          <span><b>มีที่ใกล้กันภายใน 100 ม.</b> — “วัดพระสิงห์ (ลานจอด)” ในทริป <b>เชียงใหม่ ก.ย.</b><br>
+          เตือนเฉย ๆ <b>ไม่บล็อก</b> — กดบันทึกต่อได้ถ้าคนละที่จริง <span class="adr">(ADR-149 / #61)</span></span></div>
+        <div class="note bad" style="margin-top:8px"><svg><use href="#i-info"/></svg>
+          <span>ถ้าเป็น <b>place_id เดียวกันเป๊ะ</b> จะไม่สร้างซ้ำเลย — เด้งไปที่การ์ดเดิมแทน</span></div>
+        <div class="acts">
+          <span class="abtn ghost"><svg><use href="#i-x"/></svg></span>
+          <span class="abtn primary">ใช่ ที่นี่<svg><use href="#i-cv" style="transform:rotate(-90deg)"/></svg></span>
+        </div>
+      </div>
+    </div></div>
+    <p class="cap">คำเตือน 100 ม. อ่านจาก <b>nearMatches ที่เซิร์ฟเวอร์ส่งมา</b> ไม่ได้คำนวณในเบราว์เซอร์แล้ว
+      <span class="adr">(ADR-157 แก้ ADR-149 ข้อ 2)</span></p>
+  </div>
+
+  <!-- ============ FRAME 6 — trip picker + save form ============ -->
+  <div class="col">
+    <span class="tag">6 · เลือกทริปที่จะเก็บ แล้วบันทึก</span>
+    <div class="phone"><div class="screen">
+      <div class="map armed">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+      </div>
+      <div class="topbar">
+        <div class="armbar">
+          <svg class="ic"><use href="#i-trip"/></svg>
+          <span class="tx">เก็บไว้ที่ทริปไหน<small>ทุกที่ต้องมีทริปเป็นบ้าน</small></span>
+          <span class="cancel"><svg><use href="#i-x"/></svg>ยกเลิก</span>
+        </div>
+      </div>
+      <div class="sheet" style="max-height:78%">
+        <div class="grip"></div>
+        <div class="pv">
+          <span class="thumb"><svg><use href="#i-cam"/></svg></span>
+          <div class="b">
+            <div class="nm">วัดเจดีย์หลวง</div>
+            <div class="ad">ถ.พระปกเกล้า ต.พระสิงห์ อ.เมืองเชียงใหม่</div>
+          </div>
+        </div>
+
+        <p class="flabelx" style="margin-top:12px">หมวด</p>
+        <div class="cats">
+          <span class="cpill"><svg><use href="#i-fork"/></svg>กิน</span>
+          <span class="cpill on" style="background:var(--cat-see);border-color:var(--cat-see)"><svg><use href="#i-cam"/></svg>เที่ยว</span>
+          <span class="cpill"><svg><use href="#i-cup"/></svg>คาเฟ่</span>
+          <span class="cpill"><svg><use href="#i-pin"/></svg>อื่น ๆ</span>
+        </div>
+
+        <p class="flabelx" style="margin-top:12px">ลิงก์รีวิว</p>
+        <div class="rlrow"><span class="ri"><svg><use href="#i-play"/></svg></span>
+          <div class="b">รีวิวจาก TikTok<small class="mono">tiktok.com/@foodie/video/74…</small></div></div>
+
+        <div class="acts col">
+          <span class="abtn primary"><svg><use href="#i-trip"/></svg>เพิ่มเข้า เชียงใหม่ ก.ย.<svg class="caret"><use href="#i-cv"/></svg></span>
+          <span class="abtn ghost" style="justify-content:center"><svg><use href="#i-plus"/></svg>สร้างทริปใหม่</span>
+        </div>
+      </div>
+    </div></div>
+    <p class="cap"><b>สองปุ่มระดับเดียวกัน</b> ตามที่ ADR-155 กำหนด — ปุ่มแรกขึ้นชื่อทริปที่จำไว้ กดครั้งเดียวจบ
+      ส่วน “สร้างทริปใหม่” เป็นปุ่มพี่น้อง <b>ไม่ใช่แถวในรายการ</b> <span class="adr">(ADR-155 / ADR-163)</span></p>
+  </div>
+
+  <!-- ============ FRAME 7 — the trip picker the caret opens ============ -->
+  <div class="col">
+    <span class="tag">7 · กด ▾ → เลือกทริปอื่น</span>
+    <div class="phone"><div class="screen">
+      <div class="map armed">
+        <div class="road r1"></div><div class="road r2"></div><div class="road r3"></div><div class="road r4"></div>
+      </div>
+      <div class="topbar">
+        <div class="armbar">
+          <svg class="ic"><use href="#i-trip"/></svg>
+          <span class="tx">เลือกทริป<small>100 ทริปที่แก้ล่าสุด</small></span>
+          <span class="cancel"><svg><use href="#i-x"/></svg>ปิด</span>
+        </div>
+      </div>
+      <div class="sheet" style="max-height:62%">
+        <div class="grip"></div>
+        <div class="tsearch"><svg><use href="#i-mag"/></svg><span class="val">ค้นหาทริป…</span></div>
+        <div class="plist" style="gap:7px">
+          <div class="trow sel"><span class="ti"><svg><use href="#i-trip"/></svg></span>
+            <div class="b"><div class="tn">เชียงใหม่ ก.ย.</div><div class="td">12 ที่ · แก้ล่าสุดวันนี้</div></div>
+            <span class="tick"><svg><use href="#i-check"/></svg></span></div>
+          <div class="trow"><span class="ti"><svg><use href="#i-trip"/></svg></span>
+            <div class="b"><div class="tn">ทริปเดย์ — ที่อยากไป</div><div class="td">31 ที่ · เมื่อวาน</div></div></div>
+          <div class="trow"><span class="ti"><svg><use href="#i-trip"/></svg></span>
+            <div class="b"><div class="tn">น่าน ปีใหม่</div><div class="td">8 ที่ · 3 วันก่อน</div></div></div>
+        </div>
+        <div class="hint"><svg><use href="#i-info"/></svg><span>ไม่มีแถว “สร้างทริปใหม่” ในรายการนี้ — มันเป็นปุ่มอยู่บนการ์ด เพราะ ADR-155 ปฏิเสธรูปที่เอาการสร้างมาเป็นแถวแรกของ picker</span></div>
+      </div>
+    </div></div>
+    <p class="cap">รายการเดียวกับ <b>AddToTripDialog ที่มีอยู่แล้ว</b> แต่เพิ่ม 100 ล่าสุด + ช่องค้นหา
+      <span class="adr">(#54)</span> — และต้องเลิกใช้อักขระ ✕ เปลี่ยนเป็นไอคอน SVG</p>
+  </div>
+
+</div>
+
+<p class="footcap">
+  <b>ร่างเพื่อดูแนวทาง — ยังไม่ใช่ mock ที่อนุมัติของ #62</b><br>
+  #60 ปิดแล้วด้วย <b>ADR-163</b>: คอมโพเนนต์เดียว ใช้ร่วมสองหน้าจอ และ <b>แผนที่ทริปได้ทุกทางเข้าเหมือนกันเป๊ะ</b>
+  รวมถึงแตะพื้นที่ว่าง (supersede ADR-016 ข้อ 2) — กล่องส้มในเฟรม 3 จึงเป็นข้อสรุปแล้ว ไม่ใช่คำถามค้าง<br>
+  เฟรมทั้งหมดนี้ใช้กับ <b>ทั้ง ไปไหนดี และ หน้าทริป</b> ต่างกันแค่ปลายทางที่เขียนลง
+</p>
+<div class="legend">
+  <span class="lg"><span class="sw2" style="background:var(--teal)"></span>ปุ่ม/สถานะเพิ่มสถานที่</span>
+  <span class="lg"><span class="sw2" style="background:var(--ink)"></span>แถบโหมด armed</span>
+  <span class="lg"><span class="sw2" style="background:var(--warn-bg);border:1px solid var(--warn)"></span>เตือน ไม่บล็อก</span>
+  <span class="lg"><span class="sw2" style="background:var(--teal-deep)"></span>ข้อสรุปที่ ADR-163 เพิ่งปิด</span>
+</div>
+
+</body>
+</html>
