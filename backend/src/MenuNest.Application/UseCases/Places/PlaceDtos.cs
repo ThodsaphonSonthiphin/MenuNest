@@ -11,6 +11,11 @@ public sealed record PlaceTripRefDto(Guid TripId, string TripName);
 /// across all the user's Trips (ADR-100). Carries raw signal data so the client computes
 /// open-now / season / best-time itself. Avoids the banned "Location" term.
 /// </summary>
+/// <param name="OriginTripPlaceId">
+/// ADR-156: the group's ROOT TripPlace id, already flattened (rep.OriginTripPlaceId ?? rep.Id).
+/// A client passes this straight back as AddTripPlaceCommand.OriginTripPlaceId, which is what
+/// makes a chain of copies structurally impossible — the write path performs no lookup.
+/// </param>
 public sealed record DiscoverPlaceDto(
     string Key,
     string? GooglePlaceId,
@@ -28,9 +33,4 @@ public sealed record DiscoverPlaceDto(
     IReadOnlyList<PlaceTripRefDto> Trips,
     IReadOnlyList<ReviewLinkDto> ReviewLinks,
     string? Notes,
-    /// <summary>
-    /// ADR-156: the group's ROOT TripPlace id, already flattened (rep.OriginTripPlaceId ?? rep.Id).
-    /// A client passes this straight back as AddTripPlaceCommand.OriginTripPlaceId, which is what
-    /// makes a chain of copies structurally impossible — the write path performs no lookup.
-    /// </summary>
     Guid OriginTripPlaceId);

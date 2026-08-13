@@ -62,7 +62,9 @@ public sealed class AddTripPlaceOriginRelationalTests : IDisposable
             new AddTripPlaceCommand(_trip.Id, "Viewpoint", 18.79, 98.96, PlaceCategory.See,
                 null, null, null, null, null,
                 Notes: "shady 06:30-09:00",
-                ReviewLinks: new[] { new ReviewLinkDto("https://www.tiktok.com/@a/video/1", "clip") }),
+                ReviewLinks: new[] { new ReviewLinkDto("https://www.tiktok.com/@a/video/1", "clip") },
+                BestTimeWindows: new[] { new BestTimeWindowDto(new TimeOnly(6, 30), new TimeOnly(9, 0), "cool") },
+                SeasonPeriods: new[] { new SeasonPeriodDto(SeasonKind.Good, new[] { 10, 11 }, "dry season") }),
             default);
 
         _db.ChangeTracker.Clear();
@@ -70,6 +72,12 @@ public sealed class AddTripPlaceOriginRelationalTests : IDisposable
         saved.Notes.Should().Be("shady 06:30-09:00");
         saved.ReviewLinks.Should().HaveCount(1);
         saved.ReviewLinks[0].Url.Should().Be("https://www.tiktok.com/@a/video/1");
+        saved.BestTimeWindows.Should().HaveCount(1);
+        saved.BestTimeWindows[0].Start.Should().Be(new TimeOnly(6, 30));
+        saved.BestTimeWindows[0].End.Should().Be(new TimeOnly(9, 0));
+        saved.SeasonPeriods.Should().HaveCount(1);
+        saved.SeasonPeriods[0].Kind.Should().Be(SeasonKind.Good);
+        saved.SeasonPeriods[0].Months.Should().BeEquivalentTo(new[] { 10, 11 });
     }
 
     [Fact]

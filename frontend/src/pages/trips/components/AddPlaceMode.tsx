@@ -114,8 +114,9 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     setFormError(null)
     try {
       // Idempotent retry: reuse the Place if a prior attempt already created it
-      // (addTripPlace succeeded, addStop failed). AddTripPlace does not dedupe, so
-      // re-creating here would leave a duplicate library Place on every retry.
+      // (addTripPlace succeeded, addStop failed). AddTripPlace is idempotent for an exact
+      // place_id (#48), but a place_id-less capture still has no dedupe, so re-creating here
+      // would leave a duplicate library Place on every retry.
       const placeId =
         createdRef.current ??
         (
