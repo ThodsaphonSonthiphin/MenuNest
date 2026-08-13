@@ -22,6 +22,22 @@ public sealed class AddTripPlaceHandler : ICommandHandler<AddTripPlaceCommand, T
         var owns = await _db.Trips.AnyAsync(t => t.Id == c.TripId && t.UserId == user.Id && t.DeletedAt == null, ct);
         if (!owns) throw new DomainException("Trip not found.");
 
+        // ADR-149 §1: an exact place_id already on this Trip is idempotent -- return the existing
+        // row rather than inserting a second one or letting the filtered unique index 500. The
+        // policy lives here so the SPA, MCP and a race all get the same answer. Nothing is
+        // merged: a capture is not an edit, and the user did not ask for one.
+        if (!string.IsNullOrEmpty(c.GooglePlaceId))
+        {
+            var existing = await _db.TripPlaces
+                .FirstOrDefaultAsync(p => p.TripId == c.TripId && p.GooglePlaceId == c.GooglePlaceId, ct);
+            if (existing is not null)
+            {
+                var hasMaster = await _db.PlaceProfiles
+                    .AnyAsync(p => p.UserId == user.Id && p.GooglePlaceId == c.GooglePlaceId, ct);
+                return ToDto(existing, hasMaster);
+            }
+        }
+
         var place = TripPlace.Create(c.TripId, c.Name, c.Lat, c.Lng, c.Category,
             c.GooglePlaceId, c.Address, c.PriceLevel, c.PhotoUrl, c.OpeningHoursJson,
             c.OriginTripPlaceId);
