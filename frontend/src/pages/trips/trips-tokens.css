@@ -779,6 +779,11 @@
 .add-preview-head { display: flex; align-items: flex-start; gap: 10px; }
 .add-preview-title { flex: 1; min-width: 0; }
 .add-preview-name { font-size: 17px; font-weight: 700; line-height: 1.2; color: var(--ink); }
+/* A coordinate capture has no Google name, so the title slot becomes the one required
+   input (R4.1). Sized to match .add-preview-name so the card does not reflow. */
+.add-preview-name-input { width: 100%; font-size: 17px; font-weight: 700; line-height: 1.2; color: var(--ink); font-family: inherit; padding: 4px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.add-preview-name-input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 3px var(--teal-soft); }
+.add-preview-name-input::placeholder { font-weight: 500; color: var(--muted); }
 .add-preview-addr { margin-top: 4px; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
 .add-preview-close { flex: none; width: 30px; height: 30px; border: 0; background: transparent; color: var(--muted); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .add-preview-close:hover { background: #f1f5f9; }

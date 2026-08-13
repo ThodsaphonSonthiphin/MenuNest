@@ -12,6 +12,7 @@ import {PlaceLinkFallbackDialog} from './PlaceLinkFallbackDialog'
 import {useBreakpoint} from '../../../shared/hooks/useBreakpoint'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
+import {captureNameValid, coordinatePlaceFrom, needsTypedName} from '../lib/coordinateCapture'
 
 export interface AddStopContext {
   dayId: string
@@ -24,13 +25,18 @@ export interface AddPlaceModeProps {
   onExit(): void
   tappedPlaceId: string | null
   onTapConsumed(): void
+  tappedLatLng: {lat: number; lng: number} | null
+  onLatLngConsumed(): void
   onSelectedChange(pos: {lat: number; lng: number} | null): void
   addStopContext?: AddStopContext | null
 }
 
-export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSelectedChange, addStopContext}: AddPlaceModeProps) {
+export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tappedLatLng, onLatLngConsumed, onSelectedChange, addStopContext}: AddPlaceModeProps) {
   const search = usePlaceSearch()
   const [selected, setSelected] = useState<ResolvedPlaceDto | null>(null)
+  // The name actually saved. Google supplies one for every resolved place; a coordinate
+  // capture starts blank and the user must type it (R4.1).
+  const [name, setName] = useState('')
   const [category, setCategory] = useState<PlaceCategory>('Other')
   // The category Google originally guessed. Kept separate from the (editable)
   // `category` so the "เดาจาก Google" badge can hide once the user overrides it.
@@ -48,6 +54,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
 
   const present = useCallback((dto: ResolvedPlaceDto) => {
     setSelected(dto)
+    setName(dto.name)
     setCategory(dto.category)
     setGuessedCategory(dto.category)
     setReviewDrafts([])
@@ -81,6 +88,15 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `search` is a fresh object each render (see comment above); depend on the stable memoised `search.resolveById`, not the whole object.
   }, [tappedPlaceId, search.resolveById, present, onTapConsumed])
 
+  // An empty-ground tap (TripMap pushes its lat/lng down). Unlike a POI tap there is
+  // nothing to resolve — the point IS the place — so this presents immediately and makes
+  // no network call at all. Consumed the same way, so the same spot can be re-tapped.
+  useEffect(() => {
+    if (!tappedLatLng) return
+    present(coordinatePlaceFrom(tappedLatLng.lat, tappedLatLng.lng))
+    onLatLngConsumed()
+  }, [tappedLatLng, present, onLatLngConsumed])
+
   // Esc exits add-mode.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onExit() }
@@ -98,6 +114,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
 
   const clearSelection = useCallback(() => {
     setSelected(null)
+    setName('')
     setGuessedCategory(undefined)
     setReviewDrafts([])
     setFormError(null)
@@ -107,6 +124,10 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
 
   const doAdd = useCallback(async () => {
     if (!selected) return
+    if (!captureNameValid(name)) {
+      setFormError('ตั้งชื่อสถานที่ก่อนบันทึก')
+      return
+    }
     if (!draftsValid(reviewDrafts)) {
       setFormError(`ลิงก์รีวิวไม่ถูกต้อง หรือเกิน ${MAX_REVIEW_LINKS} ลิงก์`)
       return
@@ -123,7 +144,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
           await addTripPlace({
             tripId,
             googlePlaceId: selected.googlePlaceId,
-            name: selected.name,
+            name: name.trim(),
             lat: selected.lat,
             lng: selected.lng,
             address: selected.address,
@@ -154,7 +175,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
     } catch (err) {
       setFormError(getErrorMessage(err))
     }
-  }, [selected, category, tripId, reviewDrafts, addTripPlace, addStop, addStopContext, clearSelection, onExit])
+  }, [selected, name, category, tripId, reviewDrafts, addTripPlace, addStop, addStopContext, clearSelection, onExit])
 
   return (
     <>
@@ -183,6 +204,9 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, onSe
       {selected && (
         <AddPlacePreviewCard
           place={selected}
+          name={name}
+          onNameChange={setName}
+          nameEditable={needsTypedName(selected)}
           category={category}
           guessedCategory={guessedCategory}
           onCategoryChange={setCategory}
