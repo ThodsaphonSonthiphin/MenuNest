@@ -27,4 +27,10 @@ public sealed record DiscoverPlaceDto(
     bool Visited,
     IReadOnlyList<PlaceTripRefDto> Trips,
     IReadOnlyList<ReviewLinkDto> ReviewLinks,
-    string? Notes);
+    string? Notes,
+    /// <summary>
+    /// ADR-156: the group's ROOT TripPlace id, already flattened (rep.OriginTripPlaceId ?? rep.Id).
+    /// A client passes this straight back as AddTripPlaceCommand.OriginTripPlaceId, which is what
+    /// makes a chain of copies structurally impossible — the write path performs no lookup.
+    /// </summary>
+    Guid OriginTripPlaceId);
