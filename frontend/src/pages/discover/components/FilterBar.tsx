@@ -1,5 +1,6 @@
 import type {PlaceCategory} from '../../../shared/api/api'
 import type {DiscoverToggles} from '../lib/discoverFilter'
+import {ChevronIcon, SlidersIcon} from './DiscoverIcons'
 
 const CATEGORIES: {value: PlaceCategory | 'all'; label: string}[] = [
   {value: 'all', label: 'ทั้งหมด'}, {value: 'See', label: 'เที่ยว'}, {value: 'Eat', label: 'กิน'},
@@ -18,11 +19,26 @@ interface Props {
 }
 
 export function FilterBar({category, toggles, onCategory, onToggle}: Props) {
+  const activeLabel = CATEGORIES.find((c) => c.value === category)?.label ?? 'ทั้งหมด'
   return (
     <div className="disc-filters">
-      <select className="disc-cat" value={category} onChange={(e) => onCategory(e.target.value as PlaceCategory | 'all')}>
-        {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
-      </select>
+      {/* `.fchip.cat` in the mock is a dark pill with a sliders glyph and a caret.
+          The native <select> is kept underneath — it gives the platform picker on
+          mobile, which no custom dropdown matches — and is made transparent so the
+          styled face below shows through. */}
+      <span className="disc-cat-wrap">
+        <SlidersIcon className="disc-cat-ico" />
+        <span className="disc-cat-face">{activeLabel}</span>
+        <ChevronIcon className="disc-cat-caret" />
+        <select
+          className="disc-cat"
+          value={category}
+          aria-label="หมวดสถานที่"
+          onChange={(e) => onCategory(e.target.value as PlaceCategory | 'all')}
+        >
+          {CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+      </span>
       {TOGGLES.map((t) => (
         <button
           key={t.key}
@@ -31,6 +47,7 @@ export function FilterBar({category, toggles, onCategory, onToggle}: Props) {
           aria-pressed={toggles[t.key]}
           onClick={() => onToggle(t.key)}
         >
+          <span className="disc-sw" aria-hidden="true" />
           {t.label}
         </button>
       ))}
