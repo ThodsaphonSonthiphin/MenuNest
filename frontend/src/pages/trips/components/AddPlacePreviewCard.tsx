@@ -36,13 +36,21 @@ export interface AddPlacePreviewCardProps {
   reviewDrafts: ReviewDraft[]
   onReviewDraftsChange(drafts: ReviewDraft[]): void
   confirmLabel?: string
+  /** Label of the second, same-level action. Rendered only with `onSecondary`. */
+  secondaryLabel?: string
+  /** Present only where the Trip is undecided (Discover) — see ADR-155 / TC-801. */
+  onSecondary?(): void
+  /** R8.5's `▾`: reopen the trip picker instead of committing to the remembered Trip. */
+  onPrimaryAlt?(): void
+  primaryAltLabel?: string
   error?: string | null
 }
 
 export function AddPlacePreviewCard({
   place, name, onNameChange, nameEditable, category, guessedCategory, onCategoryChange,
   onCancel, onAdd, saving, variant = 'floating',
-  reviewDrafts, onReviewDraftsChange, confirmLabel = 'เพิ่มลงทริป', error,
+  reviewDrafts, onReviewDraftsChange, confirmLabel = 'เพิ่มลงทริป', error, secondaryLabel, onSecondary,
+  onPrimaryAlt, primaryAltLabel,
 }: AddPlacePreviewCardProps) {
   return (
     <div className={`add-preview add-preview-${variant}`}>
@@ -91,12 +99,33 @@ export function AddPlacePreviewCard({
 
       {error && <p className="trips-field-error">{error}</p>}
 
-      <div className="add-preview-foot">
-        <button type="button" className="add-preview-cancel" onClick={onCancel}>ยกเลิก</button>
-        <button type="button" className="add-preview-add" onClick={onAdd} disabled={saving}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
-          {saving ? 'กำลังเพิ่ม…' : confirmLabel}
-        </button>
+      {/* Two same-level actions when the Trip is not yet decided (ADR-155): the primary
+          commits to a chosen/remembered Trip, the secondary creates one in a single tap.
+          TC-801 requires the create action to be a SIBLING here and never a row inside
+          the picker, so it is rendered in this footer rather than by the picker. */}
+      <div className={`add-preview-foot${onSecondary ? ' add-preview-foot--stacked' : ''}`}>
+        {!onSecondary && (
+          <button type="button" className="add-preview-cancel" onClick={onCancel}>ยกเลิก</button>
+        )}
+        {/* Split action: the label commits, the ▾ reopens the trip picker (R8.5).
+            One control, because they are the same decision at two confidences. */}
+        <span className={`add-preview-primary${onPrimaryAlt ? ' add-preview-primary--split' : ''}`}>
+          <button type="button" className="add-preview-add" onClick={onAdd} disabled={saving}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            {saving ? 'กำลังเพิ่ม…' : confirmLabel}
+          </button>
+          {onPrimaryAlt && (
+            <button type="button" className="add-preview-alt" onClick={onPrimaryAlt} disabled={saving} aria-label={primaryAltLabel}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9l6 6 6-6" /></svg>
+            </button>
+          )}
+        </span>
+        {onSecondary && (
+          <button type="button" className="add-preview-second" onClick={onSecondary} disabled={saving}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+            {secondaryLabel}
+          </button>
+        )}
       </div>
     </div>
   )

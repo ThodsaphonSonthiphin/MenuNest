@@ -255,7 +255,7 @@ export function TripMap({
 
         {addMode && tripId && (
           <AddPlaceMode
-            tripId={tripId}
+            target={{kind: 'trip', tripId}}
             onExit={() => onExitAddMode?.()}
             tappedPlaceId={tappedPlaceId}
             onTapConsumed={onTapConsumed}

@@ -647,3 +647,96 @@
 @keyframes disc-wx-sh { to { background-position: -200% 0; } }
 .disc-wx-empty { margin: 0; padding: 12px; text-align: center; font-size: 12px; color: var(--muted);
   background: var(--page); border: 1px solid var(--border); border-radius: 12px; }
+
+
+/* ── Capture mode (#48, ADR-150/163/164) ───────────────────────────────── */
+
+/* One column for both FABs. The column keeps the mock's stacking (capture above
+   locate) without either button hard-coding the other's height, and it still lands
+   correctly when the locate FAB is absent because geolocation produced no anchor. */
+.disc-fabs {
+  position: absolute;
+  right: 14px;
+  bottom: 100%;
+  margin-bottom: 16px;
+  z-index: 9;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+/* The FABs are positioned by .disc-fabs now, so they must not position themselves —
+   but they stay a positioning context of their own, for the capture FAB's label. */
+/* `right` is inherited from the base .disc-fab rule, where it positioned an
+   absolutely-placed button. On a relative box it instead OFFSETS the element
+   14px left of its flex slot, putting both FABs 28px from the edge. */
+.disc-fabs .disc-fab { position: relative; right: auto; bottom: auto; margin-bottom: 0; }
+
+/* mock `.fab .flabel`: the new control is the only one on this screen that needs to
+   say what it does, because a bare + on a map of the user's own places could as
+   easily mean zoom. Dropped once armed — the banner then says it instead. */
+.disc-fab-label {
+  position: absolute;
+  right: 60px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--ink);
+  color: #fff;
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.disc-fab-label::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: var(--ink);
+  border-right: 0;
+}
+
+/* mock `.fab.capture`: the one control that is bigger and filled, because arming
+   capture is the only action on this screen that changes what a tap means. */
+.disc-fab.capture {
+  width: 52px;
+  height: 52px;
+  background: var(--teal);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(14, 143, 158, 0.45);
+}
+.disc-fab.capture:hover { background: var(--teal-deep); }
+.disc-fab.capture svg { width: 24px; height: 24px; }
+/* Armed, the same control is the way out — dark, so it reads as 'stop', not 'add'. */
+.disc-fab.capture.on { background: var(--ink); box-shadow: 0 8px 22px rgba(15, 23, 42, 0.5); }
+.disc-fab.capture.on:hover { background: #1e293b; }
+
+/* Armed, the dock holds only the FAB column: the capture surface replaces the sheet
+   (R8.3). No max-height, or the empty dock would still reserve 46% of the screen. */
+.disc-dock.armed { max-height: none; }
+/* Armed, the capture sheet (.add-preview, z-index 7) owns the bottom of the screen
+   on mobile. The dock's own z-index 11 would paint the FAB column straight over
+   that sheet's buttons, so armed it drops below every capture overlay. */
+.disc-dock.armed { z-index: 5; }
+
+/* R8.2's own-pin warning. A strip above the dock rather than a dialog — the tap was
+   almost certainly a mis-aim and must not interrupt a run of captures. */
+.disc-armed-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 12;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.32);
+  pointer-events: none;
+}
