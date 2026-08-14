@@ -6,12 +6,8 @@ import {ReviewIcon} from '../../trips/components/ReviewIcon'
 import {reviewLabel, reviewHost} from '../../trips/lib/reviewLinks'
 import {DiscoverHourly} from './DiscoverHourly'
 import {catColor} from '../lib/categoryStyle'
+import {distanceLabel} from '../lib/placeFormat'
 import {CategoryIcon, CheckIcon, CloseIcon, NavArrowIcon, OpenIcon, PlusIcon, SunIcon, TripIcon} from './DiscoverIcons'
-
-function distanceLabel(km: number | null): string {
-  if (km == null) return ''
-  return km < 1 ? `${Math.round(km * 1000)} ม. จากคุณ` : `${km.toFixed(1)} กม. จากคุณ`
-}
 
 interface Props {
   place: DiscoverPlaceView
@@ -36,7 +32,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingT
 
   // Mock frame 2's `.d-addr` reads "<address> · 400 ม. จากคุณ" — the distance is
   // what makes the address actionable, and it was being dropped.
-  const subtitle = [place.address, distanceLabel(place.distanceKm)].filter(Boolean).join(' · ')
+  const subtitle = [place.address, distanceLabel(place.distanceKm, 'จากคุณ')].filter(Boolean).join(' · ')
 
   return (
     <div className="disc-detail">

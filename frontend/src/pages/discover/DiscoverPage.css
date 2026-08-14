@@ -115,13 +115,29 @@
 .disc-anchor:hover:not(:disabled) { background: #d3eef1; }
 .disc-anchor:disabled { cursor: default; opacity: 0.75; }
 
-/* ── Locate FAB (mock `.fab.locate`) — sits above the ranked sheet, whose
-   max-height is 46% of the page (40% under 380px, see the media query). ── */
+/* ── Bottom dock: owns the bottom anchoring and the height cap so the sheet
+   inside is normal-flow and the FAB can be positioned against the sheet's REAL
+   height (`bottom: 100%`) rather than against the cap. Anchoring the FAB to the
+   cap left it floating 256px above a short list. ── */
+.disc-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+}
+.disc-dock.list { max-height: 46%; }
+.disc-dock.detail { max-height: 70%; }
+
+/* ── Locate FAB (mock `.fab.locate`) — pinned just above whatever the dock's
+   current height is, so it never overlaps the sheet and never drifts from it. ── */
 .disc-fab {
   position: absolute;
   right: 14px;
-  bottom: calc(46% + 16px);
-  z-index: 9;
+  bottom: 100%;
+  margin-bottom: 16px;
   width: 44px;
   height: 44px;
   border: 0;
@@ -138,13 +154,21 @@
 .disc-fab:hover { background: var(--teal-soft); }
 
 /* filter chip row — horizontally scrollable so it never grows past the
-   map's edges (no overlay may cover the whole map, CLAUDE.md #36) */
+   map's edges (no overlay may cover the whole map, CLAUDE.md #36).
+   The switch tracks add ~29px per chip, so on a phone the row genuinely
+   overflows; `mask-image` fades the right edge to signal there is more to
+   scroll to rather than letting the last chip look arbitrarily clipped.
+   (The mock uses `overflow:hidden` here, which clips it unreachably — a
+   scroller with an affordance is strictly better than that.) */
 .disc-filters {
   display: flex;
   align-items: center;
   gap: 7px;
   overflow-x: auto;
   padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent);
 }
 .disc-filters::-webkit-scrollbar { display: none; }
 
@@ -260,17 +284,15 @@
 }
 
 /* ── Ranked list bottom sheet ── */
+/* Normal-flow inside .disc-dock, which supplies the bottom anchoring and the
+   cap. `min-height: 0` is what lets .disc-list actually scroll: without it a
+   flex item refuses to shrink below its content and the cap is ignored. */
 .disc-sheet {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 11;
+  min-height: 0;
   background: var(--surface);
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.16);
   padding: 8px 14px 16px;
-  max-height: 46%;
   display: flex;
   flex-direction: column;
 }
@@ -360,16 +382,11 @@
 /* ── Selected-place detail sheet (replaces the ranked list while a pin/row
    is selected) ── */
 .disc-detail {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 12;
+  min-height: 0;
   background: var(--surface);
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -12px 34px rgba(15, 23, 42, 0.2);
   padding: 8px 16px 18px;
-  max-height: 70%;
   overflow-y: auto;
 }
 
@@ -585,9 +602,10 @@
 }
 .disc-trip-sub { font-size: 11px; font-weight: 600; color: var(--muted); }
 
-/* ── Responsive: keep sheets from swallowing the map on very small screens ── */
+/* ── Responsive: keep sheets from swallowing the map on very small screens.
+   The cap lives on the dock now, so the FAB tracks it automatically. ── */
 @media (max-width: 380px) {
-  .disc-sheet { max-height: 40%; }
+  .disc-dock.list { max-height: 40%; }
 }
 
 .disc-trip-choose { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }

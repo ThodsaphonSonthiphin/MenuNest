@@ -111,30 +111,36 @@ export function DiscoverPage() {
         recenterNonce={recenter}
       />
 
-      {/* `.fab.locate` — the mock's one map control. Hidden until geolocation has
-          actually produced an anchor, so it is never a button that does nothing. */}
-      {anchor && (
-        <button
-          type="button"
-          className="disc-fab locate"
-          onClick={() => setRecenter((n) => n + 1)}
-          aria-label="กลับไปตำแหน่งของฉัน"
-        >
-          <LocateIcon />
-        </button>
-      )}
+      {/* The dock owns the bottom anchoring and the height cap; the sheet inside it
+          is normal-flow. That is what lets `.fab.locate` sit at `bottom: 100%` —
+          exactly above the sheet's REAL height. Positioning the FAB against the
+          cap instead left it floating 256px above a short list. */}
+      <div className={selected ? 'disc-dock detail' : 'disc-dock list'}>
+        {/* Hidden until geolocation has actually produced an anchor, so it is
+            never a button that does nothing. */}
+        {anchor && (
+          <button
+            type="button"
+            className="disc-fab locate"
+            onClick={() => setRecenter((n) => n + 1)}
+            aria-label="กลับไปตำแหน่งของฉัน"
+          >
+            <LocateIcon />
+          </button>
+        )}
 
-      {selected ? (
-        <PlaceSheet
-          place={selected}
-          onClose={() => dispatch(setSelectedKey(null))}
-          onAddToTrip={(p) => setAddForPlace(p)}
-          onCreateTrip={handleCreateTrip}
-          creatingTrip={creatingTrip}
-        />
-      ) : (
-        <PlaceBottomSheet places={views} onSelect={(k) => dispatch(setSelectedKey(k))} />
-      )}
+        {selected ? (
+          <PlaceSheet
+            place={selected}
+            onClose={() => dispatch(setSelectedKey(null))}
+            onAddToTrip={(p) => setAddForPlace(p)}
+            onCreateTrip={handleCreateTrip}
+            creatingTrip={creatingTrip}
+          />
+        ) : (
+          <PlaceBottomSheet places={views} onSelect={(k) => dispatch(setSelectedKey(k))} />
+        )}
+      </div>
 
       {addForPlace && (
         <AddToTripDialog
