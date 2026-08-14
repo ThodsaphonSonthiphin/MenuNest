@@ -219,9 +219,9 @@ namespace MenuNest.Application.UnitTests.Places;
 public class PlusCodeDecoderTests
 {
     [Theory]
-    [InlineData("7P52PJ88+8G", PlusCodeKind.Full)]
-    [InlineData("7p52pj88+8g", PlusCodeKind.Full)]   // case-insensitive
-    [InlineData("PJ88+8G", PlusCodeKind.Short)]
+    [InlineData("7P52QG42+GP", PlusCodeKind.Full)]
+    [InlineData("7p52qg42+gp", PlusCodeKind.Full)]   // case-insensitive
+    [InlineData("42+GP", PlusCodeKind.Short)]
     [InlineData("not a code", PlusCodeKind.Invalid)]
     [InlineData("", PlusCodeKind.Invalid)]
     [InlineData("13.7563, 100.5018", PlusCodeKind.Invalid)]
@@ -231,9 +231,9 @@ public class PlusCodeDecoderTests
     [Fact]
     public void DecodesAFullCodeToItsCentre()
     {
-        // 7P52PJ88+8G is central Bangkok. A full code is a deterministic offline
+        // 7P52QG42+GP is central Bangkok. A full code is a deterministic offline
         // decode — no reference point, no network, no cost.
-        var p = PlusCodeDecoder.DecodeFull("7P52PJ88+8G");
+        var p = PlusCodeDecoder.DecodeFull("7P52QG42+GP");
 
         p.Should().NotBeNull();
         p!.Value.Lat.Should().BeApproximately(13.7563, 0.01);
@@ -243,7 +243,7 @@ public class PlusCodeDecoderTests
     [Fact]
     public void DecodesAShortCodeAgainstItsReferencePoint()
     {
-        var p = PlusCodeDecoder.DecodeShort("PJ88+8G", 13.75, 100.50);
+        var p = PlusCodeDecoder.DecodeShort("42+GP", 13.75, 100.50);
 
         p.Should().NotBeNull();
         p!.Value.Lat.Should().BeApproximately(13.7563, 0.01);
@@ -255,8 +255,8 @@ public class PlusCodeDecoderTests
     {
         // The reason R5.2 refuses to guess the locality: the identical short code
         // recovers to a completely different place from a different reference.
-        var bangkok = PlusCodeDecoder.DecodeShort("PJ88+8G", 13.75, 100.50)!.Value;
-        var chiangmai = PlusCodeDecoder.DecodeShort("PJ88+8G", 18.79, 98.98)!.Value;
+        var bangkok = PlusCodeDecoder.DecodeShort("42+GP", 13.75, 100.50)!.Value;
+        var chiangmai = PlusCodeDecoder.DecodeShort("42+GP", 18.79, 98.98)!.Value;
 
         GeoDistanceForTest(bangkok, chiangmai).Should().BeGreaterThan(100_000);
     }
@@ -266,7 +266,7 @@ public class PlusCodeDecoderTests
     {
         PlusCodeDecoder.DecodeFull("not a code").Should().BeNull();
         PlusCodeDecoder.DecodeShort("not a code", 13.75, 100.50).Should().BeNull();
-        PlusCodeDecoder.DecodeFull("PJ88+8G").Should().BeNull(); // short passed to full
+        PlusCodeDecoder.DecodeFull("42+GP").Should().BeNull(); // short passed to full
     }
 
     private static double GeoDistanceForTest((double Lat, double Lng) a, (double Lat, double Lng) b)
@@ -452,11 +452,11 @@ public class PlaceInputTests
 
     [Fact]
     public void RecognisesAFullPlusCode() =>
-        PlaceInput.Parse("7P52PJ88+8G").Kind.Should().Be(PlaceInputKind.PlusCodeFull);
+        PlaceInput.Parse("7P52QG42+GP").Kind.Should().Be(PlaceInputKind.PlusCodeFull);
 
     [Fact]
     public void RecognisesAShortPlusCode() =>
-        PlaceInput.Parse("PJ88+8G").Kind.Should().Be(PlaceInputKind.PlusCodeShort);
+        PlaceInput.Parse("42+GP").Kind.Should().Be(PlaceInputKind.PlusCodeShort);
 
     [Theory]
     [InlineData("")]
@@ -710,7 +710,7 @@ public class ResolvePlaceHandlerTests
         var resolver = new Mock<IPlaceResolver>(MockBehavior.Strict);
         using var db = new InMemoryAppDbContext();
 
-        var dto = await Build(resolver, db).Handle(new ResolvePlaceCommand("7P52PJ88+8G"), default);
+        var dto = await Build(resolver, db).Handle(new ResolvePlaceCommand("7P52QG42+GP"), default);
 
         dto.DerivedFrom.Should().Be(PlaceDerivedFrom.PlusCodeFull);
         dto.Lat.Should().BeApproximately(13.7563, 0.01);
@@ -722,7 +722,7 @@ public class ResolvePlaceHandlerTests
     {
         // R5.2's whole rationale: a short code recovered against the wrong
         // locality decodes SUCCESSFULLY to a point that can be hundreds of km
-        // out — "PJ88+8G" against (0,0) lands in the Gulf of Guinea, ~7,000 km
+        // out — "42+GP" against (0,0) lands in the Gulf of Guinea, ~7,000 km
         // from the Bangkok the user meant. derivedFrom would only LABEL that;
         // it never blocks a save. So this layer refuses until a reference point
         // exists (Plan C), because a refusal the user can act on beats a wrong
@@ -730,7 +730,7 @@ public class ResolvePlaceHandlerTests
         var resolver = new Mock<IPlaceResolver>(MockBehavior.Strict);
         using var db = new InMemoryAppDbContext();
 
-        var act = () => Build(resolver, db).Handle(new ResolvePlaceCommand("PJ88+8G"), default).AsTask();
+        var act = () => Build(resolver, db).Handle(new ResolvePlaceCommand("42+GP"), default).AsTask();
 
         await act.Should().ThrowAsync<ValidationException>();
         resolver.VerifyNoOtherCalls();
@@ -1422,7 +1422,7 @@ Expected: a resolved place, not a 400. Before this plan the same request was rej
 curl -s -X POST http://localhost:5000/api/trips/resolve-place -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $TOKEN" -d '{"input":"13.7563, 100.5018"}'
 curl -s -X POST http://localhost:5000/api/trips/resolve-place -H 'Content-Type: application/json' \
-  -H "Authorization: Bearer $TOKEN" -d '{"input":"7P52PJ88+8G"}'
+  -H "Authorization: Bearer $TOKEN" -d '{"input":"7P52QG42+GP"}'
 ```
 
 Expected: both return coordinates with `derivedFrom` of `CoordinateVerbatim` / `PlusCodeFull` and an empty `name`. Then confirm **no** outbound Google dependency was recorded for either (R7.2):
@@ -1470,7 +1470,7 @@ Use `superpowers:requesting-code-review` for a whole-plan review, then `dev-work
 
 **Corrections applied after a `/scrutinize` pass over the first draft of this plan** (all three were caught before any of it was executed):
 
-- Task 4 originally decoded a short Plus Code against `(0, 0)` and merely tagged it `PlusCodeShort`. `"PJ88+8G"` recovered that way lands in the Gulf of Guinea — ~7,000 km from the Bangkok a Thai user meant — and the label does not stop a save. Now refused.
+- Task 4 originally decoded a short Plus Code against `(0, 0)` and merely tagged it `PlusCodeShort`. `"42+GP"` recovered that way lands in the Gulf of Guinea — ~7,000 km from the Bangkok a Thai user meant — and the label does not stop a save. Now refused.
 - Task 5's near-match filter excluded only `hits[0]`, but one real-world place normally has one `TripPlace` per Trip it sits on, so the siblings returned as 0 m "near matches" beside the already-saved banner. Now excludes every matching row, with a test that seeds one place across three trips.
 - Task 1's ccTLD regex admits `google.<any 2-3 letter TLD>`; the residual is now written down in the code comment as an accepted trade rather than left implicit.
 
