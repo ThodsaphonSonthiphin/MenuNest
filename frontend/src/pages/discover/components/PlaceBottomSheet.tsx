@@ -1,6 +1,6 @@
 import type {DiscoverPlaceView} from '../lib/discoverFilter'
-
-const CAT_LABEL: Record<string, string> = {See: 'เที่ยว', Eat: 'กิน', Cafe: 'คาเฟ่', Stay: 'ที่พัก', Shop: 'ช้อป', Other: 'อื่น ๆ'}
+import {catColor, catLabel} from '../lib/categoryStyle'
+import {CategoryIcon, CheckIcon, NavArrowIcon, TripIcon} from './DiscoverIcons'
 
 function distanceLabel(km: number | null): string {
   if (km == null) return ''
@@ -24,16 +24,24 @@ export function PlaceBottomSheet({places, onSelect}: Props) {
         {places.length === 0 && <li className="disc-empty">ยังไม่มีที่บันทึกไว้ในบริเวณนี้ — ลองเลื่อนแผนที่ หรือปิดตัวกรอง</li>}
         {places.map((p) => (
           <li key={p.key}>
+            {/* Row layout mirrors `.prow` in docs/mocks/place-discovery-mock.html:
+                category icon square | name + meta | nav arrow. */}
             <button type="button" className={p.visited ? 'disc-row visited' : 'disc-row'} onClick={() => onSelect(p.key)}>
-              <span className="disc-name">{p.name}</span>
-              <span className="disc-meta">
-                <span className="disc-dist">{distanceLabel(p.distanceKm)}</span>
-                <span className="disc-cat-lab">{CAT_LABEL[p.category] ?? p.category}</span>
-                {p.openNow === true && <span className="disc-badge open">เปิดอยู่</span>}
-                {p.openNow === false && <span className="disc-badge closed">ปิดอยู่</span>}
-                {p.seasonStatus === 'good' && <span className="disc-badge season">เดือนนี้ดี</span>}
-                {p.trips[0] && <span className="disc-badge trip">{p.trips[0].tripName}</span>}
+              <span className="disc-catdot" style={{background: catColor(p.category)}}>
+                <CategoryIcon category={p.category} />
               </span>
+              <span className="disc-row-body">
+                <span className="disc-name">{p.name}</span>
+                <span className="disc-meta">
+                  <span className="disc-dist">{distanceLabel(p.distanceKm)}</span>
+                  <span className="disc-cat-lab">{catLabel(p.category)}</span>
+                  {p.openNow === true && <span className="disc-badge open"><CheckIcon />เปิดอยู่</span>}
+                  {p.openNow === false && <span className="disc-badge closed">ปิดอยู่</span>}
+                  {p.seasonStatus === 'good' && <span className="disc-badge season">เดือนนี้ดี</span>}
+                  {p.trips[0] && <span className="disc-badge trip"><TripIcon />{p.trips[0].tripName}</span>}
+                </span>
+              </span>
+              <span className="disc-goarrow" aria-hidden="true"><NavArrowIcon /></span>
             </button>
           </li>
         ))}

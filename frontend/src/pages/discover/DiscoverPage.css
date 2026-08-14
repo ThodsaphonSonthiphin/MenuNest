@@ -92,6 +92,50 @@
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.16);
 }
 .disc-title { font-size: 15px; font-weight: 800; color: var(--ink); flex: 1; }
+.disc-mag { width: 17px; height: 17px; flex: none; color: var(--teal); }
+
+/* Scope pill — mock `.anchor`. */
+.disc-anchor {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: var(--teal-soft);
+  color: var(--teal-deep);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.disc-anchor svg { width: 13px; height: 13px; }
+.disc-anchor:hover:not(:disabled) { background: #d3eef1; }
+.disc-anchor:disabled { cursor: default; opacity: 0.75; }
+
+/* ── Locate FAB (mock `.fab.locate`) — sits above the ranked sheet, whose
+   max-height is 46% of the page (40% under 380px, see the media query). ── */
+.disc-fab {
+  position: absolute;
+  right: 14px;
+  bottom: calc(46% + 16px);
+  z-index: 9;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--teal-deep);
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.disc-fab svg { width: 20px; height: 20px; }
+.disc-fab:hover { background: var(--teal-soft); }
 
 /* filter chip row — horizontally scrollable so it never grows past the
    map's edges (no overlay may cover the whole map, CLAUDE.md #36) */
@@ -104,18 +148,44 @@
 }
 .disc-filters::-webkit-scrollbar { display: none; }
 
-.disc-cat {
+/* Category pill — mock `.fchip.cat`: dark pill, sliders glyph, caret. The real
+   <select> is stretched invisibly over the face so mobile still gets the native
+   picker; only the painted face below is ever seen. */
+.disc-cat-wrap {
+  position: relative;
   flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   background: var(--ink);
-  color: #fff;
   border: 1px solid var(--ink);
   border-radius: 999px;
   padding: 6px 11px;
-  font: inherit;
+  color: #fff;
   font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
+  white-space: nowrap;
 }
+.disc-cat-ico { width: 12px; height: 12px; color: #9fb0c4; flex: none; }
+.disc-cat-caret { width: 11px; height: 11px; flex: none; }
+.disc-cat-face { pointer-events: none; }
+
+.disc-cat {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* Keyboard users must still see the pill take focus, since the control itself
+   is transparent. Scoped to the wrapper because the <select> is the last child —
+   there is no later sibling for an adjacent-sibling selector to reach. */
+.disc-cat-wrap:focus-within { outline: 2px solid var(--teal); outline-offset: 2px; }
 
 .disc-chip {
   flex: none;
@@ -142,11 +212,41 @@
   box-shadow: 0 3px 10px rgba(14, 143, 158, 0.4);
 }
 
+/* Switch track inside each toggle chip (mock `.fchip .sw`). Without it an on/off
+   chip read as a plain selected tag, losing the "this is a switch" affordance. */
+.disc-sw {
+  flex: none;
+  position: relative;
+  width: 24px;
+  height: 14px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  transition: background 0.15s ease;
+}
+.disc-sw::after {
+  content: "";
+  position: absolute;
+  top: 1.5px;
+  left: 1.5px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.15s ease;
+}
+.disc-chip.on .disc-sw { background: rgba(255, 255, 255, 0.5); }
+.disc-chip.on .disc-sw::after { left: 11px; }
+
 /* ── Small non-blocking loading pill (never a full-screen overlay over the
-   map — CLAUDE.md #36 black-map lesson) ── */
+   map — CLAUDE.md #36 black-map lesson).
+
+   `top` must clear the whole floating topbar, not just the title row. The topbar
+   starts at 12px and stacks the title row (~40px) + an 8px gap + the filter chip
+   row (~31px), ending near 91px — so the old 68px landed the pill *inside* the
+   chip row and it rendered on top of the filters while places were loading. ── */
 .disc-loading {
   position: absolute;
-  top: 68px;
+  top: 104px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 9;
@@ -206,15 +306,17 @@
   line-height: 1.5;
 }
 
+/* Mock `.prow`: icon square | name+meta | nav arrow, on one line. The previous
+   column stack dropped both the category colour and the go-affordance. */
 .disc-row {
   width: 100%;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   border: 1px solid var(--border);
   border-radius: 13px;
-  padding: 9px 12px;
+  padding: 9px 10px;
   background: var(--surface);
   font: inherit;
   text-align: left;
@@ -224,6 +326,24 @@
 .disc-row:hover { background: var(--teal-soft); border-color: var(--teal); }
 .disc-row.visited .disc-name { text-decoration: line-through; text-decoration-thickness: 1.5px; color: #64748b; }
 
+.disc-catdot {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.disc-catdot svg { width: 15px; height: 15px; }
+.disc-row.visited .disc-catdot { opacity: 0.55; }
+
+.disc-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.disc-goarrow { flex: none; display: flex; color: var(--teal); }
+.disc-goarrow svg { width: 18px; height: 18px; }
+
 .disc-name { font-size: 13.5px; font-weight: 700; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
 .disc-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
@@ -231,6 +351,7 @@
 .disc-cat-lab { font-size: 11px; font-weight: 600; color: #64748b; }
 
 .disc-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 8px; }
+.disc-badge svg { width: 10px; height: 10px; flex: none; }
 .disc-badge.open   { background: var(--visited-bg); color: var(--visited); }
 .disc-badge.closed { background: #f1f5f9; color: #64748b; }
 .disc-badge.season { background: var(--teal-soft); color: var(--teal-deep); }
@@ -253,6 +374,18 @@
 }
 
 .disc-detail-head { display: flex; align-items: flex-start; gap: 10px; margin-top: 4px; }
+/* Mock `.d-cat` — the same category square the list row and map pin use. */
+.disc-d-cat {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.disc-d-cat svg { width: 19px; height: 19px; }
 .disc-detail-title { flex: 1; min-width: 0; }
 .disc-detail-name { font-size: 17px; font-weight: 800; color: var(--ink); line-height: 1.2; }
 .disc-detail-addr { font-size: 12px; color: var(--muted); margin-top: 2px; }
@@ -265,9 +398,11 @@
   color: var(--muted);
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.disc-detail-close svg { width: 16px; height: 16px; }
 .disc-detail-close:hover { background: #f1f5f9; color: var(--ink); }
 
 .disc-detail-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
@@ -306,6 +441,8 @@
   font-family: inherit;
   text-decoration: none;
 }
+.disc-abtn svg { width: 16px; height: 16px; flex: none; }
+.disc-arow .disc-abtn svg { width: 14px; height: 14px; }
 .disc-abtn.primary { background: var(--teal); color: #fff; box-shadow: 0 6px 16px rgba(14, 143, 158, 0.4); }
 .disc-abtn.primary:hover { background: var(--teal-deep); }
 .disc-abtn.ghost { background: var(--surface); border-color: var(--border); color: #334155; }
@@ -344,16 +481,18 @@
 .disc-modal-head {
   flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
+  padding: 16px 18px 12px;
   border-bottom: 1px solid var(--border);
-  font-size: 15px;
-  font-weight: 800;
   color: var(--ink);
 }
-.disc-modal-head button {
+.disc-modal-title { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.disc-modal-name { font-size: 15px; font-weight: 800; }
+.disc-modal-sub { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+
+.disc-modal-close {
   flex: none;
   width: 30px;
   height: 30px;
@@ -362,15 +501,54 @@
   color: var(--muted);
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.disc-modal-head button:hover { background: #f1f5f9; color: var(--ink); }
+.disc-modal-close svg { width: 16px; height: 16px; }
+.disc-modal-close:hover { background: #f1f5f9; color: var(--ink); }
+
+/* Search box — mock frame 7. Filtering is client-side over the loaded page, so
+   typing never waits on the network. */
+.disc-trip-search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 12px 0;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--page);
+}
+.disc-trip-search-icon { width: 15px; height: 15px; flex: none; color: var(--muted); }
+.disc-trip-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+}
+.disc-trip-search input::placeholder { color: var(--muted); }
+
+.disc-modal-error {
+  flex: none;
+  margin: 10px 12px 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--bad-bg);
+  color: var(--bad);
+  font-size: 12.5px;
+  font-weight: 700;
+}
 
 .disc-trip-list {
   list-style: none;
   margin: 0;
-  padding: 10px;
+  padding: 10px 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -379,21 +557,33 @@
 
 .disc-trip-item {
   width: 100%;
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   text-align: left;
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 11px 13px;
+  padding: 10px 12px;
   background: var(--surface);
   font: inherit;
-  font-size: 13.5px;
-  font-weight: 700;
   color: var(--ink);
   cursor: pointer;
   transition: background 0.12s ease, border-color 0.12s ease;
 }
 .disc-trip-item:hover { background: var(--teal-soft); border-color: var(--teal); }
 .disc-trip-item:disabled { opacity: 0.5; cursor: default; }
+
+.disc-trip-ico { flex: none; display: flex; color: var(--teal-deep); }
+.disc-trip-ico svg { width: 16px; height: 16px; }
+.disc-trip-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.disc-trip-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.disc-trip-sub { font-size: 11px; font-weight: 600; color: var(--muted); }
 
 /* ── Responsive: keep sheets from swallowing the map on very small screens ── */
 @media (max-width: 380px) {

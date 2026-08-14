@@ -12,6 +12,7 @@ import {FilterBar} from './components/FilterBar'
 import {PlaceBottomSheet} from './components/PlaceBottomSheet'
 import {PlaceSheet} from './components/PlaceSheet'
 import {AddToTripDialog} from './components/AddToTripDialog'
+import {LocateIcon, SearchIcon} from './components/DiscoverIcons'
 
 export function DiscoverPage() {
   const dispatch = useAppDispatch()
@@ -20,6 +21,8 @@ export function DiscoverPage() {
   const {anchor, scope, categoryFilter, toggles, selectedKey} = useAppSelector((s) => s.discover)
   const [addForPlace, setAddForPlace] = useState<DiscoverPlaceView | null>(null)
   const [creatingTrip, setCreatingTrip] = useState(false)
+  // Bumped by the anchor pill / locate FAB; MapCamera re-pans on every change.
+  const [recenter, setRecenter] = useState(0)
   const [createTrip] = useCreateTripMutation()
   const [addTripPlace] = useAddTripPlaceMutation()
 
@@ -73,7 +76,24 @@ export function DiscoverPage() {
   return (
     <div className="discover-page">
       <div className="disc-topbar">
-        <div className="disc-title-row"><span className="disc-title">ไปไหนดี</span></div>
+        {/* `.searchbar` in the mock: magnifier + title + the scope "anchor" pill.
+            The pill states where the ranking is measured from and re-centres the
+            map on tap; it never invents a place name, because resolving the camera
+            back to a city would need a paid reverse-geocode. */}
+        <div className="disc-title-row">
+          <SearchIcon className="disc-mag" />
+          <span className="disc-title">ไปไหนดี</span>
+          <button
+            type="button"
+            className="disc-anchor"
+            disabled={!anchor}
+            onClick={() => setRecenter((n) => n + 1)}
+            aria-label={anchor ? 'กลับไปตำแหน่งของฉัน' : 'ยังไม่รู้ตำแหน่งของคุณ'}
+          >
+            <LocateIcon />
+            {anchor ? 'ใกล้ฉัน' : 'ทั้งแผนที่'}
+          </button>
+        </div>
         <FilterBar
           category={categoryFilter}
           toggles={toggles}
@@ -88,7 +108,21 @@ export function DiscoverPage() {
         selectedKey={selectedKey}
         onSelect={onMapSelect}
         onScopeChange={onMapScopeChange}
+        recenterNonce={recenter}
       />
+
+      {/* `.fab.locate` — the mock's one map control. Hidden until geolocation has
+          actually produced an anchor, so it is never a button that does nothing. */}
+      {anchor && (
+        <button
+          type="button"
+          className="disc-fab locate"
+          onClick={() => setRecenter((n) => n + 1)}
+          aria-label="กลับไปตำแหน่งของฉัน"
+        >
+          <LocateIcon />
+        </button>
+      )}
 
       {selected ? (
         <PlaceSheet
