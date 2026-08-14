@@ -147,6 +147,13 @@ Replace lines 11-16 of `backend/src/MenuNest.Application/Abstractions/GoogleMaps
     // either. This is deliberately not a full public-suffix list: the set below is
     // the shape Google actually publishes, and every additional character we admit
     // is SSRF surface (ADR-007's two-layer defence).
+    //
+    // Accepted residual: `[a-z]{2,3}` admits google.<any 2-3 letter TLD>, so a host
+    // like google.zip passes even though this app has no reason to fetch it. The
+    // exposure requires an attacker to CONTROL google.<tld>, which Google registers
+    // defensively across the TLD space — and the alternative, embedding a real
+    // public-suffix list, is a dependency and an update treadmill for a link
+    // parser. Revisit only if this ever fetches something other than Maps links.
     private static readonly System.Text.RegularExpressions.Regex GoogleCcTld =
         new(@"^(?:[a-z0-9-]+\.)*google\.(?:[a-z]{2,3}|co\.[a-z]{2}|com\.[a-z]{2})$",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase
@@ -644,7 +651,7 @@ git commit -m "feat(trips): resolve_place takes one discriminated input, url ren
 - Test: `backend/tests/MenuNest.Application.UnitTests/Trips/ResolvePlaceHandlerTests.cs`
 
 **Interfaces:**
-- Consumes: `PlaceInput.Parse` (Task 3), `PlusCodeDecoder.DecodeFull` / `DecodeShort` (Task 2).
+- Consumes: `PlaceInput.Parse` (Task 3), `PlusCodeDecoder.DecodeFull` (Task 2). **Not** `DecodeShort` — this plan refuses short codes; `DecodeShort` is built and tested in Task 2 for Plan C, which is the first surface with a locality to pass it.
 - Produces: `ResolvedPlaceDto` with three new trailing members, plus `PlaceDerivedFrom`, `AlreadySavedDto`, `NearMatchDto`. Task 5 fills `AlreadySaved` and `NearMatches`; Plan C's capture form reads `DerivedFrom`.
 
 **Why:** R12.4 — a caller cannot tell a `place_id` hit from a name search that returned a different branch of a chain, or a full Plus Code from a short one recovered against a possibly-wrong locality. `derivedFrom` makes the difference explicit, and `resolve_place`'s description turns it into an instruction.
@@ -711,6 +718,25 @@ public class ResolvePlaceHandlerTests
     }
 
     [Fact]
+    public async Task AShortPlusCodeIsRefusedRatherThanGuessed()
+    {
+        // R5.2's whole rationale: a short code recovered against the wrong
+        // locality decodes SUCCESSFULLY to a point that can be hundreds of km
+        // out — "PJ88+8G" against (0,0) lands in the Gulf of Guinea, ~7,000 km
+        // from the Bangkok the user meant. derivedFrom would only LABEL that;
+        // it never blocks a save. So this layer refuses until a reference point
+        // exists (Plan C), because a refusal the user can act on beats a wrong
+        // pin they have to notice.
+        var resolver = new Mock<IPlaceResolver>(MockBehavior.Strict);
+        using var db = new InMemoryAppDbContext();
+
+        var act = () => Build(resolver, db).Handle(new ResolvePlaceCommand("PJ88+8G"), default).AsTask();
+
+        await act.Should().ThrowAsync<ValidationException>();
+        resolver.VerifyNoOtherCalls();
+    }
+
+    [Fact]
     public async Task AUrlStillGoesToTheLiveResolver()
     {
         var resolver = new Mock<IPlaceResolver>();
@@ -760,7 +786,10 @@ public enum PlaceDerivedFrom
     NameSearch,           // NOT trustworthy — may be a different branch of a chain
     CoordinateVerbatim,   // exactly what the caller supplied
     PlusCodeFull,         // trustworthy — a deterministic offline decode
-    PlusCodeShort,        // NOT trustworthy — recovered against a reference that may be wrong
+    // Reserved for Plan C, which is the first surface able to supply a locality.
+    // Plan B never emits it: a short code is refused, not recovered against a
+    // default reference (see the handler's dispatch).
+    PlusCodeShort,        // NOT trustworthy — recovered against a caller-supplied reference
 }
 
 /// <summary>A saved place of the caller's within 100 m of the resolved point (R3.5).
@@ -833,8 +862,16 @@ public sealed class ResolvePlaceHandler : ICommandHandler<ResolvePlaceCommand, R
             // The URL path is the only one that costs a Google call (R7.2).
             PlaceInputKind.MapsUrl => await _resolver.ResolveFromUrlAsync(c.Input.Trim(), ct),
             PlaceInputKind.Coordinate => Bare(parsed.Lat, parsed.Lng, PlaceDerivedFrom.CoordinateVerbatim),
-            PlaceInputKind.PlusCodeFull => FromPlusCode(c.Input, PlaceDerivedFrom.PlusCodeFull),
-            PlaceInputKind.PlusCodeShort => FromPlusCode(c.Input, PlaceDerivedFrom.PlusCodeShort),
+            PlaceInputKind.PlusCodeFull => FromFullPlusCode(c.Input),
+            // A SHORT code cannot be resolved here and must NOT be guessed. This
+            // handler has no locality, and recovering against any default — (0,0),
+            // the map camera, anything — is precisely the failure R5.2 exists to
+            // prevent: the decode succeeds and returns a confidently wrong point
+            // hundreds or thousands of km away, which `derivedFrom` only labels,
+            // never blocks. Refusing is the correct answer until the capture
+            // surface supplies a reference point (Plan C).
+            PlaceInputKind.PlusCodeShort => throw new ValidationException(
+                "A short Plus Code needs a locality. Include the town or city, or paste the full code."),
             _ => throw new ValidationException("Unsupported input."),
         };
 
@@ -849,18 +886,11 @@ public sealed class ResolvePlaceHandler : ICommandHandler<ResolvePlaceCommand, R
     private static ResolvedPlaceDto Bare(double lat, double lng, PlaceDerivedFrom from) =>
         new(null, string.Empty, lat, lng, null, PlaceCategory.Other, null, null, null, from);
 
-    private static ResolvedPlaceDto FromPlusCode(string input, PlaceDerivedFrom from)
+    private static ResolvedPlaceDto FromFullPlusCode(string input)
     {
-        // A SHORT code needs a reference point and this handler has none — the
-        // capture surface owns the locality (R5.2), which is why a short code is
-        // flagged untrustworthy rather than silently placed. Plan C supplies the
-        // reference; until then a short code recovers against (0,0).
-        var p = from == PlaceDerivedFrom.PlusCodeFull
-            ? PlusCodeDecoder.DecodeFull(input)
-            : PlusCodeDecoder.DecodeShort(input, 0, 0);
-
+        var p = PlusCodeDecoder.DecodeFull(input);
         if (p is null) throw new ValidationException("That Plus Code could not be decoded.");
-        return Bare(p.Value.Lat, p.Value.Lng, from);
+        return Bare(p.Value.Lat, p.Value.Lng, PlaceDerivedFrom.PlusCodeFull);
     }
 }
 ```
@@ -1020,6 +1050,32 @@ Append to `ResolvePlaceHandlerTests.cs`. First read `backend/tests/MenuNest.Appl
     }
 
     [Fact]
+    public async Task ThePlaceItselfNeverAlsoAppearsAsANearMatch()
+    {
+        // The same real-world place normally has one TripPlace per Trip. All of
+        // them sit at identical coordinates, so any that are not excluded come
+        // back as 0 m "near matches" — telling the user the place is already
+        // saved AND warning them about copies of that very place.
+        using var db = new SqliteAppDbContext();
+        var me = Guid.NewGuid();
+        SeedUserWithPlaces(db, me,
+            ("Wat Pho", 13.7465, 100.4927, "place-1", "เที่ยวกรุงเทพ"),
+            ("Wat Pho", 13.7465, 100.4927, "place-1", "ไหว้พระ"),
+            ("Wat Pho", 13.7465, 100.4927, "place-1", "ทริปกิน"));
+
+        var resolver = new Mock<IPlaceResolver>();
+        resolver.Setup(r => r.ResolveFromUrlAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new ResolvedPlaceDto("place-1", "Wat Pho", 13.7465, 100.4927, null,
+                PlaceCategory.Other, null, null, null, PlaceDerivedFrom.ExactPlaceId));
+
+        var dto = await BuildFor(me, resolver, db)
+            .Handle(new ResolvePlaceCommand("https://maps.app.goo.gl/abc"), default);
+
+        dto.AlreadySaved!.TripNames.Should().HaveCount(3);
+        dto.NearMatches.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task NearMatchesAreTheNearestThreeWithin100mAndNeverBlock()
     {
         using var db = new SqliteAppDbContext();
@@ -1100,12 +1156,21 @@ In `ResolvePlaceHandler.Handle`, replace `return resolved;` with `return await A
                          .ToListAsync(ct);
 
         AlreadySavedDto? already = null;
+        // EVERY row for this place_id, not just the first: one real-world place
+        // normally has one TripPlace per Trip it sits on — that is the whole
+        // reason ADR-156 exists. Excluding only hits[0] below would leave the
+        // siblings to reappear as "near matches" at 0 m, so the user is told the
+        // place is already saved AND warned about N copies of that same place.
+        var alreadyIds = new HashSet<Guid>();
         if (!string.IsNullOrEmpty(dto.GooglePlaceId))
         {
             var hits = mine.Where(m => m.GooglePlaceId == dto.GooglePlaceId).ToList();
             if (hits.Count > 0)
+            {
+                foreach (var h in hits) alreadyIds.Add(h.Id);
                 already = new AlreadySavedDto(
                     hits[0].Id, hits[0].Name, hits.Select(h => h.TripName).Distinct().ToList());
+            }
         }
 
         // Distance only — the name is displayed so the user can judge, but it takes
@@ -1116,7 +1181,7 @@ In `ResolvePlaceHandler.Handle`, replace `return resolved;` with `return await A
                 m.Id, m.Name, m.Lat, m.Lng,
                 D = GeoDistance.MetersBetween(dto.Lat, dto.Lng, m.Lat, m.Lng),
             })
-            .Where(m => m.D <= NearMatchRadiusMeters && m.Id != already?.TripPlaceId)
+            .Where(m => m.D <= NearMatchRadiusMeters && !alreadyIds.Contains(m.Id))
             .OrderBy(m => m.D)
             .Take(NearMatchLimit)
             .Select(m => new NearMatchDto(m.Id, m.Name, m.Lat, m.Lng, (int)Math.Round(m.D)))
@@ -1387,7 +1452,7 @@ Use `superpowers:requesting-code-review` for a whole-plan review, then `dev-work
 | R3.1 exact `place_id` detected at resolve time | 5 |
 | R3.5 near match ≤100 m, nearest 3, name not in the predicate, non-blocking | 5 |
 | R5.1 searchText cannot resolve Plus Codes | 2 (motivation; no code) |
-| R5.2 offline `open-location-code` decode, short code needs a locality | 2 |
+| R5.2 offline `open-location-code` decode, short code needs a locality | 2 (decode), 4 (a short code is **refused** here — see below) |
 | R6.1 URL shapes | out of scope by R6.3 — untouched, and Task 4 discloses it via `NameSearch` |
 | R6.2 Google ccTLD short links rejected in prod | 1 |
 | R7.2 coordinates/Plus Codes cost nothing | 2, 4, 8 (verified) |
@@ -1398,11 +1463,20 @@ Use `superpowers:requesting-code-review` for a whole-plan review, then `dev-work
 | R12.5 `list_my_places` as a new `PlaceTools` | 6 |
 | R12.6 `add_trip_place` exposes `originTripPlaceId` | 7 |
 
-R4.2's best-effort reverse geocode is **not** here: it prefills the capture *form*, which is Plan C's surface, and R4.3 requires it never block capture. Flagged so Plan C picks it up rather than both plans assuming the other did.
+**Two things Plan C must pick up, flagged so neither plan assumes the other did:**
+
+1. **R4.2's best-effort reverse geocode** — it prefills the capture *form*, which is Plan C's surface, and R4.3 requires it never block capture.
+2. **The short Plus Code reference point.** Plan B deliberately **refuses** a short code rather than recovering it against a default, because a wrong-locality recovery succeeds and returns a confidently wrong point that `derivedFrom` can only label, never block — the exact failure R5.2 exists to prevent. Plan C is the first surface that knows a locality, so it must add an optional reference to `ResolvePlaceCommand` and only then may `PlaceDerivedFrom.PlusCodeShort` ever be emitted. Until it does, a short code is a validation error with a Thai-worded message from the SPA.
+
+**Corrections applied after a `/scrutinize` pass over the first draft of this plan** (all three were caught before any of it was executed):
+
+- Task 4 originally decoded a short Plus Code against `(0, 0)` and merely tagged it `PlusCodeShort`. `"PJ88+8G"` recovered that way lands in the Gulf of Guinea — ~7,000 km from the Bangkok a Thai user meant — and the label does not stop a save. Now refused.
+- Task 5's near-match filter excluded only `hits[0]`, but one real-world place normally has one `TripPlace` per Trip it sits on, so the siblings returned as 0 m "near matches" beside the already-saved banner. Now excludes every matching row, with a test that seeds one place across three trips.
+- Task 1's ccTLD regex admits `google.<any 2-3 letter TLD>`; the residual is now written down in the code comment as an accepted trade rather than left implicit.
 
 **Placeholder scan** — every step carries the literal code or command to run; no "add error handling", no "similar to Task N", no undefined types. Two places deliberately tell the executor to read an existing file and mirror it rather than supplying code: Task 4 Step 4 (the real `place_id` local's name inside `GooglePlaceResolver`) and Task 5 Step 5 (the seeding helpers, mirrored from `ListMyPlacesHandlerTests.cs`). Both are cases where inventing a name would be worse than reading the one that exists.
 
-**Type consistency** — `PlaceInputKind` / `PlaceInputParse` / `PlaceInput.Parse` (Task 3) are used unchanged in Task 4. `PlusCodeKind` / `Classify` / `DecodeFull` / `DecodeShort` (Task 2) are used unchanged in Tasks 3 and 4. `PlaceDerivedFrom` / `AlreadySavedDto` / `NearMatchDto` (Task 4) are used unchanged in Tasks 5 and 7. `GeoDistance.MetersBetween` (Task 5) has one caller. `ResolvePlaceHandler`'s constructor gains its fourth argument in Task 4, and Task 5's `BuildFor` passes four.
+**Type consistency** — `PlaceInputKind` / `PlaceInputParse` / `PlaceInput.Parse` (Task 3) are used unchanged in Task 4. `PlusCodeKind` / `Classify` (Task 2) are used unchanged in Task 3, and `DecodeFull` in Task 4; `DecodeShort` is built and tested in Task 2 but has **no caller inside this plan** — it exists for Plan C, which supplies the reference point a short code needs. `PlaceDerivedFrom` / `AlreadySavedDto` / `NearMatchDto` (Task 4) are used unchanged in Tasks 5 and 7. `GeoDistance.MetersBetween` (Task 5) has one caller. `ResolvePlaceHandler`'s constructor gains its fourth argument in Task 4, and Task 5's `BuildFor` passes four.
 
 ---
 
