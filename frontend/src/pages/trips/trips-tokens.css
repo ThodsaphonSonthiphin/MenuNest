@@ -932,3 +932,33 @@
 /* ── Mobile full-screen capture overlay (#36 / ADR-070) ── */
 .capture-overlay { position: fixed; inset: 0; z-index: 1100; background: #fff; }
 .capture-overlay .trip-map { height: 100%; min-height: 0; }
+
+
+/* Two same-level commit actions, stacked, for a capture whose Trip is undecided
+   (ADR-155 / TC-801: สร้างทริปใหม่ is a SIBLING of the primary, never a row inside
+   the picker). Scoped to the modifier so the one-action footer keeps its row. */
+.add-preview-foot--stacked { flex-direction: column; gap: 8px; }
+.add-preview-foot--stacked .add-preview-add { width: 100%; }
+.add-preview-second {
+  width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border: 1.5px solid var(--trp-border, #e2e8f0); background: #fff; color: var(--ink, #0f172a);
+  border-radius: 11px; padding: 11px 18px; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.add-preview-second svg { width: 16px; height: 16px; }
+
+/* R8.5's split primary: label commits to the remembered Trip, ▾ reopens the picker. */
+.add-preview-primary { flex: 1; display: flex; min-width: 0; }
+.add-preview-primary .add-preview-add { flex: 1; min-width: 0; }
+.add-preview-primary--split .add-preview-add { border-radius: 11px 0 0 11px; }
+.add-preview-alt {
+  flex: none; width: 42px; border: 0; border-left: 1px solid rgba(255, 255, 255, 0.28);
+  background: var(--teal); color: #fff; border-radius: 0 11px 11px 0; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 6px 16px rgba(14, 143, 158, 0.4);
+}
+.add-preview-alt svg { width: 16px; height: 16px; }
+.add-preview-alt:hover:not(:disabled) { background: var(--teal-deep); }
+.add-preview-alt:disabled { opacity: 0.6; cursor: default; }
+.add-preview-foot--stacked .add-preview-primary { width: 100%; }
+.add-preview-second:hover:not(:disabled) { background: #f8fafc; }
+.add-preview-second:disabled { opacity: 0.6; cursor: default; }

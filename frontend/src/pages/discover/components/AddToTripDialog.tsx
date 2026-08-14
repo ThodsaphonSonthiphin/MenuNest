@@ -5,13 +5,19 @@ import {addTripPlaceArgsFor} from '../lib/originPassthrough'
 import {filterTrips, tripSubtitle, tripPickerArgs, TRIP_PICKER_PAGE_SIZE} from '../lib/tripPicker'
 import {CloseIcon, SearchIcon, TripIcon} from './DiscoverIcons'
 
-interface Props {
-  place: DiscoverPlaceView
+// Two callers, one picker (R1.5: the picker is the mandatory gate for EVERY capture).
+// `place` is a Place already in the library being copied into another Trip — this
+// dialog performs that write itself. `onPick` is a fresh capture, where the host owns
+// the write because it also owns create-and-seed and the remembered Trip (ADR-155).
+type Props = {
   onClose: () => void
   onDone: (tripId: string) => void
-}
+} & (
+  | {place: DiscoverPlaceView; placeName?: never; onPick?: never}
+  | {place?: never; placeName: string; onPick: (tripId: string, tripName: string) => Promise<void>}
+)
 
-export function AddToTripDialog({place, onClose, onDone}: Props) {
+export function AddToTripDialog({place, placeName, onPick, onClose, onDone}: Props) {
   const [query, setQuery] = useState('')
   const [error, setError] = useState<string | null>(null)
   // The typed value drives the list instantly; a debounced copy drives the request,
@@ -34,10 +40,18 @@ export function AddToTripDialog({place, onClose, onDone}: Props) {
   const shown = useMemo(() => filterTrips(trips, query), [trips, query])
   const capped = !query.trim() && total > TRIP_PICKER_PAGE_SIZE
 
-  const add = async (tripId: string) => {
+  // The capture path's write lives in the host (it also owns the remembered Trip),
+  // so this dialog has no local mutation to report progress from.
+  const [picking, setPicking] = useState(false)
+
+  const add = async (tripId: string, tripName: string) => {
     setError(null)
     try {
-      await addTripPlace(addTripPlaceArgsFor(tripId, place)).unwrap()
+      if (place) await addTripPlace(addTripPlaceArgsFor(tripId, place)).unwrap()
+      else {
+        setPicking(true)
+        try { await onPick(tripId, tripName) } finally { setPicking(false) }
+      }
       onDone(tripId)
     } catch {
       // Without this the rejected unwrap() surfaced as an unhandled rejection and
@@ -51,7 +65,7 @@ export function AddToTripDialog({place, onClose, onDone}: Props) {
       <div className="disc-modal-card">
         <div className="disc-modal-head">
           <div className="disc-modal-title">
-            <span className="disc-modal-name">เพิ่ม “{place.name}” เข้าทริป</span>
+            <span className="disc-modal-name">เพิ่ม “{place ? place.name : placeName}” เข้าทริป</span>
             <span className="disc-modal-sub">
               {loadingTrips
                 ? 'กำลังโหลดทริป…'
@@ -91,7 +105,7 @@ export function AddToTripDialog({place, onClose, onDone}: Props) {
             const sub = tripSubtitle(t)
             return (
               <li key={t.id}>
-                <button type="button" className="disc-trip-item" disabled={isLoading} onClick={() => add(t.id)}>
+                <button type="button" className="disc-trip-item" disabled={isLoading || picking} onClick={() => add(t.id, t.name)}>
                   <span className="disc-trip-ico"><TripIcon /></span>
                   <span className="disc-trip-text">
                     <span className="disc-trip-name">{t.name}</span>

@@ -11,7 +11,9 @@ import {AddPlacePreviewCard} from './AddPlacePreviewCard'
 import {PlaceLinkFallbackDialog} from './PlaceLinkFallbackDialog'
 import {useBreakpoint} from '../../../shared/hooks/useBreakpoint'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
-import {sanitizeReviewDrafts, draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
+import {draftsValid, MAX_REVIEW_LINKS, type ReviewDraft} from '../lib/reviewLinks'
+import {addTripPlaceArgsForCapture, capturePayloadFrom, type CapturePayload} from '../lib/capturePayload'
+import {captureCommitLabel} from '../../discover/lib/captureCommit'
 import {captureNameValid, coordinatePlaceFrom, needsTypedName} from '../lib/coordinateCapture'
 
 export interface AddStopContext {
@@ -20,8 +22,35 @@ export interface AddStopContext {
   travelMode: TravelMode
 }
 
+/**
+ * ADR-163 §3 / TC-910: the capture component takes a commit TARGET, not a tripId.
+ *
+ * `trip`   — the Trips surfaces. The Trip is already chosen, and `addStopContext` may
+ *            additionally schedule the new Place as a Stop on a Day (ADR-067/068).
+ * `choose` — Discover. No Trip is chosen yet, so the preview offers two same-level
+ *            actions and the HOST performs the write, because the host owns both the
+ *            trip picker and the create-and-seed call. Nothing is saved trip-less
+ *            (ADR-155 superseding ADR-147).
+ */
+export type CaptureTarget =
+  | {kind: 'trip'; tripId: string}
+  | {
+      kind: 'choose'
+      /** Commit to a Trip the user picks now. Resolves once the Place is saved. */
+      /**
+       * Resolves true when the Place was saved, false when the user backed out.
+       * `forcePicker` is R8.5's `▾`: it reopens the trip picker even when this run
+       * already remembered a Trip, so a remembered Trip is never a one-way door.
+       */
+      onPickTrip(payload: CapturePayload, forcePicker?: boolean): Promise<boolean>
+      /** Create a Trip in one tap, seeded with this Place as its first (ADR-098). */
+      onCreateTrip(payload: CapturePayload): Promise<boolean>
+      /** R8.5: once this run has used a Trip, the primary action names it. */
+      rememberedTripName?: string | null
+    }
+
 export interface AddPlaceModeProps {
-  tripId: string
+  target: CaptureTarget
   onExit(): void
   tappedPlaceId: string | null
   onTapConsumed(): void
@@ -29,9 +58,17 @@ export interface AddPlaceModeProps {
   onLatLngConsumed(): void
   onSelectedChange(pos: {lat: number; lng: number} | null): void
   addStopContext?: AddStopContext | null
+  /** The armed-mode strip for a surface with no addStopContext of its own (Discover). */
+  bannerText?: {text: string; sub?: string} | null
 }
 
-export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tappedLatLng, onLatLngConsumed, onSelectedChange, addStopContext}: AddPlaceModeProps) {
+export function AddPlaceMode({target, onExit, tappedPlaceId, onTapConsumed, tappedLatLng, onLatLngConsumed, onSelectedChange, addStopContext, bannerText}: AddPlaceModeProps) {
+  // R8.3 requires a THIN strip and never a fill over the map (#36 shipped a banner
+  // that covered the whole map and read as a black screen), so both surfaces render
+  // the same .add-capture-banner treatment rather than each inventing one.
+  const banner = addStopContext
+    ? {text: 'เพิ่มสถานที่ใหม่เป็นจุดแวะ', sub: addStopContext.dayLabel}
+    : bannerText ?? null
   const search = usePlaceSearch()
   const [selected, setSelected] = useState<ResolvedPlaceDto | null>(null)
   // The name actually saved. Google supplies one for every resolved place; a coordinate
@@ -44,6 +81,10 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
   const [showLink, setShowLink] = useState(false)
   const [reviewDrafts, setReviewDrafts] = useState<ReviewDraft[]>([])
   const [formError, setFormError] = useState<string | null>(null)
+  // The choose-target write happens in the host, so `saving` from the local mutation
+  // hooks cannot report it. Without this the two Discover buttons stayed live during
+  // the round-trip and a double-tap wrote the place twice.
+  const [committing, setCommitting] = useState(false)
   const [addTripPlace, {isLoading: saving}] = useAddTripPlaceMutation()
   const [addStop, {isLoading: adding}] = useAddStopMutation()
   // Idempotency: id of a Place already created during THIS attempt. If addTripPlace
@@ -124,7 +165,7 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
     search.reset()
   }, [search])
 
-  const doAdd = useCallback(async () => {
+  const doAdd = useCallback(async (via: 'primary' | 'createTrip' | 'pickOther') => {
     if (!selected) return
     if (!captureNameValid(name)) {
       setFormError('ตั้งชื่อสถานที่ก่อนบันทึก')
@@ -135,6 +176,29 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
       return
     }
     setFormError(null)
+    const payload = capturePayloadFrom(selected, name, category, reviewDrafts)
+
+    // ADR-155: launched from Discover the capture still ends on a Trip — but WHICH Trip is
+    // decided here, at commit time. The host owns that write (it owns the trip picker and
+    // the create-and-seed call), so this branch never calls addTripPlace itself. On success
+    // the form clears and the mode stays armed (R8.4).
+    if (target.kind === 'choose') {
+      setCommitting(true)
+      try {
+        const saved = await (via === 'createTrip'
+          ? target.onCreateTrip(payload)
+          : target.onPickTrip(payload, via === 'pickOther'))
+        // Only a real save clears the form. A cancelled trip pick must leave the
+        // typed name, category and review links exactly where the user left them.
+        if (saved) clearSelection()
+      } catch (err) {
+        setFormError(getErrorMessage(err))
+      } finally {
+        setCommitting(false)
+      }
+      return
+    }
+
     try {
       // Idempotent retry: reuse the Place if a prior attempt already created it
       // (addTripPlace succeeded, addStop failed). AddTripPlace is idempotent for an exact
@@ -142,27 +206,13 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
       // would leave a duplicate library Place on every retry.
       const placeId =
         createdRef.current ??
-        (
-          await addTripPlace({
-            tripId,
-            googlePlaceId: selected.googlePlaceId,
-            name: name.trim(),
-            lat: selected.lat,
-            lng: selected.lng,
-            address: selected.address,
-            category,
-            priceLevel: selected.priceLevel,
-            photoUrl: selected.photoUrl,
-            openingHoursJson: selected.openingHoursJson,
-            reviewLinks: sanitizeReviewDrafts(reviewDrafts),
-          }).unwrap()
-        ).id
+        (await addTripPlace(addTripPlaceArgsForCapture(target.tripId, payload)).unwrap()).id
       createdRef.current = placeId
       if (addStopContext) {
         // ADR-071: non-atomic — if addStop fails, the Place stays captured and a retry
         // reuses createdRef (above) rather than creating a duplicate.
         await addStop({
-          tripId,
+          tripId: target.tripId,
           dayId: addStopContext.dayId,
           tripPlaceId: placeId,
           dwellMinutes: 60,
@@ -177,16 +227,26 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
     } catch (err) {
       setFormError(getErrorMessage(err))
     }
-  }, [selected, name, category, tripId, reviewDrafts, addTripPlace, addStop, addStopContext, clearSelection, onExit])
+  }, [selected, name, category, target, reviewDrafts, addTripPlace, addStop, addStopContext, clearSelection, onExit])
+
+  // R8.5: once this run has committed to a Trip, the primary action names that Trip so a
+  // second capture is one tap. Until then it opens the picker. On the Trips surfaces the
+  // Trip is not in question, so the label states what the tap does to the itinerary.
+  const primaryLabel =
+    target.kind === 'choose'
+      ? captureCommitLabel(target.rememberedTripName ? {id: '', name: target.rememberedTripName} : null)
+      : addStopContext
+        ? 'เพิ่มเป็นจุดแวะ'
+        : 'เพิ่มลงทริป'
 
   return (
     <>
-      {addStopContext && (
+      {banner && (
         <div className="add-capture-banner">
           <button type="button" className="add-capture-back" aria-label="ยกเลิก" onClick={onExit}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M15 6l-6 6 6 6" /></svg>
           </button>
-          <span className="add-capture-txt">เพิ่มสถานที่ใหม่เป็นจุดแวะ<small>{addStopContext.dayLabel}</small></span>
+          <span className="add-capture-txt">{banner.text}{banner.sub && <small>{banner.sub}</small>}</span>
         </div>
       )}
 
@@ -200,9 +260,11 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
         onOpenLinkFallback={() => setShowLink(true)}
         onClose={onExit}
         autoFocus={bp === 'desktop'}
-        bannerOffset={!!addStopContext}
+        bannerOffset={!!banner}
       />
 
+      {/* R8.5's ▾ (onPrimaryAlt) is only meaningful once a Trip is remembered,
+          because until then the primary action already opens the picker. */}
       {selected && (
         <AddPlacePreviewCard
           place={selected}
@@ -213,12 +275,16 @@ export function AddPlaceMode({tripId, onExit, tappedPlaceId, onTapConsumed, tapp
           guessedCategory={guessedCategory}
           onCategoryChange={setCategory}
           onCancel={clearSelection}
-          onAdd={doAdd}
-          saving={saving || adding}
+          onAdd={() => { void doAdd('primary') }}
+          saving={saving || adding || committing}
           variant={bp === 'desktop' ? 'floating' : 'sheet'}
           reviewDrafts={reviewDrafts}
           onReviewDraftsChange={setReviewDrafts}
-          confirmLabel={addStopContext ? 'เพิ่มเป็นจุดแวะ' : 'เพิ่มลงทริป'}
+          confirmLabel={primaryLabel}
+          onPrimaryAlt={target.kind === 'choose' && target.rememberedTripName ? () => { void doAdd('pickOther') } : undefined}
+          primaryAltLabel="เลือกทริปอื่น"
+          secondaryLabel={target.kind === 'choose' ? 'สร้างทริปใหม่' : undefined}
+          onSecondary={target.kind === 'choose' ? () => { void doAdd('createTrip') } : undefined}
           error={formError}
         />
       )}
