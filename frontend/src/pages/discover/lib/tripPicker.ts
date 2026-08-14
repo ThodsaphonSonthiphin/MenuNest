@@ -18,6 +18,9 @@ import {ymdToDate, thaiDate} from '../../trips/utils/date'
 /** Mock frame 7's "100 ทริปที่แก้ล่าสุด". */
 export const TRIP_PICKER_PAGE_SIZE = 100
 
+/** Below this length a query round-trip is not worth it; the client filter covers it. */
+export const TRIP_SEARCH_MIN_CHARS = 2
+
 /**
  * Newest-first, one page deep. The backend already supports every one of these
  * (ListTripsQuery: Skip/Take/Search/SortColumn/SortDirection) — no API change.
@@ -29,9 +32,27 @@ export const TRIP_PICKER_QUERY_ARGS = {
 } as const
 
 /**
- * Client-side name/destination filter for the picker's search box. Filtering here
- * rather than round-tripping `search` to the server keeps typing instant, and the
- * whole page (≤100) is already in memory. Blank query → everything, unchanged.
+ * The args for one keystroke's worth of picker state.
+ *
+ * The page cap is real: a user past 100 trips cannot see #101+, and a purely
+ * client-side filter would make the search box unable to reach them either —
+ * which is the same "the picker silently hides your trips" defect as the old
+ * Take=10 default, just at a higher ceiling. So a query of at least
+ * TRIP_SEARCH_MIN_CHARS is handed to the server, which searches Name and
+ * Destination across the whole library rather than the loaded page.
+ */
+export function tripPickerArgs(query: string) {
+  const q = query.trim()
+  return q.length >= TRIP_SEARCH_MIN_CHARS
+    ? {...TRIP_PICKER_QUERY_ARGS, search: q}
+    : {...TRIP_PICKER_QUERY_ARGS}
+}
+
+/**
+ * Client-side name/destination filter, still applied on top of whatever the server
+ * returned: it narrows the visible list on the very first keystroke, before the
+ * debounced request has gone out, so typing never feels like it stalls. Once the
+ * server response lands the two agree. Blank query → everything, unchanged.
  */
 export function filterTrips(trips: readonly TripDto[], query: string): TripDto[] {
   const q = query.trim().toLowerCase()

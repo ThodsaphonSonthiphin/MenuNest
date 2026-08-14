@@ -1,11 +1,7 @@
 import type {DiscoverPlaceView} from '../lib/discoverFilter'
 import {catColor, catLabel} from '../lib/categoryStyle'
+import {distanceLabel} from '../lib/placeFormat'
 import {CategoryIcon, CheckIcon, NavArrowIcon, TripIcon} from './DiscoverIcons'
-
-function distanceLabel(km: number | null): string {
-  if (km == null) return ''
-  return km < 1 ? `${Math.round(km * 1000)} ม.` : `${km.toFixed(1)} กม.`
-}
 
 interface Props {
   places: DiscoverPlaceView[]

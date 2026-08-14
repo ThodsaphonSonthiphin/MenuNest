@@ -1,6 +1,9 @@
 import {describe, it, expect} from 'vitest'
 import type {TripDto} from '../../../shared/api/api'
-import {filterTrips, tripSubtitle, TRIP_PICKER_QUERY_ARGS, TRIP_PICKER_PAGE_SIZE} from './tripPicker'
+import {
+  filterTrips, tripSubtitle, tripPickerArgs,
+  TRIP_PICKER_QUERY_ARGS, TRIP_PICKER_PAGE_SIZE, TRIP_SEARCH_MIN_CHARS,
+} from './tripPicker'
 
 function trip(over: Partial<TripDto> = {}): TripDto {
   return {
@@ -23,6 +26,32 @@ describe('TRIP_PICKER_QUERY_ARGS', () => {
     expect(TRIP_PICKER_PAGE_SIZE).toBeGreaterThan(10)
     expect(TRIP_PICKER_QUERY_ARGS.sortColumn).toBe('startDate')
     expect(TRIP_PICKER_QUERY_ARGS.sortDirection).toBe('Descending')
+  })
+})
+
+describe('tripPickerArgs', () => {
+  it('sends no search term when the box is empty', () => {
+    expect(tripPickerArgs('')).not.toHaveProperty('search')
+    expect(tripPickerArgs('   ')).not.toHaveProperty('search')
+  })
+
+  it('sends no search term below the minimum length', () => {
+    expect(tripPickerArgs('ก'.repeat(TRIP_SEARCH_MIN_CHARS - 1))).not.toHaveProperty('search')
+  })
+
+  it('hands the trimmed term to the server once it is long enough', () => {
+    // Without this the search box could only ever filter the loaded page, so a
+    // user past TRIP_PICKER_PAGE_SIZE trips could not reach the rest — the same
+    // "the picker hides your trips" defect as the old Take=10 default.
+    expect(tripPickerArgs('  จันทบุรี  ')).toMatchObject({search: 'จันทบุรี'})
+  })
+
+  it('always keeps the page size and newest-first ordering', () => {
+    for (const args of [tripPickerArgs(''), tripPickerArgs('จันทบุรี')]) {
+      expect(args.take).toBe(TRIP_PICKER_PAGE_SIZE)
+      expect(args.sortColumn).toBe('startDate')
+      expect(args.sortDirection).toBe('Descending')
+    }
   })
 })
 
