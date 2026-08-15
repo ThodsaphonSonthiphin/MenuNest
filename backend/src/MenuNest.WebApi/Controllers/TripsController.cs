@@ -81,8 +81,8 @@ public sealed class TripsController : ControllerBase
         => Ok(await _mediator.Send(new UpdateTripPlaceCommand(id, placeId, b.Name, b.Category, b.Address, b.FeeNote, b.Notes, b.BestTimeWindows, b.ReviewLinks, b.SeasonPeriods), ct));
 
     [HttpDelete("api/trips/{id:guid}/places/{placeId:guid}")]
-    public async Task<IActionResult> DeletePlace(Guid id, Guid placeId, CancellationToken ct)
-    { await _mediator.Send(new DeleteTripPlaceCommand(id, placeId), ct); return NoContent(); }
+    public async Task<IActionResult> DeletePlace(Guid id, Guid placeId, [FromQuery] bool cascade, CancellationToken ct)
+    { await _mediator.Send(new DeleteTripPlaceCommand(id, placeId, cascade), ct); return NoContent(); }
 
     [HttpPost("api/trips/{id:guid}/places/{placeId:guid}/push-to-profile")]
     public async Task<ActionResult<TripPlaceDto>> PushPlaceProfile(Guid id, Guid placeId, CancellationToken ct)
