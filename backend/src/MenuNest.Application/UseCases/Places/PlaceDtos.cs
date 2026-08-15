@@ -4,7 +4,15 @@ using MenuNest.Domain.Enums;
 namespace MenuNest.Application.UseCases.Places;
 
 /// <summary>A Trip that contains a discovered Place (for the "อยู่ในทริป: …" line).</summary>
-public sealed record PlaceTripRefDto(Guid TripId, string TripName);
+/// <param name="TripPlaceId">
+/// ADR-166: the row id inside THIS Trip, which is what makes a delete addressable —
+/// a Discover pin is a read-time group over N rows and carries no id of its own.
+/// </param>
+/// <param name="ScheduledStopCount">
+/// ADR-168: how many Stops in this Trip reference that row, so the delete confirmation can
+/// name the number instead of guessing. Free — the Stops table is already read for Visited.
+/// </param>
+public sealed record PlaceTripRefDto(Guid TripId, string TripName, Guid TripPlaceId, int ScheduledStopCount);
 
 /// <summary>
 /// One distinct saved Place surfaced in Discover (ไปไหนดี), deduped by GooglePlaceId
