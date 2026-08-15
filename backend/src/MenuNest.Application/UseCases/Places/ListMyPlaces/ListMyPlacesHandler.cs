@@ -32,11 +32,16 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
 
         var placeIds = rows.Select(r => r.Place.Id).ToList();
 
-        var visitedPlaceIds = (await _db.Stops
-            .Where(s => placeIds.Contains(s.TripPlaceId) && s.IsVisited)
-            .Select(s => s.TripPlaceId)
-            .Distinct()
-            .ToListAsync(ct)).ToHashSet();
+        // One read of the Stops table serves both the "มาแล้ว" badge and ADR-168's count.
+        // The IsVisited predicate moves out of SQL deliberately: same table, same index, same
+        // round trip, and the count comes back for free rather than costing a second query.
+        var stopRows = await _db.Stops
+            .Where(s => placeIds.Contains(s.TripPlaceId))
+            .Select(s => new { s.TripPlaceId, s.IsVisited })
+            .ToListAsync(ct);
+
+        var visitedPlaceIds = stopRows.Where(s => s.IsVisited).Select(s => s.TripPlaceId).ToHashSet();
+        var stopCountByPlaceId = stopRows.GroupBy(s => s.TripPlaceId).ToDictionary(g => g.Key, g => g.Count());
 
         // ADR-156 §3: GooglePlaceId still wins whenever present, so the origin key is inert for
         // the common case; it only groups place_id-less rows copied from one root.
@@ -54,7 +59,11 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
         foreach (var g in groups)
         {
             var rep = g.OrderByDescending(r => r.Place.UpdatedAt ?? r.Place.CreatedAt).First().Place;
-            var trips = g.Select(r => new PlaceTripRefDto(r.TripId, r.TripName))
+            var trips = g.Select(r => new PlaceTripRefDto(
+                              r.TripId,
+                              r.TripName,
+                              r.Place.Id,
+                              stopCountByPlaceId.TryGetValue(r.Place.Id, out var n) ? n : 0))
                          .GroupBy(x => x.TripId)
                          .Select(x => x.First())
                          .ToList();

@@ -188,5 +188,47 @@ public sealed class ListMyPlacesHandlerTests : IDisposable
         result[0].Notes.Should().BeNull();
     }
 
+    [Fact]
+    public async Task Each_trip_ref_carries_its_own_trip_place_id()
+    {
+        var t1 = Trip.Create(_user.Id, "Kanchanaburi", new DateOnly(2026, 11, 1), 1, TravelMode.Drive);
+        var t2 = Trip.Create(_user.Id, "Japan", new DateOnly(2026, 12, 1), 1, TravelMode.Drive);
+        _db.Trips.AddRange(t1, t2);
+        var p1 = TripPlace.Create(t1.Id, "Hotel", 12.8, 99.3, PlaceCategory.Stay, googlePlaceId: "gp-h");
+        var p2 = TripPlace.Create(t2.Id, "Hotel", 12.8, 99.3, PlaceCategory.Stay, googlePlaceId: "gp-h");
+        _db.TripPlaces.AddRange(p1, p2);
+        await _db.SaveChangesAsync();
+
+        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Trips.Single(x => x.TripId == t1.Id).TripPlaceId.Should().Be(p1.Id);
+        result[0].Trips.Single(x => x.TripId == t2.Id).TripPlaceId.Should().Be(p2.Id);
+    }
+
+    [Fact]
+    public async Task Scheduled_stop_count_is_per_trip_and_zero_when_unscheduled()
+    {
+        var t1 = Trip.Create(_user.Id, "Kanchanaburi", new DateOnly(2026, 11, 1), 2, TravelMode.Drive);
+        var t2 = Trip.Create(_user.Id, "Japan", new DateOnly(2026, 12, 1), 1, TravelMode.Drive);
+        _db.Trips.AddRange(t1, t2);
+        var p1 = TripPlace.Create(t1.Id, "Hotel", 12.8, 99.3, PlaceCategory.Stay, googlePlaceId: "gp-h");
+        var p2 = TripPlace.Create(t2.Id, "Hotel", 12.8, 99.3, PlaceCategory.Stay, googlePlaceId: "gp-h");
+        _db.TripPlaces.AddRange(p1, p2);
+        var d1 = ItineraryDay.Create(t1.Id, new DateOnly(2026, 11, 1));
+        var d2 = ItineraryDay.Create(t1.Id, new DateOnly(2026, 11, 2));
+        _db.ItineraryDays.AddRange(d1, d2);
+        _db.Stops.Add(Stop.Create(d1.Id, p1.Id, 0, 60, TravelMode.Drive));
+        _db.Stops.Add(Stop.Create(d2.Id, p1.Id, 0, 60, TravelMode.Drive));
+        await _db.SaveChangesAsync();
+
+        var result = await NewHandler().Handle(new ListMyPlacesQuery(), CancellationToken.None);
+
+        result.Should().ContainSingle();
+        result[0].Trips.Single(x => x.TripId == t1.Id).ScheduledStopCount.Should().Be(2);
+        result[0].Trips.Single(x => x.TripId == t2.Id).ScheduledStopCount.Should().Be(0);
+        result[0].Visited.Should().BeFalse();
+    }
+
     public void Dispose() { _db.Dispose(); _conn.Dispose(); }
 }
