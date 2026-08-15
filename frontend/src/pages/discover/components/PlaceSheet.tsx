@@ -7,20 +7,50 @@ import {reviewLabel, reviewHost} from '../../trips/lib/reviewLinks'
 import {DiscoverHourly} from './DiscoverHourly'
 import {catColor} from '../lib/categoryStyle'
 import {distanceLabel} from '../lib/placeFormat'
-import {CategoryIcon, CheckIcon, CloseIcon, NavArrowIcon, OpenIcon, PlusIcon, SunIcon, TripIcon} from './DiscoverIcons'
+import {useDeleteTripPlaceMutation} from '../../../shared/api/api'
+import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {startDelete, confirmCopy, type DeleteFlow} from '../lib/deleteFlow'
+import {
+  CalendarIcon,
+  CategoryIcon,
+  CheckIcon,
+  CloseIcon,
+  KeepIcon,
+  NavArrowIcon,
+  OpenIcon,
+  PlusIcon,
+  SunIcon,
+  TrashIcon,
+  TripIcon,
+} from './DiscoverIcons'
 
 interface Props {
   place: DiscoverPlaceView
   onClose: () => void
   onAddToTrip: (place: DiscoverPlaceView) => void
   onCreateTrip: (place: DiscoverPlaceView) => void
+  onDeleted: () => void
   creatingTrip?: boolean
 }
 
-export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingTrip}: Props) {
+export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted, creatingTrip}: Props) {
   const navigate = useNavigate()
   const [choosing, setChoosing] = useState(false)
+  const [flow, setFlow] = useState<DeleteFlow>({stage: 'idle'})
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletePlace, {isLoading: deleting}] = useDeleteTripPlaceMutation()
   const navUrl = buildStopNavUrl({lat: place.lat, lng: place.lng, googlePlaceId: place.googlePlaceId}, 'Drive')
+
+  const runDelete = async (trip: {tripId: string; tripPlaceId: string}) => {
+    setDeleteError(null)
+    try {
+      await deletePlace({tripId: trip.tripId, placeId: trip.tripPlaceId, cascade: true}).unwrap()
+      setFlow({stage: 'idle'})
+      onDeleted()
+    } catch (err) {
+      setDeleteError(getErrorMessage(err))
+    }
+  }
 
   // 1 trip → open directly. >1 (a place deduped across trips, ADR-100) → toggle an
   // inline chooser so the user picks which trip. 0 shouldn't happen (a discovered
@@ -106,6 +136,54 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, creatingT
             <PlusIcon />สร้างทริปใหม่
           </button>
         </div>
+        {flow.stage === 'idle' && place.trips.length > 0 && (
+          <button
+            type="button"
+            className="disc-abtn danger"
+            onClick={() => setFlow(startDelete(place.trips))}
+          >
+            <TrashIcon />ลบจุดนี้
+          </button>
+        )}
+        {flow.stage === 'choosing' && (
+          <div className="disc-del-choose">
+            <div className="disc-del-lab">เอาออกจากทริปไหน?</div>
+            {place.trips.map((t) => (
+              <button
+                key={t.tripId}
+                type="button"
+                className="disc-abtn ghost"
+                onClick={() => setFlow({stage: 'confirming', trip: t})}
+              >
+                <TripIcon />{t.tripName}
+              </button>
+            ))}
+            <button type="button" className="disc-abtn ghost" onClick={() => setFlow({stage: 'idle'})}>
+              ยกเลิก
+            </button>
+          </div>
+        )}
+        {flow.stage === 'confirming' && (() => {
+          const copy = confirmCopy(place.name, flow.trip)
+          return (
+            <div className="disc-confirm">
+              <div className="disc-cf-title">{copy.title}</div>
+              {copy.warning && (
+                <div className="disc-cf-line warn"><CalendarIcon />{copy.warning}</div>
+              )}
+              <div className="disc-cf-line keep"><KeepIcon />{copy.keep}</div>
+              {deleteError && <p className="trips-field-error">{deleteError}</p>}
+              <div className="disc-cf-row">
+                <button type="button" className="disc-abtn ghost" disabled={deleting} onClick={() => setFlow({stage: 'idle'})}>
+                  ยกเลิก
+                </button>
+                <button type="button" className="disc-abtn danger-solid" disabled={deleting} onClick={() => runDelete(flow.trip)}>
+                  ลบ
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

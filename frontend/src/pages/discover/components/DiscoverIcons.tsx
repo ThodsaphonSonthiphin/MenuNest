@@ -157,3 +157,30 @@ export function SunIcon({className}: IconProps) {
     </svg>
   )
 }
+
+/** Path data matches PlaceEditorDialog.tsx:138, so both delete controls show one glyph. */
+export function TrashIcon({className}: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...STROKE}>
+      <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+    </svg>
+  )
+}
+
+export function CalendarIcon({className}: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...STROKE}>
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  )
+}
+
+export function KeepIcon({className}: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden="true" {...STROKE}>
+      <path d="M5 4h11l3 3v13H5z" />
+      <path d="M9 4v5h6" />
+    </svg>
+  )
+}
