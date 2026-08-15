@@ -22,6 +22,7 @@
   --warn-ink:   #7a5310;
   --bad:        #b42318;
   --bad-bg:     #fdeceb;
+  --bad-edge:   #f6cdc9;
   --visited:    #15803d;
   --visited-bg: #e7f6ec;
 
@@ -466,23 +467,33 @@
 .disc-abtn.ghost:hover:not(:disabled) { background: var(--teal-soft); border-color: var(--teal); }
 .disc-abtn.ghost:disabled { opacity: 0.5; cursor: default; }
 
-/* Delete (ADR-166/167/168). Colours are the mockup card's --bad tokens, written as
-   literals here because DiscoverPage.css defines no custom properties of its own. */
+/* Delete (ADR-166/167/168). Reuses this file's own --bad/--bad-bg/--warn-bg/--warn-ink/
+   --ink/--surface/--border tokens (defined on .discover-page, :11-26) -- the file does
+   define custom properties, and already consumes some below (see :645-646 before this
+   change). --bad-edge is the one addition: #f6cdc9 (the danger border) had no token. */
 .disc-abtn.danger {
-  background: #fff;
-  border-color: #f6cdc9;
-  color: #b42318;
+  background: var(--surface);
+  border-color: var(--bad-edge);
+  color: var(--bad);
+}
+.disc-abtn.danger:hover {
+  background: var(--bad-bg);
+  border-color: var(--bad);
 }
 .disc-abtn.danger-solid {
-  background: #b42318;
-  color: #fff;
+  background: var(--bad);
+  color: var(--surface);
   border-color: transparent;
   box-shadow: 0 6px 16px rgba(180, 35, 24, 0.32);
 }
+.disc-abtn.danger-solid:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 .disc-del-choose {
-  border: 1.5px dashed #f6cdc9;
-  background: #fdeceb;
+  border: 1.5px dashed var(--bad-edge);
+  background: var(--bad-bg);
   border-radius: 14px;
   padding: 10px;
   display: flex;
@@ -492,7 +503,7 @@
 .disc-del-lab {
   font-size: 11.5px;
   font-weight: 800;
-  color: #b42318;
+  color: var(--bad);
   padding: 1px 2px 2px;
 }
 .disc-del-choose .disc-abtn {
@@ -501,8 +512,8 @@
 }
 
 .disc-confirm {
-  border: 1.5px solid #f6cdc9;
-  background: #fff;
+  border: 1.5px solid var(--bad-edge);
+  background: var(--surface);
   border-radius: 14px;
   padding: 12px;
   box-shadow: 0 8px 22px rgba(180, 35, 24, 0.1);
@@ -513,7 +524,7 @@
 .disc-cf-title {
   font-size: 13.5px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--ink);
   line-height: 1.35;
 }
 .disc-cf-line {
@@ -533,12 +544,12 @@
   margin-top: 1px;
 }
 .disc-cf-line.warn {
-  background: #fff4e0;
-  color: #7a5310;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 .disc-cf-line.keep {
-  background: #f8fafc;
-  border: 1px solid #eef2f6;
+  background: var(--page);
+  border: 1px solid var(--border);
   color: #475569;
 }
 .disc-cf-row {
@@ -825,4 +836,18 @@
   font-weight: 700;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.32);
   pointer-events: none;
+}
+
+/* The delete-confirmation toast (DiscoverPage.tsx) renders as a direct child of
+   .discover-page now, not .disc-dock -- but .disc-dock and .discover-map BOTH share
+   .discover-page's own bottom edge (each is bottom:0 / full-height with no padding
+   in between), so bottom:18px lands in the same spot regardless of which of the
+   three it is nested under. Scoped to the direct-child case (>) so DiscoverMap's
+   own .disc-armed-toast (nested inside .discover-map, shown only in armed mode where
+   no sheet is present) is untouched. Anchored from the top instead, clearing the
+   topbar exactly like .disc-loading, so the pill sits over the map rather than over
+   whichever sheet (list or detail) currently occupies the dock. */
+.discover-page > .disc-armed-toast {
+  top: 104px;
+  bottom: auto;
 }
