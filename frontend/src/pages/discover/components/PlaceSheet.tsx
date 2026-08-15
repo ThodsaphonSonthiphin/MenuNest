@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import type {DiscoverPlaceView} from '../lib/discoverFilter'
 import {buildStopNavUrl} from '../../trips/lib/navUrl'
@@ -39,6 +39,15 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
   const [flow, setFlow] = useState<DeleteFlow>({stage: 'idle'})
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletePlace, {isLoading: deleting}] = useDeleteTripPlaceMutation()
+
+  // The sheet body scrolls (.disc-detail is overflow-y:auto) and opening the chooser or
+  // the confirm swaps a ~45px button for a ~150px block, so on a long card the
+  // ยกเลิก/ลบ row can land below the fold with nothing to signal it. Pull whichever
+  // block just opened into view; 'nearest' scrolls the minimum and no-ops when visible.
+  const flowRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    if (flow.stage !== 'idle') flowRef.current?.scrollIntoView({block: 'nearest'})
+  }, [flow.stage])
   const navUrl = buildStopNavUrl({lat: place.lat, lng: place.lng, googlePlaceId: place.googlePlaceId}, 'Drive')
 
   // Every transition of the delete flow clears any error left over from a previous
@@ -160,7 +169,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
           </button>
         )}
         {flow.stage === 'choosing' && (
-          <div className="disc-del-choose">
+          <div className="disc-del-choose" ref={flowRef}>
             <div className="disc-del-lab">เอาออกจากทริปไหน?</div>
             {place.trips.map((t) => (
               <button
@@ -180,7 +189,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
         {flow.stage === 'confirming' && (() => {
           const copy = confirmCopy(place.name, flow.trip)
           return (
-            <div className="disc-confirm">
+            <div className="disc-confirm" ref={flowRef}>
               <div className="disc-cf-title">{copy.title}</div>
               {copy.warning && (
                 <div className="disc-cf-line warn"><CalendarIcon />{copy.warning}</div>
