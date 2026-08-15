@@ -1497,7 +1497,9 @@ export const api = createApi({
         }),
         addStop: build.mutation<StopDto, {tripId: string; dayId: string; tripPlaceId: string; dwellMinutes: number; travelModeToReach: TravelMode}>({
             query: ({tripId, dayId, ...b}) => ({url: `/api/trips/${tripId}/days/${dayId}/stops`, method: 'POST', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+            // + MyPlaces: Discover's delete confirm reads scheduledStopCount out of that
+            // cache (ADR-168). A stale count means no warning before a cascade delete.
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
         updateStop: build.mutation<void, {tripId: string; stopId: string; dwellMinutes?: number | null; travelModeToReach?: TravelMode | null}>({
             query: ({tripId, stopId, ...b}) => ({url: `/api/trips/${tripId}/stops/${stopId}`, method: 'PATCH', body: b}),
@@ -1538,7 +1540,9 @@ export const api = createApi({
         }),
         removeStop: build.mutation<void, {tripId: string; stopId: string}>({
             query: ({tripId, stopId}) => ({url: `/api/trips/${tripId}/stops/${stopId}`, method: 'DELETE'}),
-            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}],
+            // + MyPlaces: Discover's delete confirm reads scheduledStopCount out of that
+            // cache (ADR-168). A stale count means no warning before a cascade delete.
+            invalidatesTags: (_r, _e, a) => [{type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
         reorderStops: build.mutation<void, {tripId: string; dayId: string; orderedStopIds: string[]}>({
             query: ({tripId, dayId, orderedStopIds}) => ({url: `/api/trips/${tripId}/days/${dayId}/reorder`, method: 'POST', body: {orderedStopIds}}),
