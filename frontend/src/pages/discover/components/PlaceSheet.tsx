@@ -41,6 +41,14 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
   const [deletePlace, {isLoading: deleting}] = useDeleteTripPlaceMutation()
   const navUrl = buildStopNavUrl({lat: place.lat, lng: place.lng, googlePlaceId: place.googlePlaceId}, 'Drive')
 
+  // Every transition of the delete flow clears any error left over from a previous
+  // attempt — otherwise cancelling a failed delete and starting a fresh one re-shows
+  // the stale message before the user has retried anything.
+  const goTo = (f: DeleteFlow) => {
+    setDeleteError(null)
+    setFlow(f)
+  }
+
   const runDelete = async (trip: {tripId: string; tripPlaceId: string}) => {
     setDeleteError(null)
     try {
@@ -140,7 +148,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
           <button
             type="button"
             className="disc-abtn danger"
-            onClick={() => setFlow(startDelete(place.trips))}
+            onClick={() => goTo(startDelete(place.trips))}
           >
             <TrashIcon />ลบจุดนี้
           </button>
@@ -153,12 +161,12 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
                 key={t.tripId}
                 type="button"
                 className="disc-abtn ghost"
-                onClick={() => setFlow({stage: 'confirming', trip: t})}
+                onClick={() => goTo({stage: 'confirming', trip: t})}
               >
                 <TripIcon />{t.tripName}
               </button>
             ))}
-            <button type="button" className="disc-abtn ghost" onClick={() => setFlow({stage: 'idle'})}>
+            <button type="button" className="disc-abtn ghost" onClick={() => goTo({stage: 'idle'})}>
               ยกเลิก
             </button>
           </div>
@@ -174,7 +182,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
               <div className="disc-cf-line keep"><KeepIcon />{copy.keep}</div>
               {deleteError && <p className="trips-field-error">{deleteError}</p>}
               <div className="disc-cf-row">
-                <button type="button" className="disc-abtn ghost" disabled={deleting} onClick={() => setFlow({stage: 'idle'})}>
+                <button type="button" className="disc-abtn ghost" disabled={deleting} onClick={() => goTo({stage: 'idle'})}>
                   ยกเลิก
                 </button>
                 <button type="button" className="disc-abtn danger-solid" disabled={deleting} onClick={() => runDelete(flow.trip)}>
