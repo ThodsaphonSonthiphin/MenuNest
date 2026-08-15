@@ -63,9 +63,15 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
   // 1 trip → open directly. >1 (a place deduped across trips, ADR-100) → toggle an
   // inline chooser so the user picks which trip. 0 shouldn't happen (a discovered
   // place always comes from a TripPlace) but the button is guarded regardless.
+  // Toggling this chooser open also closes any in-progress delete flow: both render
+  // near-identical per-trip lists in the same spot, and leaving the delete chooser/
+  // confirm open underneath this one is exactly the mis-tap hazard that got flagged.
   const openTrip = () => {
     if (place.trips.length === 1) navigate(`/trips/${place.trips[0].tripId}`)
-    else if (place.trips.length > 1) setChoosing((v) => !v)
+    else if (place.trips.length > 1) {
+      setChoosing((v) => !v)
+      goTo({stage: 'idle'})
+    }
   }
 
   // Mock frame 2's `.d-addr` reads "<address> · 400 ม. จากคุณ" — the distance is
@@ -148,7 +154,7 @@ export function PlaceSheet({place, onClose, onAddToTrip, onCreateTrip, onDeleted
           <button
             type="button"
             className="disc-abtn danger"
-            onClick={() => goTo(startDelete(place.trips))}
+            onClick={() => { setChoosing(false); goTo(startDelete(place.trips)) }}
           >
             <TrashIcon />ลบจุดนี้
           </button>

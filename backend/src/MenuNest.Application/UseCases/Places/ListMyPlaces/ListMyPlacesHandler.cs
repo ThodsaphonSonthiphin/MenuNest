@@ -35,6 +35,17 @@ public sealed class ListMyPlacesHandler : IQueryHandler<ListMyPlacesQuery, IRead
         // One read of the Stops table serves both the "มาแล้ว" badge and ADR-168's count.
         // The IsVisited predicate moves out of SQL deliberately: same table, same index, same
         // round trip, and the count comes back for free rather than costing a second query.
+        //
+        // Invariant this count leans on: stopCountByPlaceId below counts EVERY Stop row
+        // with that TripPlaceId, with no TripId filter, while DeleteTripPlaceHandler (Trips/
+        // DeleteTripPlace/DeleteTripPlaceHandler.cs:23-26) only deletes Stops whose ItineraryDay
+        // belongs to c.TripId. The two agree only because a TripPlace belongs to exactly one
+        // Trip, and AddStopHandler.cs:27 -- the sole Stop.Create call site in src/ -- enforces
+        // that by requiring p.TripId == c.TripId before a Stop can be created. If that ever
+        // stops holding, this count would overstate what a cascade delete actually removes,
+        // and DeleteTripPlaceHandler's own scoped delete would leave orphaned Stops behind (or,
+        // were the scope ever loosened, risk an FK violation removing a TripPlace that
+        // something outside this Trip still references).
         var stopRows = await _db.Stops
             .Where(s => placeIds.Contains(s.TripPlaceId))
             .Select(s => new { s.TripPlaceId, s.IsVisited })

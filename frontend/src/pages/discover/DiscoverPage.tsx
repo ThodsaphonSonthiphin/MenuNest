@@ -24,7 +24,9 @@ export function DiscoverPage() {
   const {anchor, scope, categoryFilter, toggles, selectedKey} = useAppSelector((s) => s.discover)
   const [addForPlace, setAddForPlace] = useState<DiscoverPlaceView | null>(null)
   const [creatingTrip, setCreatingTrip] = useState(false)
-  const [deletedNote, setDeletedNote] = useState(false)
+  // A nonce (not a boolean): a second successful delete inside the 2500ms window must
+  // restart the timer, and only a value CHANGE (not a repeated true) does that reliably.
+  const [deletedNote, setDeletedNote] = useState(0)
   // Bumped by the anchor pill / locate FAB; MapCamera re-pans on every change.
   const [recenter, setRecenter] = useState(0)
   const [createTrip] = useCreateTripMutation()
@@ -61,10 +63,12 @@ export function DiscoverPage() {
     )
   }, [dispatch])
 
-  // Clears the delete toast so it does not stick past its moment.
+  // Clears the delete toast so it does not stick past its moment. Depends on the nonce
+  // (not a boolean) so a second delete inside the window restarts the timer instead of
+  // letting the toast vanish right after the second delete.
   useEffect(() => {
-    if (!deletedNote) return
-    const id = window.setTimeout(() => setDeletedNote(false), 2500)
+    if (deletedNote === 0) return
+    const id = window.setTimeout(() => setDeletedNote(0), 2500)
     return () => window.clearTimeout(id)
   }, [deletedNote])
 
@@ -255,15 +259,21 @@ export function DiscoverPage() {
             onClose={() => dispatch(setSelectedKey(null))}
             onAddToTrip={(p) => setAddForPlace(p)}
             onCreateTrip={handleCreateTrip}
-            onDeleted={() => setDeletedNote(true)}
+            onDeleted={() => setDeletedNote((n) => n + 1)}
             creatingTrip={creatingTrip}
           />
         ) : (
           <PlaceBottomSheet places={views} onSelect={(k) => dispatch(setSelectedKey(k))} />
         )}
-
-        {deletedNote && <div className="disc-armed-toast" role="status">ลบแล้ว</div>}
       </div>
+
+      {/* A direct child of .discover-page, not .disc-dock: .disc-dock and .disc-detail
+          both share the page's own bottom edge (bottom:0, no padding in between), so
+          bottom:18px reads the same whether this sat inside the dock or beside it --
+          the fix is anchoring from the TOP instead, clearing the topbar exactly like
+          .disc-loading does, so the pill renders over the map instead of over whichever
+          sheet (list or detail) currently occupies the dock's bottom. */}
+      {deletedNote > 0 && <div className="disc-armed-toast" role="status">ลบแล้ว</div>}
 
       {addForPlace && (
         <AddToTripDialog
