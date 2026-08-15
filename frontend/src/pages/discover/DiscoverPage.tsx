@@ -24,6 +24,7 @@ export function DiscoverPage() {
   const {anchor, scope, categoryFilter, toggles, selectedKey} = useAppSelector((s) => s.discover)
   const [addForPlace, setAddForPlace] = useState<DiscoverPlaceView | null>(null)
   const [creatingTrip, setCreatingTrip] = useState(false)
+  const [deletedNote, setDeletedNote] = useState(false)
   // Bumped by the anchor pill / locate FAB; MapCamera re-pans on every change.
   const [recenter, setRecenter] = useState(0)
   const [createTrip] = useCreateTripMutation()
@@ -59,6 +60,13 @@ export function DiscoverPage() {
       {timeout: 8000},
     )
   }, [dispatch])
+
+  // Clears the delete toast so it does not stick past its moment.
+  useEffect(() => {
+    if (!deletedNote) return
+    const id = window.setTimeout(() => setDeletedNote(false), 2500)
+    return () => window.clearTimeout(id)
+  }, [deletedNote])
 
   const views = useMemo(
     () => applyDiscover(places, {anchor, viewport: scope, category: categoryFilter, toggles, now: new Date()}),
@@ -243,11 +251,14 @@ export function DiscoverPage() {
             onClose={() => dispatch(setSelectedKey(null))}
             onAddToTrip={(p) => setAddForPlace(p)}
             onCreateTrip={handleCreateTrip}
+            onDeleted={() => setDeletedNote(true)}
             creatingTrip={creatingTrip}
           />
         ) : (
           <PlaceBottomSheet places={views} onSelect={(k) => dispatch(setSelectedKey(k))} />
         )}
+
+        {deletedNote && <div className="disc-armed-toast" role="status">ลบแล้ว</div>}
       </div>
 
       {addForPlace && (
