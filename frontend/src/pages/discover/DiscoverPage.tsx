@@ -247,6 +247,10 @@ export function DiscoverPage() {
             AddPlaceMode renders over the map itself. */}
         {armed ? null : selected ? (
           <PlaceSheet
+            // Keyed on the place so switching the selected marker remounts the sheet —
+            // otherwise React reuses the instance across places and a pending delete
+            // flow (chosen trip, confirm stage) survives onto the newly selected place.
+            key={selected.key}
             place={selected}
             onClose={() => dispatch(setSelectedKey(null))}
             onAddToTrip={(p) => setAddForPlace(p)}
