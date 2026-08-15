@@ -560,7 +560,7 @@ export interface LegDto { seconds: number; meters: number; encodedPolyline: stri
 export interface StopDto { id: string; tripPlaceId: string; sequence: number; dwellMinutes: number; travelModeToReach: TravelMode; legToReach: LegDto | null; isVisited: boolean; checklist: StopChecklistEntry[] }
 export interface ItineraryDayDto { id: string; date: string; dayStartTime: string; useCurrentTimeAsStart: boolean; stops: StopDto[] }
 export interface ResolvedPlaceDto { googlePlaceId: string | null; name: string; lat: number; lng: number; address: string | null; category: PlaceCategory; priceLevel: number | null; photoUrl: string | null; openingHoursJson: string | null }
-export interface PlaceTripRefDto { tripId: string; tripName: string }
+export interface PlaceTripRefDto { tripId: string; tripName: string; tripPlaceId: string; scheduledStopCount: number }
 export interface DiscoverPlaceDto {
     key: string
     googlePlaceId: string | null
@@ -1428,8 +1428,11 @@ export const api = createApi({
             query: ({tripId, placeId, ...b}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
-        deleteTripPlace: build.mutation<void, {tripId: string; placeId: string}>({
-            query: ({tripId, placeId}) => ({url: `/api/trips/${tripId}/places/${placeId}`, method: 'DELETE'}),
+        deleteTripPlace: build.mutation<void, {tripId: string; placeId: string; cascade?: boolean}>({
+            query: ({tripId, placeId, cascade}) => ({
+                url: `/api/trips/${tripId}/places/${placeId}${cascade ? '?cascade=true' : ''}`,
+                method: 'DELETE',
+            }),
             invalidatesTags: (_r, _e, a) => [{type: 'TripPlaces', id: a.tripId}, {type: 'TripItinerary', id: a.tripId}, 'MyPlaces'],
         }),
         pushPlaceProfile: build.mutation<TripPlaceDto, {tripId: string; placeId: string}>({
