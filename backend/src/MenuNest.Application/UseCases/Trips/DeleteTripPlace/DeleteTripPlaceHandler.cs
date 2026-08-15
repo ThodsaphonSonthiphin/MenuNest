@@ -20,12 +20,35 @@ public sealed class DeleteTripPlaceHandler : ICommandHandler<DeleteTripPlaceComm
         var place = await _db.TripPlaces.FirstOrDefaultAsync(p => p.Id == c.PlaceId && p.TripId == c.TripId, ct)
             ?? throw new DomainException("Place not found.");
 
-        var isScheduled = await _db.Stops.AnyAsync(
-            s => s.TripPlaceId == c.PlaceId
-              && _db.ItineraryDays.Any(d => d.Id == s.ItineraryDayId && d.TripId == c.TripId), ct);
-        if (isScheduled)
-            throw new DomainException("ลบไม่ได้ — สถานที่นี้ถูกจัดลงตารางแล้ว ลบจุดในแผนก่อน");
+        var scheduled = await _db.Stops
+            .Where(s => s.TripPlaceId == c.PlaceId
+                     && _db.ItineraryDays.Any(d => d.Id == s.ItineraryDayId && d.TripId == c.TripId))
+            .ToListAsync(ct);
 
+        if (scheduled.Count > 0)
+        {
+            if (!c.Cascade)
+                throw new DomainException("ลบไม่ได้ — สถานที่นี้ถูกจัดลงตารางแล้ว ลบจุดในแผนก่อน");
+
+            var removedIds = scheduled.Select(s => s.Id).ToList();
+            _db.Stops.RemoveRange(scheduled);
+
+            // Close the gaps, one day at a time — a Place can be scheduled across several days,
+            // so this is RemoveStopHandler:27-33's invariant applied per affected day. The rows
+            // are only marked Deleted until SaveChanges, so they must be filtered out by id.
+            foreach (var dayId in scheduled.Select(s => s.ItineraryDayId).Distinct())
+            {
+                var remaining = await _db.Stops
+                    .Where(s => s.ItineraryDayId == dayId && !removedIds.Contains(s.Id))
+                    .OrderBy(s => s.Sequence)
+                    .ToListAsync(ct);
+                for (var i = 0; i < remaining.Count; i++) remaining[i].SetSequence(i);
+            }
+        }
+
+        // Stop → TripPlace is DeleteBehavior.NoAction (StopConfiguration.cs:23) — there is no
+        // database cascade, so the Stops above and this row must land in ONE SaveChanges, with
+        // EF ordering the dependents first.
         _db.TripPlaces.Remove(place);
         await _db.SaveChangesAsync(ct);
         return Unit.Value;
