@@ -87,4 +87,51 @@ public class WritingEntryTests
 
         entry.WordsPerMinute.Should().BeApproximately(2.0, 0.001);
     }
+
+    [Fact]
+    public void SoftDelete_sets_DeletedAt()
+    {
+        var entry = WritingEntry.Create(Guid.NewGuid(), Today, "<p>a night to delete</p>", 420);
+        entry.DeletedAt.Should().BeNull();
+
+        entry.SoftDelete();
+
+        entry.DeletedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void UpdateText_changes_text_when_not_yet_corrected()
+    {
+        var entry = WritingEntry.Create(Guid.NewGuid(), Today, "<p>original text here</p>", 420);
+
+        entry.UpdateText("<p>edited text here</p>");
+
+        entry.Text.Should().Be("<p>edited text here</p>");
+    }
+
+    [Fact]
+    public void UpdateText_throws_when_text_is_empty_or_whitespace_only_html()
+    {
+        var entry = WritingEntry.Create(Guid.NewGuid(), Today, "<p>original text here</p>", 420);
+
+        var act = () => entry.UpdateText("<p>   </p>");
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void UpdateText_throws_when_the_entry_is_already_corrected()
+    {
+        // CorrectedAt has no public setter yet -- it stays reserved until Phase
+        // 2's record_writing_correction MCP tool lands (mcp-tool-contract).
+        // Set it via reflection here purely to exercise the lock guard; this is
+        // not how CorrectedAt gets set in production.
+        var entry = WritingEntry.Create(Guid.NewGuid(), Today, "<p>original text here</p>", 420);
+        typeof(WritingEntry).GetProperty(nameof(WritingEntry.CorrectedAt))!
+            .SetValue(entry, DateTime.UtcNow);
+
+        var act = () => entry.UpdateText("<p>trying to edit this now</p>");
+
+        act.Should().Throw<DomainException>();
+    }
 }
