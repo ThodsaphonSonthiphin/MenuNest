@@ -44,3 +44,27 @@
   color: var(--color-text-muted);
   text-align: center;
 }
+
+.writing-submit-btn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  cursor: pointer;
+}
+.writing-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.writing-page .e-richtexteditor.e-control {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+}
