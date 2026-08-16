@@ -34,6 +34,7 @@ import '@syncfusion/react-grid/styles/material.css'
 import '@syncfusion/react-pager/styles/material.css'
 import '@syncfusion/react-scheduler/styles/material.css'
 import '@syncfusion/ej2-react-interactive-chat/styles/material.css'
+import '@syncfusion/ej2-react-richtexteditor/styles/material.css'
 
 import './index.css'
 
