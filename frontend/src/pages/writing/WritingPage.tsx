@@ -1,10 +1,13 @@
 import { useRef, useState } from 'react'
 import {
   RichTextEditorComponent,
+  Inject,
+  Toolbar,
+  Link,
+  HtmlEditor,
+  QuickToolbar,
   type RichTextEditorComponent as RteInstance,
 } from '@syncfusion/ej2-react-richtexteditor'
-import { Inject } from '@syncfusion/ej2-react-base'
-import { Toolbar, Link, HtmlEditor, QuickToolbar } from '@syncfusion/ej2-richtexteditor'
 import { Button, Color, Variant } from '@syncfusion/react-buttons'
 import { useWritingTimer } from './useWritingTimer'
 import { useSubmitWritingEntryMutation } from '../../shared/api/api'
