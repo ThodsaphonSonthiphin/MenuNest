@@ -22,10 +22,15 @@ internal sealed class WritingEntryConfiguration : IEntityTypeConfiguration<Writi
         // Phase 2 (record_writing_correction) -- nullable, unpopulated in Phase 1.
         builder.Property(w => w.TargetRule).HasMaxLength(200);
         builder.Property(w => w.ThaiWhyLine).HasMaxLength(2000);
+        builder.Property(w => w.DeletedAt);
 
         // Hot query for Phase 2's list_pending_writing_entries (CorrectedAt IS NULL)
         // and for a future "my entries" list -- both filter/sort by user + date.
         builder.HasIndex(w => new { w.UserId, w.Date });
+
+        // Hot query for the History screen's ListWritingEntries (UserId + DeletedAt IS NULL),
+        // mirroring DrugConfiguration's (UserId, DeletedAt) index.
+        builder.HasIndex(w => new { w.UserId, w.DeletedAt });
 
         // Same NoAction rationale as Trip/Intake's User FK (see TripConfiguration,
         // IntakeConfiguration): avoids SQL Server's multi-cascade-path rejection
