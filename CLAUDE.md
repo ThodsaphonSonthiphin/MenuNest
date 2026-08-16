@@ -171,3 +171,11 @@ straight through all gates + /scrutinize to prod). Before merge, for any mockup-
 mock (Claude Design -> `DesignSync get_file screens/<name>.html`, or the `docs/mocks/` file) and diff the
 produced CSS/markup against it -- tokens, colors, structural treatment -- and/or verify interactively.
 Passing the gates is NOT evidence the UI matches the mock.
+
+**Playwright e2e (`frontend/e2e/`, runs in CI) is the one mechanism that CAN catch rendering bugs
+automatically -- but only for pages it actually covers.** It caught nothing for #97's `/writing`
+page because no spec ever exercised it (a required Syncfusion stylesheet import was missing, so
+the RTE toolbar rendered as raw unstyled checkboxes in prod -- invisible to `tsc`/`build`/vitest,
+and would have been visible to a Playwright snapshot). Any new page -- especially one pulling in a
+new UI/component library with its own asset requirements -- should get at least a smoke e2e spec
+(`page.goto` + a rendering assertion) before it's considered shippable.
