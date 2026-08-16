@@ -2117,6 +2117,45 @@ class LintTest(unittest.TestCase):
                     None, _DIAGRAM_BODY)
         self.assertIn("gist-too-long", self._rules())
 
+    def test_a_corpus_of_over_long_gists_is_ONE_budget_finding(self):
+        """The cost `gist-too-long` names is not per ticket: `read` returns
+        every stored gist, so the overage is re-read by every session that
+        opens the map. N separate warnings read as N formatting nits, which is
+        how 41 of them accumulated on a real map unnoticed (ADR 0068)."""
+        over = "x" * (map_core.GIST_MAX + 600)
+        for t in ("alpha", "beta"):
+            ops.resolve(self.root, "lint-effort", t, over, None, _DIAGRAM_BODY)
+        found = [f for f in self._lint()["findings"] if f["rule"] == "gist-budget"]
+        self.assertEqual(len(found), 1, found)
+        self.assertEqual(found[0]["severity"], "warning")
+        self.assertIsNone(found[0]["ticket"],
+                          "the corpus is the map's problem, not one ticket's")
+        self.assertIn("1200", found[0]["message"], "the characters over budget")
+        self.assertIn("1600", found[0]["message"], "the whole gist corpus")
+
+    def test_one_mildly_over_gist_is_a_nit_not_a_budget_finding(self):
+        """A check that cries wolf is worse than no check -- the same reason
+        the fog rule's thresholds are strict. One gist a character past the
+        limit is worth the per-ticket warning and nothing more."""
+        ops.resolve(self.root, "lint-effort", "alpha",
+                    "x" * (map_core.GIST_MAX + 1), None, _DIAGRAM_BODY)
+        rules = self._rules()
+        self.assertIn("gist-too-long", rules)
+        self.assertNotIn("gist-budget", rules)
+
+    def test_the_budget_finding_fires_only_PAST_the_slack(self):
+        """The boundary. The condition is `gist_excess > GIST_BUDGET_SLACK`,
+        so an excess of exactly the slack is still silent and one more
+        character is not."""
+        ops.resolve(self.root, "lint-effort", "alpha",
+                    "x" * (map_core.GIST_MAX + map_core.GIST_BUDGET_SLACK),
+                    None, _DIAGRAM_BODY)
+        self.assertNotIn("gist-budget", self._rules(),
+                         "an excess of exactly the slack is within budget")
+        ops.resolve(self.root, "lint-effort", "beta",
+                    "y" * (map_core.GIST_MAX + 1), None, _DIAGRAM_BODY)
+        self.assertIn("gist-budget", self._rules())
+
     # --- claim hygiene ------------------------------------------------------
 
     def test_an_open_ticket_held_by_the_anonymous_default_is_a_warning(self):

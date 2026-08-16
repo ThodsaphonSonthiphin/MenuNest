@@ -130,6 +130,12 @@ GIST_TOO_LONG = (
     "unreadable. Recording it anyway -- consider re-resolving with a "
     "one-sentence gist and moving the detail into --body-file or --link.")
 
+# How far a map's gists may collectively run past GIST_MAX before the corpus
+# itself is worth a finding (ADR 0068). Expressed in whole gists rather than a
+# round number so it tracks GIST_MAX: five gists' worth of overage is noise on
+# a map, and a map past that is re-reading the overage every single session.
+GIST_BUDGET_SLACK = GIST_MAX * 5
+
 
 class ChartValidationError(ValueError):
     """map_input.json failed validation. Raised before anything is written."""
@@ -934,6 +940,7 @@ def lint_findings(map_text, tickets, resolution_bodies=True):
     """
     keys = {t["key"] for t in tickets}
     errors, warnings, edges = [], [], {}
+    gist_chars, gist_over, gist_excess = 0, 0, 0
 
     for t in tickets:
         key = t["key"]
@@ -982,7 +989,10 @@ def lint_findings(map_text, tickets, resolution_bodies=True):
                     "a reader opening it sees prose before they see what was "
                     "decided (ADR 0065)"))
         gist = one_line(t.get("gist") or "")
+        gist_chars += len(gist)
         if len(gist) > GIST_MAX:
+            gist_over += 1
+            gist_excess += len(gist) - GIST_MAX
             warnings.append(_finding(
                 "gist-too-long", LINT_WARNING, key,
                 f"{key!r} carries a {len(gist)}-character gist (limit "
@@ -994,6 +1004,23 @@ def lint_findings(map_text, tickets, resolution_bodies=True):
                 f"{key!r} is claimed by the anonymous default "
                 f"{ANONYMOUS_ASSIGNEE!r}, so the map cannot say which session "
                 "holds it and no other session can tell whether it is live"))
+
+    # The corpus, not the ticket. `read` returns EVERY stored gist, so an
+    # over-long one is not a local blemish -- it is re-read in full by every
+    # session that opens the map, and N separate `gist-too-long` warnings read
+    # as N formatting nits rather than as the recurring cost they actually are.
+    # Raising `gist-too-long` to an error would instead let one map's
+    # accumulated debt block sessions that never touched it, and ADR 0066
+    # already settled that a formatting rule must not cost a recorded
+    # decision. So: name the total, block nothing (ADR 0068).
+    if gist_excess > GIST_BUDGET_SLACK:
+        warnings.append(_finding(
+            "gist-budget", LINT_WARNING, None,
+            f"{gist_over} gists exceed the {GIST_MAX}-character limit; this "
+            f"map's gists total {gist_chars} characters, {gist_excess} of "
+            f"them over budget. `read` carries every one into every session, "
+            f"so shortening those {gist_over} is the single edit that makes "
+            "each future session on this map cheaper"))
 
     by_tokens = [(t["key"], _significant_tokens(t.get("name") or t["key"]))
                  for t in tickets]

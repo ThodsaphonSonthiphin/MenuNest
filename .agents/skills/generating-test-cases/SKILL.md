@@ -44,6 +44,7 @@ Source code gives shape; the live system gives the values that exist nowhere els
 
 **4. Derive cases — coverage dimensions + two-way traceability.**
 Walk every dimension so none is missed: happy · config/validation · integration · **negative/failure/fallback/edge** · UI/DPI · packaging.
+- **Order the OUTPUT by the user journey, not by requirement area.** Emit the happy-path cases that carry the feature end to end FIRST — one per journey step, in the order a real user hits them (open → enter → preview → commit → confirm → downstream surfaces → API/MCP) — so the suite runs top-to-bottom as one pass and each case's preconditions are the previous case's result. Only AFTER the journey is complete do the edge / negative / detail cases follow, grouped by area. Requirement coverage is a **check you run over the finished list**, never the outline you write it from: an area-grouped suite has no end-to-end path, so a tester cannot tell whether the feature works at all.
 - Forward: every requirement / ADR / diff-hunk → ≥1 case. Backward: every case → real Evidence (blank Evidence = not done).
 - Every fix-commit in the touched area → one regression case.
 - Mark Auto/Manual, map automated cases to the real test method, assign Priority, flag **hard gates** (must-pass before sign-off).
@@ -95,6 +96,7 @@ Also: priority scheme? · include Tester/Date columns? · map automated cases to
 - A concrete instance whose **state doesn't satisfy the action's entry-point** (enable rule / status / permission) — a real GUID in the wrong record state is still an unusable test datum.
 - A related entity cited as a **bare id with no entity type/set** — the tester can't tell which table to open (a contact id read as a booking id). Cite it type-qualified: `entityset(guid)` / `table#pk` / resource path.
 - An Expected Result with no Evidence cell filled
+- Cases ordered by requirement area / subsystem with no end-to-end happy path a tester can run top-to-bottom first
 - Picked a format without asking the user
 - Wrote device names / defaults / enum values without running or querying the live system
 
@@ -102,6 +104,7 @@ Also: priority scheme? · include Tester/Date columns? · map automated cases to
 
 - **Happy-path-only** → Step 4's dimensions + backward-trace from git regressions force the failure cases.
 - **Vague "works correctly"** → Step 5 demands an exact verifiable value.
+- **Area-grouped outline** → Step 4's dimension list reads as buckets and pulls toward grouping by requirement; the ORDER is the journey, the dimensions are the coverage check.
 - **Assuming xlsx** → Step 6 asks first; the canonical model (Steps 1–5) is format-blind so re-rendering to a second format is free.
 - **Re-implementing ADO/Jira creation** → delegate to the backlog plugins.
 - **Skipping the live system** → the single most common gap; the real values live there.

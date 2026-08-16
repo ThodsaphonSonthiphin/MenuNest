@@ -1,6 +1,6 @@
 # ADR Format
 
-ADRs live in the repo's ADR directory (usually `docs/adr/`) and use sequential four-digit numbering: `0001-slug.md`, `0002-slug.md`, etc. — see **Numbering** below for which directory and which number.
+ADRs live in the repo's ADR directory (usually `docs/adr/`) and use sequential zero-padded numbering: `0001-slug.md`, `0002-slug.md`, etc. The number's **width** is whatever that sequence already uses (three digits and four are both common), and a repo may also put a **name prefix** in front of it (`menunest-0169-slug.md`). Read both off the existing files — the script under **Numbering** does, and so must you.
 
 Create the ADR directory lazily — only when the first ADR is needed.
 
@@ -51,8 +51,11 @@ m=$( { git for-each-ref --format='%(refname:short)' refs/heads refs/remotes refs
        git ls-files -- "$d"
        git worktree list --porcelain | sed -n 's|^worktree ||p' |
          while IFS= read -r p; do ls "$p/$d" 2>/dev/null; done
-     } | sed 's|.*/||' | grep -oE '^[0-9]{4}' | sort -n | tail -1 )
-printf 'next: %04d\n' $((10#${m:-0} + 1))
+     } | sed 's|.*/||' |
+     sed -E 's|^([A-Za-z][A-Za-z0-9_-]*-)?([0-9]+)[-.].*|\2 \1|;t;d' | sort -n | tail -1 )
+v=${m%% *}; p=${m#* }
+[ -n "$v" ] && printf 'next: %s%0*d\n' "$p" "${#v}" $((10#$v + 1)) ||
+  echo 'next: ? - no numbered ADR found; check the directory'
 ```
 
 ```powershell
@@ -63,19 +66,27 @@ $n += git ls-files -- $d
 git worktree list --porcelain | Where-Object { $_ -like 'worktree *' } |
   ForEach-Object { $p = Join-Path $_.Substring(9) $d
                    if (Test-Path $p) { $n += Get-ChildItem $p -Name } }
-$m = ($n | ForEach-Object { if ($_ -match '(^|/)(\d{4})') { [int]$Matches[2] } } |
-      Measure-Object -Maximum).Maximum
-'next: {0:d4}' -f ([int]$m + 1)
+$t = $n | ForEach-Object { $_ -replace '.*/','' } | ForEach-Object {
+       if ($_ -match '^(?:([A-Za-z][A-Za-z0-9_-]*-))?(\d+)[-.]') {
+         [pscustomobject]@{ v = [int]$Matches[2]; w = $Matches[2].Length; p = $Matches[1] } } } |
+     Sort-Object v | Select-Object -Last 1
+if ($t) { 'next: {0}{1}' -f $t.p, ($t.v + 1).ToString('d' + $t.w) }
+else    { 'next: ? - no numbered ADR found; check the directory' }
 ```
 
-Four ways a hand-rolled version returns a wrong number *silently*: dropping
+Five ways a hand-rolled version returns a wrong number *silently*: dropping
 `--full-tree` (the pathspec then resolves against your cwd, so from a subdirectory
 you scan a different sequence at exit 0); word-splitting a worktree path (repo paths
 contain spaces — take everything after the literal `worktree ` prefix, and ignore the
 HEAD/branch/locked/prunable lines); globbing `**/docs/adr` (folds every sequence and
-every nested worktree into one max); and incrementing a zero-padded number directly
+every nested worktree into one max); incrementing a zero-padded number directly
 (`$((0012+1))` is read as octal and yields 11, `$((0059+1))` errors) instead of
-stripping the zeros and re-padding to four digits.
+stripping the zeros and re-padding to the **same width**; and hard-coding that width,
+or assuming a filename starts with a digit. A `^[0-9]{4}` match finds nothing in a
+three-digit sequence and nothing behind a `menunest-` prefix, so the max reads as
+**empty** and every mint returns `0001` — measured 2026-08-15 against menunest's 168
+ADRs, where the previous version of this script did exactly that. A mint that returns
+`0001` in a populated sequence is that bug, never an answer.
 
 Empty output from any one source is normal — a branch may predate the directory, a
 worktree may not contain it, a stale worktree path is a skip. Only a non-zero exit
@@ -86,14 +97,17 @@ commits still cite the retired number, so filling a hole re-creates the collisio
 **Re-run this immediately before you merge or push** — that is when a parallel
 session's number first becomes visible, and the merge will not flag the clash.
 
-<!-- numbering-rule v2 — this section is byte-identical in the grill-then-plan and
-     grill-with-docs ADR-FORMAT.md twins and in their Antigravity installs. Change
+<!-- numbering-rule v3 — this section is byte-identical in the grill-then-plan and
+     sp-grill-with-doc ADR-FORMAT.md twins and in their Antigravity installs. Change
      every copy together, bump the version here, and check with
-     `grep -rl 'numbering-rule v2'`. Keep it free of plugin-root tokens and of
-     repo-specific paths so the copies can stay identical. -->
+     `grep -rl 'numbering-rule v3'`. Keep it free of plugin-root tokens and of
+     repo-specific paths so the copies can stay identical. Keep it prefix- and
+     width-tolerant: it must read every repo's sequence, not impose one shape. -->
 
 Repo-specific routing (which directory new ADRs go in, whether older per-plugin
-sequences are closed) belongs in that repo's CLAUDE.md / AGENTS.md, not here.
+sequences are closed, whether filenames carry a name prefix and from which number a
+new prefix starts) belongs in that repo's CLAUDE.md / AGENTS.md, not here. This file
+never mandates a prefix or a width — it only reads whatever is already there.
 
 ## When to offer an ADR
 
@@ -114,4 +128,3 @@ If a decision is easy to reverse, skip it — you'll just reverse it. If it's no
 - **Deliberate deviations from the obvious path.** "We're using manual SQL instead of an ORM because X." Anything where a reasonable reader would assume the opposite. These stop the next engineer from "fixing" something that was deliberate.
 - **Constraints not visible in the code.** "We can't use AWS because of compliance requirements." "Response times must be under 200ms because of the partner API contract."
 - **Rejected alternatives when the rejection is non-obvious.** If you considered GraphQL and picked REST for subtle reasons, record it — otherwise someone will suggest GraphQL again in six months.
-

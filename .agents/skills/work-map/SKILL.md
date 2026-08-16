@@ -12,7 +12,7 @@ description: >-
   comes back to a charted effort. Do NOT use to create a map or to add the
   first tickets to a foggy idea (that is chart-map), and do NOT use for a
   single-session design with no map behind it (that is grill-then-plan /
-  grill-with-docs). Never resolves more than one HITL ticket in a session.
+  sp-grill-with-doc). Never resolves more than one HITL ticket in a session.
 ---
 
 # work-map
@@ -164,6 +164,10 @@ Present it as prose, in this order:
 - one line of **blocked**: `<name> — waiting on <blocker name>`;
 - one line of **claimed**, if any: another session is holding these.
 
+One line per item, no filler: aim to keep the whole presentation around ten
+lines, and on a map large enough to blow past that, group rather than itemize --
+"four tickets blocked on `<name>`" beats four lines that each say it once.
+
 A ticket sits in exactly one bucket, and the order is fixed by the contract:
 **claimed** beats **blocked** beats **frontier**. So a claimed ticket does not
 show its blockers here, and a blocked ticket lists only its *open* blockers — a
@@ -187,10 +191,17 @@ session's work: there is no tool backstop, so a second `claim` exits `0` and
 silently replaces the first assignee, and the two sessions then resolve the same
 decision two different ways with no trace that it happened. Ask the user whether
 that session is still live, and say plainly that taking it over means the other
-session's answer will land on a ticket you have already changed. On the local backend the claim records whatever `--user` you passed, and an anonymous
+session's answer will land on a ticket you have already changed. On the local
+backend the claim records whatever `--user` you passed, and an anonymous
 claim (the bare default) names nobody, so the files cannot tell you who
-holds it. On the GitHub backend, `--user` MUST be a valid GitHub username (e.g., from `gh auth status`), not a synthetic name, or the API will return a 422 error. Always pass a real `--user`, as the command below does; for a claim
+holds it. Always pass a real `--user`, as the command below does; for a claim
 already holding an anonymous value, only the user can identify it.
+
+**Taking over a `claimed` ticket does not stop the other session.** There is no
+lock: the user telling you to proceed settles who *should* own it, not who is
+still writing. Expect the other session to keep resolving and to keep charting
+— so re-read the map before every write (Step 5), and treat a second resolution
+appearing on your ticket as evidence it was live, not as your own duplicate.
 
 Then, the moment the user picks or accepts, **claim it — before any work at
 all**:
@@ -239,11 +250,13 @@ told above not to claim over `claimed`.
 The ticket's `type` picks the resolver and the mode (ADR 0038). The ticket's
 **Question** is the scope: if resolving reveals the question was wrong, do not
 silently widen it — re-scope out loud, and record the re-scope in the
-resolution.
+resolution. It is the exit condition too: the moment the Question is answerable,
+stop grilling and go record it (Step 4). Questions that sit past it belong to
+other tickets, or to fog -- breadth was chart-map's job, and it is already done.
 
 | Type | Mode | How you resolve it |
 |---|---|---|
-| `grilling` | HITL | Load `grill-with-docs` the way your harness loads skills — or `grill-then-plan` when this ticket's outcome is meant to be a written plan. **Do NOT ask the questions inline yourself. You MUST explicitly recommend the `/grill-me` slash command or invoke the `grill-with-docs` skill.** **If the ticket is fix-shaped and the cause is not yet verified, verify the cause first with `debug-mantra`: never plan a fix on an unverified cause** (ADR 0003/0011). |
+| `grilling` | HITL | Load `dev-workflows:sp-grill-with-doc` the way your harness loads skills — or `dev-workflows:grill-then-plan` when this ticket's outcome is meant to be a written plan, and ONLY then: its Step 6 hand-off to `superpowers:writing-plans` is mandatory and terminal and its Step 0 makes the superpowers plugin a hard prerequisite, so loading it for a decision-only ticket yields a spec plus an implementation plan per ticket where the map wanted one answer. **If the ticket is fix-shaped and the cause is not yet verified, verify the cause first with `debug-mantra`: never plan a fix on an unverified cause** (ADR 0003/0011). **Pose every question in the user's terms** - name the screen, what they press, and what they would observe; when two or more paths are in play put them in a small table, and make the stake concrete ("you save it under a parent record, you delete that parent later, it disappears"). An answer that comes back as a question ("what do you mean?", "which step of the app is this?") is a framing failure: re-pose it rather than explaining it at greater length. |
 | `prototype` | HITL | Produce the cheap artifact through the ui-mockup mechanism — before the first render, read `references/ui-mockup.md` **as bundled with the dev-workflows plugin** (in this repo, `plugins/dev-workflows/references/ui-mockup.md`; once installed it sits inside that plugin's own directory, wherever your harness put it — the plugin-root path every other file reference in this skill uses points at decision-map, so it cannot address another plugin's file). A Claude Design design-system home is preferred per ADR 0032; a rendered artifact, then a self-contained local `.html`, are fallbacks 2 and 3, used only when the ones above are unavailable. The user reacts to the artifact; their reaction is the decision. Link the artifact onto the ticket with `comment`. |
 | `research` | AFK | Normally already resolved by the chart-time subagents. If it is still open: dispatch a research subagent now, the way your harness runs them, and record its findings with `--body-file` in Step 4. |
 | `task` | either | Do the thing if you can do it unattended; otherwise hand the user a **precise** checklist and wait. Record what was done, and the facts later tickets depend on — a task ticket's value to the map is the facts it leaves behind. |
@@ -252,6 +265,15 @@ resolution.
 to the user, one at a time. Your own recommended answer is a recommendation,
 never an accepted answer — do not resolve a ticket on it. Silence is not
 acceptance, and neither is a plausible-sounding default.
+
+**Frame every question in the user's terms, whatever the ticket's `type`** — name the
+screen, what they press, what they would observe. Restate where the session has got to
+*immediately before* asking: a frame set at session open goes stale across a long
+technical middle. And when a plan, ADR or standing rule already names a route, say so
+and justify any deviation rather than offering a neutral menu. This is not grilling-only
+— a `task` ticket's blocking question (which branch, which environment) fails the same
+way. An answer that comes back as a question is a framing failure: re-pose it, do not
+explain it at greater length.
 
 If the human is not available to answer, stop and say so rather than resolving
 alone. A decision recorded without them is worse than an open ticket: the map
@@ -349,9 +371,16 @@ so the quote is the audit trail that makes that safe (ADR 0039).
 
 One call does all of it: `resolve` writes the resolution block, closes the
 ticket, and re-projects the map's "Decisions so far" index from every closed
-ticket. There is no second call, and no map edit to remember. It is also
-idempotent — re-resolving replaces the previous resolution block rather than
-stacking a second one.
+ticket. There is no second call, and no map edit to remember.
+
+**On local it is idempotent — re-resolving replaces the previous resolution
+block. On GitHub it is NOT: the resolution is an issue comment, so a second
+`resolve` posts a SECOND `## Resolution` comment** (the ticket's gist markers
+and the map index do get replaced either way). **Count the gist yourself before
+the first call** — a `--gist` past ~200 characters is warned about only *after*
+it has been recorded, and re-resolving to shorten it leaves two resolutions on
+the timeline. Seen 2026-08-10: ticket #16 of `claude-model-router` carries four,
+two from each of two concurrent sessions.
 
 **A measured gate must name the ref it was measured on.** A route count, a test
 tally or a file count is true of one commit, and a resolution stating it bare is
@@ -459,8 +488,28 @@ nothing else**: its status, assignee, gist and resolution block are untouched
 (ADR 0058). If you see an `OVERWRITE` line and did not deliberately pass
 `--force`, stop and investigate.
 
+**Re-read the map before you approve — the Step 1 snapshot is stale.** `read`
+and `frontier` describe the map as it was when you ran them, and a parallel
+session can create tickets, resolve them or comment *after* that. On GitHub the
+tell is cheap: issue numbers are sequential, so a ticket numbered higher than
+the highest you saw in Step 1 was written by someone else while you worked.
+Re-run `read` immediately before `--real` and diff the ticket list against your
+Step 1 copy. If something new appeared, check whether your graduation duplicates
+it BEFORE creating — `lint` reports the map clean either way. Seen 2026-08-10 on
+`claude-model-router`: `gate-rearm-scope` (#17) and `effort-ratchet-persistence`
+(#18) are the same question, charted 8 minutes apart by two sessions that had
+each resolved the same ticket.
+
 **3. Ask for explicit approval. Never create without it.** The approval is for
 the plan you just showed — if the input changes at all, re-run the dry run.
+
+**Carry the end-of-session commit offer in this same ask, on local.** In the
+same message, ask whether to commit `docs/decision-map/<slug>/` and any repo
+docs this session produced, once the session ends -- so the session pauses once,
+here, instead of twice. This does not weaken assisted git: a bundled offer is
+still an explicit offer the user answers, and nothing is committed without that
+yes. On GitHub there is nothing to commit for the map itself, but any repo docs
+still need the same ask.
 
 **4. On approval, re-run with `--real`:**
 
@@ -565,12 +614,20 @@ Report, in this order:
 - the frontier for next time, **by name**;
 - the fog lines still unspecified.
 
+Same discipline as the Step 1 frontier: one line per bullet, no filler, around
+ten lines in total -- group rather than itemize when a bullet would otherwise run
+to a list of its own.
+
 Offer to commit any repo docs the resolution produced — an ADR written during a
 grilling ticket is exactly the file that gets orphaned when only the map is
 committed — **plus, on local, `docs/decision-map/<slug>/` itself**. On GitHub the
 map needs no commit (it is already live in the tracker), but the repo docs still
 do, and that is the half most easily forgotten when the map is not a file.
-Assisted git: offer, never automatic.
+Assisted git: offer, never automatic. If the Step 5 gate already carried this
+offer and the user approved it there, commit now without asking a second time --
+the yes you are holding *is* that explicit offer, answered. If there was no
+graduation this session, no gate ran and no offer rode along with it, so this is
+the ask, exactly as before.
 
 Then suggest `/decision-map:work` for the next session, and stop.
 
@@ -594,4 +651,3 @@ Three different situations, and they need different answers:
   unblocked work, or a blocker is still open under someone else's claim.
   Nothing to pick up; say who holds what and stop. If a `claimed` ticket looks
   abandoned, releasing it is the hand edit in Step 2, and it is the user's call.
-

@@ -165,7 +165,7 @@ Answer comes back: *"น่าจะอัพเดทไม่ครบ"* - cla
 | Situation | Go to |
 |---|---|
 | They want it explained, not to be asked | `feynman-explain` |
-| Challenging a **plan** before it is built | `grill-then-plan` / `grill-with-docs` |
+| Challenging a **plan** before it is built | `grill-then-plan` / `sp-grill-with-doc` |
 | It has turned into reviewing the work itself | `scrutinize` |
 | What surfaced should become a durable lesson | `reflect` |
 | An interactive click-through would land it better | `problem-description` |

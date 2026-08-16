@@ -96,7 +96,7 @@ must name its nearest neighbour in the "NOT when" column.
 - It's a simple bug fix where understanding is trivial
 - The user wants to read code (use `drive-to-legacy` instead)
 - The user wants a polished UI/component (use `frontend-design` instead)
-- The user wants to *find* the bug, not *teach* it (use `superpowers:systematic-debugging` instead)
+- The user wants to *find* the bug, not *teach* it (use `debug-mantra` instead)
 
 ## The Process — 6 Phases
 
@@ -107,6 +107,26 @@ Before generating ~500 lines of HTML, ask:
 > "อยากได้ interactive step-by-step walkthrough (HTML page เปิดในเบราว์เซอร์), หรือคำตอบสั้นๆ พอ?"
 
 **Skip Phase 0** if the user explicitly asked for "walkthrough", "animation", "visualization", "step by step", "ทำ animation", "diagram", "interactive", or similar artifact-shape language.
+
+**Then ask the second artifact-shape question — the app screen mock:**
+
+> "อยากให้ walkthrough มี mock หน้าจอจริงของแอป (เช่น grid/form ที่ผู้ใช้เห็น) ด้วยไหม, หรือเอาแค่ diagram ของ flow?"
+
+Ask this whenever the problem is visible *on a screen* — a wrong number in a column, a
+button that is disabled, a row that vanishes. A mock earns its place because the reader
+recognizes the screen they actually use, which turns an abstract column name into the cell
+they have looked at a hundred times. Skip the question only when nothing about the problem
+reaches the UI (a build gate, a migration script, a server-side race).
+
+If they say yes:
+- **Build the mock from the mode pack's own state model** — render the changing cells as
+  `.comp` groups registered in the renderer's `COMPONENTS`, so the pack's existing state
+  CSS (`active`/`error`/`done`/`locked`) drives them. Do NOT invent new CSS states or hexes.
+- **Match the real columns**, in the real order, read off the component source — not from
+  memory of what the screen probably shows.
+- **Fill the cells with MEASURED values if the system is live and queryable.** One
+  read-only query beats invented rows, and grounded data routinely surfaces a sharper
+  story than the one you set out to tell.
 
 ### Phase 1 — Identify the core misunderstanding AND pick the mode
 
@@ -336,6 +356,7 @@ If you need to "add" a panel mid-walkthrough, declare it once in the initial HTM
 | Same element never highlighted in the conflict step | Pick concrete data so at least one element is hit by every problematic path. |
 | Flying-label rect too small / clipped text | Measure your label text length; widen the `<rect>` to fit comfortably. |
 | Invented term definitions instead of CONTEXT.md | Source from the project glossary; author a fallback only when the term is absent (ADR 0017). |
+| A helper builds `data-term` dynamically (string-concatenating the key into the attribute) | `check-walkthrough.py` scans for the literal attribute, so the run fails — and a helper defeats the referential-integrity guarantee anyway. Keep spans literal; for DRY use one const per term holding the COMPLETE span. |
 | Over-marking — every other word is drillable | Mark only terms *beyond* the reader's stated prerequisites. |
 | Copying the drawer/engine code into a mode pack | The primitive lives once; inline via the assembler (`--drawer`, engine §). A pack is verified by assembly, not raw. (ADRs 0019, 0020) |
 | A scene opens/closes/reads the drawer | The drawer is reader-driven framework, never scene state. Keep scenes pure. |

@@ -34,6 +34,8 @@ CAREER-GROWTH — five stations, full run every time
   │     runs without an explicit pick)
   ▼
   ⑤ PLAN        cert-driven guideline
+       readiness-checked, ranked by
+       moat-fit ÷ hours still to spend
        mini projects from exam objectives
        → career repo, assisted commit
 ```
@@ -138,14 +140,18 @@ not optional:
 Gather: demand (posting counts per ring, primary artifacts counted per stage 4
 before citing commentary), the certificates employers name (each live-verified
 per stage 2 before it may be mentioned), compensation signals where boards
-expose them (aggregator numbers grade `Directional`, per the sibling), and the
+expose them (aggregator numbers grade `Directional`, per the sibling), the
 3-year outlook (triangulated — at least three signal types — with the
-AI-absorption assessment stated per skill).
+AI-absorption assessment stated per skill), and — for every certificate that
+survives verification — a **published preparation-hour figure** and whether the
+vendor offers a **practice assessment**. Station 5's readiness check needs both;
+record "not published" explicitly rather than leaving the field absent.
 
 Write **`market-report.md`** to the career repo: overview Mermaid diagram (rings
 × demand), a demand table per ring (skill · postings · source · date ·
 **confidence grade**), the verified cert list (code, registry status,
-`verified_on`, registry URL), the counter-signals found (or "looked, found
+`verified_on`, registry URL, published prep hours or "not published", practice
+assessment available yes/no), the counter-signals found (or "looked, found
 none"), the institutional-incentive findings (with any dated cliff), and the
 triangulated outlook with each signal cited and graded. Also record **what was
 not checked** — geographies skipped, sources that blocked, questions left open.
@@ -189,27 +195,66 @@ and an overview Mermaid decision diagram (chosen vs rejected).
 
 For the chosen moat:
 
-1. **Target certs** — select the certificates that evidence the moat, each
+1. **Candidate certs** — identify the certificates that evidence the moat, each
    already live-verified in Station 2. If the chosen moat needs a certificate
    Station 2 did not verify, verify it now via `verify-then-advise`'s
    registry-verification stage before naming it — if the registry is
    unreachable or the cert is retired, say so and fall back to the non-cert
-   milestone route in item 3 instead of naming an unverified cert. Fetch each
-   exam's **study guide** and extract its objective domains.
-2. **Mini projects** — design each project *backwards from exam objectives*: the
+   milestone route in item 4 instead of naming an unverified cert. Fetch each
+   exam's **study guide** and extract its objective domains. This produces a
+   candidate list, **not yet a ranking** — item 2 decides the order.
+
+2. **Readiness check — the person, not just the moat.** Moat fit alone picks
+   the cert that best *describes* the destination, which is not the same as the
+   cert that best *repays the hours*. For each candidate cert, take its objective
+   domains from item 1 and grade every domain against `profile.md`:
+   **known** (a `verified` entry already attests it) · **partial** ·
+   **unknown** (no entry, or only `unverified` ones). Then:
+
+   - Estimate **remaining hours** from the partial + unknown share weighted by
+     each domain's published exam weighting — never from the exam's total
+     nominal prep time, which assumes a stranger.
+   - **A published practice assessment outranks any estimate.** Where the vendor
+     offers one, say so and instruct the user to sit it cold as a measurement
+     before the cert is scheduled; the estimate stands only until that number
+     exists. Where the vendor offers none — common for a newly released exam —
+     state that plainly and label the hour figure **unvalidated**, because
+     nothing downstream will re-check it.
+   - Record the readiness grade per domain in `growth-plan.md`, not just the
+     total. The domain table is what makes a wrong estimate visible next round.
+
+3. **Rank, and show the trade.** Order the candidates by
+   **moat-fit ÷ remaining hours**, not by moat-fit alone. A cert the user has
+   largely already earned through delivered work can outrank a closer-fitting
+   one — most sharply when the user currently holds **no live credential**, or
+   when a dated employer/partner cliff from Station 2 lands sooner than the
+   closer cert could. Where the two orderings disagree, present both with the
+   cost of each in hours and let the user choose; never silently resolve it.
+   State any cert dropped from the plan and why, so a later round can revisit.
+
+4. **Mini projects** — design each project *backwards from exam objectives*: the
    project exists to build the knowledge the exam tests; passing the exam is the
-   milestone. Size each to the user's stated study hours — if study hours were
-   never captured (the interview's *Constraints & preferences* section can be
-   skipped), ask for them now before sizing. Offer (never require) to publish
-   each project to a public repo when its content allows — record
-   `published_url` when taken.
-3. **Non-cert milestones** — any moat component with no matching cert gets an
+   milestone. Aim each project at the domains the readiness check graded
+   **unknown** — hours spent on already-known domains buy nothing. Size each to
+   the user's stated study hours — if study hours were never captured (the
+   interview's *Constraints & preferences* section can be skipped), ask for them
+   now before sizing. Offer (never require) to publish each project to a public
+   repo when its content allows — record `published_url` when taken.
+
+5. **Non-cert milestones** — any moat component with no matching cert gets an
    explicit alternative milestone (a shipped artifact or delivered work), stated
-   in the same pass/fail form.
-4. Write **`growth-plan.md`** to the career repo (overview Mermaid diagram: certs
-   + projects on a quarter timeline; then per-project sections: objective
-   domains covered, milestone, size, publish decision).
-5. **Wrap up:** propose the career-repo commit (assisted — show the diff
+   in the same pass/fail form. A milestone that costs no study hours (publishing
+   existing work, a conversation with an employer, confirming a credential's
+   expiry) is listed **first**, since it buys moat progress without spending the
+   scarcest resource.
+
+6. Write **`growth-plan.md`** to the career repo (overview Mermaid diagram: certs
+   + projects on a quarter timeline; the readiness table per candidate cert with
+   its per-domain grades and remaining-hour figure, marked validated or
+   unvalidated; the ranking with the trade shown; then per-project sections:
+   objective domains covered, milestone, size, publish decision).
+
+7. **Wrap up:** propose the career-repo commit (assisted — show the diff
    summary, let the user approve). On approval, write/finalise
    **`growth-state.md`**'s `last_run` (and the round's other fields) per
    `references/growth-state-contract.md`, **then** commit all five artifacts
@@ -229,6 +274,7 @@ For the chosen moat:
 |---|---|
 | A job board 403s | try the alternates in `references/market-sources.md`; only then report the metric unavailable |
 | Vendor cert registry unreachable | withhold cert recommendations — never from memory; keep a previously-targeted cert's existing status and leave its stale `verified_on` in place, noting the verification could not be refreshed. `retired-blocked` is only for a confirmed retirement listing |
+| No published prep hours and no practice assessment for a cert | rank it anyway, on the estimate, but label the figure **unvalidated** in `growth-plan.md` and name the missing measurement as a risk — never present an unmeasured estimate as a schedule |
 | `ado-backlog` absent | skip the ADO source with an explicit notice |
 | No web access at all | the run stops after INVENTORY — Stations 2 through 5 do not run, because without market evidence the `paid` and `durable` tests cannot be argued; say why, never fabricate |
 | User rejects all candidates | loop to Station 3 with their objections as constraints |
@@ -240,7 +286,7 @@ For the chosen moat:
   incentive read, and the four-grade claim scale. Station 2 runs its
   six-stage method in full; career-growth owns the person-side inventory,
   the trend-signal taxonomy, and the decision structure (the four-test moat
-  argument, the approval gate, the cert-driven plan).
+  argument, the approval gate, the readiness-ranked cert plan).
   Precedence: reach for career-growth for the full periodic review; reach for
   `verify-then-advise` for a single verified recommendation, or to check
   whether one named product or credential is still current.

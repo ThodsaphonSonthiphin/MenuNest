@@ -1,6 +1,6 @@
 ---
 name: grill-then-plan
-description: Like grill-with-docs (domain-aware grilling, glossary sharpening, inline CONTEXT.md/ADR capture) BUT continues into the superpowers planning pipeline by handing off to superpowers:writing-plans at the end. Use ONLY when the user wants both the grilling AND a written implementation plan produced afterward; if they want grilling/docs alone, use grill-with-docs instead. Requires the superpowers plugin.
+description: Like sp-grill-with-doc (domain-aware grilling, glossary sharpening, inline CONTEXT.md/ADR capture) BUT continues into the superpowers planning pipeline by handing off to superpowers:writing-plans at the end. Use ONLY when the user wants both the grilling AND a written implementation plan produced afterward; if they want grilling/docs alone, use sp-grill-with-doc instead. Requires the superpowers plugin.
 ---
 
 <what-to-do>
@@ -82,6 +82,35 @@ understanding. Walk down each branch of the design tree, resolving dependencies
 between decisions one-by-one. For each question, provide your recommended answer.
 Ask one question at a time and wait for feedback before continuing. If a question
 can be answered by exploring the codebase, explore the codebase instead of asking.
+
+## Step 2.5 - Ask in the user's terms, not the model's
+
+The person answering knows the product, not necessarily the schema. Pose every
+question in what they can see and do -- which screen, what they press, what
+happens next -- and only then give the model-level backing. When two or more
+paths are in play, a small table beats prose:
+
+| | where | what you press | what it writes |
+|---|---|---|---|
+| A | the screen that exists today | the control already on it | a row owned by its parent |
+| B | the screen we are changing | no such control exists yet - it is what we are adding | a row owned by nobody |
+
+The table is the SHAPE, not the scope. The same framing fits a queue, a schema,
+a CLI flag or a cron job: name the surface the user would actually observe,
+whatever that surface is.
+
+Then make the stake observable with one concrete walk-through: "you save an
+item while working inside project X; three months later you delete project X;
+today the item disappears from your library too." A user who cannot picture
+the consequence cannot choose between the options.
+
+Two tells that the FRAMING was wrong rather than the explanation: the answer
+comes back as a question ("what do you mean?", "which step of the app is
+this?"), or you needed entity names and ADR numbers just to state the options.
+Re-pose it - do not re-explain it at greater length.
+
+Put trade-off reasoning in the message body where it can actually be read;
+keep option labels to a few words.
 
 ## Step 3 — Stay domain-aware while grilling
 
@@ -186,4 +215,3 @@ system silently breaks the plan built on it.
 After the user approves the spec, invoke `superpowers:writing-plans` to produce
 the implementation plan. This is the terminal state — do NOT invoke any other
 implementation skill.
-

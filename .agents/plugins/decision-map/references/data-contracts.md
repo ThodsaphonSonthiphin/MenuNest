@@ -165,8 +165,15 @@ enforced it. Prose is advisory; this is the deterministic half.
 | `closed-without-resolution` | error | a ticket is closed but carries no recorded answer, so the map indexes a decision nobody can read. Keyed on the **resolution region** on local and on the **gist region** on a tracker — see `notChecked`. |
 | `resolution-without-diagram` | warning | a resolution body carries no ```` ```mermaid ```` block (ADR 0065). |
 | `gist-too-long` | warning | a stored gist exceeds `GIST_MAX`. `resolve` warns on stderr and records it anyway, so the only way to find it afterwards is here. |
+| `gist-budget` | warning | the map's gists collectively run more than `GIST_BUDGET_SLACK` (`GIST_MAX * 5`) past `GIST_MAX`. Reported **once per map**, because `read` returns every stored gist and the overage is therefore re-read by every session that opens the map — a property of the corpus, not of any one ticket (ADR 0068). |
 | `anonymous-claim` | warning | an **open** ticket is held by the literal `--user` default `me`, which names nobody. Structurally impossible on a tracker, where the caller is resolved for real. |
 | `fog-line-graduated` | warning | a line under "Not yet specified" reads as a ticket that already exists. An additive `chart` never deletes, so graduating fog leaves the old line behind and the map keeps advertising a question it has answered. |
+
+**`gist-budget` is the only finding that carries `ticket: null`.** Every other
+rule names the ticket it fires on — `blocker-cycle` covers several and still
+names one of them. This one names the map, so a consumer that assumes
+`finding.ticket` is always a key on the map breaks on it. That assumption was
+never part of this contract; ADR 0068 is where the map-level unit is argued.
 
 `fog-line-graduated` is the only **heuristic** rule: it matches significant
 words between a fog line and a ticket title, and its thresholds are deliberately

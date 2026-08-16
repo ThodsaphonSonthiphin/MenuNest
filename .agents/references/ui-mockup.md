@@ -1,7 +1,7 @@
 # UI mockup-in-the-loop (a grilling aid)
 
 A way to grill a UI decision by *showing* it, not describing it. Used from inside a
-grilling session (grill-then-plan, grill-with-docs) — never a standalone step.
+grilling session (grill-then-plan, sp-grill-with-doc) — never a standalone step.
 
 ## When it applies
 
