@@ -24,6 +24,7 @@ public sealed class ListWritingEntriesHandler
         return await _db.WritingEntries
             .Where(w => w.UserId == user.Id && w.DeletedAt == null)
             .OrderByDescending(w => w.Date)
+            .ThenByDescending(w => w.CreatedAt)
             .Select(w => new WritingEntryDto(
                 w.Id, w.Date, w.Text, w.ElapsedSeconds, w.WordsPerMinute, w.CorrectedAt, w.CreatedAt))
             .ToListAsync(ct);
