@@ -58,5 +58,8 @@ public interface IApplicationDbContext
     // Durable SPA sessions (ADR-161/162) — separate from the MCP proxy's store.
     DbSet<AppSession> AppSessions { get; }
 
+    // Writing practice module (issue #97)
+    DbSet<WritingEntry> WritingEntries { get; }
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
