@@ -1,7 +1,7 @@
 ---
 type: daily-state
 schema_version: 1
-updated: '2026-08-12T14:53:47+07:00'
+updated: '2026-08-14T09:00:30+07:00'
 ---
 
 ## Log
@@ -482,3 +482,23 @@ EOF
 - 2026-08-12T14:36:09+07:00 — fix(auth): per-request bearer, symmetric auth-failure handling, session reclaim (#5) (913d7e2)
 - 2026-08-12T14:42:03+07:00 — fix(auth): fall back to the acquired provider token in AuthAdaptor (#5) (775c6ae)
 - 2026-08-12T14:53:47+07:00 — docs(auth): ADR 159-162 + spec and plan for the durable SPA session (#5) (0207b29)
+- 2026-08-13T15:03:07+07:00 — . (f7c4b97)
+- 2026-08-13T15:06:53+07:00 — docs(discover): ADR-163 - one shared capture component, both maps get every input (#48) (91abdb5)
+- 2026-08-13T15:33:31+07:00 — docs(discover): ADR-164 - four explicit capture mode pills, Discover capture mock approved (#48) (550380f)
+- 2026-08-13T15:56:41+07:00 — docs(trips): ADR-165 - add-stop picker mock approved, short category labels, three empty states (#48) (260378c)
+- 2026-08-13T16:16:28+07:00 — docs(discover): spec + Plan A for the #48 capture feature (#48) (4c45fe6)
+- 2026-08-13T16:24:50+07:00 — feat(trips): TripPlace gains an opaque OriginTripPlaceId (#48) (051686a)
+- 2026-08-13T16:34:11+07:00 — feat(trips): AddTripPlace stores the origin key and copies enrichment when no master (#48) (1921f4a)
+- 2026-08-13T16:42:49+07:00 — fix(trips): AddTripPlace is idempotent for an exact place_id, no longer a 500 (#48) (5d148f0)
+- 2026-08-13T16:51:12+07:00 — fix(trips): reuse PlaceProfileSync.ExistsAsync + cover HasProfile on idempotent path (#48) (180bfb3)
+- 2026-08-13T18:05:37+07:00 — feat(discover): group by the flattened origin root so one place is one card (#48) (70f8bae)
+- 2026-08-13T18:16:03+07:00 — feat(discover): both add paths pass the flattened origin root and enrichment (#48) (8a4665a)
+- 2026-08-13T19:11:32+07:00 — fix(trips): copied enrichment is applied per-field, not gated on master existence (#48) (4c37484)
+- 2026-08-13T19:15:22+07:00 — docs(discover): the ADR-156 correction was pre-push, not post-push (#48) (cc65fed)
+- 2026-08-13T22:59:08+07:00 — feat(trips): an empty-ground tap captures a coordinate place (#48) (012476c)
+- 2026-08-14T00:00:26+07:00 — fix(trips): a coordinate capture shows no 'guessed by Google' badge (#48) (9ace4f8)
+- 2026-08-14T07:44:19+07:00 — fix(discover): the add-to-trip picker reaches every trip, and the screen matches its mock (#48) (0e0dcd4)
+- 2026-08-14T08:01:41+07:00 — docs(trips): Plan B for #48 — four-input resolver, duplicate awareness and MCP (#48) (c8057aa)
+- 2026-08-14T08:38:01+07:00 — fix(discover): trip search reaches past the first page, and the locate FAB tracks the sheet (#48) (a467972)
+- 2026-08-14T08:42:26+07:00 — docs(trips): Plan B refuses short Plus Codes and excludes every already-saved row (#48) (da2d1c3)
+- 2026-08-14T09:00:30+07:00 — fix(trips): Google ccTLD share links are no longer rejected (#48) (b0101ca)
