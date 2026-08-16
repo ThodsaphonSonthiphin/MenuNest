@@ -8,6 +8,7 @@ import { LoginPage } from './pages/auth'
 import { JoinFamilyPage, FamilyPage } from './pages/family'
 import { DashboardPage } from './pages/dashboard'
 import { PomodoroPage } from './pages/pomodoro'
+import { WritingPage } from './pages/writing'
 import { RecipesPage, RecipeDetailPage } from './pages/recipes'
 import { StockPage } from './pages/stock'
 import { MealPlanPage } from './pages/meal-plan'
@@ -66,6 +67,7 @@ export const router = createBrowserRouter([
           { path: '/health/share', element: <ShareLinksPage /> },
           { path: '/health/settings', element: <HealthSettingsPage /> },
           { path: '/pomodoro', element: <PomodoroPage /> },
+          { path: '/writing', element: <WritingPage /> },
           { path: '/trips', element: <TripsPage /> },
           { path: '/trips/:tripId', element: <TripDetailPage /> },
           { path: '/discover', element: <DiscoverPage /> },
