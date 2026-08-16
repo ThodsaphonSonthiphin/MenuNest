@@ -44,6 +44,7 @@ public sealed class SubmitWritingEntryHandler : ICommandHandler<SubmitWritingEnt
             Text: entry.Text,
             ElapsedSeconds: entry.ElapsedSeconds,
             WordsPerMinute: entry.WordsPerMinute,
+            CorrectedAt: entry.CorrectedAt,
             CreatedAt: entry.CreatedAt);
     }
 }
