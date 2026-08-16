@@ -39,6 +39,7 @@ import type {
     UploadSasResponse,
     VapidPublicKeyDto,
 } from './healthTypes'
+import type {SubmitWritingEntryRequest, WritingEntryDto} from './writingTypes'
 
 /**
  * Single, app-wide RTK Query API. All endpoints for every feature
@@ -665,6 +666,7 @@ export const api = createApi({
         'TripItinerary',
         'ChecklistItems',
         'MyPlaces',
+        'WritingEntries',
     ],
     endpoints: (build) => ({
         // -------------------- Me / Family --------------------
@@ -1596,6 +1598,15 @@ export const api = createApi({
                 {type: 'TripDetail', id: a.tripId},
             ],
         }),
+        // -------------------- Writing practice --------------------
+        submitWritingEntry: build.mutation<WritingEntryDto, SubmitWritingEntryRequest>({
+            query: (body) => ({
+                url: '/api/writing-entries',
+                method: 'POST',
+                body,
+            }),
+            invalidatesTags: [{type: 'WritingEntries', id: 'LIST'}],
+        }),
     }),
 })
 
@@ -1750,6 +1761,8 @@ export const {
     useGetStopWeatherQuery,
     useGetHourlyForecastQuery,
     useRetimeStopMutation,
+    // -------- Writing practice --------
+    useSubmitWritingEntryMutation,
 } = api
 
 export const {
