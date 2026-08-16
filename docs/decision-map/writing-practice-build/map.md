@@ -17,6 +17,7 @@ Source map: learn-writing-english (home-and-tooling, daily-unit, feedback-rubric
 <!-- decision-map:decisions:start -->
 - [Correction invocation - how does the AI correction actually run?](tickets/ai-correction-invocation.md) — Correction runs via the writer's personal Claude Code over MCP, reusing the Trip-tools OAuth-proxy pattern -- no new LLM key inside MenuNest's server.
 - [Done-day redefinition - does 'done' still require reading the correction the same night?](tickets/done-day-redefinition.md) — The 7-minute timer alone counts as done for this build; correction is decoupled and can happen whenever, superseding habit-mechanics' same-night pairing for this implementation.
+- [Entry mutability - can a writer edit or delete a past freewrite entry after submission?](tickets/entry-mutability.md) — Full CRUD via a new History screen: entries are editable/deletable; a correction locks the text (entry still deletable); delete is soft so the monthly comparison can still read it.
 - [MCP tool contract - what does the WritingTools MCP class expose?](tickets/mcp-tool-contract.md) — WritingTools exposes 4 MCP tools -- list_pending_writing_entries, get_active_target_rule, set_active_target_rule, record_writing_correction; entry creation stays in-app, never MCP.
 - [One-tap access - does the build do anything about notification capture at unlock?](tickets/one-tap-access.md) — Nothing extra for v1 -- a normal page in MenuNest's existing nav; the notification-capture risk from habit-mechanics stays accepted and unsolved.
 - [Target-rule rotation - who flips the monthly target grammar rule?](tickets/rule-rotation.md) — The writer flips the active target grammar rule by hand -- not an automatic calendar rotation.
@@ -27,7 +28,7 @@ Source map: learn-writing-english (home-and-tooling, daily-unit, feedback-rubric
 
 <!-- decision-map:fog:start -->
 - Draft autosave/crash-recovery for the 7-minute freewrite if the phone locks hard, the browser crashes, or the battery dies mid-session - not addressed anywhere yet.
-- Editing or deleting a past entry once submitted - no ticket in the source map or this session addressed whether entries are ever mutable after the fact.
+- Restoring (undo) a soft-deleted writing entry -- entry-mutability (ADR-169) only decided that delete is soft; no UI or mechanism for bringing a deleted entry back was discussed.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
