@@ -64,6 +64,9 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     // Durable SPA sessions (ADR-161/162) — separate from the MCP proxy's store.
     public DbSet<AppSession> AppSessions => Set<AppSession>();
 
+    // Writing practice module (issue #97)
+    public DbSet<WritingEntry> WritingEntries => Set<WritingEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
