@@ -49,4 +49,31 @@ public sealed class WritingEntryConfigurationTests
         reloaded.ElapsedSeconds.Should().Be(420);
         reloaded.CorrectedAt.Should().BeNull();
     }
+
+    [Fact]
+    public async Task Soft_deleted_entry_keeps_its_row_and_records_DeletedAt()
+    {
+        using var conn = new SqliteConnection("DataSource=:memory:");
+        conn.Open();
+        using var db = NewContext(conn);
+
+        var user = User.CreateFromExternalLogin(
+            externalId: "wp-test-oid-2",
+            email: "wp2@example.com",
+            displayName: "WP Test 2",
+            authProvider: AuthProvider.Microsoft);
+        db.Users.Add(user);
+        await db.SaveChangesAsync();
+
+        var entry = WritingEntry.Create(
+            user.Id, new DateOnly(2026, 8, 16), "<p>a night to soft delete</p>", 420);
+        db.WritingEntries.Add(entry);
+        await db.SaveChangesAsync();
+
+        entry.SoftDelete();
+        await db.SaveChangesAsync();
+
+        var reloaded = await db.WritingEntries.SingleAsync(w => w.Id == entry.Id);
+        reloaded.DeletedAt.Should().NotBeNull();
+    }
 }
