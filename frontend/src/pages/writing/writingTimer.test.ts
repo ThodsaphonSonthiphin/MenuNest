@@ -25,6 +25,11 @@ describe('writingTimer', () => {
     expect(computeRemainingMs(startedAt, wayLater)).toBe(0)
   })
 
+  it('computeRemainingMs stays bounded to TIMER_DURATION_MS even if the clock jumps backward', () => {
+    const startedAt = 1_000_000
+    expect(computeRemainingMs(startedAt, startedAt - 1000)).toBe(TIMER_DURATION_MS)
+  })
+
   it('isTimerDone is false before the duration elapses and true at/after it', () => {
     const startedAt = 1_000_000
     expect(isTimerDone(startedAt, startedAt)).toBe(false)
