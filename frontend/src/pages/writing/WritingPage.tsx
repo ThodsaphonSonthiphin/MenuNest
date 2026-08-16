@@ -36,7 +36,7 @@ export function WritingPage() {
 
   const handleSubmit = async () => {
     const html = rteRef.current?.getHtml() ?? ''
-    const elapsedSeconds = Math.round((Date.now() - startedAtMs) / 1000)
+    const elapsedSeconds = Math.min(3600, Math.round((Date.now() - startedAtMs) / 1000))
     setSubmitError(null)
     try {
       await submitWritingEntry({
@@ -44,7 +44,8 @@ export function WritingPage() {
         text: html,
         elapsedSeconds,
       }).unwrap()
-    } catch {
+    } catch (err) {
+      console.error('submitWritingEntry failed', err)
       setSubmitError('ส่งไม่สำเร็จ ลองอีกครั้ง')
     }
   }
