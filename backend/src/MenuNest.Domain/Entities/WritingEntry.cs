@@ -27,6 +27,8 @@ public sealed partial class WritingEntry : Entity
     public string? SentenceCombiningItemsJson { get; private set; }
     public string? StuckWordsJson { get; private set; }
 
+    public DateTime? DeletedAt { get; private set; }
+
     // EF Core
     private WritingEntry() { }
 
@@ -55,6 +57,39 @@ public sealed partial class WritingEntry : Entity
             ElapsedSeconds = elapsedSeconds,
             WordsPerMinute = minutes > 0 ? wordCount / minutes : 0
         };
+    }
+
+    /// <summary>
+    /// Edits the text of an entry that has not yet been corrected. Once
+    /// CorrectedAt is set, the recorded HitCount/MissCount/ThaiWhyLine
+    /// describe specific text -- letting that text drift under them would
+    /// make the correction lie, so entry-mutability (ADR-169) locks it.
+    /// WordsPerMinute is deliberately left unchanged: it measures the
+    /// original timed writing session, not a later typo fix.
+    /// </summary>
+    public void UpdateText(string text)
+    {
+        if (CorrectedAt is not null)
+            throw new DomainException("Cannot edit text after a correction has been recorded.");
+
+        var wordCount = CountWords(text);
+        if (wordCount == 0)
+            throw new DomainException("Text must contain at least one word.");
+
+        Text = text;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Soft-deletes the entry (ADR-169) -- allowed even when the text is
+    /// locked by a correction; the lock only blocks edits, not deletion.
+    /// The row stays so the monthly old-vs-new comparison (progress-signal)
+    /// can still resolve a deleted night if the rotation lands on it.
+    /// </summary>
+    public void SoftDelete()
+    {
+        DeletedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     /// <summary>
