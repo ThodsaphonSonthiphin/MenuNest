@@ -29,6 +29,7 @@ public class SubmitWritingEntryHandlerTests
         result.Date.Should().Be(new DateOnly(2026, 8, 16));
         result.ElapsedSeconds.Should().Be(420);
         result.WordsPerMinute.Should().BeApproximately(9.0 / 7.0, 0.001);
+        result.CorrectedAt.Should().BeNull();
 
         var stored = fx.Db.WritingEntries.Single();
         stored.UserId.Should().Be(fx.User.Id);

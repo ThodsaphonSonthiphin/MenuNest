@@ -1,8 +1,7 @@
 namespace MenuNest.Application.UseCases.Writing;
 
 /// <summary>
-/// A submitted writing-practice entry — returned after
-/// <c>POST /api/writing-entries</c>.
+/// A writing-practice entry, as returned by submit, list, and update-text.
 /// </summary>
 public sealed record WritingEntryDto(
     Guid Id,
@@ -10,4 +9,5 @@ public sealed record WritingEntryDto(
     string Text,
     int ElapsedSeconds,
     double WordsPerMinute,
+    DateTime? CorrectedAt,
     DateTime CreatedAt);
