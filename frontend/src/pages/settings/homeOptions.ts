@@ -8,6 +8,7 @@ export type HomeOption = {
 export const HOME_OPTIONS: HomeOption[] = [
   { path: '/health', label: 'Health', requiresFamily: false },
   { path: '/pomodoro', label: 'Pomodoro', requiresFamily: false },
+  { path: '/writing', label: 'เขียน', requiresFamily: false },
   { path: '/trips', label: 'Trips', requiresFamily: false },
   { path: '/discover', label: 'ไปไหนดี', requiresFamily: false },
   { path: '/recipes', label: 'Recipes', requiresFamily: true },
