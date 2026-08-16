@@ -1,0 +1,46 @@
+.writing-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.writing-timer {
+  text-align: center;
+  font-size: 40px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+
+.writing-timer-note {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+
+.writing-done-badge {
+  margin-top: 12px;
+  background: #fff3e0;
+  color: var(--color-primary);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.writing-error {
+  margin-top: 8px;
+  color: var(--color-danger);
+  font-size: 12px;
+  text-align: center;
+}
+
+.writing-correction-note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
