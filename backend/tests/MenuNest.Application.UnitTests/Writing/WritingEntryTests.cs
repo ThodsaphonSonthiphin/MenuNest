@@ -61,4 +61,30 @@ public class WritingEntryTests
         double.IsNaN(entry.WordsPerMinute).Should().BeFalse();
         double.IsInfinity(entry.WordsPerMinute).Should().BeFalse();
     }
+
+    [Fact]
+    public void Create_throws_when_text_is_only_a_non_breaking_space_entity()
+    {
+        // <p>&nbsp;</p> is visually/effectively empty content -- without entity
+        // normalization the tag-stripped text is "&nbsp;", which is non-empty
+        // after Trim() and would defeat the "must contain at least one word"
+        // guard. It must be rejected exactly like literal whitespace already is.
+        var act = () => WritingEntry.Create(Guid.NewGuid(), Today, "<p>&nbsp;</p>", 60);
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void Create_treats_nbsp_as_a_word_separator_in_words_per_minute()
+    {
+        // "one&nbsp;two" is two words joined by a non-breaking space, not one
+        // token -- if &nbsp; isn't normalized to a real space, this would count
+        // as a single "word" and understate the WPM signal.
+        var entry = WritingEntry.Create(
+            Guid.NewGuid(),
+            Today,
+            "<p>one&nbsp;two</p>",
+            elapsedSeconds: 60);
+
+        entry.WordsPerMinute.Should().BeApproximately(2.0, 0.001);
+    }
 }

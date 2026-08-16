@@ -58,20 +58,25 @@ public sealed partial class WritingEntry : Entity
     }
 
     /// <summary>
-    /// Approximate word count of RTE-produced HTML: strips tags, collapses
+    /// Approximate word count of RTE-produced HTML: strips tags, normalizes
+    /// HTML whitespace entities (&nbsp;) to real spaces, collapses
     /// whitespace, splits on spaces. Good enough for a words-per-minute
     /// signal — not a precise linguistic tokenizer.
     /// </summary>
     private static int CountWords(string html)
     {
         var stripped = TagRegex().Replace(html, " ");
-        var normalized = stripped.Trim();
+        var withoutEntities = NbspRegex().Replace(stripped, " ");
+        var normalized = withoutEntities.Trim();
         if (normalized.Length == 0) return 0;
         return WhitespaceRegex().Split(normalized).Length;
     }
 
     [GeneratedRegex("<[^>]*>")]
     private static partial Regex TagRegex();
+
+    [GeneratedRegex("&nbsp;|&#160;|&#xa0;", RegexOptions.IgnoreCase)]
+    private static partial Regex NbspRegex();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex WhitespaceRegex();
