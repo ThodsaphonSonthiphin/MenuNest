@@ -81,6 +81,7 @@ export function SettingsPage() {
   // The active target grammar rule (separate PUT — see api.ts setActiveTargetRule;
   // deliberately NOT folded into the full-snapshot persist() above).
   const [ruleDraft, setRuleDraft] = useState('')
+  const [ruleSaved, setRuleSaved] = useState(false)
 
   // Hydrate once, same pattern and same reason as the weather thresholds above:
   // saving patches the getMe cache, so re-syncing on later changes would fight
@@ -96,8 +97,10 @@ export function SettingsPage() {
     if (isLoadingProfile) return
     const rule = normalizeTargetRule(explicit ?? ruleDraft)
     if (rule === (activeTargetRule ?? null)) return
+    setRuleSaved(false)
     try {
       await setTargetRule({ rule }).unwrap()
+      setRuleSaved(true)
     } catch (err) {
       console.error('setActiveTargetRule failed', err)
     }
@@ -245,7 +248,19 @@ export function SettingsPage() {
             aria-labelledby="settings-rule-label"
             disabled={isLoadingProfile}
             onChange={(e) => setRuleDraft(e.target.value)}
-            onBlur={() => void persistRule()}
+            onBlur={(e) => {
+              // A preset click blurs the input FIRST (standard DOM order), then
+              // fires its own onClick -> persistRule(preset). If this handler
+              // also persisted unconditionally, both calls fire back-to-back
+              // and can resolve out of order, leaving the server holding the
+              // typed text while the optimistically-patched UI shows the
+              // preset -- a silent divergence for the one string the AI
+              // grades against. Skip when focus is moving to a preset button;
+              // its own click handler owns the persist in that case. Do not
+              // remove this guard as dead code.
+              if ((e.relatedTarget as HTMLElement | null)?.classList.contains('settings-rule-preset')) return
+              void persistRule()
+            }}
           />
           <div className="settings-rule-presets">
             {TARGET_RULE_PRESETS.map((preset) => (
@@ -261,6 +276,7 @@ export function SettingsPage() {
             ))}
           </div>
           {isSavingRule && <span className="settings-saved">กำลังบันทึก...</span>}
+          {ruleSaved && !isSavingRule && <span className="settings-saved">บันทึกแล้ว</span>}
         </div>
       </div>
 
