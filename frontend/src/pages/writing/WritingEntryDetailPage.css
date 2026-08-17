@@ -1,0 +1,125 @@
+.writing-detail-page {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.writing-detail-back-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 8px;
+}
+
+.writing-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.writing-detail-date {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.writing-history-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.writing-history-badge--pending {
+  background: #fff3e0;
+  color: #b26a00;
+}
+
+.writing-history-badge--corrected {
+  background: #e6f4ea;
+  color: #1e7e34;
+}
+
+.writing-detail-text {
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  min-height: 120px;
+}
+
+.writing-detail-status,
+.writing-detail-error {
+  padding: 16px 0;
+  text-align: center;
+  font-size: 13px;
+}
+
+.writing-detail-error {
+  color: var(--color-danger);
+}
+
+.writing-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.writing-detail-save-btn,
+.writing-detail-edit-btn {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.writing-detail-cancel-btn,
+.writing-detail-delete-btn,
+.writing-detail-confirm-no {
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.writing-detail-delete-btn {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+}
+
+.writing-detail-confirm-delete {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.writing-detail-confirm-yes {
+  background: var(--color-danger);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.writing-detail-locked-note {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
