@@ -394,6 +394,75 @@ the glossary wins until the glossary is deliberately changed.
 - _Phase-2 terms (not in MVP — see ADR-009): **Traveller / TripMember**, **Split**,
   **Settle-up**, **Trip expense**, **Trip summary**. Defined when that phase starts._
 
+## Writing practice
+
+- **Freewrite** — the timed English writing rep a **User** performs on the `/writing` page:
+  7 minutes, counting down from 7:00, written without stopping to fix anything. The timer is
+  **wall-clock** — it keeps running through a screen-lock or an app-switch, and a reload restores
+  the true remaining time rather than restarting. Family-**un**gated and **User**-scoped, like a
+  **Trip**: the text is the writer's own diary and is never shared to a **Family**.
+  _Avoid_: session (ambiguous with **App session**), exercise, drill, journal entry.
+- **Writing entry** — the stored record of one **Freewrite**: one row per **User** per **Date**,
+  holding the submitted `Text`, the `ElapsedSeconds` actually spent, and the derived
+  **Words-per-minute**. Created **only** in the app, by the writing page's own submit button —
+  **never over MCP**, which is a deliberate boundary of the MCP contract and not an omission.
+  It later gains a **Correction**. Its **Date** is the night it belongs to, which is not
+  necessarily when the row was written.
+  _Avoid_: entry (bare, in code that also handles other modules), note, submission, post.
+- **Done day** — a **Date** on which the **User** completed the 7-minute **Freewrite**. The timer
+  **alone** makes the day done; a **Correction** is decoupled and may never arrive. This is a
+  deliberate divergence from the source decision map, which paired writing and correction in the
+  same night. _Avoid_: streak (explicitly forbidden — see **Correction**), completed day, rep.
+- **Target rule** — the *one* grammar rule a **Correction** is allowed to judge, in the writer's
+  own words (e.g. `past simple -ed`, `third-person singular -s`). One rule at a time, on purpose:
+  a **Correction** marks that rule and leaves every other error alone.
+  _Avoid_: rule (bare), grammar point, lesson, topic.
+- **Active target rule** — the **Target rule** currently in force for a **User**, stored on
+  `UserSettings` (max 200 characters; a blank value clears it and means "not set yet"). Rotated
+  **by hand**, and reachable by **two** routes that perform the *same* write: the `/settings`
+  control (the everyday route) and the `set_active_target_rule` **MCP tool**. Copied onto a
+  **Writing entry** when a **Correction** is recorded, so an old entry keeps the rule it was
+  actually judged against even after the active rule moves on.
+  _Avoid_: current rule, this month's rule (rotation is manual, not monthly).
+- **Correction** — the result of the AI critique of one **Writing entry** against one
+  **Target rule**, recorded in a single write and made of **five fixed blocks**: **Marked text**,
+  a hit count and a miss count, a **Thai why-line**, 3–4 **Sentence-combining items**, and the
+  **Stuck words**. It returns **evidence, never judgement**: it must not rewrite the writer's text,
+  score it, or show a streak. Recorded **only over MCP**, by the writer's own Claude Code — MenuNest
+  holds no LLM key of its own. Recording one sets `CorrectedAt`, which is the single fact that tells
+  a corrected night from a waiting one, and which **locks** the entry's text (ADR-169).
+  _Avoid_: feedback, review (that is a **Review link**, a Trip concept), grading, marking (bare —
+  say **Marked text** or "record a Correction"), edit (a **Correction** never changes `Text`).
+- **Marked text** — the writer's original text with the **Target rule**'s instances marked in
+  place as hit or miss, and **every other word left untouched**. A copy alongside `Text`, never a
+  replacement for it. _Avoid_: corrected text, rewrite, diff, annotated text.
+- **Thai why-line** — the one line of Thai in a **Correction** that explains *why* the
+  **Target rule** holds. One line by design: the format is a reminder, not a lesson.
+  _Avoid_: explanation, tip, note (that is a **Place note**, a Trip concept).
+- **Sentence-combining item** — one of the 3–4 items in a **Correction**, each built from the
+  writer's **own** sentences of that night: a `{ source, combined }` pair. The minimum is **not**
+  enforced — a Thai-only night has no English sentences to combine, so an empty list is valid and
+  only the upper bound of 4 is a rule. _Avoid_: exercise, drill, practice item.
+- **Stuck word** — one Thai word the writer could not say in English that night (bracketed in the
+  **Freewrite** as they wrote), paired with its English translation: a `{ thai, english }` pair.
+  _Avoid_: vocabulary, unknown word, gap.
+- **Pending entry** — a **Writing entry** that has **no Correction yet** and is not deleted; the
+  set the `list_pending_writing_entries` **MCP tool** returns, and what the **รอตรวจ** badge and
+  filter show. Read-time only — there is no "pending" column; it is `CorrectedAt is null`.
+  _Avoid_: unmarked, uncorrected, queue, backlog.
+- **Locked (writing)** — the state of a **Writing entry** after a **Correction** is recorded: its
+  **text** can no longer be edited, because the recorded hit and miss counts describe *that* text
+  and letting it drift would make the **Correction** lie (ADR-169). It locks the **text only** — a
+  locked entry stays **deletable**. The lock is live: it takes effect while the detail page is open,
+  mid-edit, and any unsaved typing is discarded at that moment.
+  _Avoid_: frozen, read-only (the entry is not read-only — it can still be deleted), archived,
+  finalised.
+- **Words-per-minute** — the derived writing speed of a **Writing entry**: its word count over its
+  `ElapsedSeconds`. **Derived, never an input** — it is computed from what the entry and the
+  **Correction** already carry, and is deliberately **not** an MCP tool parameter, so the assistant
+  cannot flatter the writer by supplying a number. Unchanged by a later text edit: it measures the
+  original timed **Freewrite**, not a typo fix. The same rule governs target-errors-per-100-words.
+  _Avoid_: WPM (bare, in prose), speed, typing speed.
 ## Build & release
 
 - **App version** -- the build identity of a deployed MenuNest surface: a **SemVer-2.0** string
