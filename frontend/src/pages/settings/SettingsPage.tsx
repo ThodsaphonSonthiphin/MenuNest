@@ -4,8 +4,9 @@ import type { ChangeEvent as DDLChangeEvent } from '@syncfusion/react-dropdowns'
 import { NumericTextBox } from '@syncfusion/react-inputs'
 import { Checkbox } from '@syncfusion/react-buttons'
 import { useCurrentUser } from '../../shared/hooks/useCurrentUser'
-import { useUpdateUserSettingsMutation, useGetVersionQuery } from '../../shared/api/api'
+import { useUpdateUserSettingsMutation, useSetActiveTargetRuleMutation, useGetVersionQuery } from '../../shared/api/api'
 import { homeOptions } from './homeOptions'
+import { TARGET_RULE_PRESETS, MAX_TARGET_RULE_LENGTH, normalizeTargetRule } from './targetRuleOptions'
 import {
   alertControlFromStored, storedFromAlertControl, clampThreshold,
   UV_MIN, UV_MAX, FEELS_MIN, FEELS_MAX,
@@ -16,8 +17,9 @@ import { APP_VERSION, APP_COMMIT, BUILD_TIME } from '../../shared/version/buildI
 import './SettingsPage.css'
 
 export function SettingsPage() {
-  const { familyId, homePath, uvWarnThreshold, feelsLikeWarnThreshold, isLoadingProfile } = useCurrentUser()
+  const { familyId, homePath, activeTargetRule, uvWarnThreshold, feelsLikeWarnThreshold, isLoadingProfile } = useCurrentUser()
   const [updateSettings, { isLoading }] = useUpdateUserSettingsMutation()
+  const [setTargetRule, { isLoading: isSavingRule }] = useSetActiveTargetRuleMutation()
   const [saved, setSaved] = useState(false)
   const { data: apiVersion, isLoading: apiLoading, isError: apiError } = useGetVersionQuery()
   const buildDate = new Date(BUILD_TIME).toLocaleString('th-TH', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -74,6 +76,31 @@ export function SettingsPage() {
       uvStored: storedFromAlertControl(uvOn, uvVal),
       feelsStored: storedFromAlertControl(feelsOn, feelsVal),
     })
+  }
+
+  // The active target grammar rule (separate PUT — see api.ts setActiveTargetRule;
+  // deliberately NOT folded into the full-snapshot persist() above).
+  const [ruleDraft, setRuleDraft] = useState('')
+
+  // Hydrate once, same pattern and same reason as the weather thresholds above:
+  // saving patches the getMe cache, so re-syncing on later changes would fight
+  // the user's own typing.
+  const hasHydratedRule = useRef(false)
+  useEffect(() => {
+    if (isLoadingProfile || hasHydratedRule.current) return
+    hasHydratedRule.current = true
+    setRuleDraft(activeTargetRule ?? '')
+  }, [isLoadingProfile, activeTargetRule])
+
+  const persistRule = async (explicit?: string) => {
+    if (isLoadingProfile) return
+    const rule = normalizeTargetRule(explicit ?? ruleDraft)
+    if (rule === (activeTargetRule ?? null)) return
+    try {
+      await setTargetRule({ rule }).unwrap()
+    } catch (err) {
+      console.error('setActiveTargetRule failed', err)
+    }
   }
 
   return (
@@ -187,6 +214,53 @@ export function SettingsPage() {
             </div>
             <p className="settings-weather-field__hint">แนะนำ ~35–40°</p>
           </div>
+        </div>
+      </div>
+
+      <div className="settings-row">
+        <div className="settings-row__label">
+          <span className="settings-row__icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="8.5" />
+              <circle cx="12" cy="12" r="4.5" />
+              <circle cx="12" cy="12" r="0.9" fill="currentColor" stroke="none" />
+            </svg>
+          </span>
+          <div>
+            <div className="settings-row__title" id="settings-rule-label">กฎเป้าหมายเดือนนี้</div>
+            <div className="settings-row__sub">
+              กฎเดียวที่ AI จะตรวจให้ — ที่ผิดข้ออื่นจะเห็นแต่เงียบไว้. เปลี่ยนที่นี่ หรือบอก Claude ในแชทก็ได้ (ค่าเดียวกัน)
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-rule-controls">
+          <input
+            className="settings-rule-input"
+            type="text"
+            value={ruleDraft}
+            maxLength={MAX_TARGET_RULE_LENGTH}
+            placeholder="ยังไม่ได้ตั้ง — AI จะถามก่อนตรวจ"
+            aria-labelledby="settings-rule-label"
+            disabled={isLoadingProfile}
+            onChange={(e) => setRuleDraft(e.target.value)}
+            onBlur={() => void persistRule()}
+          />
+          <div className="settings-rule-presets">
+            {TARGET_RULE_PRESETS.map((preset) => (
+              <button
+                key={preset}
+                type="button"
+                className="settings-rule-preset"
+                disabled={isLoadingProfile}
+                onClick={() => { setRuleDraft(preset); void persistRule(preset) }}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
+          {isSavingRule && <span className="settings-saved">กำลังบันทึก...</span>}
         </div>
       </div>
 

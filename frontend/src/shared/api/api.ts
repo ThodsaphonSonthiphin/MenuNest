@@ -133,6 +133,7 @@ export interface MeDto {
     homePath: string | null
     uvWarnThreshold: number | null
     feelsLikeWarnThreshold: number | null
+    activeTargetRule: string | null
 }
 
 export interface FamilyDto {
@@ -696,6 +697,29 @@ export const api = createApi({
                         draft.homePath = arg.homePath
                         draft.uvWarnThreshold = arg.uvWarnThreshold
                         draft.feelsLikeWarnThreshold = arg.feelsLikeWarnThreshold
+                    })
+                )
+                try {
+                    await queryFulfilled
+                } catch {
+                    patch.undo()
+                }
+            },
+        }),
+        // The in-app half of mcp-tool-contract's set_active_target_rule. Separate
+        // from updateUserSettings because that PUT is a full snapshot (ADR-091)
+        // and does not carry the rule.
+        setActiveTargetRule: build.mutation<{ activeTargetRule: string | null }, { rule: string | null }>({
+            query: (body) => ({
+                url: '/api/me/target-rule',
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: ['Me'],
+            async onQueryStarted(arg, {dispatch, queryFulfilled}) {
+                const patch = dispatch(
+                    api.util.updateQueryData('getMe', undefined, (draft) => {
+                        draft.activeTargetRule = arg.rule
                     })
                 )
                 try {
@@ -1666,6 +1690,7 @@ export const publicApi = createApi({
 export const {
     useGetMeQuery,
     useUpdateUserSettingsMutation,
+    useSetActiveTargetRuleMutation,
     useCreateFamilyMutation,
     useJoinFamilyMutation,
     useListFamilyMembersQuery,

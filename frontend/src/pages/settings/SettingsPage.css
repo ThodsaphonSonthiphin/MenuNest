@@ -79,3 +79,40 @@
   font-size: 12px;
   color: var(--sd-muted, #6b7280);
 }
+.settings-rule-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 220px;
+  flex: 1 1 260px;
+}
+.settings-rule-input {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: inherit;
+  background: #fff;
+}
+.settings-rule-input:disabled {
+  opacity: 0.5;
+}
+.settings-rule-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.settings-rule-preset {
+  border: 1px solid var(--color-border);
+  border-radius: 99px;
+  padding: 4px 11px;
+  font-size: 12.5px;
+  background: #fff3e0;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+.settings-rule-preset:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
