@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
 

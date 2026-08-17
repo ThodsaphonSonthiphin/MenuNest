@@ -32,6 +32,11 @@ public sealed class RecordWritingCorrectionValidator : AbstractValidator<RecordW
         RuleFor(x => x.SentenceCombiningItems).Cascade(CascadeMode.Stop).NotNull()
             .Must(items => items.Count <= 4)
             .WithMessage("SentenceCombiningItems must contain 4 items or fewer.");
+        // A null ELEMENT is reachable: the coach sends this over MCP as JSON, so
+        // `[null]` deserializes to a one-element list holding null. Without this it
+        // validates clean and persists as `[null]` for a later reader to trip over.
+        RuleForEach(x => x.SentenceCombiningItems).NotNull()
+            .WithMessage("SentenceCombiningItems must not contain null items.");
         RuleForEach(x => x.SentenceCombiningItems).ChildRules(item =>
         {
             item.RuleFor(i => i.Source).NotEmpty().MaximumLength(1000);
@@ -41,6 +46,8 @@ public sealed class RecordWritingCorrectionValidator : AbstractValidator<RecordW
         RuleFor(x => x.StuckWords).Cascade(CascadeMode.Stop).NotNull()
             .Must(words => words.Count <= 50)
             .WithMessage("StuckWords must contain 50 items or fewer.");
+        RuleForEach(x => x.StuckWords).NotNull()
+            .WithMessage("StuckWords must not contain null items.");
         RuleForEach(x => x.StuckWords).ChildRules(word =>
         {
             word.RuleFor(w => w.Thai).NotEmpty().MaximumLength(200);
