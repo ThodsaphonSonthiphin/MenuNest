@@ -86,4 +86,30 @@ public sealed class GetMeHandlerTests
         me.UvWarnThreshold.Should().Be(6);
         me.FeelsLikeWarnThreshold.Should().Be(40);
     }
+
+    [Fact]
+    public async Task Returns_the_active_target_rule_when_one_is_set()
+    {
+        using var fx = new HandlerTestFixture();
+        var settings = UserSettings.Create(fx.User.Id);
+        settings.SetActiveTargetRule("third-person singular -s");
+        fx.Db.UserSettings.Add(settings);
+        await fx.Db.SaveChangesAsync();
+        var handler = new GetMeHandler(fx.UserProvisioner.Object, fx.Db);
+
+        var me = await handler.Handle(new GetMeQuery(), CancellationToken.None);
+
+        me.ActiveTargetRule.Should().Be("third-person singular -s");
+    }
+
+    [Fact]
+    public async Task Returns_a_null_active_target_rule_when_no_settings_row_exists()
+    {
+        using var fx = new HandlerTestFixture();
+        var handler = new GetMeHandler(fx.UserProvisioner.Object, fx.Db);
+
+        var me = await handler.Handle(new GetMeQuery(), CancellationToken.None);
+
+        me.ActiveTargetRule.Should().BeNull();
+    }
 }

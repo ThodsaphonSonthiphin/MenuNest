@@ -37,6 +37,7 @@ public sealed class GetMeHandler : IQueryHandler<GetMeQuery, MeDto>
             AuthProvider: user.AuthProvider.ToString(),
             HomePath: settings?.HomePath,
             UvWarnThreshold: settings?.UvWarnThreshold,
-            FeelsLikeWarnThreshold: settings?.FeelsLikeWarnThreshold);
+            FeelsLikeWarnThreshold: settings?.FeelsLikeWarnThreshold,
+            ActiveTargetRule: settings?.ActiveTargetRule);
     }
 }
