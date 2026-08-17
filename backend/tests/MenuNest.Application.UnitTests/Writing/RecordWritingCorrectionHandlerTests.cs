@@ -259,4 +259,34 @@ public class RecordWritingCorrectionHandlerTests
 
         await act.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task Rejects_a_null_item_inside_the_sentence_combining_collection()
+    {
+        using var fx = new HandlerTestFixture();
+        var entry = await SeedPending(fx);
+
+        // Reachable over MCP: the tool's JSON payload can carry `[null]`.
+        var act = async () => await Handler(fx).Handle(
+            ACommand(entry.Id) with
+            {
+                SentenceCombiningItems = new List<SentenceCombiningItemDto> { null! },
+            },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task Rejects_a_null_item_inside_the_stuck_words_collection()
+    {
+        using var fx = new HandlerTestFixture();
+        var entry = await SeedPending(fx);
+
+        var act = async () => await Handler(fx).Handle(
+            ACommand(entry.Id) with { StuckWords = new List<StuckWordDto> { null! } },
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
 }

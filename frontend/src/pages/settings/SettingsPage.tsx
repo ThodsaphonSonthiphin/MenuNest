@@ -255,9 +255,17 @@ export function SettingsPage() {
               // and can resolve out of order, leaving the server holding the
               // typed text while the optimistically-patched UI shows the
               // preset -- a silent divergence for the one string the AI
-              // grades against. Skip when focus is moving to a preset button;
-              // its own click handler owns the persist in that case. Do not
-              // remove this guard as dead code.
+              // grades against.
+              //
+              // TWO mechanisms are needed, because this one is not enough on its
+              // own: relatedTarget is only the preset button in engines that focus
+              // a <button> on click. WebKit (Safari, iOS) and Firefox/macOS do not,
+              // so there the guard never fires. The preset's onMouseDown
+              // preventDefault below is what actually stops the double PUT on
+              // pointer input everywhere -- the input never loses focus, so this
+              // handler never runs. This check still earns its place for the
+              // KEYBOARD path (Tab moves focus to the preset, then Enter clicks),
+              // where no mousedown happens at all. Do not remove either one.
               if ((e.relatedTarget as HTMLElement | null)?.classList.contains('settings-rule-preset')) return
               void persistRule()
             }}
@@ -269,6 +277,11 @@ export function SettingsPage() {
                 type="button"
                 className="settings-rule-preset"
                 disabled={isLoadingProfile}
+                // Keep focus in the input: without this the input blurs first and
+                // its onBlur persists the TYPED text, racing this button's own PUT.
+                // The onBlur relatedTarget check cannot cover this on WebKit or
+                // Firefox, which never focus a clicked button -- see onBlur above.
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => { setRuleDraft(preset); void persistRule(preset) }}
               >
                 {preset}

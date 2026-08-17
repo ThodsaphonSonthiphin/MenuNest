@@ -162,6 +162,49 @@ test.describe('Writing — active target rule (settings control)', () => {
     expect(putBodies).toEqual([{ rule: 'third-person singular -s' }])
   })
 
+  test('clicking a preset never blurs the input (the guard the relatedTarget check cannot give us)', async ({
+    authedPage: page,
+  }) => {
+    // The case above proves the OUTCOME in Chromium; this one pins the
+    // MECHANISM, because the outcome is browser-dependent and this suite runs
+    // Chromium only (playwright.config.ts has a single project). The onBlur
+    // relatedTarget guard only works in engines that focus a <button> on click;
+    // WebKit and Firefox do not, so there it never fires. What actually closes
+    // the race everywhere is the preset's onMouseDown preventDefault: the input
+    // never loses focus, so onBlur never runs and there is no typed-text PUT to
+    // race. Asserting focus stays put is therefore a real cross-browser
+    // guarantee measured in the one browser we have -- delete the
+    // preventDefault and this fails here, before it can ship broken to a phone.
+    await page.route('**/api/me', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ ...ME_BASE, activeTargetRule: null }),
+      })
+    })
+    await page.route('**/api/me/target-rule', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ activeTargetRule: 'third-person singular -s' }),
+      })
+    })
+
+    await page.goto('/settings')
+    await page.waitForLoadState('domcontentloaded')
+
+    const input = page.locator('.settings-rule-input')
+    await input.fill('unsaved draft text')
+    await expect(input).toBeFocused()
+
+    await page.locator('.settings-rule-preset', { hasText: 'third-person singular -s' }).click()
+
+    // Still focused: the click never moved focus, so the blur path was never
+    // entered on ANY engine.
+    await expect(input).toBeFocused()
+    await expect(input).toHaveValue('third-person singular -s')
+  })
+
   test('renders usably at phone width (390px) -- no horizontal overflow', async ({ authedPage: page }) => {
     // #97 already shipped one rendering bug (missing RTE stylesheet import)
     // that was invisible to tsc/build/vitest. The writer uses this control
