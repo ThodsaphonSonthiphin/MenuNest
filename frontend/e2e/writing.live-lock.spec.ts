@@ -43,4 +43,40 @@ test.describe('Writing — live lock while editing', () => {
     // No "try again" message should ever have appeared in this flow.
     await expect(page.getByText('ลองอีกครั้ง')).toHaveCount(0)
   })
+
+  test('a save refused by the lock says so instead of offering a retry', async ({
+    authedPage: page,
+  }) => {
+    // The narrower race the poll cannot cover: the correction lands AFTER the
+    // click, while the PUT is in flight. The page still believes the entry is
+    // unlocked, so the honest message has to come from the server's refusal.
+    await page.route('**/api/writing-entries', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([pending]),
+      })
+    })
+    await page.route(`**/api/writing-entries/${ENTRY_ID}`, async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          title: 'Request rejected',
+          detail: 'Cannot edit text after a correction has been recorded.',
+          status: 400,
+        }),
+      })
+    })
+
+    await page.goto(`/writing/history/${ENTRY_ID}`)
+    await page.getByRole('button', { name: 'แก้ไข' }).click()
+    await page.getByRole('button', { name: 'บันทึก' }).click()
+
+    await expect(
+      page.getByText('คืนนี้ถูกตรวจแล้ว — แก้ข้อความไม่ได้'),
+    ).toBeVisible()
+    // The whole point: never tell the writer to retry a PUT that cannot succeed.
+    await expect(page.getByText('ลองอีกครั้ง')).toHaveCount(0)
+  })
 })

@@ -15,6 +15,7 @@ import {
   useDeleteWritingEntryMutation,
 } from '../../shared/api/api'
 import { formatDateThai } from './formatDate'
+import { saveErrorMessage } from './saveErrorMessage'
 import './WritingHistoryPage.css'
 import './WritingEntryDetailPage.css'
 
@@ -57,13 +58,10 @@ export function WritingEntryDetailPage() {
       setIsEditing(false)
     } catch (err) {
       console.error('updateWritingEntryText failed', err)
-      // A correction may have landed between render and save. "Try again" would
-      // be a lie — that PUT can never succeed.
-      setError(
-        isLocked
-          ? 'คืนนี้ถูกตรวจแล้ว — แก้ข้อความไม่ได้'
-          : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'
-      )
+      // A correction can land while this PUT is in flight, so the page's own
+      // correctedAt may still be stale here. The server's 400 is the only
+      // signal that is never stale -- "try again" would be a lie.
+      setError(saveErrorMessage(err))
     }
   }
 
@@ -147,7 +145,7 @@ export function WritingEntryDetailPage() {
           <div className="writing-detail-locked-note">ตรวจแล้ว — แก้ข้อความไม่ได้ (ลบทั้งรายการได้)</div>
         ) : isEditing ? (
           <>
-            <button type="button" className="writing-detail-save-btn" onClick={handleSave} disabled={isSaving || isLocked}>
+            <button type="button" className="writing-detail-save-btn" onClick={handleSave} disabled={isSaving}>
               บันทึก
             </button>
             <button
