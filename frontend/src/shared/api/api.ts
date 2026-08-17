@@ -39,7 +39,7 @@ import type {
     UploadSasResponse,
     VapidPublicKeyDto,
 } from './healthTypes'
-import type {SubmitWritingEntryRequest, WritingEntryDto} from './writingTypes'
+import type {SubmitWritingEntryRequest, UpdateWritingEntryTextRequest, WritingEntryDto} from './writingTypes'
 
 /**
  * Single, app-wide RTK Query API. All endpoints for every feature
@@ -1607,6 +1607,34 @@ export const api = createApi({
             }),
             invalidatesTags: [{type: 'WritingEntries', id: 'LIST'}],
         }),
+        listWritingEntries: build.query<WritingEntryDto[], void>({
+            query: () => '/api/writing-entries',
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map((e) => ({type: 'WritingEntries' as const, id: e.id})),
+                        {type: 'WritingEntries', id: 'LIST'},
+                    ]
+                    : [{type: 'WritingEntries', id: 'LIST'}],
+        }),
+        updateWritingEntryText: build.mutation<WritingEntryDto, {id: string} & UpdateWritingEntryTextRequest>({
+            query: ({id, ...body}) => ({
+                url: `/api/writing-entries/${id}`,
+                method: 'PUT',
+                body,
+            }),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'WritingEntries', id: a.id},
+                {type: 'WritingEntries', id: 'LIST'},
+            ],
+        }),
+        deleteWritingEntry: build.mutation<void, string>({
+            query: (id) => ({url: `/api/writing-entries/${id}`, method: 'DELETE'}),
+            invalidatesTags: (_r, _e, id) => [
+                {type: 'WritingEntries', id},
+                {type: 'WritingEntries', id: 'LIST'},
+            ],
+        }),
     }),
 })
 
@@ -1763,6 +1791,9 @@ export const {
     useRetimeStopMutation,
     // -------- Writing practice --------
     useSubmitWritingEntryMutation,
+    useListWritingEntriesQuery,
+    useUpdateWritingEntryTextMutation,
+    useDeleteWritingEntryMutation,
 } = api
 
 export const {
