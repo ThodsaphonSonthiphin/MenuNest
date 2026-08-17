@@ -220,4 +220,43 @@ public class RecordWritingCorrectionHandlerTests
 
         await act.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task Accepts_exactly_four_sentence_combining_items()
+    {
+        using var fx = new HandlerTestFixture();
+        var entry = await SeedPending(fx);
+        var four = Enumerable.Range(1, 4)
+            .Select(i => new SentenceCombiningItemDto($"A{i}. + B{i}.", $"A{i} and B{i}."))
+            .ToList();
+
+        var act = async () => await Handler(fx).Handle(
+            ACommand(entry.Id, items: four), CancellationToken.None);
+
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task Rejects_a_null_sentence_combining_items_collection_as_a_validation_error()
+    {
+        using var fx = new HandlerTestFixture();
+        var entry = await SeedPending(fx);
+
+        var act = async () => await Handler(fx).Handle(
+            ACommand(entry.Id) with { SentenceCombiningItems = null! }, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    [Fact]
+    public async Task Rejects_a_null_stuck_words_collection_as_a_validation_error()
+    {
+        using var fx = new HandlerTestFixture();
+        var entry = await SeedPending(fx);
+
+        var act = async () => await Handler(fx).Handle(
+            ACommand(entry.Id) with { StuckWords = null! }, CancellationToken.None);
+
+        await act.Should().ThrowAsync<ValidationException>();
+    }
 }
