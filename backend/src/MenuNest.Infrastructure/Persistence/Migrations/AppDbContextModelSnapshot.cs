@@ -1656,6 +1656,10 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.Property<int?>("HitCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("MarkedText")
+                        .HasMaxLength(50000)
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int?>("MissCount")
                         .HasColumnType("int");
 
