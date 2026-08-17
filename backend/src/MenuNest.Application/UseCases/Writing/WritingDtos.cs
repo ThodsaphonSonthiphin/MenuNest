@@ -11,3 +11,15 @@ public sealed record WritingEntryDto(
     double WordsPerMinute,
     DateTime? CorrectedAt,
     DateTime CreatedAt);
+
+/// <summary>
+/// One un-corrected night, as returned by list_pending_writing_entries.
+/// Exactly the five fields of mcp-tool-contract:51-53 — no CorrectedAt,
+/// because every row in this list is pending by definition.
+/// </summary>
+public sealed record PendingWritingEntryDto(
+    Guid Id,
+    DateOnly Date,
+    string Text,
+    int ElapsedSeconds,
+    double WordsPerMinute);
