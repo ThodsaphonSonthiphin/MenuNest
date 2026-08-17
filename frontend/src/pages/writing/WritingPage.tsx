@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   RichTextEditorComponent,
   Inject,
@@ -26,6 +27,7 @@ export function WritingPage() {
   const [submitWritingEntry, { isLoading, isSuccess }] = useSubmitWritingEntryMutation()
   const rteRef = useRef<RteInstance | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const navigate = useNavigate()
 
   const handleSubmit = async () => {
     const html = rteRef.current?.getHtml() ?? ''
@@ -79,6 +81,13 @@ export function WritingPage() {
       )}
       {submitError && <div className="writing-error">{submitError}</div>}
       <div className="writing-correction-note">แก้ทีหลังได้ ผ่าน Claude Code เมื่อไหร่ก็ได้</div>
+      <button
+        type="button"
+        className="writing-history-link-btn"
+        onClick={() => navigate('/writing/history')}
+      >
+        📜 ดูประวัติทั้งหมด
+      </button>
     </div>
   )
 }
