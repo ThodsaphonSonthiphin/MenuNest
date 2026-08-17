@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Grid, Columns, Column, type ColumnTemplateProps } from '@syncfusion/react-grid'
 import { useListWritingEntriesQuery } from '../../shared/api/api'
 import type { WritingEntryDto } from '../../shared/api/writingTypes'
+import { formatDateThai } from './formatDate'
 import './WritingHistoryPage.css'
 
 type FilterMode = 'all' | 'pending' | 'corrected'
@@ -13,9 +14,6 @@ const stripHtml = (html: string): string =>
     .replace(/&nbsp;|&#160;|&#xa0;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-
-const formatDateThai = (iso: string): string =>
-  new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
 
 function DateCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
   return <span>{formatDateThai(data.date)}</span>
@@ -112,12 +110,16 @@ export function WritingHistoryPage() {
       )}
 
       {!isLoading && !isError && rows.length > 0 && (
-        <Grid dataSource={rows} pageSettings={{ enabled: true, pageSize: 20 }}>
+        <Grid
+          key={filterMode}
+          dataSource={rows}
+          pageSettings={{ enabled: true, pageSize: 20, currentPage: 1 }}
+        >
           <Columns>
             <Column field="date" headerText="วันที่" width="110" template={DateCell} />
             <Column field="text" headerText="ข้อความ" template={TextPreviewCell} />
             <Column field="correctedAt" headerText="สถานะ" width="120" template={StatusBadgeCell} />
-            <Column field="id" headerText="" width="80" template={OpenActionCell} />
+            <Column field="id" headerText="เปิด" width="80" template={OpenActionCell} />
           </Columns>
         </Grid>
       )}
