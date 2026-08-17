@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   RichTextEditorComponent,
@@ -21,7 +21,12 @@ import './WritingEntryDetailPage.css'
 export function WritingEntryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: entries, isLoading, isError } = useListWritingEntriesQuery()
+  // Poll while this page is open: a correction can only arrive over MCP (from
+  // the writer's Claude Code), so without polling the page keeps a stale
+  // correctedAt and offers an edit the server will refuse (WMCP-26).
+  const { data: entries, isLoading, isError } = useListWritingEntriesQuery(undefined, {
+    pollingInterval: 15_000,
+  })
   const [updateText, { isLoading: isSaving }] = useUpdateWritingEntryTextMutation()
   const [deleteEntry, { isLoading: isDeleting }] = useDeleteWritingEntryMutation()
   const rteRef = useRef<RteInstance | null>(null)
@@ -32,6 +37,17 @@ export function WritingEntryDetailPage() {
   const entry = useMemo(() => entries?.find((e) => e.id === id), [entries, id])
   const isLocked = Boolean(entry?.correctedAt)
 
+  // A correction that lands while editing locks the text under us. Drop out of
+  // edit mode immediately and say so — the writer's unsaved typing is lost,
+  // which is the accepted trade (2026-08-17) for never offering an edit that
+  // cannot be saved.
+  useEffect(() => {
+    if (isLocked && isEditing) {
+      setIsEditing(false)
+      setError('คืนนี้เพิ่งถูกตรวจแล้ว — แก้ข้อความไม่ได้อีก')
+    }
+  }, [isLocked, isEditing])
+
   const handleSave = async () => {
     if (!entry) return
     const html = rteRef.current?.getHtml() ?? ''
@@ -41,7 +57,13 @@ export function WritingEntryDetailPage() {
       setIsEditing(false)
     } catch (err) {
       console.error('updateWritingEntryText failed', err)
-      setError('บันทึกไม่สำเร็จ ลองอีกครั้ง')
+      // A correction may have landed between render and save. "Try again" would
+      // be a lie — that PUT can never succeed.
+      setError(
+        isLocked
+          ? 'คืนนี้ถูกตรวจแล้ว — แก้ข้อความไม่ได้'
+          : 'บันทึกไม่สำเร็จ ลองอีกครั้ง'
+      )
     }
   }
 
@@ -125,7 +147,7 @@ export function WritingEntryDetailPage() {
           <div className="writing-detail-locked-note">ตรวจแล้ว — แก้ข้อความไม่ได้ (ลบทั้งรายการได้)</div>
         ) : isEditing ? (
           <>
-            <button type="button" className="writing-detail-save-btn" onClick={handleSave} disabled={isSaving}>
+            <button type="button" className="writing-detail-save-btn" onClick={handleSave} disabled={isSaving || isLocked}>
               บันทึก
             </button>
             <button
