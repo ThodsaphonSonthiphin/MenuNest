@@ -21,6 +21,15 @@ public sealed class UserSettings : Entity
     /// <summary>Feels-like warn threshold in C. Null = default (40); 0 = off; N = warn at feels >= N.</summary>
     public int? FeelsLikeWarnThreshold { get; private set; }
 
+    /// <summary>
+    /// The one grammar rule the AI correction loop grades against, e.g.
+    /// "third-person singular -s". Null = the writer has never chosen one;
+    /// get_active_target_rule then returns null and Claude Code asks in chat
+    /// before correcting (mcp-tool-contract). Flipped by hand, never on a
+    /// calendar rotation (rule-rotation).
+    /// </summary>
+    public string? ActiveTargetRule { get; private set; }
+
     // EF Core
     private UserSettings() { }
 
@@ -50,6 +59,25 @@ public sealed class UserSettings : Entity
     {
         UvWarnThreshold = uv;
         FeelsLikeWarnThreshold = feels;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Sets the active target grammar rule. Blank input clears it to unset,
+    /// matching <see cref="SetHomePath"/>'s convention. Capped at 200 to match
+    /// WritingEntry.TargetRule, which snapshots this value on every correction —
+    /// a longer rule would set cleanly here and then fail when a correction
+    /// copied it.
+    /// </summary>
+    public void SetActiveTargetRule(string? rule)
+    {
+        var trimmed = string.IsNullOrWhiteSpace(rule) ? null : rule.Trim();
+        if (trimmed is not null && trimmed.Length > 200)
+        {
+            throw new DomainException("ActiveTargetRule must be 200 characters or less.");
+        }
+
+        ActiveTargetRule = trimmed;
         UpdatedAt = DateTime.UtcNow;
     }
 }

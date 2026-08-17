@@ -14,6 +14,9 @@ internal sealed class UserSettingsConfiguration : IEntityTypeConfiguration<UserS
         builder.Property(s => s.Id).ValueGeneratedNever();
 
         builder.Property(s => s.HomePath).HasMaxLength(100);
+        // Matches WritingEntries.TargetRule's nvarchar(200) — a correction
+        // snapshots this value onto the entry (mcp-tool-contract).
+        builder.Property(s => s.ActiveTargetRule).HasMaxLength(200);
 
         builder.Property(s => s.CreatedAt).IsRequired();
         builder.Property(s => s.UpdatedAt);
