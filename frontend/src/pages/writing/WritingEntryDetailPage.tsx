@@ -93,7 +93,12 @@ export function WritingEntryDetailPage() {
       </div>
 
       {isEditing ? (
-        <RichTextEditorComponent ref={rteRef} height={300} value={entry.text}>
+        <RichTextEditorComponent
+          ref={rteRef}
+          height={300}
+          value={entry.text}
+          toolbarSettings={{ items: ['Bold', 'Italic', 'Underline', 'OrderedList', 'UnorderedList'] }}
+        >
           <Inject services={[Toolbar, Link, HtmlEditor, QuickToolbar]} />
         </RichTextEditorComponent>
       ) : (
@@ -113,7 +118,14 @@ export function WritingEntryDetailPage() {
             <button type="button" className="writing-detail-save-btn" onClick={handleSave} disabled={isSaving}>
               บันทึก
             </button>
-            <button type="button" className="writing-detail-cancel-btn" onClick={() => setIsEditing(false)}>
+            <button
+              type="button"
+              className="writing-detail-cancel-btn"
+              onClick={() => {
+                setIsEditing(false)
+                setError(null)
+              }}
+            >
               ยกเลิก
             </button>
           </>
@@ -129,7 +141,14 @@ export function WritingEntryDetailPage() {
             <button type="button" className="writing-detail-confirm-yes" onClick={handleDelete} disabled={isDeleting}>
               ลบ
             </button>
-            <button type="button" className="writing-detail-confirm-no" onClick={() => setConfirmingDelete(false)}>
+            <button
+              type="button"
+              className="writing-detail-confirm-no"
+              onClick={() => {
+                setConfirmingDelete(false)
+                setError(null)
+              }}
+            >
               ยกเลิก
             </button>
           </span>
