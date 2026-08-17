@@ -20,6 +20,7 @@ public sealed partial class WritingEntry : Entity
 
     // Phase 2 (mcp-tool-contract's record_writing_correction) — reserved, unset here.
     public DateTime? CorrectedAt { get; private set; }
+    public string? MarkedText { get; private set; }
     public string? TargetRule { get; private set; }
     public int? HitCount { get; private set; }
     public int? MissCount { get; private set; }
@@ -77,6 +78,47 @@ public sealed partial class WritingEntry : Entity
             throw new DomainException("Text must contain at least one word.");
 
         Text = text;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Records (or re-records) the AI correction for this entry — the five
+    /// blocks of mcp-tool-contract's record_writing_correction. Called only
+    /// from RecordWritingCorrectionHandler, which owns the DeletedAt guard and
+    /// the clock.
+    ///
+    /// Re-recording OVERWRITES all seven columns together (writer's decision,
+    /// 2026-08-17): a bad AI pass must be repairable. That is not the revision
+    /// loop the mock forbids — UpdateText stays locked, so the corrected text
+    /// itself can never drift.
+    ///
+    /// Text and WordsPerMinute are deliberately untouched: WordsPerMinute
+    /// measures the original timed session, and markedText is strictly longer
+    /// than the text it annotates.
+    /// </summary>
+    public void RecordCorrection(
+        DateTime correctedAtUtc,
+        string targetRule,
+        string markedText,
+        int hitCount,
+        int missCount,
+        string thaiWhyLine,
+        string sentenceCombiningItemsJson,
+        string stuckWordsJson)
+    {
+        if (string.IsNullOrWhiteSpace(targetRule))
+            throw new DomainException("TargetRule is required to record a correction.");
+        if (hitCount < 0 || missCount < 0)
+            throw new DomainException("HitCount and MissCount cannot be negative.");
+
+        CorrectedAt = correctedAtUtc;
+        TargetRule = targetRule.Trim();
+        MarkedText = markedText;
+        HitCount = hitCount;
+        MissCount = missCount;
+        ThaiWhyLine = thaiWhyLine;
+        SentenceCombiningItemsJson = sentenceCombiningItemsJson;
+        StuckWordsJson = stuckWordsJson;
         UpdatedAt = DateTime.UtcNow;
     }
 

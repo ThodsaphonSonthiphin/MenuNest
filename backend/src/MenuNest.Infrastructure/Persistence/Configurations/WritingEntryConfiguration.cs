@@ -21,6 +21,7 @@ internal sealed class WritingEntryConfiguration : IEntityTypeConfiguration<Writi
 
         // Phase 2 (record_writing_correction) -- nullable, unpopulated in Phase 1.
         builder.Property(w => w.TargetRule).HasMaxLength(200);
+        builder.Property(w => w.MarkedText).HasMaxLength(50_000);
         builder.Property(w => w.ThaiWhyLine).HasMaxLength(2000);
         builder.Property(w => w.DeletedAt);
 
