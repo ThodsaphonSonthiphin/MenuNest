@@ -71,6 +71,11 @@ public sealed partial class WritingEntry : Entity
     public void UpdateText(string text)
     {
         if (CorrectedAt is not null)
+            // This exact string is load-bearing OUTSIDE the backend: the SPA's
+            // saveErrorMessage.ts matches on it (it arrives as ProblemDetails.Detail)
+            // to tell the writer their night was corrected rather than falsely
+            // offering a retry. Editing the wording here means editing that helper
+            // and its tests too.
             throw new DomainException("Cannot edit text after a correction has been recorded.");
 
         var wordCount = CountWords(text);
