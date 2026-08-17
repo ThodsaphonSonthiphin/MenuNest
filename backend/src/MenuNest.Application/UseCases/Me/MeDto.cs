@@ -3,8 +3,9 @@ namespace MenuNest.Application.UseCases.Me;
 /// <summary>
 /// Response payload for <c>GET /api/me</c>. Describes the signed-in
 /// user and, if they belong to one, their family, plus the user's
-/// <c>HomePath</c> (Home-page preference) and weather-warning thresholds
-/// (<c>UvWarnThreshold</c>, <c>FeelsLikeWarnThreshold</c>).
+/// <c>HomePath</c> (Home-page preference), weather-warning thresholds
+/// (<c>UvWarnThreshold</c>, <c>FeelsLikeWarnThreshold</c>), and the active
+/// target grammar rule for writing-practice (<c>ActiveTargetRule</c>).
 /// </summary>
 public sealed record MeDto(
     Guid UserId,
@@ -16,4 +17,5 @@ public sealed record MeDto(
     string AuthProvider,
     string? HomePath,
     int? UvWarnThreshold,
-    int? FeelsLikeWarnThreshold);
+    int? FeelsLikeWarnThreshold,
+    string? ActiveTargetRule);
