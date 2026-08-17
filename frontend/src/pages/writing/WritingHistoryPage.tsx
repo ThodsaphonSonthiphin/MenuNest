@@ -10,7 +10,7 @@ type FilterMode = 'all' | 'pending' | 'corrected'
 const stripHtml = (html: string): string =>
   html
     .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
+    .replace(/&nbsp;|&#160;|&#xa0;/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim()
 
@@ -34,6 +34,19 @@ function StatusBadgeCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
   )
 }
 
+function OpenActionCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
+  const navigate = useNavigate()
+  return (
+    <button
+      type="button"
+      className="writing-history-open-btn"
+      onClick={() => navigate(`/writing/history/${data.id}`)}
+    >
+      เปิด
+    </button>
+  )
+}
+
 export function WritingHistoryPage() {
   const navigate = useNavigate()
   const { data: entries, isLoading, isError } = useListWritingEntriesQuery()
@@ -50,20 +63,6 @@ export function WritingHistoryPage() {
     if (filterMode === 'corrected') return list.filter((e) => e.correctedAt)
     return list
   }, [entries, filterMode])
-
-  // OpenActionCell needs `navigate`, so it is declared inside the component
-  // rather than as a module-level function like the other cell templates.
-  function OpenActionCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
-    return (
-      <button
-        type="button"
-        className="writing-history-open-btn"
-        onClick={() => navigate(`/writing/history/${data.id}`)}
-      >
-        เปิด
-      </button>
-    )
-  }
 
   return (
     <div className="writing-history-page">
@@ -105,7 +104,11 @@ export function WritingHistoryPage() {
       {isLoading && <div className="writing-history-status">กำลังโหลด...</div>}
       {isError && <div className="writing-history-status writing-history-status--error">โหลดไม่สำเร็จ</div>}
       {!isLoading && !isError && rows.length === 0 && (
-        <div className="writing-history-status">ยังไม่มีรายการ</div>
+        <div className="writing-history-status">
+          {filterMode !== 'all' && (entries?.length ?? 0) > 0
+            ? 'ไม่มีรายการที่ตรงกับตัวกรองนี้'
+            : 'ยังไม่มีรายการ'}
+        </div>
       )}
 
       {!isLoading && !isError && rows.length > 0 && (
