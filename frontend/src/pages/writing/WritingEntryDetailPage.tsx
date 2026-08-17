@@ -14,15 +14,14 @@ import {
   useUpdateWritingEntryTextMutation,
   useDeleteWritingEntryMutation,
 } from '../../shared/api/api'
+import { formatDateThai } from './formatDate'
+import './WritingHistoryPage.css'
 import './WritingEntryDetailPage.css'
-
-const formatDateThai = (iso: string): string =>
-  new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
 
 export function WritingEntryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: entries, isLoading } = useListWritingEntriesQuery()
+  const { data: entries, isLoading, isError } = useListWritingEntriesQuery()
   const [updateText, { isLoading: isSaving }] = useUpdateWritingEntryTextMutation()
   const [deleteEntry, { isLoading: isDeleting }] = useDeleteWritingEntryMutation()
   const rteRef = useRef<RteInstance | null>(null)
@@ -60,6 +59,17 @@ export function WritingEntryDetailPage() {
 
   if (isLoading) {
     return <div className="writing-detail-page writing-detail-status">กำลังโหลด...</div>
+  }
+
+  if (isError) {
+    return (
+      <div className="writing-detail-page">
+        <button type="button" className="writing-detail-back-btn" onClick={() => navigate('/writing/history')}>
+          ← กลับ
+        </button>
+        <div className="writing-history-status writing-history-status--error">โหลดไม่สำเร็จ</div>
+      </div>
+    )
   }
 
   if (!entry) {
