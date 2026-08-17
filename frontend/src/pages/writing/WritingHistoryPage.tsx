@@ -1,0 +1,123 @@
+import { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Grid, Columns, Column, type ColumnTemplateProps } from '@syncfusion/react-grid'
+import { useListWritingEntriesQuery } from '../../shared/api/api'
+import type { WritingEntryDto } from '../../shared/api/writingTypes'
+import './WritingHistoryPage.css'
+
+type FilterMode = 'all' | 'pending' | 'corrected'
+
+const stripHtml = (html: string): string =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+
+const formatDateThai = (iso: string): string =>
+  new Date(iso).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' })
+
+function DateCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
+  return <span>{formatDateThai(data.date)}</span>
+}
+
+function TextPreviewCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
+  const preview = stripHtml(data.text)
+  return <span className="writing-history-preview">{preview.length > 80 ? `${preview.slice(0, 80)}…` : preview}</span>
+}
+
+function StatusBadgeCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
+  return data.correctedAt ? (
+    <span className="writing-history-badge writing-history-badge--corrected">🔒 ตรวจแล้ว</span>
+  ) : (
+    <span className="writing-history-badge writing-history-badge--pending">⏳ รอตรวจ</span>
+  )
+}
+
+export function WritingHistoryPage() {
+  const navigate = useNavigate()
+  const { data: entries, isLoading, isError } = useListWritingEntriesQuery()
+  const [filterMode, setFilterMode] = useState<FilterMode>('all')
+
+  const pendingCount = useMemo(
+    () => (entries ?? []).filter((e) => !e.correctedAt).length,
+    [entries],
+  )
+
+  const rows = useMemo(() => {
+    const list = entries ?? []
+    if (filterMode === 'pending') return list.filter((e) => !e.correctedAt)
+    if (filterMode === 'corrected') return list.filter((e) => e.correctedAt)
+    return list
+  }, [entries, filterMode])
+
+  // OpenActionCell needs `navigate`, so it is declared inside the component
+  // rather than as a module-level function like the other cell templates.
+  function OpenActionCell({ data }: ColumnTemplateProps<WritingEntryDto>) {
+    return (
+      <button
+        type="button"
+        className="writing-history-open-btn"
+        onClick={() => navigate(`/writing/history/${data.id}`)}
+      >
+        เปิด
+      </button>
+    )
+  }
+
+  return (
+    <div className="writing-history-page">
+      <button type="button" className="writing-history-back-btn" onClick={() => navigate('/writing')}>
+        ← กลับ
+      </button>
+      <h1 className="writing-history-title">ประวัติ</h1>
+
+      <div className="writing-history-filter-bar">
+        <button
+          type="button"
+          className={
+            filterMode === 'all' ? 'writing-history-chip writing-history-chip--active' : 'writing-history-chip'
+          }
+          onClick={() => setFilterMode('all')}
+        >
+          ทั้งหมด
+        </button>
+        <button
+          type="button"
+          className={
+            filterMode === 'pending' ? 'writing-history-chip writing-history-chip--active' : 'writing-history-chip'
+          }
+          onClick={() => setFilterMode('pending')}
+        >
+          รอตรวจ{pendingCount > 0 ? ` (${pendingCount})` : ''}
+        </button>
+        <button
+          type="button"
+          className={
+            filterMode === 'corrected' ? 'writing-history-chip writing-history-chip--active' : 'writing-history-chip'
+          }
+          onClick={() => setFilterMode('corrected')}
+        >
+          ตรวจแล้ว
+        </button>
+      </div>
+
+      {isLoading && <div className="writing-history-status">กำลังโหลด...</div>}
+      {isError && <div className="writing-history-status writing-history-status--error">โหลดไม่สำเร็จ</div>}
+      {!isLoading && !isError && rows.length === 0 && (
+        <div className="writing-history-status">ยังไม่มีรายการ</div>
+      )}
+
+      {!isLoading && !isError && rows.length > 0 && (
+        <Grid dataSource={rows} pageSettings={{ enabled: true, pageSize: 20 }}>
+          <Columns>
+            <Column field="date" headerText="วันที่" width="110" template={DateCell} />
+            <Column field="text" headerText="ข้อความ" template={TextPreviewCell} />
+            <Column field="correctedAt" headerText="สถานะ" width="120" template={StatusBadgeCell} />
+            <Column field="id" headerText="" width="80" template={OpenActionCell} />
+          </Columns>
+        </Grid>
+      )}
+    </div>
+  )
+}
