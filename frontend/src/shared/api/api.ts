@@ -1823,6 +1823,7 @@ export const {
     // -------- Writing practice --------
     useSubmitWritingEntryMutation,
     useListWritingEntriesQuery,
+    useGetWritingEntryQuery,
     useUpdateWritingEntryTextMutation,
     useDeleteWritingEntryMutation,
 } = api

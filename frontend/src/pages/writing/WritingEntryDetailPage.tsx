@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   RichTextEditorComponent,
@@ -10,33 +10,41 @@ import {
   type RichTextEditorComponent as RteInstance,
 } from '@syncfusion/ej2-react-richtexteditor'
 import {
-  useListWritingEntriesQuery,
+  useGetWritingEntryQuery,
   useUpdateWritingEntryTextMutation,
   useDeleteWritingEntryMutation,
 } from '../../shared/api/api'
 import { formatDateThai } from './formatDate'
 import { saveErrorMessage } from './saveErrorMessage'
+import { CorrectionResult } from './CorrectionResult'
 import './WritingHistoryPage.css'
 import './WritingEntryDetailPage.css'
 
 export function WritingEntryDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  // Poll while this page is open: a correction can only arrive over MCP (from
-  // the writer's Claude Code), so without polling the page keeps a stale
-  // correctedAt and offers an edit the server will refuse (WMCP-26).
-  const { data: entries, isLoading, isError } = useListWritingEntriesQuery(undefined, {
-    pollingInterval: 15_000,
-  })
-  const [updateText, { isLoading: isSaving }] = useUpdateWritingEntryTextMutation()
-  const [deleteEntry, { isLoading: isDeleting }] = useDeleteWritingEntryMutation()
-  const rteRef = useRef<RteInstance | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const entry = useMemo(() => entries?.find((e) => e.id === id), [entries, id])
+  // Poll ONLY while the night is still pending: a correction can only arrive
+  // over MCP, so an un-corrected page must notice it on its own (WMCP-26). Once
+  // correctedAt is set the state is settled, and this payload carries a
+  // markedText bounded at 50,000 characters — polling it forever buys nothing
+  // (ADR-179). RTK Query honours a pollingInterval that changes between
+  // renders, and 0 means "stop polling".
+  const [pollingInterval, setPollingInterval] = useState(15_000)
+  const { data: entry, isLoading, isError } = useGetWritingEntryQuery(id!, {
+    skip: !id,
+    pollingInterval,
+  })
+
   const isLocked = Boolean(entry?.correctedAt)
+
+  useEffect(() => {
+    if (entry?.correctedAt) setPollingInterval(0)
+  }, [entry?.correctedAt])
+  const rteRef = useRef<RteInstance | null>(null)
 
   // A correction that lands while editing locks the text under us. Drop out of
   // edit mode immediately and say so — the writer's unsaved typing is lost,
@@ -48,6 +56,9 @@ export function WritingEntryDetailPage() {
       setError('คืนนี้เพิ่งถูกตรวจแล้ว — แก้ข้อความไม่ได้อีก')
     }
   }, [isLocked, isEditing])
+
+  const [updateText, { isLoading: isSaving }] = useUpdateWritingEntryTextMutation()
+  const [deleteEntry, { isLoading: isDeleting }] = useDeleteWritingEntryMutation()
 
   const handleSave = async () => {
     if (!entry) return
@@ -81,24 +92,57 @@ export function WritingEntryDetailPage() {
     return <div className="writing-detail-page writing-detail-status">กำลังโหลด...</div>
   }
 
-  if (isError) {
-    return (
-      <div className="writing-detail-page">
-        <button type="button" className="writing-detail-back-btn" onClick={() => navigate('/writing/history')}>
-          ← กลับ
-        </button>
-        <div className="writing-history-status writing-history-status--error">โหลดไม่สำเร็จ</div>
-      </div>
-    )
-  }
-
-  if (!entry) {
+  if (isError || !entry) {
     return (
       <div className="writing-detail-page">
         <button type="button" className="writing-detail-back-btn" onClick={() => navigate('/writing/history')}>
           ← กลับ
         </button>
         <div className="writing-detail-status">ไม่พบรายการนี้ (อาจถูกลบไปแล้ว)</div>
+      </div>
+    )
+  }
+
+  const deleteControls = confirmingDelete ? (
+    <span className="writing-detail-confirm-delete">
+      ลบรายการนี้แน่ใจไหม?
+      <button type="button" className="writing-detail-confirm-yes" onClick={handleDelete} disabled={isDeleting}>
+        ลบ
+      </button>
+      <button
+        type="button"
+        className="writing-detail-confirm-no"
+        onClick={() => {
+          setConfirmingDelete(false)
+          setError(null)
+        }}
+      >
+        ยกเลิก
+      </button>
+    </span>
+  ) : (
+    <button type="button" className="writing-detail-delete-btn" onClick={() => setConfirmingDelete(true)}>
+      ลบ
+    </button>
+  )
+
+  // Corrected: this page IS the ผลตรวจ (ADR-177). The raw text is not shown
+  // again — block 1's marked text IS that text — and there is no edit button,
+  // because a correction locks the text anyway (ADR-169).
+  if (entry.correction) {
+    return (
+      <div className="writing-detail-page">
+        <button type="button" className="writing-detail-back-btn" onClick={() => navigate('/writing/history')}>
+          ← กลับ
+        </button>
+        <h1 className="writing-detail-result-title">ผลตรวจ · {formatDateThai(entry.date)}</h1>
+        <CorrectionResult
+          correction={entry.correction}
+          wordsPerMinute={entry.wordsPerMinute}
+          elapsedSeconds={entry.elapsedSeconds}
+        />
+        {error && <div className="writing-detail-error">{error}</div>}
+        <div className="writing-detail-actions">{deleteControls}</div>
       </div>
     )
   }
@@ -111,15 +155,7 @@ export function WritingEntryDetailPage() {
 
       <div className="writing-detail-header">
         <span className="writing-detail-date">{formatDateThai(entry.date)}</span>
-        <span
-          className={
-            isLocked
-              ? 'writing-history-badge writing-history-badge--corrected'
-              : 'writing-history-badge writing-history-badge--pending'
-          }
-        >
-          {isLocked ? '🔒 ตรวจแล้ว' : '⏳ รอตรวจ'}
-        </span>
+        <span className="writing-history-badge writing-history-badge--pending">⏳ รอตรวจ</span>
       </div>
 
       {isEditing ? (
@@ -141,9 +177,7 @@ export function WritingEntryDetailPage() {
       {error && <div className="writing-detail-error">{error}</div>}
 
       <div className="writing-detail-actions">
-        {isLocked ? (
-          <div className="writing-detail-locked-note">ตรวจแล้ว — แก้ข้อความไม่ได้ (ลบทั้งรายการได้)</div>
-        ) : isEditing ? (
+        {isEditing ? (
           <>
             <button type="button" className="writing-detail-save-btn" onClick={handleSave} disabled={isSaving}>
               บันทึก
@@ -164,29 +198,7 @@ export function WritingEntryDetailPage() {
             แก้ไข
           </button>
         )}
-
-        {confirmingDelete ? (
-          <span className="writing-detail-confirm-delete">
-            ลบรายการนี้แน่ใจไหม?
-            <button type="button" className="writing-detail-confirm-yes" onClick={handleDelete} disabled={isDeleting}>
-              ลบ
-            </button>
-            <button
-              type="button"
-              className="writing-detail-confirm-no"
-              onClick={() => {
-                setConfirmingDelete(false)
-                setError(null)
-              }}
-            >
-              ยกเลิก
-            </button>
-          </span>
-        ) : (
-          <button type="button" className="writing-detail-delete-btn" onClick={() => setConfirmingDelete(true)}>
-            ลบ
-          </button>
-        )}
+        {deleteControls}
       </div>
     </div>
   )
