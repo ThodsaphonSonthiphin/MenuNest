@@ -144,8 +144,12 @@ public sealed partial class WritingEntry : Entity
     /// HTML whitespace entities (&nbsp;) to real spaces, collapses
     /// whitespace, splits on spaces. Good enough for a words-per-minute
     /// signal — not a precise linguistic tokenizer.
+    ///
+    /// Public because errors-per-100-words is derived from the same count as
+    /// WordsPerMinute (ADR-179): a second tokenizer, anywhere, would let the
+    /// two numbers on one screen be computed from different word counts.
     /// </summary>
-    private static int CountWords(string html)
+    public static int CountWords(string html)
     {
         var stripped = TagRegex().Replace(html, " ");
         var withoutEntities = NbspRegex().Replace(stripped, " ");

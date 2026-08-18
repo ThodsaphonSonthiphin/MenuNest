@@ -37,3 +37,34 @@ public sealed record SentenceCombiningItemDto(string Source, string Combined);
 /// translation — block 4 of the correction ("ข้าวต้ม → rice porridge / congee").
 /// </summary>
 public sealed record StuckWordDto(string Thai, string English);
+
+/// <summary>
+/// One recorded Correction, as the ผลตรวจ screen needs it: the five blocks of
+/// mcp-tool-contract plus the one number derived on the way out (ADR-179).
+/// The two JSON columns arrive here already deserialised.
+/// </summary>
+public sealed record WritingCorrectionDto(
+    string TargetRule,
+    string MarkedText,
+    int HitCount,
+    int MissCount,
+    string ThaiWhyLine,
+    IReadOnlyList<SentenceCombiningItemDto> SentenceCombiningItems,
+    IReadOnlyList<StuckWordDto> StuckWords,
+    double ErrorsPer100Words);
+
+/// <summary>
+/// One writing entry with its Correction, as returned by
+/// GET /api/writing-entries/{id}. Correction is null while the night is
+/// pending. Deliberately NOT the shape of the list endpoint: MarkedText is
+/// bounded at 50,000 characters and the History grid needs none of it.
+/// </summary>
+public sealed record WritingEntryDetailDto(
+    Guid Id,
+    DateOnly Date,
+    string Text,
+    int ElapsedSeconds,
+    double WordsPerMinute,
+    DateTime? CorrectedAt,
+    DateTime CreatedAt,
+    WritingCorrectionDto? Correction);
