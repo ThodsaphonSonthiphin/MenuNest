@@ -28,7 +28,12 @@ export interface StuckWord {
     english: string
 }
 
-/** One recorded Correction: the five fixed blocks plus the derived error rate. */
+/**
+ * One recorded Correction: the five fixed blocks plus the numbers derived
+ * server-side. wordCount is the same counter behind errorsPer100Words
+ * (ADR-179) -- never reconstruct it client-side from wordsPerMinute and
+ * elapsedSeconds; that arithmetic was rejected as fragile (fix round 2, #97).
+ */
 export interface WritingCorrectionDto {
     targetRule: string
     markedText: string
@@ -38,6 +43,7 @@ export interface WritingCorrectionDto {
     sentenceCombiningItems: SentenceCombiningItem[]
     stuckWords: StuckWord[]
     errorsPer100Words: number
+    wordCount: number
 }
 
 /** One entry with its Correction. `correction` is null while the night is pending. */

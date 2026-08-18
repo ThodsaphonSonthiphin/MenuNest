@@ -32,6 +32,8 @@ const corrected = {
     sentenceCombiningItems: [],
     stuckWords: [],
     errorsPer100Words: 0,
+    // "Pending entry text." -> three space-separated tokens.
+    wordCount: 3,
   },
 }
 

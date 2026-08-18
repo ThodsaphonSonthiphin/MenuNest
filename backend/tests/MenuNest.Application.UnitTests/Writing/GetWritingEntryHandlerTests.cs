@@ -78,6 +78,7 @@ public class GetWritingEntryHandlerTests
         c.StuckWords.Should().HaveCount(1);
         c.StuckWords[0].Thai.Should().Be("ข้าวต้ม");
         c.StuckWords[0].English.Should().Be("rice porridge / congee");
+        c.WordCount.Should().Be(7, "SevenWordText has exactly seven words");
     }
 
     [Fact]
@@ -131,6 +132,9 @@ public class GetWritingEntryHandlerTests
         var result = await handler.Handle(new GetWritingEntryQuery(entry.Id), CancellationToken.None);
 
         result.Correction!.ErrorsPer100Words.Should().Be(42.9);
+        // Same counter as ErrorsPer100Words's own divisor (ADR-179) -- proving
+        // WordCount is not a second, independently-computed number.
+        result.Correction!.WordCount.Should().Be(7);
     }
 
     [Fact]
@@ -147,6 +151,7 @@ public class GetWritingEntryHandlerTests
         result.Correction!.HitCount.Should().Be(0);
         result.Correction!.MissCount.Should().Be(0);
         result.Correction!.ErrorsPer100Words.Should().Be(0);
+        result.Correction!.WordCount.Should().Be(1, "the bracketed Thai text has no spaces to split on");
     }
 
     [Fact]
