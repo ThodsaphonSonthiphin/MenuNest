@@ -53,6 +53,16 @@ describe('sanitizeMarkedText', () => {
     expect(out).toBe('<p>hi</p>')
   })
 
+  it('strips a data-* attribute -- ALLOWED_ATTR does not close DOMPurify\'s own default allow', () => {
+    const out = sanitizeMarkedText('<p data-evil="payload">hi</p>')
+    expect(out).toBe('<p>hi</p>')
+  })
+
+  it('strips an aria-* attribute, which would otherwise silently hide the block from a11y trees', () => {
+    const out = sanitizeMarkedText('<span aria-hidden="true" class="miss">go</span>')
+    expect(out).toBe('<span class="miss">go</span>')
+  })
+
   it('returns an empty string for an empty correction', () => {
     expect(sanitizeMarkedText('')).toBe('')
   })

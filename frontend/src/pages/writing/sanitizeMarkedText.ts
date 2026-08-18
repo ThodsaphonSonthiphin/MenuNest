@@ -20,6 +20,15 @@ export function sanitizeMarkedText(markedText: string): string {
   const root = DOMPurify.sanitize(markedText, {
     ALLOWED_TAGS: ['p', 'span', 'br'],
     ALLOWED_ATTR: ['class'],
+    // DOMPurify defaults ALLOW_DATA_ATTR and ALLOW_ARIA_ATTR to true, and
+    // ALLOWED_ATTR does not close them -- a bare allow-list of ['class']
+    // still lets any data-* or aria-* attribute through untouched. Both must
+    // be turned off explicitly or the allow-list is wider than it looks
+    // (fix round 2, #97): a smuggled aria-hidden="true" would silently pull
+    // block 1 out of the accessibility tree, and data-* carries
+    // attacker-chosen bytes into the DOM.
+    ALLOW_DATA_ATTR: false,
+    ALLOW_ARIA_ATTR: false,
     RETURN_DOM: true,
   }) as HTMLElement
 
