@@ -1,6 +1,7 @@
 using Mediator;
 using MenuNest.Application.UseCases.Writing;
 using MenuNest.Application.UseCases.Writing.DeleteWritingEntry;
+using MenuNest.Application.UseCases.Writing.GetWritingEntry;
 using MenuNest.Application.UseCases.Writing.ListWritingEntries;
 using MenuNest.Application.UseCases.Writing.SubmitWritingEntry;
 using MenuNest.Application.UseCases.Writing.UpdateWritingEntryText;
@@ -37,6 +38,18 @@ public sealed class WritingEntriesController : ControllerBase
     public async Task<ActionResult<IReadOnlyList<WritingEntryDto>>> List(CancellationToken ct)
     {
         var result = await _mediator.Send(new ListWritingEntriesQuery(), ct);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Reads one entry with its correction -- feeds the "ผลตรวจ" screen
+    /// (ADR-177). Deliberately separate from List: MarkedText is bounded at
+    /// 50,000 characters and List is polled (ADR-179).
+    /// </summary>
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<WritingEntryDetailDto>> GetById(Guid id, CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetWritingEntryQuery(id), ct);
         return Ok(result);
     }
 
