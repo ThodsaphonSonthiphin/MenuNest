@@ -61,4 +61,45 @@ test.describe('Writing — live lock while editing', () => {
     // No "try again" message should ever have appeared in this flow.
     await expect(page.getByText('ลองอีกครั้ง')).toHaveCount(0)
   })
+
+  test('a save refused by the lock says so instead of offering a retry', async ({ authedPage: page }) => {
+    // The narrower race the poll cannot cover: the correction lands AFTER the
+    // click, while the PUT is in flight. The page still believes the entry is
+    // unlocked, so the honest message has to come from the server's refusal.
+    //
+    // Routed by method: Task 5's page reads the entry via GET-by-id (Task 2),
+    // so it must see the pending detail DTO to render the editor at all -- a
+    // blanket 400 on this URL (as the pre-ADR-177 version of this test used,
+    // safely, back when no GET-by-id existed) would instead show โหลดไม่สำเร็จ
+    // and never reach the click this test is about.
+    await page.route(`**/api/writing-entries/${ENTRY_ID}`, async (route) => {
+      if (route.request().method() === 'PUT') {
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({
+            title: 'Request rejected',
+            detail: 'Cannot edit text after a correction has been recorded.',
+            status: 400,
+          }),
+        })
+        return
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(pending),
+      })
+    })
+
+    await page.goto(`/writing/history/${ENTRY_ID}`)
+    await page.getByRole('button', { name: 'แก้ไข' }).click()
+    await page.getByRole('button', { name: 'บันทึก' }).click()
+
+    // The string is read from src/pages/writing/saveErrorMessage.ts's
+    // LOCKED_SAVE_MESSAGE constant, not retyped from memory.
+    await expect(page.getByText('คืนนี้ถูกตรวจแล้ว — แก้ข้อความไม่ได้')).toBeVisible()
+    // The whole point: never tell the writer to retry a PUT that cannot succeed.
+    await expect(page.getByText('ลองอีกครั้ง')).toHaveCount(0)
+  })
 })
