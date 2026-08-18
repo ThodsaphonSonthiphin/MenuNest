@@ -103,6 +103,24 @@ Examples (from real history):
 If a change genuinely has no ticket, open the issue first — the default
 expectation is that every commit maps to exactly one tracked item.
 
+## ADRs — new filenames carry the `menunest-` prefix
+
+This repo's ADR sequence is `docs/adr/`, its registered short name is **`menunest`**,
+and its numbers are **three** digits wide. New ADRs are named
+`menunest-<number>-<slug>.md`; that prefix is how they are cited anywhere outside this
+repo (`menunest-181`), while a bare `ADR 181` is correct only here.
+
+**Existing ADRs `001-` through `180-` are NOT renamed** — renaming would break every
+citation already written into commits, specs and other ADRs. The sequence stays mixed
+permanently, which the minting scan handles; a legacy ADR is still cited *with* the
+prefix (`menunest-176`) because the prefix names the sequence, not the file.
+
+Mint the number from the global max across every ref, every worktree **and untracked
+files** — parallel sessions work this repo and the merge will not flag a collision. The
+runnable scan is the **Numbering** section of the grilling skills' `ADR-FORMAT.md`; it
+prints a bare number until the first prefixed ADR lands, so prepend `menunest-` by hand
+that one time.
+
 ## Committing — a pre-commit hook runs the FULL suite; stage narrowly
 
 `frontend/.husky/pre-commit` (`set -e`) runs, on **every** commit: backend
