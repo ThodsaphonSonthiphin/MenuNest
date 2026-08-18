@@ -53,6 +53,11 @@ const englishNight = {
       { source: 'Traffic is very bad. + We arrive late.', combined: 'Traffic was very bad, so we arrived late.' },
     ],
     stuckWords: [{ thai: 'ข้าวต้ม', english: 'rice porridge / congee' }],
+    // Deliberately NOT 8/6*100 = 133.3: this fixture is arithmetically
+    // impossible on purpose, so the assertion below proves the screen DISPLAYS
+    // the server's rate rather than recomputing it from the other two numbers
+    // (ADR-179's "derived, never an input"). Do not "correct" it to 133.3 --
+    // that silently deletes the guarantee.
     errorsPer100Words: 14,
     // "Today my daughter go to school." -> six space-separated tokens.
     wordCount: 6,
