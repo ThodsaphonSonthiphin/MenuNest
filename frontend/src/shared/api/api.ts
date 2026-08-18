@@ -39,7 +39,7 @@ import type {
     UploadSasResponse,
     VapidPublicKeyDto,
 } from './healthTypes'
-import type {SubmitWritingEntryRequest, UpdateWritingEntryTextRequest, WritingEntryDto} from './writingTypes'
+import type {SubmitWritingEntryRequest, UpdateWritingEntryTextRequest, WritingEntryDto, WritingEntryDetailDto} from './writingTypes'
 
 /**
  * Single, app-wide RTK Query API. All endpoints for every feature
@@ -1640,6 +1640,12 @@ export const api = createApi({
                         {type: 'WritingEntries', id: 'LIST'},
                     ]
                     : [{type: 'WritingEntries', id: 'LIST'}],
+        }),
+        // The detail page reads THIS, not the list: markedText is bounded at
+        // 50,000 characters and the list is polled (ADR-179).
+        getWritingEntry: build.query<WritingEntryDetailDto, string>({
+            query: (id) => `/api/writing-entries/${id}`,
+            providesTags: (_r, _e, id) => [{type: 'WritingEntries', id}],
         }),
         updateWritingEntryText: build.mutation<WritingEntryDto, {id: string} & UpdateWritingEntryTextRequest>({
             query: ({id, ...body}) => ({
