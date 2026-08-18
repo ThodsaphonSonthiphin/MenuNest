@@ -443,9 +443,14 @@ the glossary wins until the glossary is deliberately changed.
   writer's **own** sentences of that night: a `{ source, combined }` pair. The minimum is **not**
   enforced — a Thai-only night has no English sentences to combine, so an empty list is valid and
   only the upper bound of 4 is a rule. _Avoid_: exercise, drill, practice item.
-- **Stuck word** — one Thai word the writer could not say in English that night (bracketed in the
-  **Freewrite** as they wrote), paired with its English translation: a `{ thai, english }` pair.
-  _Avoid_: vocabulary, unknown word, gap.
+- **Stuck word** — one bracketed Thai fragment the writer could not say in English that night,
+  paired with its English translation: a `{ thai, english }` pair. Despite the name, the fragment is
+  **not limited to a single word**: the writer brackets whatever he could not produce, so a whole
+  sentence — or, on a night he could produce none of it, the entire entry — is normal and expected,
+  not malformed data. The **ผลตรวจ** screen therefore renders each pair as a two-line card (Thai above,
+  English below), never a one-line chip. The term keeps the word "word" only because
+  `StuckWordsJson` / `StuckWordDto` already carry it.
+  _Avoid_: vocabulary, unknown word, gap, phrase (the fragment has no length rule at all).
 - **Pending entry** — a **Writing entry** that has **no Correction yet** and is not deleted; the
   set the `list_pending_writing_entries` **MCP tool** returns, and what the **รอตรวจ** badge and
   filter show. Read-time only — there is no "pending" column; it is `CorrectedAt is null`.
