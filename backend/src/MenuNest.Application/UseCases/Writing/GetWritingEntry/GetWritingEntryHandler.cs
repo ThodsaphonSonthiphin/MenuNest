@@ -59,7 +59,8 @@ public sealed class GetWritingEntryHandler
             ThaiWhyLine: entry.ThaiWhyLine ?? string.Empty,
             SentenceCombiningItems: DeserialiseList<SentenceCombiningItemDto>(entry.SentenceCombiningItemsJson),
             StuckWords: DeserialiseList<StuckWordDto>(entry.StuckWordsJson),
-            ErrorsPer100Words: errorsPer100Words);
+            ErrorsPer100Words: errorsPer100Words,
+            WordCount: wordCount);
     }
 
     /// <summary>

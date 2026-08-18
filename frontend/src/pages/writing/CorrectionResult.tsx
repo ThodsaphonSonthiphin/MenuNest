@@ -37,10 +37,10 @@ export function CorrectionResult({ correction, wordsPerMinute, elapsedSeconds }:
     sentenceCombiningItems,
     stuckWords,
     errorsPer100Words,
+    wordCount,
   } = correction
 
   const totalMarks = hitCount + missCount
-  const wordCount = Math.round((wordsPerMinute * elapsedSeconds) / 60)
 
   return (
     <div className="correction-result">

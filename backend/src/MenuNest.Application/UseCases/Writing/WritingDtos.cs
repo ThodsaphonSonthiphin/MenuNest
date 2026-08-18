@@ -40,8 +40,15 @@ public sealed record StuckWordDto(string Thai, string English);
 
 /// <summary>
 /// One recorded Correction, as the ผลตรวจ screen needs it: the five blocks of
-/// mcp-tool-contract plus the one number derived on the way out (ADR-179).
-/// The two JSON columns arrive here already deserialised.
+/// mcp-tool-contract plus the numbers derived on the way out (ADR-179). The
+/// two JSON columns arrive here already deserialised.
+///
+/// WordCount is the same counter behind ErrorsPer100Words (WritingEntry.CountWords),
+/// surfaced so block 5's caption never reconstructs it client-side by inverting
+/// WordsPerMinute x ElapsedSeconds -- ADR-179 rejected that arithmetic explicitly,
+/// because UpdateText deliberately does not recompute WordsPerMinute, so an
+/// edited-after-submit entry would show a word count that no longer matches the
+/// text the server actually derived ErrorsPer100Words from.
 /// </summary>
 public sealed record WritingCorrectionDto(
     string TargetRule,
@@ -51,7 +58,8 @@ public sealed record WritingCorrectionDto(
     string ThaiWhyLine,
     IReadOnlyList<SentenceCombiningItemDto> SentenceCombiningItems,
     IReadOnlyList<StuckWordDto> StuckWords,
-    double ErrorsPer100Words);
+    double ErrorsPer100Words,
+    int WordCount);
 
 /// <summary>
 /// One writing entry with its Correction, as returned by

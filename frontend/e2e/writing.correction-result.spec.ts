@@ -28,6 +28,9 @@ const thaiOnly = {
       { thai: 'วันนี้พาลูกสาวไปกินข้าวเย็น', english: 'Today I took my daughter out for dinner.' },
     ],
     errorsPer100Words: 0,
+    // The bracketed Thai text has no spaces, so the server's word counter
+    // (WritingEntry.CountWords) sees it as one token.
+    wordCount: 1,
   },
 }
 
@@ -51,6 +54,8 @@ const englishNight = {
     ],
     stuckWords: [{ thai: 'ข้าวต้ม', english: 'rice porridge / congee' }],
     errorsPer100Words: 14,
+    // "Today my daughter go to school." -> six space-separated tokens.
+    wordCount: 6,
   },
 }
 
@@ -91,6 +96,10 @@ test.describe('Writing — ผลตรวจ screen', () => {
 
     await expect(page.getByText('5.9')).toBeVisible()
     await expect(page.getByText('0.0')).toBeVisible()
+    // Block 5's caption is the server's own wordCount (fix round 2, #97) --
+    // never Math.round(wordsPerMinute * elapsedSeconds / 60), which ADR-179
+    // rejected. This pins it so a client-side reconstruction can't creep back.
+    await expect(page.getByText('1 คำ ใน 41 วินาที')).toBeVisible()
     await expect(page.getByText('สิ่งที่ระบบจะไม่ทำเด็ดขาด')).toBeVisible()
     await expect(page.getByRole('button', { name: 'ลบ' })).toBeVisible()
   })
@@ -108,6 +117,9 @@ test.describe('Writing — ผลตรวจ screen', () => {
     await expect(page.getByText('Traffic was very bad, so we arrived late.')).toBeVisible()
     await expect(page.locator('.correction-stuck__thai')).toHaveText('ข้าวต้ม')
     await expect(page.getByText('14.0')).toBeVisible()
+    // Same pin as the Thai-only case: the server's wordCount, not a client
+    // reconstruction from wordsPerMinute and elapsedSeconds.
+    await expect(page.getByText('6 คำ ใน 420 วินาที')).toBeVisible()
     // No empty-state line should appear on a fully populated night.
     await expect(page.getByText('คืนนี้ไม่มีประโยคอังกฤษให้ต่อ')).toHaveCount(0)
   })

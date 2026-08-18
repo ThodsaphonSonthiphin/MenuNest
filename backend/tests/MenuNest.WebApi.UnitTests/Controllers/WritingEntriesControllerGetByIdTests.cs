@@ -39,7 +39,8 @@ public sealed class WritingEntriesControllerGetByIdTests
                 ThaiWhyLine: "คำนามนับได้เอกพจน์ต้องมีตัวนำหน้าเสมอ",
                 SentenceCombiningItems: [],
                 StuckWords: [],
-                ErrorsPer100Words: 0));
+                ErrorsPer100Words: 0,
+                WordCount: 3));
 
         mediator
             .Setup(m => m.Send(It.IsAny<GetWritingEntryQuery>(), It.IsAny<CancellationToken>()))
