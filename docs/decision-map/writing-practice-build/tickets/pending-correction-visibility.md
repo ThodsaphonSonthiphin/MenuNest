@@ -26,6 +26,8 @@ Now that correction is decoupled from the 7-minute writing session (done-day-red
 
 Status badge per row (pending/corrected) + tappable filter inside the History screen, built as a Syncfusion react-grid DataGrid; no count or badge on the nav.
 
+Detail: docs/adr/176-pending-nights-show-by-a-badge-and-filter-inside-history-not-a-nav-badge.md
+
 ```mermaid
 flowchart TD
     Q["How does the writer see which<br/>nights still need correction?"]

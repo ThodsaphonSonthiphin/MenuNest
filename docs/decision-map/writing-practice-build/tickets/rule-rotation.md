@@ -24,6 +24,8 @@ Does the active target rule (e.g. third-person -s, then articles) rotate automat
 
 The writer flips the active target grammar rule by hand -- not an automatic calendar rotation.
 
+Detail: docs/adr/174-the-target-rule-rotates-by-hand-so-the-app-must-read-and-set-it.md
+
 ```mermaid
 flowchart TD
     Q["Who flips the monthly target rule?"]

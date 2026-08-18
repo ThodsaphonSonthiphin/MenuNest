@@ -24,6 +24,8 @@ habit-mechanics flagged as unsolved that a phone notification can capture the wr
 
 Nothing extra for v1 -- a normal page in MenuNest's existing nav; the notification-capture risk from habit-mechanics stays accepted and unsolved.
 
+Detail: docs/adr/172-v1-adds-nothing-for-one-tap-access-and-carries-the-notification-risk-forward.md
+
 ```mermaid
 flowchart TD
     Q["Does the build do anything about<br/>notification capture at unlock?"]

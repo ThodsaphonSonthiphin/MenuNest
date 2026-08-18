@@ -25,6 +25,8 @@ habit-mechanics defined a done day as the 7-minute timer plus reading the correc
 
 The 7-minute timer alone counts as done for this build; correction is decoupled and can happen whenever, superseding habit-mechanics' same-night pairing for this implementation.
 
+Detail: docs/adr/173-the-seven-minute-timer-alone-makes-a-night-done-the-correction-is-decoupled.md
+
 ```mermaid
 flowchart TD
     Q["Does done still require reading<br/>the correction the same night?"]
