@@ -104,7 +104,8 @@
   cursor: pointer;
 }
 
-.writing-detail-locked-note {
-  font-size: 12px;
-  color: var(--color-text-muted);
+.writing-detail-result-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 12px;
 }
