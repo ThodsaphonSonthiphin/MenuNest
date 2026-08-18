@@ -16,6 +16,7 @@ import {
 } from '../../shared/api/api'
 import { formatDateThai } from './formatDate'
 import { saveErrorMessage } from './saveErrorMessage'
+import { loadErrorMessage } from './loadErrorMessage'
 import { CorrectionResult } from './CorrectionResult'
 import './WritingHistoryPage.css'
 import './WritingEntryDetailPage.css'
@@ -95,22 +96,18 @@ export function WritingEntryDetailPage() {
   if (!entry) {
     // A failed poll over data we already have must fall through instead of
     // landing here -- this branch is absence, not error (fix round 1, #97).
-    // A missing entry with no error (or a 404) really is gone; any other
-    // error is a transient failure that says nothing about the entry's
-    // existence, so it gets its own copy rather than a false "deleted" claim.
-    const status =
-      queryError && typeof queryError === 'object' && 'status' in queryError
-        ? (queryError as { status: number | string }).status
-        : null
-    const notFound = !queryError || status === 404
+    // loadErrorMessage reads the ProblemDetails detail string the same way
+    // saveErrorMessage does for the save path: ExceptionHandlingMiddleware
+    // maps every DomainException (including a missing entry) to HTTP 400, so
+    // a literal 404 here means the route itself is missing, not the entry --
+    // that is a transient condition a retry fixes, so it gets the generic
+    // copy rather than a false "deleted" claim.
     return (
       <div className="writing-detail-page">
         <button type="button" className="writing-detail-back-btn" onClick={() => navigate('/writing/history')}>
           ← กลับ
         </button>
-        <div className="writing-detail-status">
-          {notFound ? 'ไม่พบรายการนี้ (อาจถูกลบไปแล้ว)' : 'โหลดไม่สำเร็จ'}
-        </div>
+        <div className="writing-detail-status">{loadErrorMessage(queryError)}</div>
       </div>
     )
   }

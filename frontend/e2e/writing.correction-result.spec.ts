@@ -138,9 +138,37 @@ test.describe('Writing — ผลตรวจ screen', () => {
   // let a refactor silently re-merge them and re-ship the regression that
   // told a writer their night may have been deleted after a merely
   // transient failure.
-  test('a 404 says the entry may have been deleted', async ({ authedPage: page }) => {
+  //
+  // Fix round 2 (#97 whole-branch review): ExceptionHandlingMiddleware maps
+  // EVERY DomainException -- including "Writing entry not found." -- to HTTP
+  // 400, never 404. The case below fulfils the body the backend can actually
+  // produce; a literal 404 means the route itself is missing (a deploy
+  // race), which a retry fixes, so it now gets the generic copy instead.
+  test('a 400 with the not-found detail says the entry may have been deleted', async ({ authedPage: page }) => {
     const notFoundId = '77777777-7777-7777-7777-777777777777'
     await page.route(`**/api/writing-entries/${notFoundId}`, async (route) => {
+      await route.fulfill({
+        status: 400,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          title: 'Request rejected',
+          detail: 'Writing entry not found.',
+          status: 400,
+        }),
+      })
+    })
+
+    await page.goto(`/writing/history/${notFoundId}`)
+
+    await expect(page.getByText('ไม่พบรายการนี้ (อาจถูกลบไปแล้ว)')).toBeVisible()
+  })
+
+  test('a literal 404 (a missing route, not a missing entry) says loading failed', async ({ authedPage: page }) => {
+    // This API never produces a 404 for a missing entry -- pinning this
+    // deliberately, so the deploy-race case reads as "try again" rather than
+    // silently drifting back to "this night may have been deleted".
+    const routeMissingId = '99999999-9999-9999-9999-999999999999'
+    await page.route(`**/api/writing-entries/${routeMissingId}`, async (route) => {
       await route.fulfill({
         status: 404,
         contentType: 'application/json',
@@ -148,9 +176,9 @@ test.describe('Writing — ผลตรวจ screen', () => {
       })
     })
 
-    await page.goto(`/writing/history/${notFoundId}`)
+    await page.goto(`/writing/history/${routeMissingId}`)
 
-    await expect(page.getByText('ไม่พบรายการนี้ (อาจถูกลบไปแล้ว)')).toBeVisible()
+    await expect(page.getByText('โหลดไม่สำเร็จ')).toBeVisible()
   })
 
   test('a 500 says loading failed, not that the entry is gone', async ({ authedPage: page }) => {
