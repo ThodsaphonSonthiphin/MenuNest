@@ -24,6 +24,8 @@ If the phone screen locks or the writer switches apps mid-timer, does the 7-minu
 
 The 7-minute timer is wall-clock based and keeps running through screen-lock or app-switch; it does not pause.
 
+Detail: docs/adr/171-the-freewrite-timer-is-wall-clock-and-never-pauses.md
+
 ```mermaid
 flowchart TD
     Q["What happens to the 7-min countdown<br/>on screen-lock or app-switch?"]

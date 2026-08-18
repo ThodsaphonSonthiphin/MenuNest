@@ -25,6 +25,8 @@ Once the 7-minute freewrite is submitted in the new MenuNest page, what produces
 
 Correction runs via the writer's personal Claude Code over MCP, reusing the Trip-tools OAuth-proxy pattern -- no new LLM key inside MenuNest's server.
 
+Detail: docs/adr/170-the-ai-correction-runs-in-the-writers-own-claude-code-over-mcp.md
+
 ```mermaid
 flowchart TD
     Q["What produces the correction<br/>once the freewrite is submitted?"]

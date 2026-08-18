@@ -26,6 +26,8 @@ What MCP tools does a new WritingTools class (mirroring the existing TripTools p
 
 WritingTools exposes 4 MCP tools -- list_pending_writing_entries, get_active_target_rule, set_active_target_rule, record_writing_correction; entry creation stays in-app, never MCP.
 
+Detail: docs/adr/175-writingtools-exposes-four-mcp-tools-and-entry-creation-is-never-one.md
+
 ```mermaid
 flowchart TD
     Q["WritingTools MCP class<br/>mirrors TripTools' [McpServerToolType] shape"]
