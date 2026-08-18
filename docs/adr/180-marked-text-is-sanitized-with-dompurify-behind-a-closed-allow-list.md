@@ -79,3 +79,27 @@ Facts checked against the live registry and the installed tree rather than recal
   not styling, and the test file is where that contract is stated.
 - If a correction ever legitimately needs a new mark type, both the allow-list and the mock's CSS must
   change together, or the new mark renders as bare text.
+
+## Amendment (2026-08-18, whole-branch review)
+
+`ALLOWED_ATTR: ['class']` does **not**, on its own, implement the contract stated above. DOMPurify
+defaults `ALLOW_DATA_ATTR` and `ALLOW_ARIA_ATTR` to `true`, and `ALLOWED_ATTR` does not close either
+family — so the shipped sanitiser was passing every `data-*` and every `aria-*` attribute through
+untouched while the ADR claimed only `class` survived. Measured against the installed `dompurify@3.4.13`
+with this module's exact options:
+
+```
+'<p data-evil="payload">hi</p>'                   => '<p data-evil="payload">hi</p>'
+'<span aria-hidden="true" class="miss">go</span>' => '<span aria-hidden="true" class="miss">go</span>'
+'<p style="color:red">hi</p>'                     => '<p>hi</p>'          (correctly stripped)
+```
+
+No script execution was ever possible, but a smuggled `aria-hidden="true"` would silently remove
+block 1 from the accessibility tree, and `data-*` carries attacker-chosen bytes into the DOM for any
+future feature that reads data attributes.
+
+The decision is unchanged — the attribute allow-list is, and always was, `class` alone. The
+implementation now enforces it: `ALLOW_DATA_ATTR: false` and `ALLOW_ARIA_ATTR: false` are passed
+explicitly and are load-bearing, with `sanitizeMarkedText.test.ts` asserting that a `data-*` and an
+`aria-*` attribute are both stripped while `class="miss"` on the same element survives. **Do not
+remove those two flags as redundant-looking noise.**
