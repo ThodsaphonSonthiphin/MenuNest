@@ -34,7 +34,7 @@ export function WritingEntryDetailPage() {
   // (ADR-179). RTK Query honours a pollingInterval that changes between
   // renders, and 0 means "stop polling".
   const [pollingInterval, setPollingInterval] = useState(15_000)
-  const { data: entry, isLoading, isError } = useGetWritingEntryQuery(id!, {
+  const { data: entry, isLoading, error: queryError } = useGetWritingEntryQuery(id!, {
     skip: !id,
     pollingInterval,
   })
@@ -92,13 +92,25 @@ export function WritingEntryDetailPage() {
     return <div className="writing-detail-page writing-detail-status">กำลังโหลด...</div>
   }
 
-  if (isError || !entry) {
+  if (!entry) {
+    // A failed poll over data we already have must fall through instead of
+    // landing here -- this branch is absence, not error (fix round 1, #97).
+    // A missing entry with no error (or a 404) really is gone; any other
+    // error is a transient failure that says nothing about the entry's
+    // existence, so it gets its own copy rather than a false "deleted" claim.
+    const status =
+      queryError && typeof queryError === 'object' && 'status' in queryError
+        ? (queryError as { status: number | string }).status
+        : null
+    const notFound = !queryError || status === 404
     return (
       <div className="writing-detail-page">
         <button type="button" className="writing-detail-back-btn" onClick={() => navigate('/writing/history')}>
           ← กลับ
         </button>
-        <div className="writing-detail-status">ไม่พบรายการนี้ (อาจถูกลบไปแล้ว)</div>
+        <div className="writing-detail-status">
+          {notFound ? 'ไม่พบรายการนี้ (อาจถูกลบไปแล้ว)' : 'โหลดไม่สำเร็จ'}
+        </div>
       </div>
     )
   }
