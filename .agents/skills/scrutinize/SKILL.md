@@ -44,6 +44,7 @@ For each claim the change/plan makes, answer:
 - **What inputs / states would break it?** Edge cases, concurrent callers, error paths, partial failures, retries, empty/null/unicode/huge inputs, ordering assumptions.
 - **What does it silently change?** Performance, error semantics, observability, contract for other callers, on-disk / on-wire format.
 - **How is it tested?** Do the tests actually exercise the traced path, or do they pass while skipping it (mocks that hide the bug, asserts on intermediate state, happy path only)?
+  Then ask the sharper question: **can any assertion here fail?** An assertion that compares against a value the test DOUBLE itself set, or against the same constant on both sides, is a tautology -- it passes on a build where the behaviour it names is gone, and its NAME is worse than its absence because it stops the next reader looking. Check hardest where a double replaces an I/O boundary (a DB, an HTTP client, a platform SDK): that is the one place a mutation probe cannot reach, because probe and assertion sit on the same side of the seam. Measured 2026-08-20: four such tests in one reviewed feature, each named for a guarantee it could not deliver.
 - **Does every site that must honor a stated invariant actually honor it?** When the
   artifact declares a rule about itself — a docstring invariant, "all X go through Y",
   an ordering or naming convention — do not spot-check the sites the change touched.

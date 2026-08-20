@@ -50,7 +50,7 @@ Then a **global/cross-cutting pass** — these belong to no single screen and ar
 
 **8 · Cluster + size.** Add a **Cluster** axis (*what kind of work*: Reuse / Rework / Build-new / Mixed), distinct from the verdict (*does it exist*); then **Effort (S/M/L)** + risk/dependency. Cluster collapses many rows into few decisions.
 
-**9 · Produce multi-lens, self-explaining artifacts** — matrix + journeys + actors/access + impact/effort + open `[D]` items, with a **legend** so any reader decodes it without you. Land it where it compounds (a living doc) *and* as a working tracker (spreadsheet). The living doc follows the diagram convention (`.agents/references/diagram-convention.md`): one overview diagram up top; `sequenceDiagram` for traced journeys, `graph TD` for cluster/dependency views, `flowchart TD` for the decisions framing (step 10).
+**9 · Produce multi-lens, self-explaining artifacts** — matrix + journeys + actors/access + impact/effort + open `[D]` items, with a **legend** so any reader decodes it without you. Land it where it compounds (a living doc) *and* as a working tracker (spreadsheet). The living doc follows the diagram convention (`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`): one overview diagram up top; `sequenceDiagram` for traced journeys, `graph TD` for cluster/dependency views, `flowchart TD` for the decisions framing (step 10).
 
 **10 · Frame as decisions, not a feature list.** Group gaps into the few choices the meeting can make; sequence by independence (greenfield + quick-wins before big rework); decide **if** before **how**.
 

@@ -97,7 +97,7 @@ Don't delegate this — judgment about the user's context lives with you.
 ## Appendix — exact names, gotchas, evidence     ← for implementers; plus the evidence folder path
 ```
 
-3. The advisory is a Markdown document — follow the diagram convention in `.agents/references/diagram-convention.md`: open with one overview diagram placed before `## The N problems worth fixing…` (typically a `graph TD` of the recommended phases and their key changes), and use `erDiagram` for proposed schema/mapping changes and `flowchart TD` for phase/decision logic.
+3. The advisory is a Markdown document — follow the diagram convention in `${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`: open with one overview diagram placed before `## The N problems worth fixing…` (typically a `graph TD` of the recommended phases and their key changes), and use `erDiagram` for proposed schema/mapping changes and `flowchart TD` for phase/decision logic.
 4. Numbers keep their queries; claims keep their citations; corrections are stated plainly ("field X does not exist — sum the rows instead").
 5. If the user maintains a knowledge base, offer to file the advisory there so it compounds.
 

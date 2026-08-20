@@ -82,7 +82,7 @@ works.
 
 - **default** — the contract above.
 - **`deep <topic>`** — caps ×2.5, and one section diagram is allowed (type-matched
-  per `.agents/references/diagram-convention.md`). Every gap gets its
+  per `${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`). Every gap gets its
   own evidence trail. Use only when the user asks for depth.
 - The user wants something they can click through step by step → hand off to
   `problem-description`.

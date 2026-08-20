@@ -74,7 +74,7 @@ When the user questions a piece of code (a weird label, a hardcode, a removed fe
 
 The default output is an evidence-chain answer in chat — no diagrams. But if
 the user asks for the trace as a Markdown report file, follow the diagram
-convention in `.agents/references/diagram-convention.md` (the
+convention in `${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md` (the
 overview diagram is the chain itself: `file:line` → commit → ticket, as a
 `flowchart TD`).
 

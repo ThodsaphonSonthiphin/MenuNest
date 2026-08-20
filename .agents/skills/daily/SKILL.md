@@ -50,7 +50,7 @@ On **bare `/daily`** and on **`/daily start`**, BEFORE showing the menu or handi
 off to START, read the saved work-state. Run from any cwd inside the project:
 
 ```bash
-python ".agents/scripts/daily-state.py" show --json
+python "${CLAUDE_PLUGIN_ROOT}/scripts/daily-state.py" show --json
 ```
 
 - If the output is the literal text `no state yet` (a string, NOT JSON — it is
@@ -179,7 +179,7 @@ one turn) for `station`, `status`, the active `focus` (topic, ticket if any), an
 the `next` step, then call:
 
 ```bash
-python ".agents/scripts/daily-state.py" set \
+python "${CLAUDE_PLUGIN_ROOT}/scripts/daily-state.py" set \
   --station wrap --status <in-progress|blocked|paused|done> \
   --topic "<what you were on>" --next-action "<next step>" \
   [--ticket <id>] [--next-reason "<why>"] [--blocker "<text>" ...] \
@@ -203,7 +203,7 @@ resume-point and returns; it never shows the menu or hands off to a station skil
 1. **Find where it writes** — show the user the resolved path so there are no
    surprises:
    ```bash
-   python ".agents/scripts/daily-state.py" resolve-path
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/daily-state.py" resolve-path
    ```
    The script resolves `--path` flag → `DAILY_STATE_FILE` env → git root
    (`git rev-parse --show-toplevel`). If the script reports it is **not in a git
@@ -213,7 +213,7 @@ resume-point and returns; it never shows the menu or hands off to a station skil
 2. **Write the state** — pass only the fields you know; unset fields are preserved
    (read-modify-write), and `updated` is stamped by the script:
    ```bash
-   python ".agents/scripts/daily-state.py" set \
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/daily-state.py" set \
      --station <start|work|file|report|wrap> \
      --status <in-progress|blocked|paused|done> \
      --topic "<active work>" --next-action "<next step>" \

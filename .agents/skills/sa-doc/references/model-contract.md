@@ -125,7 +125,6 @@ literature: [ {topic, source, relevance} ]  # source: a real citation the input 
 
 ## Validation
 
-`.agents/scripts/validate_model.py <path>` — exit 0 clean,
+`${CLAUDE_PLUGIN_ROOT}/scripts/validate_model.py <path>` — exit 0 clean,
 exit 1 on errors. Errors block generation; warnings must be fixed or
 explicitly accepted by the user; TBDs are reported, never invented away.
-

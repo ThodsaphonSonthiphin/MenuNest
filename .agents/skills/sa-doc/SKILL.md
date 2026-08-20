@@ -68,13 +68,13 @@ silent on is `TBD` (tracked), never a plausible value — this holds even where 
 validator warning nags you to fill a field (W6/W8/W9) or a profile requires a
 section (E8): satisfy the gate with a `TBD`-valued record, never manufactured
 content. The bundled example
-`.agents/scripts/fixtures/sa-model-bookstore.yaml` shows a
+`${CLAUDE_PLUGIN_ROOT}/scripts/fixtures/sa-model-bookstore.yaml` shows a
 complete, clean model.
 
 ### 3. Validate — the gate
 
 ```
-python .agents/scripts/validate_model.py SA-<project>/sa-model.yaml
+python ${CLAUDE_PLUGIN_ROOT}/scripts/validate_model.py SA-<project>/sa-model.yaml
 ```
 
 - **Errors block generation.** Fix the model; ask the user when the fix is a
@@ -100,7 +100,7 @@ Rules:
   dates, environments, or security mechanisms with no input source. (Class-vs-
   instance: a concrete sourced value that merely contains such a word is fine —
   the target is invented content, not a literal word ban.)
-- Diagrams follow `.agents/references/diagram-convention.md` —
+- Diagrams follow `${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md` —
   one Mermaid overview at the top, type-matched section diagrams
   (`sequenceDiagram`, `classDiagram`, `erDiagram`, `flowchart TD`,
   `stateDiagram-v2`). The data model carries both a `classDiagram` (OO/domain
@@ -115,7 +115,7 @@ Rules:
 ### 4.5 Faithfulness check — the anti-fabrication gate
 
 ```
-python .agents/scripts/check_doc_provenance.py SA-<project>/SA-<project>.md SA-<project>/sa-model.yaml
+python ${CLAUDE_PLUGIN_ROOT}/scripts/check_doc_provenance.py SA-<project>/SA-<project>.md SA-<project>/sa-model.yaml
 ```
 
 Traces every hard fact in the generated document (numbers, money, percentages,
@@ -131,7 +131,7 @@ not a hard block.
 ### 5. Render (pdf/both only)
 
 ```
-python .agents/scripts/render_doc.py SA-<project>/SA-<project>.md --pdf
+python ${CLAUDE_PLUGIN_ROOT}/scripts/render_doc.py SA-<project>/SA-<project>.md --pdf
 ```
 
 Produces a self-contained HTML and prints it to PDF with headless Edge/Chrome.

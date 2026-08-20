@@ -91,7 +91,7 @@ generation a button is, only what it does.
 2. **Mermaid everywhere** — sequenceDiagram for lifecycles, erDiagram for data,
    flowchart TD for decision logic, graph TD for hierarchies. Implements the
    marketplace diagram convention
-   (`.agents/references/diagram-convention.md`), including its
+   (`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`), including its
    mandatory overview diagram at the top of ARCHITECTURE.md.
 3. **No speculation.** Only what the extracted files and queries showed.
    Unclear behavior is documented as *unclear*, with what was checked.
@@ -99,4 +99,3 @@ generation a button is, only what it does.
    validation rules, command maps → tables. Why a process exists → prose.
 5. **Horizontal rules between Parts**; quick-pass studies (steps 1–4) emit
    Parts 2, 3, and 5 only — the entity map and automation inventory.
-

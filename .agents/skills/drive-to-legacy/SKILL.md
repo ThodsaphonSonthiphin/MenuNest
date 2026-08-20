@@ -219,7 +219,7 @@ The final document should follow this reading order (user stories first — they
 ## Rules for the Architecture Document
 
 1. **Clickable TOC** - every section linked with anchor. Avoid `&`, `--`, `/`, `*`, `()` in headings (they break anchor generation).
-2. **Mermaid diagrams everywhere** - sequence diagrams for flows, flowcharts for logic, ER diagrams for data, graph TD for hierarchies. This implements the marketplace diagram convention (`.agents/references/diagram-convention.md`) — including its mandatory overview diagram at the top of the document.
+2. **Mermaid diagrams everywhere** - sequence diagrams for flows, flowcharts for logic, ER diagrams for data, graph TD for hierarchies. This implements the marketplace diagram convention (`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`) — including its mandatory overview diagram at the top of the document.
 3. **Every API table must have a Why row** - business purpose, not just technical trigger.
 4. **Tables for scannable data** - validation rules, field mappings, constants, nullability.
 5. **No speculation** - only document what you read in the code. If behavior is unclear, note it as unclear.

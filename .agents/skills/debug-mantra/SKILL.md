@@ -123,4 +123,4 @@ Maintain a running **ledger** of every experiment in this session. Each entry: w
 ---
 
 This skill follows the **terminal-diagram** convention — canonical wording in
-`.agents/references/diagram-convention.md`.
+`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`.

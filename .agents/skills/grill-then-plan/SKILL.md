@@ -141,7 +141,7 @@ the question** — render it from the UI decisions resolved so far, in the proje
 own design language, and ask the user to confirm or correct, then loop. If the
 project has no design system, first have the user establish a minimal design
 baseline (you propose the starter) — never wireframe ad-hoc, or the mockups and the
-build drift apart. Skip this entirely for designs with no visual surface. Put the mockup in the project's Claude Design design-system project via `DesignSync` (PREFERRED). A rendered Artifact, then a self-contained `.html`, are fallbacks used ONLY when DesignSync/Artifact are unavailable; never default to a local `.html` even if a prior `.html` mockup already exists in the repo. Full mechanism (when to render vs not, how, and carrying it to the spec) is in `.agents/references/ui-mockup.md` -- read it before the first render.
+build drift apart. Skip this entirely for designs with no visual surface. Put the mockup in the project's Claude Design design-system project via `DesignSync` (PREFERRED). A rendered Artifact, then a self-contained `.html`, are fallbacks used ONLY when DesignSync/Artifact are unavailable; never default to a local `.html` even if a prior `.html` mockup already exists in the repo. Full mechanism (when to render vs not, how, and carrying it to the spec) is in `${CLAUDE_PLUGIN_ROOT}/references/ui-mockup.md` -- read it before the first render.
 
 ## Step 4 — Capture inline as decisions crystallize
 
@@ -153,7 +153,7 @@ build drift apart. Skip this entirely for designs with no visual surface. Put th
   moment the decision is made. Do not batch or defer. Create `docs/adr/` lazily
   on the first ADR. Use the format in [ADR-FORMAT.md](./ADR-FORMAT.md). Every
   ADR opens with a small Mermaid decision diagram (chosen vs rejected paths) —
-  see `.agents/references/diagram-convention.md`, Rule 3. A
+  see `${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`, Rule 3. A
   decision qualifies if the user chose one option over another — architectural
   shape, technology choice, naming, scope boundary, safety mechanism. When in
   doubt, write the ADR. A short ADR is better than a missing one.
@@ -163,7 +163,7 @@ build drift apart. Skip this entirely for designs with no visual surface. Put th
 When grilling converges, **before writing the spec**, play the design back as a
 **terminal recap** so the user can confirm it is captured correctly. Render it as a
 terminal diagram per the *Terminal diagrams* family in
-`.agents/references/diagram-convention.md` (Unicode box-drawing,
+`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md` (Unicode box-drawing,
 vertical, ≲ 50 columns, inside a fenced block — never Mermaid, which does not render
 live in a terminal):
 
@@ -192,7 +192,7 @@ until the recap is confirmed.
 Once understanding is shared, write the design to
 `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md` (`<topic>` is a
 lowercase-kebab slug). The spec is a Markdown document — follow the diagram
-convention in `.agents/references/diagram-convention.md` (one
+convention in `${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md` (one
 overview Mermaid diagram at the top; type-matched diagrams per section).
 If a UI mockup was produced in Step 3.5, reference its final artifact URL / `.html`
 path in the spec, so the plan and the implementer work from the same screen you

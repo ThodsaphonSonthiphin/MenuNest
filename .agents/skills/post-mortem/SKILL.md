@@ -96,7 +96,7 @@ If there are no action items, write *"None — the fix is sufficient and no clas
 ## Diagrams
 
 A post-mortem is a Markdown document — follow the diagram convention in
-`.agents/references/diagram-convention.md`. In practice: one
+`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md`. In practice: one
 overview diagram at the top, before section 1 (Summary) — usually a
 `flowchart TD` of root cause → mechanism → symptom → fix — and a
 `sequenceDiagram` in **Why it produced the symptom** when the cause chain

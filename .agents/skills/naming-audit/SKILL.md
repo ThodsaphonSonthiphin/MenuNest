@@ -76,7 +76,7 @@ If the source is a spreadsheet, write each item's outcome back to it (don't over
 The default output is per-item cards in chat plus spreadsheet write-back —
 no diagrams. But if the user asks for the audit as a Markdown report file,
 follow the diagram convention in
-`.agents/references/diagram-convention.md` (overview diagram of
+`${CLAUDE_PLUGIN_ROOT}/references/diagram-convention.md` (overview diagram of
 verdict counts per area, as a `graph TD`; the cards stay as-is).
 
 ## After the audit
