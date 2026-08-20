@@ -1,6 +1,7 @@
 ---
 name: review-pr
 description: Use when the user asks to review a pull request — "review PR #14", a GitHub PR URL, "รีวิว PR", "ดู PR ให้หน่อย", an outside contributor's fork PR, or a pre-merge second opinion on a PR. Trigger on /review-pr <number|url>. Not for reviewing a local uncommitted/working diff — invoke scrutinize directly for that.
+effort: max
 ---
 
 # review-pr

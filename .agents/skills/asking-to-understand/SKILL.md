@@ -1,6 +1,7 @@
 ---
 name: asking-to-understand
 description: "Socratic questioning discipline - the user is asked, not told, until they can state the rule themselves. Use when the user says \"ช่วยถามคำถามหน่อย\", \"ถามให้คิด\", \"ask me questions\", \"grill me\", \"quiz me\", \"make me think\"; when they own an artifact they do not understand - \"ยังไม่ค่อยเข้าใจสิ่งนี้ที่ให้ AI ทำ\", \"I don't understand what was built for me\", a plan/map/pipeline/codebase handed to them; before a sign-off, handover, or onboarding onto a system they now own. Not for explaining on request (feynman-explain) and not for challenging a plan before building it (grill-then-plan)."
+effort: max
 ---
 
 # Asking To Understand

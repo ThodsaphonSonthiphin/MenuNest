@@ -10,6 +10,7 @@ description: >-
   GOTCHAS.md file, or memory.
   NOT a what-was-done summary (that is invoice-generator) and NOT a single
   bug's root-cause record (that is post-mortem).
+effort: max
 ---
 
 # reflect — turn this session's problems into durable improvements

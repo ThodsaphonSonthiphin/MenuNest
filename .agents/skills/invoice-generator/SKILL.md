@@ -1,6 +1,7 @@
 ---
 name: invoice-generator
 description: Generate a daily work summary from git commits and reshape it for leadership via management-talk. Use this skill whenever the user mentions Tribletext, invoice, daily summary, timesheet, time report, work log, daily report, status update for management, or wants to summarize what they did yesterday/today from git history. Also trigger when the user says things like "what did I do today", "summarize my commits", "generate my timesheet", or "prepare my daily/leadership update". The raw commit summary is always handed off to the management-talk skill so the final deliverable is shaped for the channel it is going to (Tribletext entry, Slack, standup, email, JIRA, or meeting talking-points).
+effort: high
 ---
 
 # Invoice Generator — Daily Summary, Reshaped for Leadership

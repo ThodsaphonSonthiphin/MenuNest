@@ -1,6 +1,7 @@
 ---
 name: feynman-explain
 description: Fixed-format explanation discipline for concepts, systems, and code. Use when the user asks "อธิบาย…", "นี่คืออะไร", "อันนี้ทำงานยังไง", "explain X", "what is X", "how does X work", "why does this exist"; when they ask for a simpler, shorter, or plainer version of something; when they say an answer was too long, unformatted, or unreadable; or when they invoke /feynman. Also use before teaching, onboarding, or presenting a concept to someone else.
+effort: max
 ---
 
 # Feynman Explain
@@ -145,4 +146,3 @@ Adapted from the `feynman` skill in
 [neurofoo/agent-skills](https://github.com/neurofoo/agent-skills) (MIT) — the four
 steps are theirs; the caps, the evidence rule for ③, the language rule, and the
 handoffs are ours.
-

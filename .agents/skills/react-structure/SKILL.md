@@ -1,6 +1,7 @@
 ---
 name: react-structure
 description: Enforces React component structure by always separating hooks and UI into distinct files. Use this skill whenever creating, modifying, or refactoring React components, adding new features to a React app, or generating React code of any kind. Triggers on any React/TSX work including component creation, UI changes, form building, table views, page layouts, and feature implementation. Even if the user just says "add a button" or "create a page" — if it involves React, use this skill.
+effort: max
 ---
 
 # React Structure

@@ -1,6 +1,7 @@
 ---
 name: fit-gap-analysis
 description: "Compare a target (spec, product vision, competitor, RFP, or \"to-be\" design) against a system as actually built, and produce an evidence-first fit-gap — a capability matrix plus a step-by-step user-journey comparison, verified against the LIVE system (schema + code, not docs) and rolled up into decisions. Stack-agnostic (web apps, APIs, ERPs, low-code/CRM, pipelines, infra). Use whenever the user wants to compare a spec/vision/competitor to an existing system, asks \"how far are we from X\" or \"what would it take to support Y\", runs a gap analysis or COTS/package/vendor evaluation, or scopes a migration / re-platform / feature-parity effort. Trigger on fit-gap, gap analysis, capability comparison, as-is vs to-be, system comparison, feature parity, migration assessment — even when the user never says \"fit-gap\". Do NOT use for: reviewing a single diff/PR, a generic code review/audit with no target to compare against, or comparing two prose documents for wording."
+effort: max
 ---
 
 # Fit-Gap Analysis
@@ -91,4 +92,3 @@ You verified everything *on the list*; now attack the list. Re-scan the source a
 ## Optional dimensions (include if relevant; else mark *out of scope* so the choice is conscious)
 - **Lifecycle / state-transitions** — per entity, statuses + the actions driving transitions; verify each transition the target implies, not just the initial state.
 - **Non-functional** — perf/SLA, concurrency/locking, security (token/CORS), audit/retention, accessibility, offline.
-

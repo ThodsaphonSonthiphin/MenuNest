@@ -10,6 +10,7 @@ description: >-
   the repo API, and a 401/403/wrong-repo troubleshooting table. Invoke when
   someone says "I'm getting a 401 from GitHub", "github-create-issues says no
   token", "gh auth failing", or "check my GitHub login before we run".
+effort: max
 ---
 
 # github-auth
@@ -85,4 +86,3 @@ powershell -ExecutionPolicy Bypass -File ".agents/scripts/setup_check_github.ps1
 Once `gh api repos/...` returns the full_name cleanly, auth is good — continue with
 [[github-create-issues]] or [[findings-to-github-issues]]. Leave `GH_OWNER` / `GH_REPO`
 set in the shell; they carry straight into all downstream skills.
-

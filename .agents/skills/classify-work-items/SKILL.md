@@ -13,6 +13,7 @@ description: >-
   Priority, builds the per-type fields (titles, tags, repro/description as
   escaped HTML), carries each finding's `key` through, and hands off to
   ado-create-work-items.
+effort: max
 ---
 
 # classify-work-items

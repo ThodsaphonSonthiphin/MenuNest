@@ -10,6 +10,7 @@ description: >-
   This is the step that actually writes to the repo, so prefer it over hand-rolling
   API calls. After creating, it writes github_backlog_result.json for
   github-writeback-tracking.
+effort: max
 ---
 
 # github-create-issues
@@ -86,4 +87,3 @@ have a `number` and `url`. Items without a `number` failed; surface them to the 
 hand off to **github-writeback-tracking** to stamp `Issue #` / `Issue URL` back onto
 source rows. Once a row carries an Issue #, treat it as done. To re-file a subset,
 prune the input to only the un-filed `key`s first.
-

@@ -1,6 +1,7 @@
 ---
 name: ticket-trace
 description: Two-way traceability between commits and tickets. (A) When committing any change, make sure the commit message carries the ticket / work-item number — derive it from the user's words, the branch name, or the current task, ask if unknown (a commit-msg hook is bundled but install it only on explicit request). (B) When the user asks WHY code is the way it is — "why was this changed", "who decided this", "is this hardcode intentional", "ทำไมถึงแก้อันนี้", "มีเหตุผลป่าว" — trace the line through git blame/log to the commit, extract the ticket number from the message, fetch the ticket from the tracker (Azure DevOps, GitHub Issues, JIRA), INCLUDING downloading and reading attached images (requirements often live only in an annotated screenshot), and answer with commit + ticket evidence. Trigger on any commit request in a ticketed repo, on "install commit hook", and on any why-is-this-code-like-this / change-archaeology question — even when the user doesn't mention tickets.
+effort: max
 ---
 
 # Ticket Trace
@@ -80,4 +81,3 @@ overview diagram is the chain itself: `file:line` → commit → ticket, as a
 ## When NOT to use
 
 Pure code-mechanics questions ("what does this function do") need no ticket. Turning findings into new tickets is `ado-backlog`/`github-backlog`. Auditing label wording against a system of record is `naming-audit` (but when naming-audit flags a suspicious hardcode, THIS skill answers whether it was intentional).
-

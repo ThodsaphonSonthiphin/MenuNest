@@ -11,6 +11,7 @@ description: >-
   real ADO backlog. This is the step that actually writes to the org, so prefer
   it over hand-rolling REST/MCP calls when a backlog_input.json exists. After
   creating, it writes backlog_result.json for ado-writeback-tracking.
+effort: max
 ---
 
 # ado-create-work-items
@@ -107,8 +108,7 @@ it as done. If you must re-file a subset, prune the input to only the un-filed
 
 ## Windows notes
 
-- The install path can contain spaces — always wrap `".agents/..."`
+- The install path can contain spaces — always wrap `"${CLAUDE_PLUGIN_ROOT}/..."`
   and the JSON path in double quotes.
 - Console is cp1252; the .cs program emits ASCII status lines, so output is safe.
   (The bundled Python scripts force UTF-8 for source dumps / writeback.)
-

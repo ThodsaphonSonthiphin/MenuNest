@@ -6,6 +6,7 @@ description: >-
   on my plate", "my GitHub issues", "what should I work on next", "show my open
   issues", or starts the day wanting their remaining work. Read-only — it lists,
   it never changes anything.
+effort: max
 ---
 
 # github-my-work

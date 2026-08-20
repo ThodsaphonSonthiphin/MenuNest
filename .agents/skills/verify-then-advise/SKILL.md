@@ -1,6 +1,7 @@
 ---
 name: verify-then-advise
 description: "Governs any recommendation that depends on facts OUTSIDE the codebase that change faster than training data — vendor products, certifications, exam codes, SKUs, APIs, pricing, licensing, partner programs, job markets, industry trends, hype cycles. Use this skill whenever the user asks which certification or exam to take, whether a product/API/SKU/exam is still current or supported or retired, what a job market wants, whether to adopt a technology, what the trends are in a field, how a field will look in N years, or asks for any 1–5 year career or technology roadmap — and ALSO whenever your own answer is about to name a specific vendor product, credential, price, or market claim, even when the user never asked you to verify anything. The failure it prevents is confident, well-structured advice built on facts that quietly expired: model memory is stale by construction and vendors retire things faster than anyone expects. Do NOT use for questions answerable from the user's own code or system (that is study-design-verify), for a single fact lookup with no recommendation attached, or for pure preference questions with no external facts at stake."
+effort: max
 ---
 
 # Verify, Then Advise

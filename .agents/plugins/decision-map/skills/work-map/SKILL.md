@@ -120,20 +120,52 @@ for a finished one. Read first anyway: `read` is what gives you the destination,
 every ticket's status and every gist, and the frontier alone tells you none of
 that.
 
-**Check for orphaned artifacts before showing the frontier.** Run `git status` and
-look for uncommitted or untracked repo docs — an ADR, a spec, a CONTEXT.md
-edit — that name a ticket on this map. A session that produced the artifact
-and then ended before Step 4 recorded it leaves the decision **real but the map ignorant
-of it**, and usually leaves the ticket `claimed` too. The map is the state carrier; an
-orphaned ADR is that carrier having failed. Report what you find alongside the frontier
-— but do **not** record it yourself without asking, because the claiming
-session may still be live.
+**Check for orphaned artifacts before showing the frontier.** This runs in **two
+directions**, and the second one is the one that actually catches drift.
 
-`read` returns the map's `id` / `name` / `url` / `destination`, and every
-ticket. It does **not** return the fog list, the out-of-scope list or the
-notes. Those live only in the map **document** — the first two between the
-`decision-map:fog` and `decision-map:scope` marker pairs, the third under the
-`## Notes` heading — so **open it and read them**. You need the fog list
+*Artifact exists, map does not know* — run `git status` and look for uncommitted or
+untracked repo docs — an ADR, a spec, a CONTEXT.md edit — that name a ticket on this
+map. A session that produced the artifact and then ended before Step 4 recorded it
+leaves the decision **real but the map ignorant of it**, and usually leaves the ticket
+`claimed` too. The map is the state carrier; an orphaned ADR is that carrier having
+failed. Report what you find alongside the frontier — but do **not** record it
+yourself without asking, because the claiming session may still be live.
+
+*Map says closed, artifact does not exist* — **`lint` checks this; do not audit it by
+hand.** It reports `closed-without-artifact` for every closed ticket of a type that owes
+a durable artifact whose resolution names none. This half was prose in an earlier
+revision, which was the wrong shape: the failure it exists to catch IS a complete
+instruction being skipped in silence, so the remedy could not be another instruction
+(ADR 0091).
+
+```
+python "<ops>" lint --map <slug>
+```
+
+A closed `grilling` ticket with no ADR is the **more common** failure and the more
+expensive one, because nothing about the map's state looks wrong — the frontier is
+clean, the destination looks nearer, and the reasoning is gone. Measured on one real
+map: **8 closed `grilling` tickets, 1 ADR, 0 glossary terms**, while a sibling feature
+run straight through `grill-then-plan` produced 14 ADRs and edited the glossary in
+nearly every commit. On a tracker backend the rule needs the resolution body, so it
+comes back under `notChecked` rather than passing quietly.
+
+Report the findings as one line with the ticket keys, then **stop and ask**, and be
+honest about the cost of the repair: an ADR written long after the code shipped tends to
+record **what the code does** rather than **what was decided and what was rejected**, and
+a confident ADR documenting the implementation is worse than none, because a later reader
+trusts it. When the user does want them, draft from the ticket's own body — the question,
+the `Confirming exchange`, the user's own words — never from the code.
+
+`read` returns the map's `id` / `name` / `url` / `destination`, every ticket,
+and now the ordered **`milestones`** list too — `{slug, label, members}` per
+entry, in map order (ADR 0099). Milestones is the one region `read` *does*
+report; the fog list, the out-of-scope list and the notes are the three that
+still do not come back from `read` at all. Those three live only in the map
+**document**, each between its own marker pair — `decision-map:fog`,
+`decision-map:scope`, and now `decision-map:notes` too (ADR 0101 turned the
+old bare `## Notes` paragraph into an append-only bullet region, the same
+shape as fog and scope) — so **open it and read them**. You need the fog list
 in Step 5, and again in Step 6's report — but not this same copy of it: Step 5
 changes that region twice (the gate's merge adds lines, your hand edit deletes
 the graduated one), and `frontier` carries no fog to refresh it. **Re-read the
@@ -160,10 +192,29 @@ Present it as prose, in this order:
   measured against;
 - **decisions so far**, one gist each — the closed tickets in `read`'s output,
   the same lines the map document indexes;
-- the **frontier by ticket name**, one line each with its type — never a wall
-  of bare ids. The names are the question; the ids are plumbing;
-- one line of **blocked**: `<name> — waiting on <blocker name>`;
-- one line of **claimed**, if any: another session is holding these.
+- the **frontier, grouped by milestone** (ADR 0099): walk `frontier.json`'s
+  `milestones` list in the order it gives them — that order is the map's own
+  declared plan, not something a session chooses — and under each show its
+  progress (`<closed>/<total>` closed) plus its takeable tickets by name, one
+  line each with its type, never a wall of bare ids. **Each milestone carries
+  its own blocked and claimed lines too**, not just its takeable ones: with one
+  global blocked line a reader cannot tell whether the second milestone is
+  stalled or simply untouched, and cannot see another session's claims sitting
+  in a later group. Collapse them rather than itemizing — `2 blocked on
+  <blocker name>`, `1 claimed by <session>` — so the group stays two or three
+  lines. Every entry in all three buckets carries a `milestone` field, so no
+  extra call is needed. After every milestone, list any ticket whose
+  `milestone` is `null` as a final **unassigned** tail — takeable, blocked and
+  claimed the same way, with no progress count, because there is no milestone
+  for it to count against. `read` is what carries milestone *membership*
+  (`map.json`'s `milestones[].members`); `frontier` is what carries
+  *progress* and each ticket's own `milestone` field. The three buckets
+  themselves stay key-ascending exactly as before (ADR 0062) — the grouping
+  comes from walking the `milestones` list, not from re-sorting a bucket. On
+  an unmilestoned map `milestones` is `[]`, so there is nothing to group and
+  this collapses back to the flat list it replaces: takeable by name, then one
+  line of **blocked** (`<name> — waiting on <blocker name>`) and one line of
+  **claimed**, if any — another session is holding those.
 
 One line per item, no filler: aim to keep the whole presentation around ten
 lines, and on a map large enough to blow past that, group rather than itemize --
@@ -179,12 +230,30 @@ If the frontier is empty, go to Step 6 — the answer is either "the map is
 done", "everything left is blocked or claimed", or "that was the wrong slug",
 and Step 6 tells them apart.
 
+### Offer milestones once, only on a big unmilestoned map (ADR 0100)
+
+If `frontier.json`'s `milestones` is empty and more than five tickets came
+back open, offer **one line**: "this map has no milestones; want to group
+what ships first before picking?" Ask it once per session, never repeat it,
+and a decline changes nothing — go straight to Step 2 either way. Below that
+threshold, skip the offer outright: a small map does not need an ordering
+layer, and milestones must never become a toll a session pays just to pick up
+one ticket.
+
 ## Step 2 — Choose one, and claim it before you work
 
 If the user named a ticket, use it — **unless it came back under `claimed`**,
-which is the one case where you stop and ask first (below). Otherwise recommend
-the first frontier ticket and say in one line **why** — usually that it unblocks
-the most, or that it is the only thing open.
+which is the one case where you stop and ask first (below). Otherwise
+recommend by the **two-level rule** (ADR 0099): first find the **earliest
+incomplete milestone that has something takeable** — walk `frontier.json`'s
+`milestones` list in order, skipping any milestone that is `complete` or
+whose frontier tickets are none, and take the first one that has at least
+one — then, inside it, apply the existing heuristic and recommend whichever
+of its frontier tickets unblocks the most. Recommend an **unassigned**
+ticket (`milestone: null`) only once every milestone is either `complete` or
+blocked — i.e. the walk above found nothing takeable anywhere. Say the
+reason in one line either way — the ordering was decided once, on the map,
+so this session does not re-derive it.
 
 **Before claiming, check the bucket the ticket came from.** Claim only what
 `frontier` listed under `frontier`. A ticket under `claimed` is another
@@ -361,7 +430,7 @@ copies of one diagram will. That is why shape 1 carries a `--body-file` even
 when the ADR holds every word of the reasoning — the body file may be nothing
 but the diagram.
 
-This is separate from the **position diagram** the ops script generates above
+This is separate from the **position diagram** the ops script generates below
 `## Question` — that one is the ticket's place in the map, and you never author
 or edit it.
 
@@ -389,6 +458,15 @@ read as describing the trunk forever. Write "24 paths on `main` (ba323d8)", neve
 "24 paths". On one map `carve-core-api` recorded "20 paths with ZERO module
 routes" — correct for its branch, false on the trunk one merge later — and three
 canonical docs plus four tickets had to be amended once a later session ran it.
+
+**It must name its SEARCH SCOPE and the repo set it swept, too.** "0 hits" is not a
+measurement; "0 hits in `*.cs` across 26 refs" is. An unscoped zero reads as "the thing is
+not even specified", and the same grep over `*.md` will contradict it. Worse, a zero
+measured in ONE repo says nothing when the product is split across sibling repos — seen
+2026-08-19: a map recorded a feature "absent on all seven refs" while nine sibling repos on
+the same disk held the CRM plugins, the Dataverse solution and three per-feature React
+controls, one of them a plugin writing to the very record the new code would create.
+Enumerate the siblings before writing any "not built" gist.
 
 **If the ticket's subject is runnable, RUN it.** A compile gate and a route table
 cannot see a wrong runbook. That same map had 24 closed tickets, every one gated
@@ -423,6 +501,8 @@ Now ask what the answer changed:
 - Did it put something **past the destination**? Close that ticket and add one
   line under "Out of scope".
 - Did it reveal a new blocking relationship?
+- Did it sharpen the **milestone** plan — a group that should now exist, or a
+  ticket that clearly belongs in one that already does?
 
 Graduating fog is an **additive `chart`** — one operation serves both acts, so
 there is no separate subcommand (ADR 0057). Build a `map_input.json` in your
@@ -433,9 +513,14 @@ edge onto a ticket that already exists, that edge in the new ticket's `blocks`:
 {
   "target": { "slug": "<the existing map's slug>" },
   "map": {
-    "title": "<unchanged>", "destination": "<unchanged>", "notes": "<unchanged>",
+    "title": "<unchanged>", "destination": "<unchanged>",
+    "notes": ["<any NEW note line>"],
     "notYetSpecified": ["<any NEW fog line>"],
-    "outOfScope": ["<anything newly ruled out>"]
+    "outOfScope": ["<anything newly ruled out>"],
+    "milestones": [
+      { "slug": "<a NEW group, or one already on the map>", "label": "<optional>",
+        "members": ["relevance-metric"] }
+    ]
   },
   "tickets": [
     { "key": "relevance-metric", "title": "Relevance metric - what do we measure against?",
@@ -445,9 +530,29 @@ edge onto a ticket that already exists, that edge in the new ticket's `blocks`:
 }
 ```
 
-- Repeat `title` / `destination` / `notes` **unchanged**. An additive run does
+- Repeat `title` / `destination` **unchanged**. An additive run does
   not apply a differing scalar — it reports it under `divergence` and leaves it
   alone. To change one, edit the map document by hand.
+- `notes` is **not** one of those any more (ADR 0101): on any map carrying the
+  notes region it is a list that unions exactly like `notYetSpecified`, so pass
+  **only new lines** and omit the key when there are none. Do not restate what
+  is already there in any other shape — a string holding the existing notes
+  joined together, or the rendered bullets pasted back, is a *new* line to the
+  union, so it is appended and there is no `divergence` to catch it. Repeating
+  the exact same list is a harmless no-op, but there is no reason to.
+- `milestones` is the same optional field chart-map's Step 3 fills in — a
+  resolution can sharpen the plan just as easily as a fog line, so include it
+  here whenever the answer named a group that should now exist, or made clear
+  which milestone a ticket belongs in. A brand-new group appears in the plan
+  as `adds 1 milestone line`; a ticket joining one that already exists as
+  `adds 1 ticket to an existing milestone`, which is worded differently
+  because that one **edits** the stored milestone line instead of adding a
+  line. **Moving** a ticket between milestones is different:
+  additive means union, never move, so `chart` reports a member already
+  claimed by a different milestone under `divergence` rather than applying
+  it. A move is a **hand edit** of the milestones region instead — the same
+  shape as deleting a graduated fog line, below — with `lint` as the check
+  afterwards.
 - `blocks` is **downstream** — the tickets this one holds up. Readers see the
   upstream `blockedBy`. An edge may name a ticket that already exists without
   re-listing it in `tickets[]` (ADR 0058), but the target must exist **either in
@@ -585,7 +690,13 @@ python "<ops>" lint --map <slug>
 
 It catches what a session most plausibly just broke: the graduated fog line
 Step 5 told you to delete by hand, an edge left dangling by a hand-edited
-`assignee:`, a resolution recorded without its diagram. Report every finding
+`assignee:`, a resolution recorded without its diagram, or a milestone move
+gone wrong — a line the hand edit left unparsable, a slug declared more than
+once, a ticket key listed more than once (in two milestones, or twice on one
+line), or a milestone naming a ticket that is not
+on this map (`milestone-line-unparsable`, `milestone-duplicate-slug`,
+`milestone-duplicate-member`, `milestone-unknown-ticket` — the same four
+rules a mistyped hand-edited move above can trip). Report every finding
 alongside the rest of the report, and fix the **errors** before you stop; a
 warning is the user's call. Do not skip it because the session felt clean —
 "felt clean" is the only signal you have otherwise, and it is the one `lint`

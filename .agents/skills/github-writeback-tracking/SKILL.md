@@ -7,6 +7,7 @@ description: >-
   source was a spreadsheet (xlsx/csv). Triggers on "write the issue links back",
   "track which row got which issue", "update the spreadsheet with the GitHub IDs",
   "fill in the issue column", "close the loop on the audit sheet".
+effort: max
 ---
 
 # github-writeback-tracking
@@ -61,4 +62,3 @@ the `key` values in `github_backlog_result.json`. Values are compared as strings
 If the script prints `warn: key <x> not found in source`, the key in the result
 doesn't match any value in that column — re-check `--key` and that the source hasn't
 been re-sorted since extraction.
-

@@ -7,6 +7,7 @@ description: >-
   work on next", "show my backlog", "read my task hub", "daily standup prep", or starts the
   day wanting their remaining work. This is step 2 of the daily-work flow (read the task
   hub). Read-only — it lists, it never changes anything.
+effort: max
 ---
 
 # my-work
@@ -42,4 +43,3 @@ output is piped or redirected, so it stays clean in logs.
 The top row of each project group is the highest-priority actionable item — a good "do next".
 If instead the user wants to turn a *findings source* (an audit/review/spreadsheet) into new
 work items, hand off to **findings-to-ado-backlog**. For 401/403/org issues, see **ado-auth**.
-

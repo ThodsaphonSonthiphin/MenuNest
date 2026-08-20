@@ -1,6 +1,7 @@
 ---
 name: problem-description
 description: Use when the user wants an interactive step-by-step HTML walkthrough explaining a complex technical problem (DB error, race condition, design issue, conceptual blocker) using concrete data and manual navigation. Triggers on phrases like "make me a walkthrough", "explain step by step with data", "interactive explanation", "make an animation", "walk me through with real examples", "อธิบายแบบ step by step", "ทำ animation/walkthrough/visualization", "ทำเป็น diagram", "วาด diagram". Do NOT use for one-line clarifications, conceptual Q&A answerable in a paragraph, or simple "what does X mean" questions — only when an interactive HTML artifact would clearly help.
+effort: max
 ---
 
 # Problem Description — Interactive Step-by-Step Walkthroughs

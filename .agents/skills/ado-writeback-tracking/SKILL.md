@@ -11,6 +11,7 @@ description: >-
   Runs the bundled tracking.py (add-columns + writeback). For doc/pasted-text
   input there are no rows to write to — in that case just report the created
   links instead.
+effort: max
 ---
 
 # ado-writeback-tracking
@@ -114,4 +115,3 @@ After writeback, the source row whose `#` column is `1` gains:
 - This is the final stage of the [[findings-to-ado-backlog]] pipeline:
   [[extract-findings]] → [[triage-findings]] → [[classify-work-items]] →
   [[ado-create-work-items]] → **ado-writeback-tracking**.
-

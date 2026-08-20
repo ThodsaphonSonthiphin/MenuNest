@@ -1,6 +1,7 @@
 ---
 name: dual-verifier
 description: Use when an implementation task has just been completed and the user wants independent verification that the work is actually correct. Dispatches two subagents that perform the SAME verification checks independently, then merges their findings into one deduplicated report with severity and confidence. Triggers when the user says "verify this", "double-check the implementation", "cross-check what was done", "did this actually work", "verify the task", or invokes a slash command for verification. Especially valuable right before commits, PRs, or hand-offs, where over-claiming is most costly.
+effort: max
 ---
 
 # Dual Verifier

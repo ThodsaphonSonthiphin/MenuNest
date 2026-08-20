@@ -15,6 +15,7 @@ description: >-
   never writes to the org. NOT for building or changing CRM components (use the
   dataverse plugin skills) or for studying a plain source-code repo (use
   drive-to-legacy).
+effort: max
 ---
 
 # CRM Archaeology — study a live Dynamics 365 org, end to end
@@ -167,4 +168,3 @@ periodically, `git diff`, feed changes to `management-talk` for reporting).
   map when tracing a CRM bug.
 - `seed-dataverse-data` — its duplicate-row guardrail scan is answered by
   `04-automation.md`.
-

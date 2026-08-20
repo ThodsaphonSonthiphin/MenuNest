@@ -11,6 +11,7 @@ description: >-
   you a source document and asks for it to land in GitHub. This is the headline,
   one-shot entry point (/github-backlog:run wraps it). Not for editing existing
   issues individually.
+effort: max
 ---
 
 # findings-to-github-issues (orchestrator)
@@ -110,4 +111,3 @@ Summarize the run:
 1. **Visual dry-run before real run** — step 4 always precedes step 5.
 2. **Explicit approval before any write** — never jump from classification to creation.
 3. **Back up the source before write-back** — step 6 edits the file in place.
-

@@ -1,6 +1,7 @@
 ---
 name: naming-audit
 description: "Verify a source list of claimed labels/values/mappings (a naming audit, data dictionary, translation/i18n file, style guide, config, or any list of \"X should be Y\" findings) against a system's AUTHORITATIVE source of record — one item at a time. For each claim, trace the implementation label to the actual field/record it binds to, pull the authoritative value from the LIVE system (not from the source doc, which is often wrong or from the wrong entity), compare wording, and rule: source-of-truth wins. Stack-agnostic — implementation = web/app/code; authority = CRM/Dataverse, DB schema, API contract, design tokens, option sets. Output is a fixed per-item card with a verdict and the exact app+code path to check. Trigger on naming audit, label audit, wording/terminology check, \"does the Portal label match CRM\", \"compare these labels to the source of truth\", \"verify this naming spreadsheet\", field-name reconciliation, CRM-wins / canonical-label checks. Do NOT use for broad capability coverage (\"how far are we from X\", feature parity) — that's fit-gap-analysis; or for turning findings into tickets — that's the backlog plugins."
+effort: max
 ---
 
 # Naming Audit
@@ -83,4 +84,3 @@ The 🔧 fixes are real change requests. Hand them off — apply directly for sm
 
 ## Pace
 Default to **one item at a time** and stop, unless the user asks for a batch. Lead with the verdict; keep cards short. If the user says they can't keep up, reset with a plain status (what's done, where you are) and slow to strictly one card per turn.
-

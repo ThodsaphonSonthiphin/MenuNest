@@ -1,6 +1,7 @@
 ---
 name: sa-doc
 description: Generate a complete System Analysis & Design document (use cases, sequence/activity/state diagrams, class + ER model, data dictionary, architecture, screens, traceability) from one validated central model — Markdown canonical, PDF optional. Trigger on /sa-doc, "ทำเอกสาร SA", "เขียนเอกสารวิเคราะห์และออกแบบระบบ", "ทำ project report วิชา SA", "generate SA document", "system analysis document", "SA&D report", "SDD", or when the user hands over a brief/requirements/codebase and asks for a full design document. Do NOT use for a single ad-hoc diagram, for explaining a problem interactively (problem-description), or for reviewing an existing document (scrutinize).
+effort: max
 ---
 
 # sa-doc — SA&D document generator
@@ -159,4 +160,3 @@ regenerate — never patch the generated file by hand.
 - Never patch the generated document directly — the model is the source of truth.
 - The schema is defined only in `references/model-contract.md`; do not restate
   it elsewhere.
-

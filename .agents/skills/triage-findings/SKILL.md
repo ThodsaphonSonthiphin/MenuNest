@@ -10,6 +10,7 @@ description: >-
   "scope down the backlog", "prioritize these findings", or any request to pick a
   subset of findings to turn into tickets. Produces a scoped, ordered subset (a
   filtered findings file or a selected/batch flag) and hands it to classify-work-items.
+effort: max
 ---
 
 # Triage findings

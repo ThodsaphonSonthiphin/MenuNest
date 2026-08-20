@@ -12,6 +12,7 @@ description: >-
   first. Hands off to triage-findings (then classify-work-items,
   ado-create-work-items). Driven end-to-end by the findings-to-ado-backlog
   orchestrator.
+effort: max
 ---
 
 # extract-findings

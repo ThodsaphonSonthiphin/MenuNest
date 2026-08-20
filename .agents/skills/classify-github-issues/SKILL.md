@@ -9,6 +9,7 @@ description: >-
   kind to type labels (bug/enhancement/task), and hours to size labels
   (size:XS-XL). Creates a milestone for the batch. Hands off to
   github-create-issues.
+effort: max
 ---
 
 # classify-github-issues

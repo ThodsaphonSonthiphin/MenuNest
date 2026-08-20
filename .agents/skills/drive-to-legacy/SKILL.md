@@ -1,6 +1,7 @@
 ---
 name: drive-to-legacy
 description: Use when exploring, studying, or porting an unfamiliar legacy codebase. Triggers when the user says "explore this project", "understand this code", "I need to port this", "how does this app work", "document this codebase", "study this code", or any request to deeply understand an existing project they did not write. Also triggers when onboarding to a new repo or preparing migration/rewrite plans.
+effort: max
 ---
 
 # Drive to Legacy - Systematic Legacy Code Exploration

@@ -1,6 +1,7 @@
 ---
 name: post-mortem
 description: Write the canonical engineering record of a fixed bug — root cause, mechanism, fix, validation, and how it slipped through. Engineer-audience, code identifiers welcome. Use after a debug session lands a fix, before closing the ticket. Trigger on /post-mortem, when the user says "write the post-mortem / postmortem / RCA / root cause analysis", "document this fix", "write up the root cause", "close out this bug with a writeup", or hands you a fixed-and-validated bug and asks for the writeup.
+effort: max
 ---
 
 # Post-mortem
@@ -167,4 +168,3 @@ What this post-mortem does that the management-talk version didn't:
 - **Get sign-off before posting to JIRA.** Print-only output needs no approval. Never post to non-JIRA destinations from this skill.
 - **One iteration is normal, three is a smell.** If the user is still revising on the third pass, ask what specific section is wrong — don't keep tweaking blindly.
 - **Offer a regression test case.** After a fixed-and-validated bug, hand off to `generating-test-cases` to capture a regression case from this fix (which can then flow to the backlog). The post-mortem records *what broke and why*; the regression case is what keeps it from breaking again.
-

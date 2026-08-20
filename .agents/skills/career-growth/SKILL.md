@@ -1,6 +1,7 @@
 ---
 name: career-growth
 description: "Quarterly career review that turns your real evidence and a live market survey into a defensible moat and a cert-driven growth plan. Builds an evidence-graded skill inventory (resume, repos, cross-repo git history, held certs/LinkedIn, optional Azure DevOps work items, short gap-fill interview), surveys Thailand + SEA + global-remote job markets with live-verified certificates and a triangulated 3-year outlook, proposes moat candidates that must pass four tests (rare, evidenced, paid, durable), lets the user pick, then plans certs and exam-objective-driven mini projects into a personal career git repo. Trigger when the user wants a career review, skill-gap analysis, certification roadmap or plan, job-market survey, \"what should I learn next\", a moat / unique edge / competitive advantage plan, or says \"พัฒนาสกิลตัวเอง\", \"วางแผน cert\", \"ตลาดแรงงานต้องการอะไร\", \"สร้างจุดเด่น\", \"quarterly career review\". Re-run it every quarter. Precedence: reach for this skill for the full periodic review; reach for `verify-then-advise` for a single verified recommendation, or to check whether one named product or credential is still current."
+effort: max
 ---
 
 # career-growth

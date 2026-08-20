@@ -10,6 +10,7 @@ description: >-
   source document and asks for it to land in ADO. This is the headline, one-shot entry point
   (/ado-backlog:run wraps it). Prefer this over running the sub-skills piecemeal when the user
   wants the whole pipeline. Not for editing existing items individually — use ado-create-work-items.
+effort: max
 ---
 
 # findings-to-ado-backlog (orchestrator)
@@ -160,4 +161,3 @@ Summarize the run for the user:
 
 If anything is ambiguous (column mapping, which process, which parent), ask rather than
 guess — a wrong guess multiplies across every item in the batch.
-
