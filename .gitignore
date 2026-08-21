@@ -123,6 +123,10 @@ lerna-debug.log*
 # Syncfusion
 syncfusion-license.txt
 
+# ---------- Python (agent scripts) ----------
+__pycache__/
+*.py[cod]
+
 # ---------- Azure / Infra ----------
 .azure/
 *.pubxml
