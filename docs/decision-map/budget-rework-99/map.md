@@ -32,6 +32,7 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 #### mvp — on the phone: set what each account holds, and see "today you can spend X"
 
 - [Today's budget - what exists, and where does every number actually come from?](tickets/current-budget-audit.md) — A future month lies four ways today, and two contradictory paths already exist for correcting an account balance.
+- [Daily allowance - which money, which days, and what does overspending today do to tomorrow?](tickets/daily-allowance-formula.md) — Everyday-marked envelope money ÷ days left in the month, frozen at a budgeting event and never moved by spending; a separate pace line carries the over/under.
 - [YNAB parity - which of its behaviours do we copy, and which do we deliberately break?](tickets/ynab-parity-research.md) — Copy YNAB's future-month mechanic and its zero-out shape; break its no-forecast-income rule deliberately. It has no daily allowance to copy at all.
 <!-- decision-map:decisions:end -->
 
@@ -41,10 +42,10 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 - Whether fast phone spend-logging ("just spent 120" -> in the right envelope in minimum taps) is part of this rework or a follow-up - asked at chart time, no preference given.
 - Whether the existing target types (MonthlyAmount, ByDate, MonthlySavingsBuilder) need reworking or new types once planned income exists.
 - Whether the envelope groups/categories themselves need restructuring for a phone-first layout - depends on the shell mock.
-- How a category's overspend should affect the daily allowance number - depends on the allowance formula being fixed first.
 - Whether Credit accounts need YNAB-style credit-card payment envelopes; BudgetAccountType.Credit exists today but has no special handling anywhere in the use cases.
 - Whether the reworked budget changes MenuNest's configurable home page (ADR 081 / 084).
 - How two family members budgeting the same month at the same time should behave.
+- Where the frozen Daily allowance figure and its freeze date are stored, and what writes them - a new column, a new entity, or a recompute from a stored freeze timestamp. Created by menunest-181: the chosen frozen-figure shape needs persistence that the rejected live re-division did not.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
