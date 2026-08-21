@@ -123,6 +123,11 @@ lerna-debug.log*
 # Syncfusion
 syncfusion-license.txt
 
+# ---------- Python ----------
+# Bytecode from the .agents/plugins/*/scripts/ tooling (e.g. decision-map)
+__pycache__/
+*.py[cod]
+
 # ---------- Azure / Infra ----------
 .azure/
 *.pubxml
