@@ -31,6 +31,7 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 <!-- decision-map:decisions:start -->
 #### mvp — on the phone: set what each account holds, and see "today you can spend X"
 
+- [Account balances - how does the user say "this account has X", and what happens to Ready-to-Assign?](tickets/account-balance-input.md) — Every account-money change writes a BudgetTransaction (the silent SetBalance path is deleted); the balance is derived as of the month viewed, and a correction is assignable at once.
 - [Today's budget - what exists, and where does every number actually come from?](tickets/current-budget-audit.md) — A future month lies four ways today, and two contradictory paths already exist for correcting an account balance.
 - [Daily allowance - which money, which days, and what does overspending today do to tomorrow?](tickets/daily-allowance-formula.md) — Everyday-marked envelope money ÷ days left in the month, frozen at a budgeting event and never moved by spending; a separate pace line carries the over/under.
 - [YNAB parity - which of its behaviours do we copy, and which do we deliberately break?](tickets/ynab-parity-research.md) — Copy YNAB's future-month mechanic and its zero-out shape; break its no-forecast-income rule deliberately. It has no daily allowance to copy at all.
@@ -46,6 +47,8 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 - Whether the reworked budget changes MenuNest's configurable home page (ADR 081 / 084).
 - How two family members budgeting the same month at the same time should behave.
 - Where the frozen Daily allowance figure and its freeze date are stored, and what writes them - a new column, a new entity, or a recompute from a stored freeze timestamp. Created by menunest-181: the chosen frozen-figure shape needs persistence that the rejected live re-division did not.
+- Whether closed accounts and Loan/Credit balances should count toward Ready to Assign - today all three do, because the totalAccountBalance sum filters on FamilyId only. Named by current-budget-audit and left open by menunest-182.
+- Whether GetMonthlySummary's month-by-month walk from January 2000 must be replaced before menunest-182's derived account balance adds a second pass to the one ComputeEnvelopeAvailable already runs twice per load.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
