@@ -3,7 +3,7 @@ title: Daily allowance - which money, which days, and what does overspending tod
 type: grilling
 mode: HITL
 status: open
-assignee: 
+assignee: allowance-grill-1232
 blocked_by: [current-budget-audit, ynab-parity-research]
 gist: 
 ---
