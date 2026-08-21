@@ -3,7 +3,7 @@ title: Account balances - how does the user say "this account has X", and what h
 type: grilling
 mode: HITL
 status: open
-assignee: 
+assignee: balance-grill-1648
 blocked_by: [current-budget-audit]
 gist: 
 ---
