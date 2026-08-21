@@ -468,6 +468,37 @@ the glossary wins until the glossary is deliberately changed.
   cannot flatter the writer by supplying a number. Unchanged by a later text edit: it measures the
   original timed **Freewrite**, not a typo fix. The same rule governs target-errors-per-100-words.
   _Avoid_: WPM (bare, in prose), speed, typing speed.
+
+## Budget
+
+_Only the terms the budget rework (#99) has actually decided are listed here. The wider budget
+vocabulary — **Ready to Assign**, **Available**, **Assigned**, **Activity**, **Target** — is still
+undefined in this glossary and belongs to the tickets that own those decisions._
+
+- **Envelope** — a named pot of money inside a **Family**'s budget (`BudgetCategory` in code), living
+  in an envelope group. It holds no stored balance: its **Available** is computed by accumulating
+  every month's assignment and activity from the beginning of time. _Avoid_: category (bare — it
+  collides with every other kind of category in the app), bucket, pot, envelope category.
+- **Everyday envelope** — an **Envelope** the **User** has marked as day-to-day spending, and the
+  only kind that feeds the **Daily allowance**. Rent, bills and savings envelopes are deliberately
+  left unmarked and are invisible to that number. The mark lives on the **Envelope** itself, never
+  on its group, so it survives a move between groups. Marked incrementally over time, never in an
+  up-front setup pass. _Avoid_: spending category, discretionary envelope, variable envelope.
+- **Daily allowance** — the single "you can spend this much today" figure on the budget screen:
+  everyday money remaining divided by days remaining in the calendar month, **frozen** at a
+  **Budgeting event** and then held still. Spending never changes it. Floors at 0 when the
+  **Everyday envelopes** are empty or negative. It is a derived, stored figure — not a new kind of
+  **Envelope** and not a target. _Avoid_: daily budget, safe-to-spend, spendable today, per-day
+  amount.
+- **Budgeting event** — one of the three deliberate acts that re-freeze the **Daily allowance**:
+  marking or unmarking an **Everyday envelope**, assigning money into one, or the budget month
+  rolling over. Recording a spend is explicitly **not** one. _Avoid_: recompute, refresh, budget
+  change.
+- **Pace line** — the second line under the **Daily allowance**, comparing what the **User** should
+  have spent by now against what they did spend, and reading "you are 2,000 over" or "…under". It
+  is the only part of the daily-allowance card that reacts to spending. _Avoid_: over/under (bare),
+  variance, burn rate, on-track indicator.
+
 ## Build & release
 
 - **App version** -- the build identity of a deployed MenuNest surface: a **SemVer-2.0** string
