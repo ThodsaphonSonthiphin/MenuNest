@@ -77,6 +77,7 @@ from map_core import (
     VALID_TICKET_TYPES,
     KEY_MARKER, GIST_START, GIST_END, GRAPH_START, GRAPH_END,
     GIST_MAX, GIST_TOO_LONG,
+    TYPES_EXPECTING_A_DOC, MISSING_DOC_LINK,
     MAP_REGIONS, TRACKER_TICKET_REGIONS,
     DECISIONS_START, DECISIONS_END,
     FORCE_COST,
@@ -85,8 +86,10 @@ from map_core import (
     scrub, one_line, mode as derive_mode,
     assert_regions, safe_segment, norm_eol,
     region_body, replace_region, region_re,
-    map_merge_detail, render_map_body, scalar_divergences, merge_map_lists,
-    decisions_region, validate_chart_input, key_of_body,
+    map_merge_detail, render_map_body, scalar_divergences, scalar_fields_for,
+    merge_map_lists,
+    decisions_region, validate_chart_input, key_of_body, milestone_index,
+    milestone_progress,
     position_diagram_region, set_graph_region,
     lint_findings, RULES_NEEDING_RESOLUTION_BODY,
     force_orphaned_blockers, force_orphan_detail, rewired_edges,
@@ -363,6 +366,14 @@ class Snapshot:
         self.map_key = key_of_body(
             node.get("body"), f"the map issue #{node['number']}",
             labelled=self.is_map)
+        # Parsed once here, not per ticket: the map body is already in hand and
+        # both map_json and frontier read the same answer from it.
+        # The unparsable lines are discarded here, matching the local backend's
+        # convention at the same three call sites: `lint` re-parses the body and
+        # is the one command that reports them, and a field nothing reads is a
+        # promise of reporting that was never wired.
+        self.milestones, self.milestone_of, _ = \
+            milestone_index(norm_eol(node.get("body")))
         sub = node.get("subIssues") or {}
         if (sub.get("pageInfo") or {}).get("hasNextPage"):
             # Never truncate the join. A child the join cannot see is labelled
@@ -599,6 +610,7 @@ class Snapshot:
             "assignee": self.assignee_of(key),
             "blockedBy": blockers,
             "gist": self.gist_of(key),
+            "milestone": self.milestone_of.get(key),
         }
 
     def map_json(self):
@@ -614,6 +626,7 @@ class Snapshot:
                     "name": self.map.get("title"),
                     "url": self.map.get("url"),
                     "destination": dest},
+            "milestones": self.milestones,
             "tickets": [self.ticket_json(k) for k in self.keys],
         }
 
@@ -633,19 +646,20 @@ def render_map_issue_body(m, slug):
 
 
 def render_ticket_issue_body(key, question):
-    """The ticket issue body: key marker, position diagram, the question, an
-    empty gist region.
+    """The ticket issue body: key marker, the question, the position diagram,
+    an empty gist region.
 
-    Every region is written at creation rather than inserted later, for the
-    same reason the local backend does the same: a writer that has to decide
-    *where* a region goes is guessing at the boundary of content it did not
-    write, which is exactly the pattern that cost three review rounds. A fresh
-    ticket has no blockers and unblocks nothing yet, so the diagram renders
-    with empty parent/child lists; `chart`'s edge-wiring pass re-renders it
-    once real edges exist.
+    The QUESTION comes first (ADR 0102) -- the card's identity is what it asks,
+    and the diagram is context read second. Every region is still written at
+    creation rather than inserted later, for the reason the local backend does
+    the same: a writer that has to decide *where* a region goes is guessing at
+    the boundary of content it did not write, which is the pattern that cost
+    three review rounds. A fresh ticket has no blockers and unblocks nothing
+    yet, so the diagram renders with empty parent/child lists; `chart`'s
+    edge-wiring pass re-renders it once real edges exist.
     """
-    return (f"{KEY_MARKER % key}\n\n{position_diagram_region(key, [], [])}\n"
-            f"## Question\n\n{scrub(question)}\n\n"
+    return (f"{KEY_MARKER % key}\n\n## Question\n\n{scrub(question)}\n\n"
+            f"{position_diagram_region(key, [], [])}\n"
             f"{GIST_START}\n{GIST_END}\n")
 
 
@@ -903,7 +917,8 @@ def _plan_map(ops, snap, inp, slug, force):
     # compared against the title. Comparing it against the body reported a
     # `title` divergence on every single re-chart.
     div = scalar_divergences(m, snap.map.get("title") or "", fields=("title",))
-    div += scalar_divergences(m, existing, fields=("destination", "notes"))
+    div += scalar_divergences(
+        m, existing, fields=scalar_fields_for(existing, ("destination", "notes")))
     text, added, list_div = merge_map_lists(existing, m)
     div += list_div
     if text == existing:
@@ -1355,7 +1370,8 @@ def frontier(ops, ref):
         # `frontier.json` name the same ticket the same way and either value can
         # be handed straight back to `--ticket`. `key` rides alongside because
         # every ticket-to-ticket reference (blockedBy, missingBlockers) is a key.
-        base = {"id": t["id"], "key": key, "name": t["name"]}
+        base = {"id": t["id"], "key": key, "name": t["name"],
+                "milestone": t["milestone"]}
         if t["assignee"]:
             out["claimed"].append({**base, "assignee": t["assignee"]})
         elif open_blockers:
@@ -1365,6 +1381,12 @@ def frontier(ops, ref):
             out["blocked"].append(entry)
         else:
             out["frontier"].append({**base, "url": t["url"], "type": t["type"]})
+    # The progress the session surface groups by (ADR 0099). Counted over
+    # EVERY ticket, closed included -- a milestone's progress is closed/total,
+    # and the three buckets above deliberately hold only the open ones.
+    out["milestones"] = milestone_progress(
+        snap.milestones,
+        {k: _state(snap.tickets[k].get("state")) for k in snap.keys})
     return out
 
 
@@ -1461,6 +1483,16 @@ def resolve(ops, ref, ticket, gist, link, body):
     if len(stored_gist) > GIST_MAX:
         print(GIST_TOO_LONG.format(n=len(stored_gist), max=GIST_MAX), file=sys.stderr)
 
+    # Warn BEFORE the first write, so the message cannot read as a failure of it.
+    # _type_of falls back to `grilling` for a ticket whose label a human removed,
+    # which is the conservative direction here: it asks for the artifact rather
+    # than quietly exempting the ticket.
+    ttype = _type_of(_label_names(snap.tickets[key]), f"ticket {key!r} (#{number})")
+    warning = None
+    if ttype in TYPES_EXPECTING_A_DOC and not (link or "").strip():
+        warning = MISSING_DOC_LINK.format(type=ttype)
+        print(warning, file=sys.stderr)
+
     ops.add_comment(number, _resolution_comment(gist, link, body), repo=repo)
 
     tbody = norm_eol(snap.tickets[key].get("body"))
@@ -1480,7 +1512,11 @@ def resolve(ops, ref, ticket, gist, link, body):
     ops.patch_issue(number, {"body": tbody, "state": "closed"}, repo=repo)
 
     _reindex_decisions(ops, snap, key, stored_gist)
-    return {"resolved": key, "gist": stored_gist or None}
+    # On the RESULT as well as stderr -- the agent closing a ticket reads stdout.
+    out = {"resolved": key, "gist": stored_gist or None}
+    if warning:
+        out["warning"] = warning
+    return out
 
 
 def _reindex_decisions(ops, snap, just_closed, just_gist):
@@ -1491,6 +1527,12 @@ def _reindex_decisions(ops, snap, just_closed, just_gist):
     that triggered this, so the ticket being resolved is folded in explicitly --
     cheaper and more consistent than re-reading the whole map to observe a
     change this process just made.
+
+    The milestones that group it come from `snap.milestones`, not a fresh
+    parse: `resolve` never edits the milestones region, so the snapshot's copy
+    cannot be stale for this purpose, and re-parsing the same body the
+    snapshot already read would be the duplication `Snapshot.__init__` exists
+    to avoid.
     """
     entries = []
     for key in snap.keys:
@@ -1506,10 +1548,10 @@ def _reindex_decisions(ops, snap, just_closed, just_gist):
         # a human is meant to click was dead. (A bare `#2` would auto-link, but
         # the shared index format is `- [title](link) — gist`, so the link has to
         # be a real one.) The url also survives being copied out of the tracker.
-        entries.append((one_line(t.get("title") or key),
+        entries.append((key, one_line(t.get("title") or key),
                         t.get("url") or f"#{t['number']}", gist))
-    region = decisions_region(entries)
     body = norm_eol(snap.map.get("body"))
+    region = decisions_region(entries, snap.milestones)
     if _DECISIONS_BLOCK_RE.search(body):
         body = _DECISIONS_BLOCK_RE.sub(lambda _m: region, body, count=1)
     else:

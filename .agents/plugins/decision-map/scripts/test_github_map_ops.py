@@ -21,6 +21,7 @@ import contextlib
 from pathlib import Path
 
 import github_map_ops as gh
+import local_map_ops
 import map_core
 from fake_github import FakeGitHub
 
@@ -587,6 +588,30 @@ class TestResolve(Base):
         self.assertIn("recovered", self.fake.body_of(auth))
         self.assertIn("## Question", self.fake.body_of(auth),
                       "user content must survive")
+
+
+class GitHubGroupedIndexTest(Base):
+    """The same grouping as the local backend, against the tracker (ADR 0103)."""
+
+    def test_resolving_writes_a_grouped_index(self):
+        inp = copy.deepcopy(INPUT)
+        inp["map"]["milestones"] = [
+            {"slug": "mvp", "label": "demo it", "members": ["auth-model"]}]
+        self.chart(inp)
+        gh.resolve(self.ops, "billing", "auth-model", "shared keys", None, None)
+        body = self.fake.body_of(self.map_number())
+        inner = map_core.region_body(body, map_core.DECISIONS_START,
+                                     map_core.DECISIONS_END)
+        self.assertIn("#### mvp — demo it", inner)
+        self.assertIn("shared keys", inner)
+
+    def test_an_unmilestoned_map_keeps_the_flat_index(self):
+        self.chart()
+        gh.resolve(self.ops, "billing", "auth-model", "shared keys", None, None)
+        body = self.fake.body_of(self.map_number())
+        inner = map_core.region_body(body, map_core.DECISIONS_START,
+                                     map_core.DECISIONS_END)
+        self.assertNotIn("####", inner)
 
 
 class TestClaimBlockComment(Base):
@@ -1253,10 +1278,34 @@ class TestPositionDiagram(Base):
         exactly the length the contract documents as fine."""
         self.chart()
         with captured_stderr() as err:
+            # A link: the subject here is the GIST boundary, and a grilling ticket
+            # with no link also warns about its missing artifact.
             gh.resolve(self.ops, "billing", "auth-model",
-                       "y" * map_core.GIST_MAX, None, None)
+                       "y" * map_core.GIST_MAX, "docs/adr/0007-shared-keys.md", None)
         self.assertNotIn("warning:", err.getvalue(),
                          f"a gist of exactly {map_core.GIST_MAX} is within the limit")
+
+    def test_a_grilling_ticket_with_no_link_warns_on_this_backend_too(self):
+        """The wording is shared (map_core.MISSING_DOC_LINK) for GIST_TOO_LONG's
+        reason: a user who moves a map from local to GitHub must not get a
+        different explanation of the same problem."""
+        self.chart()
+        with captured_stderr() as err:
+            out = gh.resolve(self.ops, "billing", "auth-model", "shared keys",
+                             None, None)
+        # The constant itself, on BOTH backends: that is what makes the shared
+        # wording a fact rather than a comment.
+        expected = map_core.MISSING_DOC_LINK.format(type="grilling")
+        self.assertIn(expected, err.getvalue())
+        self.assertEqual(out["warning"], expected)
+
+    def test_a_task_ticket_with_no_link_is_not_asked_for_a_doc(self):
+        self.chart()
+        with captured_stderr() as err:
+            out = gh.resolve(self.ops, "billing", "rollout-order", "tenant A first",
+                             None, None)
+        self.assertNotIn("no --link", err.getvalue())
+        self.assertNotIn("warning", out)
 
     def _force_only(self, keys, real=True):
         """chart --force naming ONLY `keys`. -> (result json, stderr plan)."""
@@ -1406,6 +1455,115 @@ class TestLint(Base):
         self.chart()
         with self.assertRaises(Exception):
             gh.lint(self.ops, "no-such-map")
+
+
+class GitHubMapRegionsTest(unittest.TestCase):
+    """The regions are byte-identical across backends (ADR 0062), which is what
+    lets one flow skill read either."""
+
+    def test_a_new_map_issue_carries_both_new_regions(self):
+        m = {"title": "t", "destination": "d", "notes": ["one", "two"],
+             "milestones": [{"slug": "mvp", "label": "demo it",
+                             "members": ["auth-model"]}]}
+        body = gh.render_map_issue_body(m, "billing")
+        self.assertIn(map_core.NOTES_START, body)
+        self.assertIn(map_core.MILESTONES_START, body)
+        self.assertIn("- `mvp` demo it [auth-model]", body)
+        self.assertIn("- one\n- two", body)
+
+    def test_the_shared_body_matches_the_local_backend_below_the_prologue(self):
+        m = {"title": "t", "destination": "d", "notes": ["n"],
+             "milestones": [{"slug": "mvp", "members": ["k"]}]}
+        shared = map_core.render_map_body(m, "")
+        self.assertTrue(gh.render_map_issue_body(m, "billing").endswith(shared))
+
+
+class GitHubMilestoneProjectionTest(Base):
+    """The GitHub half of ADR 0099/0102's milestone projection -- mirrors
+    LocalMilestoneProjectionTest so the two backends emit the same fields for
+    the same logical map."""
+
+    def setUp(self):
+        super().setUp()
+        inp = copy.deepcopy(INPUT)
+        inp["tickets"].append(
+            {"key": "api-limits", "title": "API rate limits?",
+             "type": "research", "question": "what are the limits?"})
+        inp["map"]["milestones"] = [
+            {"slug": "mvp", "label": "demo it",
+             "members": ["auth-model", "rollout-order"]},
+            {"slug": "later", "members": []}]
+        self.chart(inp)
+
+    def test_read_carries_ordered_milestones_and_per_ticket_membership(self):
+        out = gh.read_map(self.ops, "billing")
+        self.assertEqual([m["slug"] for m in out["milestones"]],
+                         ["mvp", "later"])
+        self.assertEqual(out["milestones"][0]["label"], "demo it")
+        self.assertEqual(out["milestones"][0]["members"],
+                         ["auth-model", "rollout-order"])
+        by_key = {t["key"]: t for t in out["tickets"]}
+        self.assertEqual(by_key["auth-model"]["milestone"], "mvp")
+        # An unassigned ticket says so explicitly rather than omitting the key.
+        self.assertIsNone(by_key["api-limits"]["milestone"])
+
+    def test_frontier_carries_progress_and_per_entry_membership(self):
+        out = gh.frontier(self.ops, "billing")
+        mvp = next(m for m in out["milestones"] if m["slug"] == "mvp")
+        self.assertEqual((mvp["closed"], mvp["total"], mvp["complete"]),
+                         (0, 2, False))
+        entry = next(e for e in out["frontier"] if e["key"] == "auth-model")
+        self.assertEqual(entry["milestone"], "mvp")
+        blocked = next(e for e in out["blocked"] if e["key"] == "rollout-order")
+        self.assertEqual(blocked["milestone"], "mvp")
+        unassigned = next(e for e in out["frontier"] if e["key"] == "api-limits")
+        self.assertIsNone(unassigned["milestone"])
+
+    def test_progress_moves_when_a_member_closes(self):
+        gh.resolve(self.ops, "billing", "auth-model", "shared keys", None, None)
+        out = gh.frontier(self.ops, "billing")
+        mvp = next(m for m in out["milestones"] if m["slug"] == "mvp")
+        self.assertEqual((mvp["closed"], mvp["total"], mvp["complete"]),
+                         (1, 2, False))
+
+    def test_a_claimed_entry_also_carries_its_milestone(self):
+        gh.claim(self.ops, "billing", "auth-model", "octocat")
+        out = gh.frontier(self.ops, "billing")
+        self.assertEqual(out["claimed"][0]["milestone"], "mvp")
+
+    def test_an_unmilestoned_map_reports_an_empty_list(self):
+        # The key is always present so a consumer never branches on absence.
+        inp = copy.deepcopy(INPUT)
+        inp["target"]["slug"] = "plain"
+        self.chart(inp)
+        self.assertEqual(gh.read_map(self.ops, "plain")["milestones"], [])
+        self.assertEqual(gh.frontier(self.ops, "plain")["milestones"], [])
+
+    def test_a_new_ticket_issue_leads_with_its_question(self):
+        body = gh.render_ticket_issue_body("k", "which one?")
+        self.assertLess(body.index("## Question"), body.index(map_core.GRAPH_START))
+        self.assertEqual(body.count(map_core.KEY_MARKER % "k"), 1)
+        self.assertEqual(body.count(map_core.GIST_START), 1)
+
+    def test_the_two_backends_report_the_same_milestone_fields(self):
+        gh_ticket = next(t for t in gh.read_map(self.ops, "billing")["tickets"]
+                         if t["key"] == "auth-model")
+        with tempfile.TemporaryDirectory() as tmp:
+            local_inp = {
+                "target": {"slug": "billing"},
+                "map": {"title": "t", "destination": "d",
+                        "milestones": [{"slug": "mvp",
+                                        "members": ["auth-model"]}]},
+                "tickets": [{"key": "auth-model", "title": "a",
+                             "type": "grilling", "question": "q",
+                             "blocks": []}],
+            }
+            local_map_ops.chart(Path(tmp), local_inp, real=True)
+            local_ticket = local_map_ops.read_map(Path(tmp), "billing")["tickets"][0]
+        # dbId and repo are GitHub-only handles; every other field name and
+        # presence must match, or the two backends disagree about the shape
+        # of a ticket for the same logical map.
+        self.assertEqual(set(gh_ticket) - {"dbId", "repo"}, set(local_ticket))
 
 
 if __name__ == "__main__":

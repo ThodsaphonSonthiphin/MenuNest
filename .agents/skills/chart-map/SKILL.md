@@ -102,7 +102,7 @@ cannot be blocked by more than **50** others. `chart` checks both before it
 writes anything rather than failing partway.
 
 **Contract** — every subcommand, flag and JSON shape used below is fixed by
-`.agents/references/data-contracts.md`. Where this skill and the
+`.agents/references/decision-map-data-contracts.md`. Where this skill and the
 contract disagree, the contract wins.
 
 The map is repo docs, so it is committed through **assisted git** — offer the
@@ -345,7 +345,7 @@ the list slowly becomes a log of questions already answered.
 `--force` is **destructive**: on every item the plan labels `OVERWRITE` it
 discards the recorded resolution, the claim and the blocking edges. Its exact
 blast radius — which items it reaches, and what survives on each — is tabulated
-in `.agents/references/data-contracts.md`. Read it there and quote
+in `.agents/references/decision-map-data-contracts.md`. Read it there and quote
 it; do not paraphrase it loosely.
 
 Do **not** suggest `--force` because a re-chart printed `skip (exists)`, because

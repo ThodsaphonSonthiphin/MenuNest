@@ -94,7 +94,7 @@ lands in an issue's timeline, which is why `block` and an additive `chart` do no
 re-write an edge that already exists.
 
 **Contract** — every subcommand, flag and JSON shape used below is fixed by
-`.agents/references/data-contracts.md`. Where this skill and the
+`.agents/references/decision-map-data-contracts.md`. Where this skill and the
 contract disagree, the contract wins.
 
 The map and any repo docs a resolution produces are committed through
@@ -631,7 +631,7 @@ claims and blocking edges on everything it rewrites — on a map you are working
 that is the session history you just wrote. Additive `chart` already adds
 tickets, edges, fog lines and scope lines; nothing in graduation needs
 `--force`. Its exact blast radius is tabulated in
-`.agents/references/data-contracts.md`.
+`.agents/references/decision-map-data-contracts.md`.
 
 **Two things the gate will not do for you:**
 
