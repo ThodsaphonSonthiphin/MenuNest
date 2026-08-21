@@ -472,8 +472,27 @@ the glossary wins until the glossary is deliberately changed.
 ## Budget
 
 _Only the terms the budget rework (#99) has actually decided are listed here. The wider budget
-vocabulary — **Ready to Assign**, **Available**, **Assigned**, **Activity**, **Target** — is still
-undefined in this glossary and belongs to the tickets that own those decisions._
+vocabulary — **Available**, **Assigned**, **Activity**, **Target** — is still undefined in this
+glossary and belongs to the tickets that own those decisions._
+
+- **Account** — a place a **Family**'s money sits (`BudgetAccount` in code): Cash, Credit, Loan or
+  Closed. Its balance is **derived** — the sum of its **Budget transactions** up to the end of the
+  month being viewed — so a past month shows what the **Account** held *then*, not today. The stored
+  `Balance` field survives only as a fast copy of today's total, never as the truth for a past month.
+  _Avoid_: wallet, bank account (only some are), balance (that is the number, not the thing).
+- **Budget transaction** — one dated, signed movement of money on an **Account** (`BudgetTransaction`).
+  Negative is an outflow. It carries an **Envelope** or carries none; carrying none makes it income,
+  and it lands in **Ready to Assign**. Every change to an **Account**'s money is one of these, with no
+  exception for the assistant. _Avoid_: entry, payment, expense, spend (bare).
+- **Ready to Assign** — the money a **Family** holds that is in no **Envelope** yet: accounts total
+  minus everything sitting in envelopes, both measured as of the month being viewed. The target state
+  is zero. It is loud when non-zero and never blocks. _Avoid_: RTA (bare, in prose), to be budgeted,
+  unassigned, available (that is the **Envelope** number).
+- **Balance correction** — the **Budget transaction** written when a **User** states an **Account**'s
+  true balance and it differs from the derived one. It is the *only* way an **Account**'s money is
+  corrected — the assistant posts one too, and cannot overwrite a balance silently. What it recovers
+  is ordinary **Ready to Assign** at once: no quarantine, no acknowledge step.
+  _Avoid_: reconcile (bare — that is the act), adjustment, manual fix, plug.
 
 - **Envelope** — a named pot of money inside a **Family**'s budget (`BudgetCategory` in code), living
   in an envelope group. It holds no stored balance: its **Available** is computed by accumulating
