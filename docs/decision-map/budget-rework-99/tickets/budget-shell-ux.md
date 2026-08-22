@@ -3,7 +3,7 @@ title: The phone-first budget screen - what is on it, in what order, and what is
 type: prototype
 mode: HITL
 status: open
-assignee: 
+assignee: shell-ux-proto-0049
 blocked_by: [current-budget-audit, account-balance-input, daily-allowance-formula]
 gist: 
 ---
