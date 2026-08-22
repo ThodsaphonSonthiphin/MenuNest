@@ -13,21 +13,29 @@ import {diffEverydayMarks, type EverydayMarkDiffEntry} from '../lib/everydayMark
  * envelopes the user needs to mark.
  *
  * Ticks are local state only while the sheet is open. **Closing the sheet
- * is the commit point** — an overlay tap and the Done button both count as
- * "close" — sending at most one bulk request for the envelopes whose tick
- * actually differs from how the sheet opened. That single request is what
- * turns marking six envelopes into ONE Budgeting event / ONE re-freeze of
- * the Daily allowance, instead of six visible jumps of the headline
- * (menunest-184) — do not add a per-row save.
+ * is the commit point** — but "closing" means the one deliberate gesture,
+ * the **Done** button, sending at most one bulk request for the envelopes
+ * whose tick actually differs from how the sheet opened. That single
+ * request is what turns marking six envelopes into ONE Budgeting event /
+ * ONE re-freeze of the Daily allowance, instead of six visible jumps of the
+ * headline (menunest-184) — do not add a per-row save.
  *
  * The diff is computed by `diffEverydayMarks` (unit-tested — the one part
  * of this component vitest can actually verify, per this environment having
  * no jsdom/component harness). Closing with nothing changed sends nothing:
  * the diff comes back empty and the mutation is never called.
  *
- * Unlike the sibling dialogs (MoveMoneyDialog, CoverOverspendingDialog,
- * QuickAssignDialog), an overlay click here does NOT discard — there is no
- * "cancel" state to discard, since nothing is saved until close.
+ * An overlay click DISCARDS — same as every sibling dialog (MoveMoneyDialog,
+ * CoverOverspendingDialog, QuickAssignDialog) — no diff, no request, ticks
+ * are simply abandoned. This was originally built the other way (any close
+ * commits), reasoned from "closing is the commit point"; review correctly
+ * pointed out that line answers *when the batch fires*, not *which gestures
+ * count as an affirmative close*. Committing on a backdrop misclick is
+ * exactly the unexpected-headline-jump menunest-184 exists to prevent, just
+ * triggered by an accidental tap instead of by six ticks — so an overlay
+ * click here must read as "never mind", identical to every sibling. There is
+ * no Escape-key handler on this sheet (none of the sibling dialogs have one
+ * either), so there is no second accidental-exit path to keep in sync.
  */
 export function EverydayMarksSheet({groups, onClose}: {
   groups: EnvelopeGroupDto[]
@@ -70,7 +78,7 @@ export function EverydayMarksSheet({groups, onClose}: {
     <div
       className="budget-modal-overlay"
       data-testid="bdg-everyday-sheet"
-      onClick={(e) => { if (e.target === e.currentTarget && !isLoading) commitAndClose() }}
+      onClick={(e) => { if (e.target === e.currentTarget && !isLoading) onClose() }}
     >
       <div className="budget-modal">
         <h3>Everyday envelopes</h3>
