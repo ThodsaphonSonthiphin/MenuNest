@@ -15,6 +15,7 @@ internal sealed class BudgetCategoryConfiguration : IEntityTypeConfiguration<Bud
         b.Property(x => x.GroupId).IsRequired();
         b.Property(x => x.Name).IsRequired().HasMaxLength(120);
         b.Property(x => x.Emoji).HasMaxLength(8);
+        b.Property(x => x.IsEveryday).IsRequired().HasDefaultValue(false);
         b.Property(x => x.TargetType).HasConversion<int>();
         b.Property(x => x.TargetAmount).HasColumnType("decimal(18,4)");
         b.HasIndex(x => new { x.FamilyId, x.GroupId, x.SortOrder });

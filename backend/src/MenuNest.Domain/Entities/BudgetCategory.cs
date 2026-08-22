@@ -18,6 +18,13 @@ public sealed class BudgetCategory : Entity
     public int SortOrder { get; private set; }
     public bool IsHidden { get; private set; }
 
+    /// <summary>
+    /// Marks this envelope as day-to-day spending — the only kind that feeds the
+    /// Daily allowance (menunest-181). Lives on the envelope, never on its group,
+    /// so it survives a move between groups.
+    /// </summary>
+    public bool IsEveryday { get; private set; }
+
     // Target / goal
     public BudgetTargetType TargetType { get; private set; }
     public decimal? TargetAmount { get; private set; }
@@ -39,6 +46,7 @@ public sealed class BudgetCategory : Entity
             Emoji = string.IsNullOrWhiteSpace(emoji) ? null : emoji.Trim(),
             SortOrder = sortOrder,
             IsHidden = false,
+            IsEveryday = false,
             TargetType = BudgetTargetType.None
         };
     }
@@ -99,4 +107,10 @@ public sealed class BudgetCategory : Entity
 
     public void Hide()   { IsHidden = true;  UpdatedAt = DateTime.UtcNow; }
     public void Unhide() { IsHidden = false; UpdatedAt = DateTime.UtcNow; }
+
+    public void MarkEveryday(bool isEveryday)
+    {
+        IsEveryday = isEveryday;
+        UpdatedAt = DateTime.UtcNow;
+    }
 }
