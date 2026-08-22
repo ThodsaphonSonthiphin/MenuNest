@@ -95,10 +95,22 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
             totalEnvelopeAvailableAllCats += available;
         }
 
+        // 5a. Derived account balances as of the END of the selected month
+        //     (menunest-182). One grouped query, not one per account.
+        var balancesByAccount = (await _db.BudgetTransactions
+            .Where(t => t.FamilyId == familyId && t.Date < nextMonth)
+            .GroupBy(t => t.AccountId)
+            .Select(g => new { AccountId = g.Key, Total = g.Sum(t => t.Amount) })
+            .ToListAsync(ct))
+            .ToDictionary(x => x.AccountId, x => x.Total);
+
+        decimal DerivedBalance(Guid accountId) =>
+            balancesByAccount.TryGetValue(accountId, out var total) ? total : 0m;
+
         // 5. Total account balance.
-        var totalAccountBalance = await _db.BudgetAccounts
-            .Where(a => a.FamilyId == familyId)
-            .SumAsync(a => (decimal?)a.Balance, ct) ?? 0m;
+        var accountIds = await _db.BudgetAccounts
+            .Where(a => a.FamilyId == familyId).Select(a => a.Id).ToListAsync(ct);
+        var totalAccountBalance = accountIds.Sum(DerivedBalance);
 
         // 6. Income = positive uncategorized inflows for the selected month.
         var income = await _db.BudgetTransactions
@@ -111,12 +123,16 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         // RTA = sum(accounts) − sum(envelope.available across ALL categories)
         decimal readyToAssign = totalAccountBalance - totalEnvelopeAvailableAllCats;
 
-        // 7. Accounts list for the UI.
-        var accounts = await _db.BudgetAccounts
+        // 7. Accounts list for the UI. DerivedBalance is a local function EF cannot
+        //    translate, so materialise the entities first and project in memory.
+        var accountRows = await _db.BudgetAccounts
             .Where(a => a.FamilyId == familyId)
             .OrderBy(a => a.IsClosed).ThenBy(a => a.Type).ThenBy(a => a.SortOrder).ThenBy(a => a.Name)
-            .Select(a => new BudgetAccountDto(a.Id, a.Name, a.Type, a.Balance, a.SortOrder, a.IsClosed))
             .ToListAsync(ct);
+        var accounts = accountRows
+            .Select(a => new BudgetAccountDto(
+                a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed))
+            .ToList();
 
         return new MonthlySummaryDto(
             q.Year, q.Month,

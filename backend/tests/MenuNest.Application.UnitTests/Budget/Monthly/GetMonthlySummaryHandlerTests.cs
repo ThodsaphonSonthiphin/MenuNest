@@ -202,8 +202,15 @@ public class GetMonthlySummaryHandlerTests
         var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Rent", null, 0);
         fx.Db.BudgetCategories.Add(cat);
 
-        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(
-            fx.Family.Id, "Checking", BudgetAccountType.Cash, 1000m, 0));
+        var account = BudgetAccount.Create(
+            fx.Family.Id, "Checking", BudgetAccountType.Cash, 0m, 0);
+        fx.Db.BudgetAccounts.Add(account);
+        // Balance is now derived from transactions, not the stored opening
+        // balance — seed a real uncategorized inflow instead.
+        fx.Db.BudgetTransactions.Add(
+            BudgetTransaction.Create(
+                fx.Family.Id, account.Id, null, 1000m,
+                new DateOnly(2026, 4, 1), null, fx.User.Id));
         fx.Db.MonthlyAssignments.Add(
             MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 500m));
         await fx.Db.SaveChangesAsync();
@@ -338,8 +345,15 @@ public class GetMonthlySummaryHandlerTests
         hidden.Hide();
         fx.Db.BudgetCategories.AddRange(visible, hidden);
 
-        fx.Db.BudgetAccounts.Add(BudgetAccount.Create(
-            fx.Family.Id, "Checking", BudgetAccountType.Cash, 1000m, 0));
+        var account = BudgetAccount.Create(
+            fx.Family.Id, "Checking", BudgetAccountType.Cash, 0m, 0);
+        fx.Db.BudgetAccounts.Add(account);
+        // Balance is now derived from transactions, not the stored opening
+        // balance — seed a real uncategorized inflow instead.
+        fx.Db.BudgetTransactions.Add(
+            BudgetTransaction.Create(
+                fx.Family.Id, account.Id, null, 1000m,
+                new DateOnly(2026, 4, 1), null, fx.User.Id));
         fx.Db.MonthlyAssignments.AddRange(
             MonthlyAssignment.Create(fx.Family.Id, visible.Id, 2026, 4, 300m),
             MonthlyAssignment.Create(fx.Family.Id, hidden.Id,  2026, 4, 300m));
