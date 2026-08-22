@@ -98,6 +98,17 @@ test.describe('Budget — daily allowance card', () => {
 
   test('pressing ‹ to a past month, the card is absent — current-month only', async ({authedPage: page}) => {
     await page.goto('/budget')
+
+    // Unguarded on purpose: assert the card renders in SOME form on the
+    // current month BEFORE navigating away. Without this, a total render
+    // failure (the component throws, returns null unexpectedly, or loses
+    // its test ids) would make the post-navigation absence assertion
+    // below trivially true — the exact #97-class swallow this file exists
+    // to prevent (menunest-185 only makes sense to check once we know the
+    // card can render at all).
+    const currentMonthCard = page.getByTestId('bdg-daily-allowance').or(page.getByTestId('bdg-daily-allowance-empty'))
+    await expect(currentMonthCard).toBeVisible()
+
     const monthLabel = page.locator('.bdg-month-label')
     const before = await monthLabel.textContent()
 
@@ -116,9 +127,17 @@ test.describe('Budget — daily allowance card', () => {
 
   test('✎ on an account card opens the reconcile dialog', async ({authedPage: page}) => {
     await page.goto('/budget')
-    const correctIcon = page.getByTestId('bdg-account-correct-icon').first()
-    if (await correctIcon.count() === 0) test.skip()
+    // Guard only on data availability (does an account exist at all) —
+    // same shape as budget.add-entry-points.spec.ts's reconcile-menu test.
+    // Guarding on the icon itself would make the test silently skip
+    // instead of failing if the icon were hidden, dropped from
+    // AccountsStrip.tsx, or broken by DOM restructuring (exactly the kind
+    // of change c627f0a just made) — on the newest, least-verified
+    // surface in the branch, that is the one guard that must not exist.
+    if (await page.getByTestId('bdg-account-card').count() === 0) test.skip()
 
+    const correctIcon = page.getByTestId('bdg-account-correct-icon').first()
+    await expect(correctIcon).toBeVisible()
     await correctIcon.click()
     // Un-nested from the account-card's stretched link (c627f0a) — this
     // must open the dialog directly, never navigate to account-detail.
