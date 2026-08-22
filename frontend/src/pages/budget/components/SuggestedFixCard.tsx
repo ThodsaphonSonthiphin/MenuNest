@@ -7,6 +7,7 @@ import {
 } from '../../../shared/api/api'
 import {formatTHB} from '../BudgetPage.hooks'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 
 /**
  * Renders ONLY when `summary.readyToAssign < 0` (over-assigned).
@@ -55,6 +56,7 @@ export function SuggestedFixCard({summary}: {summary: MonthlySummaryDto}) {
         categoryId: candidate.categoryId,
         year, month,
         amount: newAssigned,
+        timeZoneId: getViewerTimeZone(),
       }).unwrap()
     } catch (e) {
       setErr(getErrorMessage(e))

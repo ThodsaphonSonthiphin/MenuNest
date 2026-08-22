@@ -2,23 +2,19 @@ import {useState} from 'react'
 import {Controller, useForm} from 'react-hook-form'
 import {Button, Color, Variant} from '@syncfusion/react-buttons'
 import {NumericTextBox} from '@syncfusion/react-inputs'
-import {useCreateBudgetTransactionMutation} from '../../../shared/api/api'
-import {useAppSelector} from '../../../store'
+import {useCorrectAccountBalanceMutation} from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 import {formatTHB} from '../BudgetPage.hooks'
 
 interface FormValues { actualBalance: number | null }
 
-function todayIso(): string {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
 /**
- * Reconcile dialog — user enters the true bank-side balance.
- * We compute (actual − tracked) and post a single adjustment
- * transaction (categoryId=null, amount=diff) so the account's
- * running balance lines up with reality. No new backend.
+ * Reconcile dialog — user enters the true bank-side balance. Posts to
+ * correct_account_balance's REST twin with confirmed=true: the dialog
+ * itself IS the confirmation (menunest-182) — it already shows the
+ * numbers and requires a press, so it skips the refuse-then-confirm gate
+ * that guards the MCP tool instead.
  */
 export function ReconcileBalanceDialog({
   accountId,
@@ -29,8 +25,7 @@ export function ReconcileBalanceDialog({
   trackedBalance: number
   onClose: () => void
 }) {
-  const {year, month} = useAppSelector(s => s.budget)
-  const [create, {isLoading}] = useCreateBudgetTransactionMutation()
+  const [correctBalance, {isLoading}] = useCorrectAccountBalanceMutation()
   const [err, setErr] = useState<string | null>(null)
   const {control, handleSubmit, watch, formState} = useForm<FormValues>({
     defaultValues: {actualBalance: trackedBalance},
@@ -43,13 +38,13 @@ export function ReconcileBalanceDialog({
     if (values.actualBalance == null) { setErr('Enter the actual balance.'); return }
     if (diff === 0) { onClose(); return }
     try {
-      await create({
+      await correctBalance({
         accountId,
-        categoryId: null,
-        amount: diff,
-        date: todayIso(),
+        actualBalance: values.actualBalance,
+        confirmed: true,
+        date: null,
         notes: 'Manual balance fix',
-        year, month,
+        timeZoneId: getViewerTimeZone(),
       }).unwrap()
       onClose()
     } catch (e) {

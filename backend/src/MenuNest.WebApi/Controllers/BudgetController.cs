@@ -5,6 +5,7 @@ using MenuNest.Application.UseCases.Budget.Accounts.DeleteAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.ListAccounts;
 using MenuNest.Application.UseCases.Budget.Accounts.ListAccountTransactions;
 using MenuNest.Application.UseCases.Budget.Accounts.UpdateAccount;
+using MenuNest.Application.UseCases.Budget.Accounts.CorrectBalance;
 using MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
 using MenuNest.Application.UseCases.Budget.Groups.DeleteGroup;
 using MenuNest.Application.UseCases.Budget.Groups.ListGroups;
@@ -56,6 +57,17 @@ public sealed class BudgetController : ControllerBase
     public async Task<ActionResult<BudgetAccountDto>> UpdateAccount(
         Guid id, [FromBody] UpdateAccountRequest r, CancellationToken ct) =>
         Ok(await _m.Send(new UpdateAccountCommand(id, r.Name, r.SortOrder, r.IsClosed), ct));
+
+    // menunest-182: replaces the deleted BudgetAccount.SetBalance. The
+    // dialog IS the confirmation (it already shows the numbers and requires
+    // a press), so the SPA always sends confirmed=true here; the
+    // refuse-then-confirm gate itself lives in the MCP tool
+    // (correct_account_balance), the only caller that can't be trusted to
+    // have shown the user anything first.
+    [HttpPost("accounts/{id:guid}/correct-balance")]
+    public async Task<ActionResult<BalanceCorrectionResultDto>> CorrectBalance(
+        Guid id, [FromBody] CorrectBalanceRequest r, CancellationToken ct) =>
+        Ok(await _m.Send(new CorrectBalanceCommand(id, r.ActualBalance, r.Confirmed, r.Date, r.Notes, r.TimeZoneId), ct));
 
     [HttpDelete("accounts/{id:guid}")]
     public async Task<IActionResult> DeleteAccount(Guid id, CancellationToken ct)

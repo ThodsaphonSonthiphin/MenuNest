@@ -8,6 +8,7 @@ import {
 } from '../../../shared/api/api'
 import {formatTHB} from '../BudgetPage.hooks'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 
 export type QuickAssignMode = 'targets' | 'equally'
 
@@ -123,6 +124,7 @@ export function QuickAssignDialog({
           categoryId: a.cat.categoryId,
           year, month,
           amount: a.newAssigned,
+          timeZoneId: getViewerTimeZone(),
         }).unwrap()
       }
       onClose()

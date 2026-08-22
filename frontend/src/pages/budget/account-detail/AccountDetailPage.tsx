@@ -14,6 +14,7 @@ import {
   useGetBudgetSummaryQuery,
   type BudgetTransactionDto,
 } from '../../../shared/api/api'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 
 interface PendingDelete {
   tx: BudgetTransactionDto
@@ -38,7 +39,7 @@ export function AccountDetailPage() {
 
   const [deleteTx] = useDeleteBudgetTransactionMutation()
   const {year, month} = useAppSelector(s => s.budget)
-  const {data: summary} = useGetBudgetSummaryQuery({year, month})
+  const {data: summary} = useGetBudgetSummaryQuery({year, month, tz: getViewerTimeZone()})
 
   // Account-level top-bar menu outside-click handler (unchanged).
   useEffect(() => {

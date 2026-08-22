@@ -28,6 +28,10 @@ namespace MenuNest.McpServer.UnitTests.Tools;
 
 public class BudgetToolsTests
 {
+    // Arbitrary valid IANA id — these tests only check that BudgetTools
+    // forwards whatever it's given straight into the command/query.
+    private const string Tz = "Asia/Bangkok";
+
     private readonly Mock<IMediator> _mediator = new();
     private readonly BudgetTools _sut;
 
@@ -36,13 +40,13 @@ public class BudgetToolsTests
     // ── Summary ───────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task get_budget_summary_sends_GetMonthlySummaryQuery_with_year_and_month()
+    public async Task get_budget_summary_sends_GetMonthlySummaryQuery_with_year_month_and_timezone()
     {
         _mediator
-            .Setup(m => m.Send(It.Is<GetMonthlySummaryQuery>(q => q.Year == 2026 && q.Month == 6), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<GetMonthlySummaryQuery>(q => q.Year == 2026 && q.Month == 6 && q.TimeZoneId == Tz), It.IsAny<CancellationToken>()))
             .Returns<GetMonthlySummaryQuery, CancellationToken>((_, _) => new ValueTask<MonthlySummaryDto>((MonthlySummaryDto)default!));
-        await _sut.get_budget_summary(2026, 6, CancellationToken.None);
-        _mediator.Verify(m => m.Send(It.Is<GetMonthlySummaryQuery>(q => q.Year == 2026 && q.Month == 6), It.IsAny<CancellationToken>()), Times.Once);
+        await _sut.get_budget_summary(2026, 6, Tz, CancellationToken.None);
+        _mediator.Verify(m => m.Send(It.Is<GetMonthlySummaryQuery>(q => q.Year == 2026 && q.Month == 6 && q.TimeZoneId == Tz), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     // ── Accounts ──────────────────────────────────────────────────────────────
@@ -74,7 +78,7 @@ public class BudgetToolsTests
         _mediator
             .Setup(m => m.Send(It.Is<UpdateAccountCommand>(c => c.Id == id && c.Name == "Savings" && c.SortOrder == 2 && c.IsClosed == false), It.IsAny<CancellationToken>()))
             .Returns<UpdateAccountCommand, CancellationToken>((_, _) => new ValueTask<BudgetAccountDto>((BudgetAccountDto)default!));
-        await _sut.update_budget_account(id, "Savings", 2, false, null, CancellationToken.None);
+        await _sut.update_budget_account(id, "Savings", 2, false, CancellationToken.None);
         _mediator.Verify(m => m.Send(It.Is<UpdateAccountCommand>(c => c.Id == id && c.Name == "Savings" && c.SortOrder == 2 && c.IsClosed == false), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -208,10 +212,10 @@ public class BudgetToolsTests
     {
         var categoryId = Guid.NewGuid();
         _mediator
-            .Setup(m => m.Send(It.Is<SetAssignedAmountCommand>(c => c.CategoryId == categoryId && c.Year == 2026 && c.Month == 6 && c.Amount == 3000m), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<SetAssignedAmountCommand>(c => c.CategoryId == categoryId && c.Year == 2026 && c.Month == 6 && c.Amount == 3000m && c.TimeZoneId == Tz), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<Unit>(Unit.Value));
-        await _sut.set_assigned_amount(categoryId, 2026, 6, 3000m, CancellationToken.None);
-        _mediator.Verify(m => m.Send(It.Is<SetAssignedAmountCommand>(c => c.CategoryId == categoryId && c.Year == 2026 && c.Month == 6 && c.Amount == 3000m), It.IsAny<CancellationToken>()), Times.Once);
+        await _sut.set_assigned_amount(categoryId, 2026, 6, 3000m, Tz, CancellationToken.None);
+        _mediator.Verify(m => m.Send(It.Is<SetAssignedAmountCommand>(c => c.CategoryId == categoryId && c.Year == 2026 && c.Month == 6 && c.Amount == 3000m && c.TimeZoneId == Tz), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -220,9 +224,9 @@ public class BudgetToolsTests
         var fromId = Guid.NewGuid();
         var toId = Guid.NewGuid();
         _mediator
-            .Setup(m => m.Send(It.Is<MoveMoneyCommand>(c => c.FromCategoryId == fromId && c.ToCategoryId == toId && c.Year == 2026 && c.Month == 6 && c.Amount == 100m), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<MoveMoneyCommand>(c => c.FromCategoryId == fromId && c.ToCategoryId == toId && c.Year == 2026 && c.Month == 6 && c.Amount == 100m && c.TimeZoneId == Tz), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<Unit>(Unit.Value));
-        await _sut.move_money(fromId, toId, 2026, 6, 100m, CancellationToken.None);
+        await _sut.move_money(fromId, toId, 2026, 6, 100m, Tz, CancellationToken.None);
         _mediator.Verify(m => m.Send(It.Is<MoveMoneyCommand>(c => c.FromCategoryId == fromId && c.ToCategoryId == toId), It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -232,9 +236,9 @@ public class BudgetToolsTests
         var overspentId = Guid.NewGuid();
         var fromId = Guid.NewGuid();
         _mediator
-            .Setup(m => m.Send(It.Is<CoverOverspendingCommand>(c => c.OverspentCategoryId == overspentId && c.FromCategoryId == fromId && c.Year == 2026 && c.Month == 6 && c.Amount == 200m), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<CoverOverspendingCommand>(c => c.OverspentCategoryId == overspentId && c.FromCategoryId == fromId && c.Year == 2026 && c.Month == 6 && c.Amount == 200m && c.TimeZoneId == Tz), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask<Unit>(Unit.Value));
-        await _sut.cover_overspending(overspentId, fromId, 2026, 6, 200m, CancellationToken.None);
+        await _sut.cover_overspending(overspentId, fromId, 2026, 6, 200m, Tz, CancellationToken.None);
         _mediator.Verify(m => m.Send(It.Is<CoverOverspendingCommand>(c => c.OverspentCategoryId == overspentId && c.FromCategoryId == fromId && c.Amount == 200m), It.IsAny<CancellationToken>()), Times.Once);
     }
 

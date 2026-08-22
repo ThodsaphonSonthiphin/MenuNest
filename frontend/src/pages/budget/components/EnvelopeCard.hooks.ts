@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react'
 import {useAppDispatch, useAppSelector} from '../../../store'
 import {setExpandedCategory} from '../budgetSlice'
 import {useSetAssignedAmountMutation, type EnvelopeDto} from '../../../shared/api/api'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 
 const LONG_PRESS_MS = 450
 const MOVE_TOLERANCE_PX = 8
@@ -66,7 +67,7 @@ export function useEnvelopeCard({cat, onAddTransaction, onMoveMoney, onCoverOver
 
   const commitAssigned = () => {
     if (assignedDraft !== cat.assigned) {
-      setAssigned({categoryId: cat.categoryId, year, month, amount: assignedDraft})
+      setAssigned({categoryId: cat.categoryId, year, month, amount: assignedDraft, timeZoneId: getViewerTimeZone()})
     }
   }
   const revertAssigned = () => setAssignedDraft(cat.assigned)
