@@ -24,7 +24,6 @@ public sealed class UpdateAccountHandler : ICommandHandler<UpdateAccountCommand,
         acc.SetSortOrder(c.SortOrder);
         if (c.IsClosed && !acc.IsClosed) acc.Close();
         if (!c.IsClosed && acc.IsClosed) acc.Reopen();
-        if (c.SetBalance.HasValue) acc.SetBalance(c.SetBalance.Value);
         await _db.SaveChangesAsync(ct);
         return new BudgetAccountDto(acc.Id, acc.Name, acc.Type, acc.Balance, acc.SortOrder, acc.IsClosed);
     }

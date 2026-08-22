@@ -72,10 +72,10 @@ public class BudgetToolsTests
     {
         var id = Guid.NewGuid();
         _mediator
-            .Setup(m => m.Send(It.Is<UpdateAccountCommand>(c => c.Id == id && c.Name == "Savings" && c.SortOrder == 2 && c.IsClosed == false && c.SetBalance == null), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<UpdateAccountCommand>(c => c.Id == id && c.Name == "Savings" && c.SortOrder == 2 && c.IsClosed == false), It.IsAny<CancellationToken>()))
             .Returns<UpdateAccountCommand, CancellationToken>((_, _) => new ValueTask<BudgetAccountDto>((BudgetAccountDto)default!));
         await _sut.update_budget_account(id, "Savings", 2, false, null, CancellationToken.None);
-        _mediator.Verify(m => m.Send(It.Is<UpdateAccountCommand>(c => c.Id == id && c.Name == "Savings" && c.SortOrder == 2 && c.IsClosed == false && c.SetBalance == null), It.IsAny<CancellationToken>()), Times.Once);
+        _mediator.Verify(m => m.Send(It.Is<UpdateAccountCommand>(c => c.Id == id && c.Name == "Savings" && c.SortOrder == 2 && c.IsClosed == false), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

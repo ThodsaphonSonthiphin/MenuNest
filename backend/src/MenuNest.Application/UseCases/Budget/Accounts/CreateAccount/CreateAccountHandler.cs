@@ -17,14 +17,29 @@ public sealed class CreateAccountHandler : ICommandHandler<CreateAccountCommand,
     public async ValueTask<BudgetAccountDto> Handle(CreateAccountCommand cmd, CancellationToken ct)
     {
         await _validator.ValidateAndThrowAsync(cmd, ct);
-        var (_, familyId) = await _users.RequireFamilyAsync(ct);
+        var (user, familyId) = await _users.RequireFamilyAsync(ct);
 
         var nextSortOrder = (await _db.BudgetAccounts
             .Where(a => a.FamilyId == familyId)
             .MaxAsync(a => (int?)a.SortOrder, ct) ?? -1) + 1;
 
-        var acc = BudgetAccount.Create(familyId, cmd.Name, cmd.Type, cmd.OpeningBalance, nextSortOrder);
+        // menunest-183: the opening balance is a BudgetTransaction, not a stored
+        // number. A derived balance whose history begins with a non-transaction
+        // begins from nowhere.
+        var acc = BudgetAccount.Create(familyId, cmd.Name, cmd.Type, 0m, nextSortOrder);
         _db.BudgetAccounts.Add(acc);
+
+        if (cmd.OpeningBalance != 0m)
+        {
+            _db.BudgetTransactions.Add(BudgetTransaction.Create(
+                familyId, acc.Id, categoryId: null,
+                amount: cmd.OpeningBalance,
+                date: DateOnly.FromDateTime(DateTime.UtcNow),
+                notes: "Opening balance",
+                createdByUserId: user.Id));
+            acc.AdjustBalance(cmd.OpeningBalance);   // keep the cache true
+        }
+
         await _db.SaveChangesAsync(ct);
         return new BudgetAccountDto(acc.Id, acc.Name, acc.Type, acc.Balance, acc.SortOrder, acc.IsClosed);
     }

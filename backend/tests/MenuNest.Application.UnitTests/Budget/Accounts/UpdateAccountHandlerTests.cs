@@ -21,7 +21,7 @@ public class UpdateAccountHandlerTests
         var sut = new UpdateAccountHandler(fx.Db, fx.UserProvisioner.Object, new UpdateAccountValidator());
 
         var result = await sut.Handle(
-            new UpdateAccountCommand(acc.Id, "New Name", 7, IsClosed: false, SetBalance: null),
+            new UpdateAccountCommand(acc.Id, "New Name", 7, IsClosed: false),
             CancellationToken.None);
 
         result.Name.Should().Be("New Name");
@@ -46,39 +46,15 @@ public class UpdateAccountHandlerTests
 
         // Close an open account.
         var closed = await sut.Handle(
-            new UpdateAccountCommand(acc.Id, "Wallet", 0, IsClosed: true, SetBalance: null),
+            new UpdateAccountCommand(acc.Id, "Wallet", 0, IsClosed: true),
             CancellationToken.None);
         closed.IsClosed.Should().BeTrue();
 
         // Reopen a closed account.
         var reopened = await sut.Handle(
-            new UpdateAccountCommand(acc.Id, "Wallet", 0, IsClosed: false, SetBalance: null),
+            new UpdateAccountCommand(acc.Id, "Wallet", 0, IsClosed: false),
             CancellationToken.None);
         reopened.IsClosed.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task SetBalance_overwrites_when_provided_and_is_ignored_when_null()
-    {
-        using var fx = new HandlerTestFixture();
-
-        var acc = BudgetAccount.Create(fx.Family.Id, "Wallet", BudgetAccountType.Cash, 100m, 0);
-        fx.Db.BudgetAccounts.Add(acc);
-        await fx.Db.SaveChangesAsync();
-
-        var sut = new UpdateAccountHandler(fx.Db, fx.UserProvisioner.Object, new UpdateAccountValidator());
-
-        // null → untouched
-        var untouched = await sut.Handle(
-            new UpdateAccountCommand(acc.Id, "Wallet", 0, IsClosed: false, SetBalance: null),
-            CancellationToken.None);
-        untouched.Balance.Should().Be(100m);
-
-        // explicit value → overwritten
-        var overwritten = await sut.Handle(
-            new UpdateAccountCommand(acc.Id, "Wallet", 0, IsClosed: false, SetBalance: 42.25m),
-            CancellationToken.None);
-        overwritten.Balance.Should().Be(42.25m);
     }
 
     [Fact]
@@ -96,7 +72,7 @@ public class UpdateAccountHandlerTests
         var sut = new UpdateAccountHandler(fx.Db, fx.UserProvisioner.Object, new UpdateAccountValidator());
 
         var act = async () => await sut.Handle(
-            new UpdateAccountCommand(foreignAcc.Id, "Hacked", 0, IsClosed: false, SetBalance: null),
+            new UpdateAccountCommand(foreignAcc.Id, "Hacked", 0, IsClosed: false),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>().WithMessage("Account not found*");

@@ -82,4 +82,50 @@ public class CreateAccountHandlerTests
 
         await act.Should().ThrowAsync<ValidationException>();
     }
+
+    [Fact]
+    public async Task Opening_balance_is_written_as_an_uncategorised_transaction()
+    {
+        using var fx = new HandlerTestFixture();
+        var sut = Build(fx);
+
+        var result = await sut.Handle(
+            new CreateAccountCommand("SCB Savings", BudgetAccountType.Cash, 40_000m),
+            CancellationToken.None);
+
+        var tx = fx.Db.BudgetTransactions.Single(t => t.AccountId == result.Id);
+        tx.Amount.Should().Be(40_000m);
+        tx.CategoryId.Should().BeNull();          // lands in Ready to Assign
+        tx.Notes.Should().Be("Opening balance");
+        result.Balance.Should().Be(40_000m);      // the cache still agrees
+    }
+
+    [Fact]
+    public async Task A_zero_opening_balance_writes_no_transaction()
+    {
+        // BudgetTransaction.Create throws on a zero amount (BudgetTransaction.cs:27).
+        using var fx = new HandlerTestFixture();
+        var sut = Build(fx);
+
+        var result = await sut.Handle(
+            new CreateAccountCommand("Empty", BudgetAccountType.Cash, 0m),
+            CancellationToken.None);
+
+        fx.Db.BudgetTransactions.Any(t => t.AccountId == result.Id).Should().BeFalse();
+        result.Balance.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task A_negative_opening_balance_is_written_for_a_liability()
+    {
+        using var fx = new HandlerTestFixture();
+        var sut = Build(fx);
+
+        var result = await sut.Handle(
+            new CreateAccountCommand("KBank Credit", BudgetAccountType.Credit, -12_000m),
+            CancellationToken.None);
+
+        fx.Db.BudgetTransactions.Single(t => t.AccountId == result.Id).Amount.Should().Be(-12_000m);
+        result.Balance.Should().Be(-12_000m);
+    }
 }

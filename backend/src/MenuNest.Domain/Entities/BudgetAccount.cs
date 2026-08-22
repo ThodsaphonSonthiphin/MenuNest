@@ -58,17 +58,6 @@ public sealed class BudgetAccount : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Directly overwrites the stored balance. Intended for reconciliation only;
-    /// prefer <see cref="AdjustBalance"/> driven by <see cref="BudgetTransaction"/> records
-    /// so transaction history stays consistent.
-    /// </summary>
-    public void SetBalance(decimal balance)
-    {
-        Balance = balance;
-        UpdatedAt = DateTime.UtcNow;
-    }
-
     public void Close() { IsClosed = true; UpdatedAt = DateTime.UtcNow; }
     public void Reopen() { IsClosed = false; UpdatedAt = DateTime.UtcNow; }
 }
