@@ -30,6 +30,7 @@
 - **Prod deploys on push to `main`.** Any UI change must be verified interactively before push.
 - **There is no component/visual test harness.** vitest runs in `environment: 'node'` with no jsdom. `tsc` + `build` + vitest **cannot** catch a rendering, layout or CSS bug — and **neither can SDD's per-task review**. Every UI task below therefore ends with an explicit mock-diff and interactive check.
 - **Money columns are `decimal(18,4)`.**
+- **"Today" is the VIEWER's local day, never UTC (menunest-189, amending this plan).** Handlers take the injected `IClock` — not `DateTime.UtcNow` — plus an IANA time-zone id on the request, and resolve local now with `TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz)`. Unknown or missing ids are **rejected** where the zone is needed; there is no silent UTC fallback (ADR-038). Follow `GetItineraryHandler.cs:33-47`. Without this, a UTC+7 user loses the allowance card for seven hours on the 1st of each month and any freeze in that window divides the pot by one extra day.
 - **Currency is THB**, formatted by the existing `formatTHB` helper in `frontend/src/pages/budget/BudgetPage.hooks.ts`.
 
 ## File Structure
