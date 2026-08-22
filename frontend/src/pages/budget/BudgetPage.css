@@ -248,18 +248,23 @@
   background: var(--accent-soft); font-weight: 600; cursor: pointer;
   min-width: 100px;
 }
-.bdg-account-chevron {
-  position: absolute; right: 10px; top: 10px;
-  font-size: 14px; color: var(--text-dim);
-}
+/* The ✎ correction icon and the "navigate to detail" chevron share this
+   top row rather than both being absolutely positioned in the same
+   corner (they would otherwise overlap). The name gets the remaining
+   space and truncates via .bdg-account-name-text so a long account name
+   can never push either affordance off the card. */
+.bdg-account-topline { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.bdg-account-topline-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.bdg-account-chevron { font-size: 14px; color: var(--text-dim); }
 .bdg-account-dot {
   width: 8px; height: 8px; border-radius: 50%; background: var(--green);
-  display: inline-block; margin-right: 6px;
+  display: inline-block; margin-right: 6px; flex-shrink: 0;
 }
 .bdg-account-dot.credit { background: var(--red); }
 .bdg-account-dot.loan   { background: var(--orange); }
 .bdg-account-dot.closed { background: var(--text-dim); }
-.bdg-account-name { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; }
+.bdg-account-name { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; min-width: 0; flex: 1; }
+.bdg-account-name-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bdg-account-balance { font-size: 17px; font-weight: 700; }
 
 /* -------- Filter chips -------- */
@@ -294,9 +299,15 @@
 .bdg-env-row1 {
   display: flex; justify-content: space-between; align-items: center; gap: 8px;
 }
-.bdg-env-row1-right { display: flex; align-items: center; gap: 6px; }
+/* menunest one-tap-affordances: row1-right now holds up to 3 elements
+   (＋, one of ⚠/⇄, and the money pill) — flex-shrink: 0 keeps all three
+   full-size and un-wrapped no matter how little room is left, so a long
+   envelope name never compresses or wraps the icon row. All the shrink
+   pressure lands on .bdg-env-name-text instead, which truncates. */
+.bdg-env-row1-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .bdg-env-name { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; flex: 1; min-width: 0; }
-.bdg-env-emoji { font-size: 16px; }
+.bdg-env-name-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bdg-env-emoji { font-size: 16px; flex-shrink: 0; }
 
 .bdg-env-icon-btn {
   width: 28px; height: 28px; border-radius: 50%;

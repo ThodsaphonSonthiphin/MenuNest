@@ -212,7 +212,6 @@ export function AccountDetailPage() {
       {reconcileOpen && (
         <ReconcileBalanceDialog
           accountId={accountId}
-          trackedBalance={account.balance}
           onClose={() => setReconcileOpen(false)}
         />
       )}
