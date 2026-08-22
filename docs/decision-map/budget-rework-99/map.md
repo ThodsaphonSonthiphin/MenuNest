@@ -32,6 +32,7 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 #### mvp — on the phone: set what each account holds, and see "today you can spend X"
 
 - [Account balances - how does the user say "this account has X", and what happens to Ready-to-Assign?](tickets/account-balance-input.md) — Every account-money change writes a BudgetTransaction (the silent SetBalance path is deleted); the balance is derived as of the month viewed, and a correction is assignable at once.
+- [The phone-first budget screen - what is on it, in what order, and what is one tap away?](tickets/budget-shell-ux.md) — APPROVED as drawn: daily allowance card leads RTA; balance-correct and log-spend promoted to one-tap icons; assign stays buried; envelope list stays a list.
 - [Today's budget - what exists, and where does every number actually come from?](tickets/current-budget-audit.md) — A future month lies four ways today, and two contradictory paths already exist for correcting an account balance.
 - [Daily allowance - which money, which days, and what does overspending today do to tomorrow?](tickets/daily-allowance-formula.md) — Everyday-marked envelope money ÷ days left in the month, frozen at a budgeting event and never moved by spending; a separate pace line carries the over/under.
 - [YNAB parity - which of its behaviours do we copy, and which do we deliberately break?](tickets/ynab-parity-research.md) — Copy YNAB's future-month mechanic and its zero-out shape; break its no-forecast-income rule deliberately. It has no daily allowance to copy at all.
@@ -42,7 +43,6 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 <!-- decision-map:fog:start -->
 - Whether fast phone spend-logging ("just spent 120" -> in the right envelope in minimum taps) is part of this rework or a follow-up - asked at chart time, no preference given.
 - Whether the existing target types (MonthlyAmount, ByDate, MonthlySavingsBuilder) need reworking or new types once planned income exists.
-- Whether the envelope groups/categories themselves need restructuring for a phone-first layout - depends on the shell mock.
 - Whether Credit accounts need YNAB-style credit-card payment envelopes; BudgetAccountType.Credit exists today but has no special handling anywhere in the use cases.
 - Whether the reworked budget changes MenuNest's configurable home page (ADR 081 / 084).
 - How two family members budgeting the same month at the same time should behave.
@@ -59,4 +59,5 @@ The reworked budget app is live in prod and in daily use on the phone: each acco
 - Bank or API import of transactions.
 - Multi-currency - THB only.
 - Spending reports, trends and net-worth analytics.
+- Restructuring the envelope groups/categories for a phone-first layout - decided against in budget-shell-ux; the list stays a list, matching today's shape.
 <!-- decision-map:scope:end -->
