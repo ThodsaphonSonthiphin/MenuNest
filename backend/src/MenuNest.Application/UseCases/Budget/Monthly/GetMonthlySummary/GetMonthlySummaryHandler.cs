@@ -73,7 +73,7 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
                     cat.Id, cat.Name, cat.Emoji, cat.SortOrder, cat.IsHidden,
                     assignedThis, activityThis, available,
                     cat.TargetType, cat.TargetAmount, cat.TargetDueDate, cat.TargetDayOfMonth,
-                    progress.Fraction, progress.Hint));
+                    progress.Fraction, progress.Hint, cat.IsEveryday));
 
                 gAssigned += assignedThis; gActivity += activityThis; gAvailable += available;
             }
