@@ -614,6 +614,51 @@ public class GetMonthlySummaryHandlerTests
         row.FrozenPot.Should().Be(3000m, "the refreeze must use THIS month's pot, not the stale row's 9999");
     }
 
+    // Rollover must key off the MONTH, not the exact day. A row frozen earlier
+    // THIS month (a real Budgeting event a few days ago) is still valid today —
+    // reading the summary is not itself a Budgeting event and must not reset
+    // FrozenOn just because it isn't literally today. Guards against the
+    // specific wrong guard `row.FrozenOn != today` (vs. `!row.IsForMonth(...)`),
+    // which would re-freeze on every single read and permanently zero the Pace
+    // line. Calls Handle twice to also pin idempotency across repeated reads.
+    [Fact]
+    public async Task Allowance_card_does_not_refreeze_on_a_later_read_within_the_same_month()
+    {
+        using var fx = new HandlerTestFixture();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(
+            MonthlyAssignment.Create(fx.Family.Id, cat.Id, today.Year, today.Month, 6000m));
+        await fx.Db.SaveChangesAsync();
+
+        var freezer = new AllowanceFreezer(fx.Db);
+        // A Budgeting event that already happened earlier THIS month — not today.
+        var earlierThisMonth = new DateOnly(today.Year, today.Month, 1);
+        var seeded = await freezer.RefreezeAsync(fx.Family.Id, earlierThisMonth, CancellationToken.None);
+        seeded.Should().NotBeNull();
+        await fx.Db.SaveChangesAsync();
+        var (amountBefore, frozenOnBefore, frozenPotBefore) = (seeded!.Amount, seeded.FrozenOn, seeded.FrozenPot);
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, freezer);
+
+        await sut.Handle(new GetMonthlySummaryQuery(today.Year, today.Month), CancellationToken.None);
+        var afterFirstRead = fx.Db.DailyAllowances.Single();
+        afterFirstRead.FrozenOn.Should().Be(frozenOnBefore, "reading the summary is not a Budgeting event");
+        afterFirstRead.Amount.Should().Be(amountBefore);
+        afterFirstRead.FrozenPot.Should().Be(frozenPotBefore);
+
+        await sut.Handle(new GetMonthlySummaryQuery(today.Year, today.Month), CancellationToken.None);
+        var afterSecondRead = fx.Db.DailyAllowances.Single();
+        afterSecondRead.FrozenOn.Should().Be(frozenOnBefore, "a second read must be just as inert as the first");
+        afterSecondRead.Amount.Should().Be(amountBefore);
+        afterSecondRead.FrozenPot.Should().Be(frozenPotBefore);
+    }
+
     [Fact]
     public async Task Allowance_card_pace_delta_is_wired_from_the_frozen_rows_own_calculation()
     {
