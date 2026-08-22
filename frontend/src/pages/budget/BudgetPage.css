@@ -237,24 +237,33 @@
 }
 .bdg-accounts-strip::-webkit-scrollbar { display: none; }
 .bdg-account-card {
-  flex-shrink: 0; min-width: 150px; padding: 12px 14px;
+  flex-shrink: 0; min-width: 150px; padding: 12px 42px 12px 14px;
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: 14px; color: var(--text); text-decoration: none;
+  border-radius: 14px;
   position: relative; display: flex; flex-direction: column; gap: 4px;
 }
 .bdg-account-card--add {
   display: flex; align-items: center; justify-content: center;
   color: var(--accent); border: 1px dashed var(--accent);
   background: var(--accent-soft); font-weight: 600; cursor: pointer;
-  min-width: 100px;
+  min-width: 100px; padding: 12px 14px; text-decoration: none;
 }
-/* The ✎ correction icon and the "navigate to detail" chevron share this
-   top row rather than both being absolutely positioned in the same
-   corner (they would otherwise overlap). The name gets the remaining
-   space and truncates via .bdg-account-name-text so a long account name
-   can never push either affordance off the card. */
+/* The card is a plain div, not itself a <Link> — nesting an interactive
+   <button> inside a native <a> is invalid HTML5 and unreliable for
+   assistive tech, so ✎ and the navigable region are DOM siblings, not
+   parent/child. `.bdg-account-card-link` is an invisible, full-card
+   "stretched link" (fills the card via inset: 0) that makes the whole
+   card tappable; ✎ sits in a higher stacking layer (z-index: 2 vs the
+   link's z-index: 1) so it intercepts its own clicks without ever
+   needing preventDefault/stopPropagation on an ancestor anchor. The
+   card's reserved right padding keeps the in-flow name/chevron from
+   ever rendering underneath ✎'s fixed corner position — see
+   .bdg-account-name-text for the matching truncation half of that.
+   (menunest-190 review fix — first pass nested the button inside the
+   card's own <Link>.) */
+.bdg-account-card-link { position: absolute; inset: 0; z-index: 1; display: block; }
+.bdg-account-correct-btn { position: absolute; top: 8px; right: 8px; z-index: 2; }
 .bdg-account-topline { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.bdg-account-topline-right { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .bdg-account-chevron { font-size: 14px; color: var(--text-dim); }
 .bdg-account-dot {
   width: 8px; height: 8px; border-radius: 50%; background: var(--green);
@@ -316,6 +325,11 @@
   font-size: 13px; color: var(--text-muted); cursor: pointer;
 }
 .bdg-env-icon-btn.is-danger { color: var(--red); border-color: var(--red); background: var(--red-bg); }
+/* Marks a newly-promoted one-tap affordance as discoverable (mirrors
+   .is-danger's pattern). Applied to the account card's ✎ only — the
+   mock's own device for "new" here, using existing tokens, not a new
+   button treatment. */
+.bdg-env-icon-btn.is-accent { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 
 .bdg-env-pill {
   padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700;

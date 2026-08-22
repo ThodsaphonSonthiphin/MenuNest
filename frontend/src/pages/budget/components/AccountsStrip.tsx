@@ -19,12 +19,17 @@ const DOT_BY_TYPE: Record<BudgetAccountDto['type'], string> = {
  *
  * The ✎ button opens ReconcileBalanceDialog directly for that account
  * (menunest one-tap-affordances rework) — previously balance correction
- * was only reachable through the account-detail page's ⋯ menu. It shares
- * the ⋯ menu's chevron corner (grouped into one flow row, not two
- * absolutely-positioned elements fighting for the same pixels) and stops
- * propagation + prevents the default navigation, since the card itself is
- * a <Link> and a nested <button> click would otherwise both open the
- * dialog AND navigate to account-detail.
+ * was only reachable through the account-detail page's ⋯ menu.
+ *
+ * The card itself is a plain <div>, not a <Link> — a <button> nested
+ * inside a native <a> is invalid HTML5 and unreliable for assistive
+ * tech, even though the click handling can be made to work. Instead
+ * `.bdg-account-card-link` is an invisible "stretched link"
+ * (position: absolute; inset: 0) that makes the whole card tappable,
+ * and ✎ is a true DOM sibling stacked above it (higher z-index) so it
+ * intercepts its own clicks without ever touching the link's — no
+ * preventDefault/stopPropagation needed, because the two are no longer
+ * ancestor/descendant.
  */
 export function AccountsStrip({accounts}: {accounts: BudgetAccountDto[]}) {
   const [addOpen, setAddOpen] = useState(false)
@@ -36,30 +41,28 @@ export function AccountsStrip({accounts}: {accounts: BudgetAccountDto[]}) {
       </div>
       <div className="bdg-accounts-strip" data-testid="bdg-accounts-strip">
         {accounts.map(a => (
-          <Link
-            key={a.id}
-            to={`/budget/accounts/${a.id}`}
-            className="bdg-account-card"
-            data-testid="bdg-account-card"
-          >
+          <div key={a.id} className="bdg-account-card" data-testid="bdg-account-card">
+            <Link
+              to={`/budget/accounts/${a.id}`}
+              className="bdg-account-card-link"
+              aria-label={`${a.name} — ${formatTHB(a.balance)}`}
+            />
             <div className="bdg-account-topline">
               <div className="bdg-account-name">
                 <span className={`bdg-account-dot ${DOT_BY_TYPE[a.type]}`} />
                 <span className="bdg-account-name-text">{a.name}</span>
               </div>
-              <div className="bdg-account-topline-right">
-                <button
-                  type="button"
-                  className="bdg-env-icon-btn"
-                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setReconcileFor(a) }}
-                  aria-label="Correct balance"
-                  data-testid="bdg-account-correct-icon"
-                >✎</button>
-                <span className="bdg-account-chevron">›</span>
-              </div>
+              <span className="bdg-account-chevron">›</span>
             </div>
             <div className="bdg-account-balance">{formatTHB(a.balance)}</div>
-          </Link>
+            <button
+              type="button"
+              className="bdg-env-icon-btn is-accent bdg-account-correct-btn"
+              onClick={() => setReconcileFor(a)}
+              aria-label="Correct balance"
+              data-testid="bdg-account-correct-icon"
+            >✎</button>
+          </div>
         ))}
         <button
           type="button"
