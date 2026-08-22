@@ -408,6 +408,9 @@ export interface EnvelopeDto {
     targetDayOfMonth: number | null
     targetProgressFraction: number | null
     targetHint: string | null
+    // menunest-181/184 — feeds the Daily allowance; set in bulk from
+    // EverydayMarksSheet, never per-row (that's the whole point of the sheet).
+    isEveryday: boolean
 }
 
 export interface EnvelopeGroupDto {
@@ -533,6 +536,20 @@ export interface CoverOverspendingRequest {
     amount: number
     // menunest-189: only actually resolved server-side when either category
     // is IsEveryday, but always sent — see shared/utils/timeZone.ts.
+    timeZoneId?: string
+}
+
+// menunest-184: one bulk request for the whole EverydayMarksSheet — not one
+// per envelope — so marking six envelopes is one Budgeting event, not six.
+export interface EverydayMark {
+    categoryId: string
+    isEveryday: boolean
+}
+
+export interface SetEverydayMarksRequest {
+    marks: EverydayMark[]
+    // menunest-189: only actually resolved server-side when something
+    // genuinely changed (a no-op sheet never re-freezes), but always sent.
     timeZoneId?: string
 }
 
@@ -1179,6 +1196,13 @@ export const api = createApi({
             query: (b) => ({url: '/api/budget/monthly/cover', method: 'POST', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
+        // No year/month on this request (the mark is month-independent), so
+        // invalidate the whole 'BudgetSummary' type — same reasoning as
+        // correctAccountBalance above.
+        setEverydayMarks: build.mutation<void, SetEverydayMarksRequest>({
+            query: (b) => ({url: '/api/budget/categories/everyday-marks', method: 'POST', body: b}),
+            invalidatesTags: ['BudgetSummary'],
+        }),
         listBudgetAccountTransactions: build.query<
             AccountTransactionsPageDto,
             {accountId: string; year: number; month: number; skip?: number; take?: number}
@@ -1801,6 +1825,7 @@ export const {
     useSetAssignedAmountMutation,
     useMoveMoneyMutation,
     useCoverOverspendingMutation,
+    useSetEverydayMarksMutation,
     useListBudgetAccountTransactionsQuery,
     useListBudgetTransactionsQuery,
     useCreateBudgetTransactionMutation,

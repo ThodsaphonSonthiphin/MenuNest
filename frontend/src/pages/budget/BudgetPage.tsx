@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {useAppDispatch, useAppSelector} from '../../store'
 import {MonthStrip} from './components/MonthStrip'
 import {DailyAllowanceCard} from './components/DailyAllowanceCard'
+import {EverydayMarksSheet} from './components/EverydayMarksSheet'
 import {RtaHero} from './components/RtaHero'
 import {AccountsStrip} from './components/AccountsStrip'
 import {EnvelopeList} from './components/EnvelopeList'
@@ -16,10 +17,10 @@ export function BudgetPage() {
   const dispatch = useAppDispatch()
   const {summary, isLoading} = useBudgetData()
   const filter = useAppSelector(s => s.budget.filter)
-  // The everyday-marks picker sheet is Task 7's job — this only owns the
-  // trigger, matching the local-useState pattern already used for every
-  // other budget dialog (QuickAssignChips, AccountsStrip, TransactionDialog).
-  const [, setMarksSheetOpen] = useState(false)
+  // Local-useState trigger, matching the pattern already used for every
+  // other budget dialog (QuickAssignChips, AccountsStrip, TransactionDialog)
+  // — no Redux precedent for dialog open/closed state in this module.
+  const [marksSheetOpen, setMarksSheetOpen] = useState(false)
   const overspentCount = summary?.groups.flatMap(g => g.categories).filter(c => c.available < 0).length ?? 0
 
   if (isLoading || !summary) {
@@ -59,6 +60,10 @@ export function BudgetPage() {
       </div>
 
       <EnvelopeList summary={summary} />
+
+      {marksSheetOpen && (
+        <EverydayMarksSheet groups={summary.groups} onClose={() => setMarksSheetOpen(false)} />
+      )}
     </div>
   )
 }

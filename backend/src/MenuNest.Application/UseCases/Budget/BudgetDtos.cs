@@ -48,7 +48,8 @@ public sealed record EnvelopeDto(
     DateOnly? TargetDueDate,
     int? TargetDayOfMonth,
     decimal? TargetProgressFraction,    // 0..1, null if no target
-    string? TargetHint);                 // e.g. "฿300.00 more needed by the 1st"
+    string? TargetHint,                  // e.g. "฿300.00 more needed by the 1st"
+    bool IsEveryday);                    // menunest-181/184 — feeds the Daily allowance; set in bulk from EverydayMarksSheet
 
 public sealed record EnvelopeGroupDto(
     Guid GroupId, string Name, int SortOrder, bool IsHidden,

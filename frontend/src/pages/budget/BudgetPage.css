@@ -558,6 +558,40 @@
   font-size: 13px; color: var(--text-muted); line-height: 1.5;
 }
 
+/* -------- EverydayMarksSheet (menunest-181/184) -------- */
+.bdg-everyday-list {
+  margin: 12px 0 8px;
+  max-height: 340px; overflow-y: auto;
+}
+.bdg-everyday-group + .bdg-everyday-group { margin-top: 10px; }
+.bdg-everyday-group-header {
+  padding: 6px 0 4px;
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .6px; color: var(--text-muted);
+}
+.bdg-everyday-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text); cursor: pointer;
+}
+.bdg-everyday-row input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--accent); flex-shrink: 0; cursor: pointer;
+}
+.bdg-everyday-emoji { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+.bdg-everyday-name { flex: 1; min-width: 0; }
+
+/* -------- Everyday-envelope dot on the collapsed row (menunest-184) --------
+   The mark is set from EverydayMarksSheet, not on the card itself, but it
+   still lives on the Envelope (menunest-181) so it must be visible here.
+   Sized/coloured to match this page's established dot idiom
+   (.bdg-account-dot: round, accent-toned, inline in a flex name row) rather
+   than inventing a new visual language — not in the approved mock. */
+.bdg-env-everyday-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  flex-shrink: 0; display: inline-block;
+}
+
 /* ─── Per-row menu on account transaction list ─────────────────── */
 .bdg-tx-row { position: relative; }
 .bdg-tx-menu-anchor { position: relative; display: inline-flex; align-items: center; margin-left: 8px; }

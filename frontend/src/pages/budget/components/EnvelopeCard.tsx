@@ -32,6 +32,9 @@ export function EnvelopeCard(props: UseEnvelopeCardArgs) {
       <div className="bdg-env-row1">
         <div className="bdg-env-name">
           <span className="bdg-env-emoji">{cat.emoji ?? '•'}</span>
+          {cat.isEveryday && (
+            <span className="bdg-env-everyday-dot" data-testid="bdg-env-everyday-dot" aria-label="Everyday envelope" />
+          )}
           {cat.name}
         </div>
         <div className="bdg-env-row1-right">
