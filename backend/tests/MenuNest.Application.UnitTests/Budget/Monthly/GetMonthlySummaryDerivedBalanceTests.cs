@@ -99,12 +99,74 @@ public class GetMonthlySummaryDerivedBalanceTests
         fx.Db.BudgetAccounts.Add(acc);
         fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
             fx.Family.Id, acc.Id, null, 100m, new DateOnly(2026, 8, 1), null, fx.User.Id));
+        // Foreign-family transaction pointing at MY account id — the only shape
+        // that actually exercises the FamilyId predicate in the derived-balance
+        // query. A random AccountId would land in the dictionary under a key
+        // accountIds/accountRows never look up, passing regardless of the filter.
         fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
-            Guid.NewGuid(), Guid.NewGuid(), null, 9_999m, new DateOnly(2026, 8, 1), null, fx.User.Id));
+            Guid.NewGuid(), acc.Id, null, 9_999m, new DateOnly(2026, 8, 1), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
         var august = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 8), CancellationToken.None);
 
         august.Accounts.Single().Balance.Should().Be(100m);
+    }
+
+    /// <summary>
+    /// Guards two directions at once: (1) a CATEGORISED transaction must still
+    /// reduce the account balance — the balance query loads ALL transactions,
+    /// unlike the handler's `allTx`, which filters CategoryId != null for
+    /// envelope activity; mutating the balance query to that same filter would
+    /// leave every categorised expense uncounted. (2) the amount is NEGATIVE —
+    /// BudgetTransaction's contract is signed (outflow is negative), and this
+    /// is the first test in the suite to seed one.
+    /// </summary>
+    [Fact]
+    public async Task A_categorised_negative_transaction_still_reduces_the_balance()
+    {
+        using var fx = new HandlerTestFixture();
+        var acc = BudgetAccount.Create(fx.Family.Id, "Checking", BudgetAccountType.Cash, 0m, 0);
+        fx.Db.BudgetAccounts.Add(acc);
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Bills", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        fx.Db.BudgetCategories.Add(cat);
+
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, acc.Id, null, 30_000m, new DateOnly(2026, 7, 15), "Opening balance", fx.User.Id));
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, acc.Id, cat.Id, -1_200m, new DateOnly(2026, 7, 20), "Groceries", fx.User.Id));
+        await fx.Db.SaveChangesAsync();
+
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+
+        july.Accounts.Single().Balance.Should().Be(28_800m);
+    }
+
+    /// <summary>
+    /// Two accounts, two different balances — verifies the grouped query
+    /// attributes each account's own total, not the whole family's total to
+    /// every account (e.g. summing balancesByAccount.Values instead of
+    /// looking up by AccountId would pass every other test in this file,
+    /// which all seed exactly one account).
+    /// </summary>
+    [Fact]
+    public async Task Each_account_shows_its_own_balance_not_the_family_total()
+    {
+        using var fx = new HandlerTestFixture();
+        var accA = BudgetAccount.Create(fx.Family.Id, "A", BudgetAccountType.Cash, 0m, 0);
+        var accB = BudgetAccount.Create(fx.Family.Id, "B", BudgetAccountType.Cash, 0m, 1);
+        fx.Db.BudgetAccounts.AddRange(accA, accB);
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, accA.Id, null, 1_000m, new DateOnly(2026, 7, 1), null, fx.User.Id));
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, accB.Id, null, 250m, new DateOnly(2026, 7, 1), null, fx.User.Id));
+        await fx.Db.SaveChangesAsync();
+
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+
+        july.Accounts.Should().HaveCount(2);
+        july.Accounts.Single(a => a.Name == "A").Balance.Should().Be(1_000m);
+        july.Accounts.Single(a => a.Name == "B").Balance.Should().Be(250m);
     }
 }
