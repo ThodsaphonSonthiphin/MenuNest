@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MenuNest.Application.UnitTests.Support;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Application.UseCases.Budget.Monthly.SetAssignedAmount;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
@@ -20,7 +21,7 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator());
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db));
 
         await sut.Handle(
             new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 15000m),
@@ -46,7 +47,7 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator());
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db));
 
         await sut.Handle(
             new SetAssignedAmountCommand(cat.Id, 2026, 4, 15000m),
@@ -73,12 +74,64 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator());
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db));
 
         var act = async () => await sut.Handle(
             new SetAssignedAmountCommand(foreignCat.Id, 2026, 4, 100m),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>().WithMessage("Category not found*");
+    }
+
+    // ── menunest-181: assigning into an everyday envelope is a Budgeting event ──
+
+    [Fact]
+    public async Task Assigning_into_an_everyday_envelope_refreezes_the_daily_allowance()
+    {
+        using var fx = new HandlerTestFixture();
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new SetAssignedAmountHandler(
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db));
+
+        await sut.Handle(
+            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 6000m),
+            CancellationToken.None);
+
+        fx.Db.DailyAllowances.Should().ContainSingle();
+        fx.Db.DailyAllowances.Single().FrozenPot.Should().Be(6000m);
+    }
+
+    [Fact]
+    public async Task Assigning_into_a_non_everyday_envelope_never_touches_the_daily_allowance()
+    {
+        using var fx = new HandlerTestFixture();
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Mixed", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Rent", null, 0); // never marked everyday
+        // A DIFFERENT envelope IS marked everyday, so HasMarksAsync is true for the
+        // family — this is what forces the assertion to actually exercise the
+        // per-category guard rather than piggyback on AllowanceFreezer's own
+        // family-wide "nothing marked anywhere" no-op.
+        var other = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 1);
+        other.MarkEveryday(true);
+        fx.Db.BudgetCategories.AddRange(cat, other);
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new SetAssignedAmountHandler(
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db));
+
+        await sut.Handle(
+            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 20000m),
+            CancellationToken.None);
+
+        fx.Db.DailyAllowances.Should().BeEmpty("assigning into a non-everyday envelope is not a Budgeting event, even though another envelope in the family is marked");
     }
 }

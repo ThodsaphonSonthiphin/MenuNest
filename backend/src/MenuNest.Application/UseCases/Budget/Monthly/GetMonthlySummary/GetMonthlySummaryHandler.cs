@@ -1,5 +1,6 @@
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,12 +10,13 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
 {
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
+    private readonly AllowanceFreezer _freezer;
 
     // Named projection for in-memory transaction rows (allows passing to static helpers).
     private readonly record struct TxRow(Guid? CategoryId, decimal Amount, DateOnly Date);
 
-    public GetMonthlySummaryHandler(IApplicationDbContext db, IUserProvisioner users)
-    { _db = db; _users = users; }
+    public GetMonthlySummaryHandler(IApplicationDbContext db, IUserProvisioner users, AllowanceFreezer freezer)
+    { _db = db; _users = users; _freezer = freezer; }
 
     public async ValueTask<MonthlySummaryDto> Handle(GetMonthlySummaryQuery q, CancellationToken ct)
     {
@@ -134,11 +136,40 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
                 a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed))
             .ToList();
 
+        // menunest-185: the card is current-month only, checked against today's
+        // real date, not the requested month.
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        DailyAllowanceDto? allowance = null;
+        if (q.Year == today.Year && q.Month == today.Month)
+        {
+            var row = await _db.DailyAllowances.FirstOrDefaultAsync(x => x.FamilyId == familyId, ct);
+
+            // Month rollover is a Budgeting event, applied lazily on first read of
+            // a new month (menunest-181). Idempotent; happens once per family.
+            if (row is null || !row.IsForMonth(today.Year, today.Month))
+            {
+                row = await _freezer.RefreezeAsync(familyId, today, ct);
+                if (row is not null) await _db.SaveChangesAsync(ct);
+            }
+
+            var hasMarks = await _freezer.HasMarksAsync(familyId, ct);
+            if (row is not null && hasMarks)
+            {
+                var currentPot = await _freezer.CurrentPotAsync(familyId, today, ct);
+                allowance = new DailyAllowanceDto(
+                    row.Amount, row.FrozenOn, row.PaceDelta(currentPot, today), HasMarks: true);
+            }
+            else
+            {
+                allowance = new DailyAllowanceDto(0m, today, 0m, HasMarks: false);
+            }
+        }
+
         return new MonthlySummaryDto(
             q.Year, q.Month,
             income, totalAssignedThisMonth, totalActivityThisMonth,
             readyToAssign, totalAvailable,
-            groupsDto, accounts);
+            groupsDto, accounts, allowance);
     }
 
     /// <summary>

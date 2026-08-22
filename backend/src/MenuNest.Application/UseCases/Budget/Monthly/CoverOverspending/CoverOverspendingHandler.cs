@@ -1,6 +1,7 @@
 using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -18,12 +19,14 @@ public sealed class CoverOverspendingHandler : ICommandHandler<CoverOverspending
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly IValidator<CoverOverspendingCommand> _validator;
+    private readonly AllowanceFreezer _freezer;
 
     public CoverOverspendingHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
-        IValidator<CoverOverspendingCommand> validator)
-    { _db = db; _users = users; _validator = validator; }
+        IValidator<CoverOverspendingCommand> validator,
+        AllowanceFreezer freezer)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; }
 
     public async ValueTask<Unit> Handle(CoverOverspendingCommand cmd, CancellationToken ct)
     {
@@ -36,6 +39,19 @@ public sealed class CoverOverspendingHandler : ICommandHandler<CoverOverspending
         from.AdjustAmount(-cmd.Amount);
         overspent.AdjustAmount(+cmd.Amount);
         await _db.SaveChangesAsync(ct);
+
+        // menunest-181: only re-freeze when an everyday envelope is actually
+        // involved — covering overspending between two non-everyday envelopes
+        // is not a Budgeting event for this purpose.
+        var touchesEveryday = await _db.BudgetCategories.AnyAsync(
+            c => c.FamilyId == familyId && c.IsEveryday
+              && (c.Id == cmd.FromCategoryId || c.Id == cmd.OverspentCategoryId), ct);
+        if (touchesEveryday)
+        {
+            var refrozen = await _freezer.RefreezeAsync(familyId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            if (refrozen is not null) await _db.SaveChangesAsync(ct);
+        }
+
         return Unit.Value;
     }
 

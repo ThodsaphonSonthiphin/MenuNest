@@ -54,7 +54,17 @@ public sealed record MonthlySummaryDto(
     decimal ReadyToAssign,              // sum(accounts) − sum(envelope.available)
     decimal Available,                  // sum of envelope Available amounts
     IReadOnlyList<EnvelopeGroupDto> Groups,
-    IReadOnlyList<BudgetAccountDto> Accounts);
+    IReadOnlyList<BudgetAccountDto> Accounts,
+    DailyAllowanceDto? DailyAllowance = null); // null unless Year/Month is the real current month (menunest-185)
+
+// ---------- Daily allowance (menunest-181) ----------
+/// <summary>
+/// The frozen "you can spend this much today" card. <c>PaceDelta</c> is
+/// actual-minus-should: positive is over pace, negative is under, zero
+/// renders nothing. <c>HasMarks</c> false collapses both "nothing marked"
+/// and "no frozen row yet" into one empty state — there is no third state.
+/// </summary>
+public sealed record DailyAllowanceDto(decimal Amount, DateOnly FrozenOn, decimal PaceDelta, bool HasMarks);
 
 // ---------- Transactions ----------
 public sealed record BudgetTransactionDto(

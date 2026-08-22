@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentValidation;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace MenuNest.Application;
@@ -18,6 +19,9 @@ public static class DependencyInjection
 
         // Mediator handlers are registered automatically by the
         // source generator in Program.cs (AddMediator).
+
+        // Application services
+        services.AddScoped<AllowanceFreezer>();
 
         return services;
     }
