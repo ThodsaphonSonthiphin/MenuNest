@@ -35,6 +35,7 @@ public sealed class AppDbContext : DbContext, IApplicationDbContext
     public DbSet<BudgetCategory> BudgetCategories => Set<BudgetCategory>();
     public DbSet<MonthlyAssignment> MonthlyAssignments => Set<MonthlyAssignment>();
     public DbSet<BudgetTransaction> BudgetTransactions => Set<BudgetTransaction>();
+    public DbSet<DailyAllowance> DailyAllowances => Set<DailyAllowance>();
 
     // Health (migraine tracker) module
     public DbSet<Drug> Drugs => Set<Drug>();

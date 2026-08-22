@@ -29,6 +29,7 @@ public interface IApplicationDbContext
     DbSet<BudgetCategory> BudgetCategories { get; }
     DbSet<MonthlyAssignment> MonthlyAssignments { get; }
     DbSet<BudgetTransaction> BudgetTransactions { get; }
+    DbSet<DailyAllowance> DailyAllowances { get; }
 
     // Health (migraine tracker) module
     DbSet<Drug> Drugs { get; }
