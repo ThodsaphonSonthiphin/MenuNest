@@ -1,5 +1,7 @@
+import {useState} from 'react'
 import {useAppDispatch, useAppSelector} from '../../store'
 import {MonthStrip} from './components/MonthStrip'
+import {DailyAllowanceCard} from './components/DailyAllowanceCard'
 import {RtaHero} from './components/RtaHero'
 import {AccountsStrip} from './components/AccountsStrip'
 import {EnvelopeList} from './components/EnvelopeList'
@@ -14,6 +16,10 @@ export function BudgetPage() {
   const dispatch = useAppDispatch()
   const {summary, isLoading} = useBudgetData()
   const filter = useAppSelector(s => s.budget.filter)
+  // The everyday-marks picker sheet is Task 7's job — this only owns the
+  // trigger, matching the local-useState pattern already used for every
+  // other budget dialog (QuickAssignChips, AccountsStrip, TransactionDialog).
+  const [, setMarksSheetOpen] = useState(false)
   const overspentCount = summary?.groups.flatMap(g => g.categories).filter(c => c.available < 0).length ?? 0
 
   if (isLoading || !summary) {
@@ -32,6 +38,10 @@ export function BudgetPage() {
   return (
     <div className="bdg-page" data-testid="bdg-page">
       <MonthStrip />
+      <DailyAllowanceCard
+        dailyAllowance={summary.dailyAllowance}
+        onOpenMarks={() => setMarksSheetOpen(true)}
+      />
       <RtaHero summary={summary} />
       <SuggestedFixCard summary={summary} />
       <QuickAssignChips summary={summary} />

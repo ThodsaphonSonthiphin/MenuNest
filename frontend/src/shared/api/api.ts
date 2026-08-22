@@ -431,6 +431,19 @@ export interface MonthlySummaryDto {
     available: number
     groups: EnvelopeGroupDto[]
     accounts: BudgetAccountDto[]
+    // null unless year/month is the real current month (menunest-185)
+    dailyAllowance: DailyAllowanceDto | null
+}
+
+// ---------- Daily allowance (menunest-181/186) ----------
+// The frozen "you can spend this much today" figure. paceDelta is
+// actual-minus-should (positive = over pace, negative = under); hasMarks
+// false means no everyday envelope is marked yet — never render a number.
+export interface DailyAllowanceDto {
+    amount: number
+    frozenOn: string
+    paceDelta: number
+    hasMarks: boolean
 }
 
 export interface AccountSummaryDto {

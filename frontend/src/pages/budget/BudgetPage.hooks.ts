@@ -3,6 +3,7 @@ import {useAppDispatch, useAppSelector} from '../../store'
 import {useGetBudgetSummaryQuery} from '../../shared/api/api'
 import {getViewerTimeZone} from '../../shared/utils/timeZone'
 import {goPrevMonth, goNextMonth, setMonth} from './budgetSlice'
+export {formatTHB} from './lib/formatTHB'
 
 export type BudgetLayout = 'mobile' | 'tablet' | 'desktop'
 
@@ -31,7 +32,3 @@ export function useBudgetData() {
   }
 }
 
-export function formatTHB(n: number): string {
-  const sign = n < 0 ? '−' : ''
-  return `${sign}฿${Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
-}

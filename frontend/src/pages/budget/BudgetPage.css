@@ -66,6 +66,73 @@
 .bdg-month-label { font-size: 15px; font-weight: 700; }
 
 /* ============================================================
+   Daily allowance card (menunest-181/186) — the frozen "you can
+   spend this much today" figure. Class names match the approved
+   mock 1:1 (Claude Design project 107862ef…, screens/budget-shell.html)
+   so this card visually matches it exactly.
+   Whole card is a <button> (tappable → onOpenMarks); reset the UA
+   button chrome so it reads as a card, not a form control.
+   ============================================================ */
+.bdg-allowance-hero {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px 18px 14px;
+}
+
+.bdg-allowance-topline {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.bdg-allowance-eyebrow {
+  font-size: 11px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.10em;
+}
+
+.bdg-allowance-amount {
+  font-size: clamp(30px, 8vw, 36px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pace line — the ONLY part of the card that reacts to spending.
+   Absent entirely (formatPaceLine returns null) on the freeze day. */
+.bdg-pace-line {
+  display: flex; align-items: center; gap: 6px;
+  margin-top: 8px;
+  font-size: 12.5px; font-weight: 600;
+}
+.bdg-pace-line.under { color: var(--green); }
+.bdg-pace-line.over  { color: var(--red); }
+
+.bdg-allowance-freeze {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* -------- Empty state — invitation, never a number -------- */
+.bdg-allowance-empty-title {
+  margin-top: 10px;
+  font-size: 14px; font-weight: 700;
+  color: var(--text);
+}
+.bdg-allowance-empty-hint {
+  margin-top: 4px;
+  font-size: 12px; line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* ============================================================
    RTA hero — calm, minimal card
    Single neutral panel across all three states. State expressed
    through a small colored pill + a thin progress bar accent. Eye
