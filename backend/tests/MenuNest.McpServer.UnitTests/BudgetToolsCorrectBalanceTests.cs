@@ -62,7 +62,11 @@ public sealed class BudgetToolsCorrectBalanceTests : IDisposable
         result.Written.Should().BeFalse();
         result.DerivedBalance.Should().Be(2400m);
         result.Difference.Should().Be(600m);
-        result.Message.Should().Contain("2,400").And.Contain("600");
+        // The message IS the question the user gets asked — it must name
+        // real numbers AND say where the money goes. A refusal that drops
+        // "Ready to Assign" while keeping the numbers still passes a
+        // numbers-only assertion, so pin the destination explicitly too.
+        result.Message.Should().Contain("2,400").And.Contain("600").And.Contain("Ready to Assign");
 
         // The absence of a write, not just the returned flag — a handler
         // that lied about Written while still writing must fail this.
@@ -122,5 +126,27 @@ public sealed class BudgetToolsCorrectBalanceTests : IDisposable
 
         await act.Should().ThrowAsync<Exception>();
         _fx.Db.BudgetTransactions.Should().ContainSingle(t => t.Notes == "Opening balance");
+    }
+
+    [Fact]
+    public async Task The_derived_balance_ignores_other_accounts_in_the_same_family()
+    {
+        // Multi-account families are first-class here (Cash / Credit / Loan).
+        // If the derivation summed every BudgetTransaction for the family
+        // instead of filtering by AccountId, this second account's much
+        // larger balance would corrupt both the refusal numbers shown to
+        // the user and the amount actually written on confirmation.
+        var other = BudgetAccount.Create(_fx.Family.Id, "Credit Card", BudgetAccountType.Credit, 0m, 1);
+        _fx.Db.BudgetAccounts.Add(other);
+        _fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            _fx.Family.Id, other.Id, categoryId: null, amount: 10_000m,
+            date: new DateOnly(2026, 1, 1), notes: "Other account opening balance", createdByUserId: _fx.User.Id));
+        await _fx.Db.SaveChangesAsync();
+
+        var result = await _sut.correct_account_balance(
+            _accountId, actualBalance: 3000m, confirmed: false, date: null, notes: null, timeZoneId: Bkk, _ct);
+
+        result.DerivedBalance.Should().Be(2400m);
+        result.Difference.Should().Be(600m);
     }
 }
