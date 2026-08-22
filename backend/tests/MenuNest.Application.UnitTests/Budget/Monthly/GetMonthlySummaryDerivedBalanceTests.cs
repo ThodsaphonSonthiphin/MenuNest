@@ -9,8 +9,11 @@ namespace MenuNest.Application.UnitTests.Budget.Monthly;
 
 public class GetMonthlySummaryDerivedBalanceTests
 {
+    // The app's one real time zone (menunest-189) — every user is in Thailand.
+    private const string Bkk = "Asia/Bangkok";
+
     private static GetMonthlySummaryHandler Build(HandlerTestFixture fx) =>
-        new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
+        new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db), fx.Clock);
 
     /// <summary>
     /// July holds 30,000; August adds 22,480. Viewing July must show 30,000 —
@@ -34,7 +37,7 @@ public class GetMonthlySummaryDerivedBalanceTests
         SeedAccountWithTwoMonths(fx);
         await fx.Db.SaveChangesAsync();
 
-        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7, Bkk), CancellationToken.None);
 
         july.Accounts.Single().Balance.Should().Be(30_000m);
     }
@@ -46,7 +49,7 @@ public class GetMonthlySummaryDerivedBalanceTests
         SeedAccountWithTwoMonths(fx);
         await fx.Db.SaveChangesAsync();
 
-        var august = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 8), CancellationToken.None);
+        var august = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 8, Bkk), CancellationToken.None);
 
         august.Accounts.Single().Balance.Should().Be(52_480m);
     }
@@ -58,7 +61,7 @@ public class GetMonthlySummaryDerivedBalanceTests
         SeedAccountWithTwoMonths(fx);
         await fx.Db.SaveChangesAsync();
 
-        var june = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 6), CancellationToken.None);
+        var june = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 6, Bkk), CancellationToken.None);
 
         june.Accounts.Single().Balance.Should().Be(0m);
     }
@@ -74,7 +77,7 @@ public class GetMonthlySummaryDerivedBalanceTests
             fx.Family.Id, acc.Id, null, 500m, new DateOnly(2026, 7, 31), "Late", fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7, Bkk), CancellationToken.None);
 
         july.Accounts.Single().Balance.Should().Be(500m);
     }
@@ -86,7 +89,7 @@ public class GetMonthlySummaryDerivedBalanceTests
         SeedAccountWithTwoMonths(fx);
         await fx.Db.SaveChangesAsync();
 
-        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7, Bkk), CancellationToken.None);
 
         // No envelopes, so Ready to Assign is the whole derived account total.
         july.ReadyToAssign.Should().Be(30_000m);
@@ -108,7 +111,7 @@ public class GetMonthlySummaryDerivedBalanceTests
             Guid.NewGuid(), acc.Id, null, 9_999m, new DateOnly(2026, 8, 1), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var august = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 8), CancellationToken.None);
+        var august = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 8, Bkk), CancellationToken.None);
 
         august.Accounts.Single().Balance.Should().Be(100m);
     }
@@ -139,7 +142,7 @@ public class GetMonthlySummaryDerivedBalanceTests
             fx.Family.Id, acc.Id, cat.Id, -1_200m, new DateOnly(2026, 7, 20), "Groceries", fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7, Bkk), CancellationToken.None);
 
         july.Accounts.Single().Balance.Should().Be(28_800m);
     }
@@ -164,7 +167,7 @@ public class GetMonthlySummaryDerivedBalanceTests
             fx.Family.Id, accB.Id, null, 250m, new DateOnly(2026, 7, 1), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7), CancellationToken.None);
+        var july = await Build(fx).Handle(new GetMonthlySummaryQuery(2026, 7, Bkk), CancellationToken.None);
 
         july.Accounts.Should().HaveCount(2);
         july.Accounts.Single(a => a.Name == "A").Balance.Should().Be(1_000m);

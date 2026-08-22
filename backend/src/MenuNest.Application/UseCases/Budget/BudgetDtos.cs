@@ -80,11 +80,14 @@ public sealed record UpdateTransactionRequest(
     Guid AccountId, Guid? CategoryId, decimal Amount, DateOnly Date, string? Notes);
 
 // ---------- Monthly ops ----------
-public sealed record SetAssignedRequest(Guid CategoryId, int Year, int Month, decimal Amount);
+// TimeZoneId (menunest-189) is the viewer's IANA zone, e.g. from the SPA's
+// Intl.DateTimeFormat().resolvedOptions().timeZone. Only actually resolved
+// when the op touches an everyday envelope and re-freezes the Daily allowance.
+public sealed record SetAssignedRequest(Guid CategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
 public sealed record MoveMoneyRequest(
-    Guid FromCategoryId, Guid ToCategoryId, int Year, int Month, decimal Amount);
+    Guid FromCategoryId, Guid ToCategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
 public sealed record CoverOverspendingRequest(
-    Guid OverspentCategoryId, Guid FromCategoryId, int Year, int Month, decimal Amount);
+    Guid OverspentCategoryId, Guid FromCategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
 
 // ---------- Account detail (transactions feed) ----------
 public sealed record AccountSummaryDto(
