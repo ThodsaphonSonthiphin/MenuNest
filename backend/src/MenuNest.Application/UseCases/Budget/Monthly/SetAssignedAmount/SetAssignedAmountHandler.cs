@@ -1,6 +1,7 @@
 using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
@@ -12,21 +13,23 @@ public sealed class SetAssignedAmountHandler : ICommandHandler<SetAssignedAmount
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly IValidator<SetAssignedAmountCommand> _validator;
+    private readonly AllowanceFreezer _freezer;
 
     public SetAssignedAmountHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
-        IValidator<SetAssignedAmountCommand> validator)
-    { _db = db; _users = users; _validator = validator; }
+        IValidator<SetAssignedAmountCommand> validator,
+        AllowanceFreezer freezer)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; }
 
     public async ValueTask<Unit> Handle(SetAssignedAmountCommand cmd, CancellationToken ct)
     {
         await _validator.ValidateAndThrowAsync(cmd, ct);
         var (_, familyId) = await _users.RequireFamilyAsync(ct);
 
-        var exists = await _db.BudgetCategories.AnyAsync(
+        var category = await _db.BudgetCategories.FirstOrDefaultAsync(
             x => x.Id == cmd.CategoryId && x.FamilyId == familyId, ct);
-        if (!exists) throw new DomainException("Category not found.");
+        if (category is null) throw new DomainException("Category not found.");
 
         var row = await _db.MonthlyAssignments.FirstOrDefaultAsync(
             x => x.FamilyId == familyId && x.CategoryId == cmd.CategoryId
@@ -38,6 +41,15 @@ public sealed class SetAssignedAmountHandler : ICommandHandler<SetAssignedAmount
             row.SetAmount(cmd.Amount);
 
         await _db.SaveChangesAsync(ct);
+
+        // menunest-181: assigning money into an everyday envelope is a Budgeting
+        // event. A non-everyday envelope never touches the freeze.
+        if (category.IsEveryday)
+        {
+            var refrozen = await _freezer.RefreezeAsync(familyId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            if (refrozen is not null) await _db.SaveChangesAsync(ct);
+        }
+
         return Unit.Value;
     }
 }

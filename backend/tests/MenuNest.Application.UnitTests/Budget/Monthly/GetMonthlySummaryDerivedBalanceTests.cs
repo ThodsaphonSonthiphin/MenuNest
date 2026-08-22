@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MenuNest.Application.UnitTests.Support;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Application.UseCases.Budget.Monthly.GetMonthlySummary;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
@@ -9,7 +10,7 @@ namespace MenuNest.Application.UnitTests.Budget.Monthly;
 public class GetMonthlySummaryDerivedBalanceTests
 {
     private static GetMonthlySummaryHandler Build(HandlerTestFixture fx) =>
-        new(fx.Db, fx.UserProvisioner.Object);
+        new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
     /// <summary>
     /// July holds 30,000; August adds 22,480. Viewing July must show 30,000 —

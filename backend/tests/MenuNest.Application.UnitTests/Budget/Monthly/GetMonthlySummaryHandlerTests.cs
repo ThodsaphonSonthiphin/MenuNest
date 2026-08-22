@@ -2,6 +2,7 @@ using System.Globalization;
 using FluentAssertions;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Application.UseCases.Budget.Monthly.GetMonthlySummary;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
@@ -20,7 +21,7 @@ public class GetMonthlySummaryHandlerTests
     {
         using var fx = new HandlerTestFixture();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -53,7 +54,7 @@ public class GetMonthlySummaryHandlerTests
             MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 500m));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -95,7 +96,7 @@ public class GetMonthlySummaryHandlerTests
                 new DateOnly(2026, 4, 10), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -135,7 +136,7 @@ public class GetMonthlySummaryHandlerTests
                 new DateOnly(2026, 4, 10), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -176,7 +177,7 @@ public class GetMonthlySummaryHandlerTests
                 new DateOnly(2026, 4, 5), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -215,7 +216,7 @@ public class GetMonthlySummaryHandlerTests
             MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 500m));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -248,7 +249,7 @@ public class GetMonthlySummaryHandlerTests
                 MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 600m));
             await fx.Db.SaveChangesAsync();
 
-            var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+            var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
             var result = await sut.Handle(
                 new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -282,7 +283,7 @@ public class GetMonthlySummaryHandlerTests
             MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 500m));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -315,7 +316,7 @@ public class GetMonthlySummaryHandlerTests
             MonthlyAssignment.Create(fx.Family.Id, hidden.Id, 2026, 4, 999m));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -359,7 +360,7 @@ public class GetMonthlySummaryHandlerTests
             MonthlyAssignment.Create(fx.Family.Id, hidden.Id,  2026, 4, 300m));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -395,7 +396,7 @@ public class GetMonthlySummaryHandlerTests
                 new DateOnly(2026, 4, 20), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -443,7 +444,7 @@ public class GetMonthlySummaryHandlerTests
                 new DateOnly(2026, 4, 1), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -489,7 +490,7 @@ public class GetMonthlySummaryHandlerTests
                 new DateOnly(2026, 4, 10), null, fx.User.Id));
         await fx.Db.SaveChangesAsync();
 
-        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object);
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
 
         var result = await sut.Handle(
             new GetMonthlySummaryQuery(2026, 4), CancellationToken.None);
@@ -509,5 +510,153 @@ public class GetMonthlySummaryHandlerTests
         result.TotalAssigned.Should().Be(1100m);
         result.TotalActivity.Should().Be(-40m);
         result.Available.Should().Be(1060m);
+    }
+
+    // ── Daily allowance card (menunest-185) ─────────────────────────────────
+
+    [Fact]
+    public async Task Allowance_card_is_null_when_the_requested_month_is_not_the_real_current_month()
+    {
+        using var fx = new HandlerTestFixture();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var farPast = new DateOnly(today.Year - 5, 1, 1);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(
+            MonthlyAssignment.Create(fx.Family.Id, cat.Id, farPast.Year, farPast.Month, 5000m));
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(farPast.Year, farPast.Month), CancellationToken.None);
+
+        result.DailyAllowance.Should().BeNull();
+        fx.Db.DailyAllowances.Should().BeEmpty("a non-current month must never trigger a freeze");
+    }
+
+    [Fact]
+    public async Task Allowance_card_shows_HasMarks_false_when_nothing_is_marked_everyday()
+    {
+        using var fx = new HandlerTestFixture();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(today.Year, today.Month), CancellationToken.None);
+
+        result.DailyAllowance.Should().Be(new DailyAllowanceDto(0m, today, 0m, HasMarks: false));
+        fx.Db.DailyAllowances.Should().BeEmpty("nothing marked means no row is ever written");
+    }
+
+    [Fact]
+    public async Task Allowance_card_lazily_freezes_on_first_read_of_the_current_month()
+    {
+        using var fx = new HandlerTestFixture();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(
+            MonthlyAssignment.Create(fx.Family.Id, cat.Id, today.Year, today.Month, 6000m));
+        await fx.Db.SaveChangesAsync();
+        fx.Db.DailyAllowances.Should().BeEmpty("nothing frozen yet");
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(today.Year, today.Month), CancellationToken.None);
+
+        result.DailyAllowance.Should().NotBeNull();
+        result.DailyAllowance!.HasMarks.Should().BeTrue();
+        result.DailyAllowance.FrozenOn.Should().Be(today);
+        fx.Db.DailyAllowances.Should().ContainSingle("reading the summary must persist the lazily-created freeze");
+    }
+
+    [Fact]
+    public async Task Allowance_card_lazily_rolls_a_stale_row_over_to_the_current_month()
+    {
+        using var fx = new HandlerTestFixture();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(
+            MonthlyAssignment.Create(fx.Family.Id, cat.Id, today.Year, today.Month, 3000m));
+        await fx.Db.SaveChangesAsync();
+
+        // A row frozen for last month is stale for this month's card.
+        var lastMonth = new DateOnly(today.Year, today.Month, 1).AddMonths(-1);
+        fx.Db.DailyAllowances.Add(DailyAllowance.Freeze(fx.Family.Id, 9999m, lastMonth));
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db));
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(today.Year, today.Month), CancellationToken.None);
+
+        result.DailyAllowance.Should().NotBeNull();
+        result.DailyAllowance!.FrozenOn.Should().Be(today, "a stale row must be refrozen, not served as-is");
+
+        var row = fx.Db.DailyAllowances.Single();
+        row.IsForMonth(today.Year, today.Month).Should().BeTrue();
+        row.FrozenPot.Should().Be(3000m, "the refreeze must use THIS month's pot, not the stale row's 9999");
+    }
+
+    [Fact]
+    public async Task Allowance_card_pace_delta_is_wired_from_the_frozen_rows_own_calculation()
+    {
+        using var fx = new HandlerTestFixture();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(
+            MonthlyAssignment.Create(fx.Family.Id, cat.Id, today.Year, today.Month, 6000m));
+        var acc = BudgetAccount.Create(fx.Family.Id, "Checking", BudgetAccountType.Cash, 0m, 0);
+        fx.Db.BudgetAccounts.Add(acc);
+        await fx.Db.SaveChangesAsync();
+
+        var freezer = new AllowanceFreezer(fx.Db);
+        // Freeze as of the 1st so there is at least one completed day to pace
+        // against once today isn't the 1st itself; the assertion below derives
+        // its own "expected" from the same row, so it holds either way.
+        var frozenOn = new DateOnly(today.Year, today.Month, 1);
+        (await freezer.RefreezeAsync(fx.Family.Id, frozenOn, CancellationToken.None)).Should().NotBeNull();
+        await fx.Db.SaveChangesAsync();
+
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, acc.Id, cat.Id, -500m, frozenOn, "Spent", fx.User.Id));
+        await fx.Db.SaveChangesAsync();
+
+        var sut = new GetMonthlySummaryHandler(fx.Db, fx.UserProvisioner.Object, freezer);
+
+        var result = await sut.Handle(
+            new GetMonthlySummaryQuery(today.Year, today.Month), CancellationToken.None);
+
+        result.DailyAllowance.Should().NotBeNull();
+        result.DailyAllowance!.HasMarks.Should().BeTrue();
+
+        // The handler must not restate DailyAllowance.PaceDelta's formula — it
+        // has to feed it the SAME pot/date this test computes independently.
+        var expectedCurrentPot = await freezer.CurrentPotAsync(fx.Family.Id, today, CancellationToken.None);
+        var expectedRow = fx.Db.DailyAllowances.Single();
+        result.DailyAllowance.PaceDelta.Should().Be(expectedRow.PaceDelta(expectedCurrentPot, today));
+        result.DailyAllowance.Amount.Should().Be(expectedRow.Amount);
+        result.DailyAllowance.FrozenOn.Should().Be(expectedRow.FrozenOn);
     }
 }

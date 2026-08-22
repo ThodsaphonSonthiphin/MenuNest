@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MenuNest.Application.UnitTests.Support;
+using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Application.UseCases.Budget.Transactions.CreateTransaction;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
@@ -108,5 +109,43 @@ public class CreateTransactionHandlerTests
             CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>().WithMessage("Category not found*");
+    }
+
+    // menunest-181's central negative case: recording a spend is explicitly NOT
+    // a Budgeting event. If this handler ever starts calling AllowanceFreezer,
+    // the frozen row would move on every purchase instead of staying still
+    // until the next mark/assign/rollover — this test pins it still.
+    [Fact]
+    public async Task Recording_a_spend_in_an_everyday_envelope_does_not_move_the_frozen_allowance()
+    {
+        using var fx = new HandlerTestFixture();
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        cat.MarkEveryday(true);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 4, 6000m));
+        var acc = BudgetAccount.Create(fx.Family.Id, "Checking", BudgetAccountType.Cash, 1000m, 0);
+        fx.Db.BudgetAccounts.Add(acc);
+        await fx.Db.SaveChangesAsync();
+
+        var freezer = new AllowanceFreezer(fx.Db);
+        var frozen = await freezer.RefreezeAsync(fx.Family.Id, new DateOnly(2026, 4, 10), CancellationToken.None);
+        frozen.Should().NotBeNull();
+        await fx.Db.SaveChangesAsync();
+        var (frozenAmount, frozenOn, frozenPot) = (frozen!.Amount, frozen.FrozenOn, frozen.FrozenPot);
+
+        var sut = new CreateTransactionHandler(fx.Db, fx.UserProvisioner.Object, new CreateTransactionValidator());
+
+        await sut.Handle(
+            new CreateTransactionCommand(acc.Id, cat.Id, Amount: -250m,
+                Date: new DateOnly(2026, 4, 12), Notes: "Groceries"),
+            CancellationToken.None);
+
+        var row = fx.Db.DailyAllowances.Single(a => a.FamilyId == fx.Family.Id);
+        row.Amount.Should().Be(frozenAmount, "the frozen figure must not move just because money was spent");
+        row.FrozenOn.Should().Be(frozenOn);
+        row.FrozenPot.Should().Be(frozenPot);
     }
 }

@@ -11,6 +11,7 @@ using MenuNest.Application.UseCases.Budget.Groups.ListGroups;
 using MenuNest.Application.UseCases.Budget.Groups.UpdateGroup;
 using MenuNest.Application.UseCases.Budget.Categories.CreateCategory;
 using MenuNest.Application.UseCases.Budget.Categories.DeleteCategory;
+using MenuNest.Application.UseCases.Budget.Categories.SetEverydayMarks;
 using MenuNest.Application.UseCases.Budget.Categories.UpdateCategory;
 using MenuNest.Application.UseCases.Budget.Monthly.CoverOverspending;
 using MenuNest.Application.UseCases.Budget.Monthly.GetMonthlySummary;
@@ -99,6 +100,14 @@ public sealed class BudgetController : ControllerBase
     [HttpDelete("categories/{id:guid}")]
     public async Task<IActionResult> DeleteCategory(Guid id, CancellationToken ct)
     { await _m.Send(new DeleteCategoryCommand(id), ct); return NoContent(); }
+
+    // Bulk mark/unmark everyday envelopes — one Budgeting event for the whole
+    // sheet (menunest-184). Not exposed over MCP; that's a separate decision
+    // ticket (conversational-budget-jobs).
+    [HttpPost("categories/everyday-marks")]
+    public async Task<IActionResult> SetEverydayMarks(
+        [FromBody] SetEverydayMarksCommand cmd, CancellationToken ct)
+    { await _m.Send(cmd, ct); return NoContent(); }
 
     // ----- monthly ops -----
     [HttpPut("monthly/assigned")]
