@@ -1,6 +1,6 @@
 ---
 name: grill-then-plan
-description: Like sp-grill-with-doc (domain-aware grilling, glossary sharpening, inline CONTEXT.md/ADR capture) BUT continues into the superpowers planning pipeline by handing off to superpowers:writing-plans at the end. Use ONLY when the user wants both the grilling AND a written implementation plan produced afterward; if they want grilling/docs alone, use sp-grill-with-doc instead. Requires the superpowers plugin.
+description: Like sp-grill-with-doc (domain-aware grilling, glossary sharpening, inline CONTEXT.md/ADR capture) BUT continues into the superpowers planning pipeline by handing off to sp-writing-plans at the end. Use ONLY when the user wants both the grilling AND a written implementation plan produced afterward; if they want grilling/docs alone, use sp-grill-with-doc instead. The superpowers plugin is needed two hops downstream, by sp-writing-plans' own execution skills, not by this Skill.
 effort: max
 ---
 
@@ -8,46 +8,31 @@ effort: max
 
 Run a domain-aware design session, then hand off to the superpowers planning
 pipeline. Do NOT write code, scaffold, or invoke any implementation skill until
-the design spec is approved and you have invoked `superpowers:writing-plans`.
+the design spec is approved and you have invoked `sp-writing-plans`.
 
 </what-to-do>
 
-## Step 0 — Preflight: ensure superpowers is installed
+## Step 0 — Note if the upstream superpowers plugin is missing
 
-This skill delegates its final step to the `superpowers:writing-plans` skill.
-Check that dependency FIRST, so the user never spends a whole session only to hit
-a wall at handoff. This skill runs on more than one harness (Claude Code,
-Antigravity); detect and install the way *this* harness does it.
+`sp-writing-plans` (Step 6's hand-off) is a sibling of this skill and ships with
+it, so it cannot be missing — the gate that used to guard it passes by
+construction. What CAN still be absent is the **upstream `superpowers` plugin**,
+two hops further downstream: `sp-writing-plans`' own execution skills —
+`sp-executing-plans`, `sp-subagent-driven-development` — reach
+`superpowers:finishing-a-development-branch` and `superpowers:using-git-worktrees`
+directly. This step is a one-line courtesy notice about that gap, never a gate —
+it does not stop or wait for anything, and grilling never invokes superpowers
+itself.
 
-1. **Detect** superpowers. The harness-agnostic signal is **skill availability**:
-   check whether the superpowers skills (`writing-plans`, `brainstorming`) appear
-   in your surfaced skill list or can be loaded. If your harness also exposes an
-   install registry, you may consult it:
-   - **Claude Code:** read `~/.claude/plugins/installed_plugins.json` for the key
-     `superpowers@claude-plugins-official`, or a directory matching
-     `~/.claude/plugins/cache/claude-plugins-official/superpowers/*/`.
-   - **Antigravity:** look for the superpowers skills in your skills dir
-     (`~/.gemini/config/skills/`, `~/.gemini/antigravity-cli/skills/`, or the
-     project's `.agents/skills/`).
-2. **If present** → continue to Step 1.
-3. **If missing** → tell the user superpowers is required, then offer to install
-   it with the command for their harness:
-   - **Claude Code:** confirm the marketplace is registered (`/plugin marketplace
-     list`; if absent, `/plugin marketplace add anthropics/claude-plugins-official`),
-     then `/plugin install superpowers@claude-plugins-official`.
-   - **Antigravity:** install a superpowers skills port (e.g. the community
-     `superpowers-antigravity`) into the harness's skills dir, then reload.
-4. **Wait for the user to confirm the install completed**, then re-verify using
-   the detection in (1). Plugin/skill installation is not instantaneous and may run
-   through an interactive UI — do NOT re-verify in the same turn you issued the
-   install, or you will read stale state and wrongly conclude it failed. Ask the
-   user to confirm (or to re-run this skill) first.
-5. **If now present** → continue to Step 1.
-6. **If still missing or the install could not complete** → STOP. Do not start
-   grilling. Tell the user explicitly that the handoff to `superpowers:writing-plans`
-   can't run without superpowers, name the install command for their harness, and
-   ask them to install it and re-run. Never fail silently and never start a session
-   you cannot finish.
+**Detect** by skill availability (harness-agnostic, plugin-agnostic): check
+whether the superpowers skills (`writing-plans`, `brainstorming`) appear in your
+surfaced skill list or can be loaded.
+
+**If not detected**, say one line before the first grilling question: the spec
+and the plan will be written normally, but `finishing-a-development-branch` and
+`using-git-worktrees` won't be available when the plan reaches execution — install
+the `superpowers` plugin before then if the plan will need them. Then continue to
+Step 1 regardless of the answer — this is a warning, not a wait.
 
 ## Step 1 — Explore context
 
@@ -213,6 +198,6 @@ system silently breaks the plan built on it.
 
 ## Step 6 — Hand off
 
-After the user approves the spec, invoke `superpowers:writing-plans` to produce
+After the user approves the spec, invoke `sp-writing-plans` to produce
 the implementation plan. This is the terminal state — do NOT invoke any other
 implementation skill.
