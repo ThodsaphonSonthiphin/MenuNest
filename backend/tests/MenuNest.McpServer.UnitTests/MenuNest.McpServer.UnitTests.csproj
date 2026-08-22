@@ -26,6 +26,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MenuNest.McpServer\MenuNest.McpServer.csproj" />
     <ProjectReference Include="..\..\src\MenuNest.Application\MenuNest.Application.csproj" />
+    <!-- Reuses HandlerTestFixture / InMemoryAppDbContext / FixedClock so
+         BudgetToolsCorrectBalanceTests can exercise the real handler against
+         a real DbContext instead of a mocked mediator (precedent:
+         MenuNest.WebApi.UnitTests already references this project the same way). -->
+    <ProjectReference Include="..\MenuNest.Application.UnitTests\MenuNest.Application.UnitTests.csproj" />
   </ItemGroup>
 
 </Project>

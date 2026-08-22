@@ -12,6 +12,15 @@ public sealed record CreateAccountRequest(
 public sealed record UpdateAccountRequest(
     string Name, int SortOrder, bool IsClosed);
 
+// menunest-182: replaces the deleted BudgetAccount.SetBalance. TimeZoneId
+// (menunest-189) is the viewer's IANA zone — required on every call, since
+// the derived balance and the default correction date both read "today".
+public sealed record CorrectBalanceRequest(
+    decimal ActualBalance, bool Confirmed, DateOnly? Date, string? Notes, string? TimeZoneId);
+
+public sealed record BalanceCorrectionResultDto(
+    bool Written, decimal DerivedBalance, decimal Difference, string Message);
+
 // ---------- Groups ----------
 public sealed record CategoryGroupDto(Guid Id, string Name, int SortOrder, bool IsHidden);
 

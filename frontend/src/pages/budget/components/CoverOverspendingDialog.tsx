@@ -10,6 +10,7 @@ import {
   type EnvelopeGroupDto,
 } from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 import {formatTHB} from '../BudgetPage.hooks'
 
 interface FormValues {
@@ -54,6 +55,7 @@ export function CoverOverspendingDialog({overspent, groups, onClose}: {
         year,
         month,
         amount: Number(values.amount),
+        timeZoneId: getViewerTimeZone(),
       }).unwrap()
       onClose()
     } catch (e) {

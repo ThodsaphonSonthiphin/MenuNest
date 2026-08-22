@@ -499,7 +499,6 @@ export interface UpdateAccountRequest {
     name: string
     sortOrder: number
     isClosed: boolean
-    setBalance: number | null
 }
 
 export interface MoveMoneyRequest {
@@ -508,6 +507,9 @@ export interface MoveMoneyRequest {
     year: number
     month: number
     amount: number
+    // menunest-189: only actually resolved server-side when either category
+    // is IsEveryday, but always sent — see shared/utils/timeZone.ts.
+    timeZoneId?: string
 }
 
 export interface CoverOverspendingRequest {
@@ -516,6 +518,26 @@ export interface CoverOverspendingRequest {
     year: number
     month: number
     amount: number
+    // menunest-189: only actually resolved server-side when either category
+    // is IsEveryday, but always sent — see shared/utils/timeZone.ts.
+    timeZoneId?: string
+}
+
+// menunest-182: replaces the deleted setBalance field — an account's
+// balance can only move by writing a transaction, never a silent overwrite.
+export interface CorrectAccountBalanceRequest {
+    actualBalance: number
+    confirmed: boolean
+    date: string | null
+    notes: string | null
+    timeZoneId: string
+}
+
+export interface BalanceCorrectionResultDto {
+    written: boolean
+    derivedBalance: number
+    difference: number
+    message: string
 }
 
 // -------------------- Trips --------------------
@@ -1074,8 +1096,11 @@ export const api = createApi({
             query: () => '/api/chat/speech-token',
         }),
         // -------------------- Budget --------------------
-        getBudgetSummary: build.query<MonthlySummaryDto, {year: number; month: number}>({
-            query: ({year, month}) => `/api/budget/summary?year=${year}&month=${month}`,
+        // tz (menunest-189): the viewer's IANA time zone — required on every
+        // summary read (see shared/utils/timeZone.ts), matching the backend's
+        // GetMonthlySummaryQuery which resolves it unconditionally.
+        getBudgetSummary: build.query<MonthlySummaryDto, {year: number; month: number; tz: string}>({
+            query: ({year, month, tz}) => `/api/budget/summary?year=${year}&month=${month}&tz=${encodeURIComponent(tz)}`,
             providesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
         listBudgetAccounts: build.query<BudgetAccountDto[], void>({
@@ -1093,6 +1118,13 @@ export const api = createApi({
         deleteBudgetAccount: build.mutation<void, string>({
             query: (id) => ({url: `/api/budget/accounts/${id}`, method: 'DELETE'}),
             invalidatesTags: ['BudgetAccounts', 'BudgetAccountDetail'],
+        }),
+        correctAccountBalance: build.mutation<BalanceCorrectionResultDto, {accountId: string} & CorrectAccountBalanceRequest>({
+            query: ({accountId, ...b}) => ({url: `/api/budget/accounts/${accountId}/correct-balance`, method: 'POST', body: b}),
+            // No year/month on this request to target a specific cached
+            // summary tag, so invalidate the whole 'BudgetSummary' type —
+            // every cached month's account balances may now be stale.
+            invalidatesTags: ['BudgetAccounts', 'BudgetAccountDetail', 'BudgetSummary'],
         }),
         listBudgetGroups: build.query<CategoryGroupDto[], void>({
             query: () => '/api/budget/groups',
@@ -1122,7 +1154,7 @@ export const api = createApi({
             query: (id) => ({url: `/api/budget/categories/${id}`, method: 'DELETE'}),
             invalidatesTags: ['BudgetGroups'],
         }),
-        setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number}>({
+        setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number; timeZoneId?: string}>({
             query: (b) => ({url: '/api/budget/monthly/assigned', method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
@@ -1745,6 +1777,7 @@ export const {
     useCreateBudgetAccountMutation,
     useUpdateBudgetAccountMutation,
     useDeleteBudgetAccountMutation,
+    useCorrectAccountBalanceMutation,
     useListBudgetGroupsQuery,
     useCreateBudgetGroupMutation,
     useUpdateBudgetGroupMutation,

@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react'
 import {useAppDispatch, useAppSelector} from '../../store'
 import {useGetBudgetSummaryQuery} from '../../shared/api/api'
+import {getViewerTimeZone} from '../../shared/utils/timeZone'
 import {goPrevMonth, goNextMonth, setMonth} from './budgetSlice'
 
 export type BudgetLayout = 'mobile' | 'tablet' | 'desktop'
@@ -20,7 +21,7 @@ export function useBudgetLayout(): BudgetLayout {
 export function useBudgetData() {
   const {year, month} = useAppSelector(s => s.budget)
   const dispatch = useAppDispatch()
-  const q = useGetBudgetSummaryQuery({year, month})
+  const q = useGetBudgetSummaryQuery({year, month, tz: getViewerTimeZone()})
   return {
     year, month,
     summary: q.data, isLoading: q.isLoading, error: q.error,

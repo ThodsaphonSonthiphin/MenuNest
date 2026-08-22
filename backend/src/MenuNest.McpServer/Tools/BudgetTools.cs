@@ -3,6 +3,7 @@ using MenuNest.Application.UseCases.Budget.Accounts.ListAccounts;
 using MenuNest.Application.UseCases.Budget.Accounts.CreateAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.UpdateAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.DeleteAccount;
+using MenuNest.Application.UseCases.Budget.Accounts.CorrectBalance;
 using MenuNest.Application.UseCases.Budget.Accounts.ListAccountTransactions;
 using MenuNest.Application.UseCases.Budget.Groups.ListGroups;
 using MenuNest.Application.UseCases.Budget.Groups.CreateGroup;
@@ -26,22 +27,15 @@ namespace MenuNest.McpServer.Tools;
 [McpServerToolType]
 public sealed class BudgetTools(IMediator mediator)
 {
-    // menunest-189: these command/query records now require an IANA time-zone id
-    // for the Daily allowance freeze to use the VIEWER's local "today" instead of
-    // the server's UTC day. Adding a real `timeZoneId` parameter to this tool
-    // belongs to a later task (out of scope here — see task-4-report.md). Until
-    // then, hardcode the app's one actual time zone rather than defaulting to
-    // UTC, which would silently reproduce the exact bug menunest-189 removes.
-    private const string DefaultTimeZoneId = "Asia/Bangkok";
-
     // ── Summary ──────────────────────────────────────────────────────────────
 
     [McpServerTool, Description("Get the monthly budget summary including income, assigned amounts, available to assign, per-category spent and available balances, and all envelope groups with their categories")]
     public async Task<MonthlySummaryDto> get_budget_summary(
         [Description("Year (e.g. 2026)")] int year,
         [Description("Month 1–12")] int month,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Always required — every summary read decides the Daily allowance card against the viewer's local today (menunest-189).")] string? timeZoneId,
         CancellationToken ct)
-        => await mediator.Send(new GetMonthlySummaryQuery(year, month, DefaultTimeZoneId), ct);
+        => await mediator.Send(new GetMonthlySummaryQuery(year, month, timeZoneId), ct);
 
     // ── Accounts ─────────────────────────────────────────────────────────────
 
@@ -58,15 +52,36 @@ public sealed class BudgetTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new CreateAccountCommand(name, type, openingBalance), ct);
 
-    [McpServerTool, Description("Update a budget account's name, sort order, closed status, or manually set its balance")]
+    [McpServerTool, Description("Update a budget account's name, sort order, or closed status")]
     public async Task<BudgetAccountDto> update_budget_account(
         [Description("Account ID")] Guid id,
         [Description("Account name")] string name,
         [Description("Display sort order")] int sortOrder,
         [Description("Whether the account is closed/archived")] bool isClosed,
-        [Description("Optional: override the account balance to this exact value (null to skip)")] decimal? setBalance,
         CancellationToken ct)
         => await mediator.Send(new UpdateAccountCommand(id, name, sortOrder, isClosed), ct);
+
+    // menunest-182: replaces the deleted BudgetAccount.SetBalance. Refuse-then-confirm
+    // (ADR-140's Shrink precedent on update_trip — the repo has no MCP tool annotations):
+    // the first call MUST be refused so the refusal text, which names real numbers, can
+    // double as the question the user is asked. Only a second call with confirmed=true
+    // writes anything.
+    [McpServerTool, Description(
+        "State an account's true balance. Writes a Balance correction transaction for the "
+        + "difference, which lands in Ready to Assign. SAFETY: the first call MUST pass "
+        + "confirmed=false — the server refuses it and returns the derived balance, the "
+        + "difference and the Ready-to-Assign movement. Show those numbers to the user, ask "
+        + "them, and only re-send with confirmed=true if they agree. Never pass confirmed=true "
+        + "on a first attempt.")]
+    public async Task<BalanceCorrectionResultDto> correct_account_balance(
+        [Description("Account ID")] Guid accountId,
+        [Description("The true balance the account actually holds right now")] decimal actualBalance,
+        [Description("false on the first call. true only after the user has seen the numbers and agreed.")] bool confirmed,
+        [Description("Optional: the date the correction belongs to (defaults to today)")] DateOnly? date,
+        [Description("Optional: a note (defaults to 'Balance correction')")] string? notes,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Always required — the derived balance and the default correction date both read the viewer's local today (menunest-189).")] string? timeZoneId,
+        CancellationToken ct)
+        => await mediator.Send(new CorrectBalanceCommand(accountId, actualBalance, confirmed, date, notes, timeZoneId), ct);
 
     [McpServerTool, Description("Delete a budget account by ID")]
     public async Task delete_budget_account(
@@ -153,8 +168,9 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Year")] int year,
         [Description("Month 1–12")] int month,
         [Description("Amount to assign (replaces any existing assigned amount)")] decimal amount,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Prefer to always pass it whenever you know the user's zone; it is strictly required only when the category is marked 'everyday' (a call that omits it then fails, and you cannot tell in advance which categories are marked that way).")] string? timeZoneId,
         CancellationToken ct)
-        => await mediator.Send(new SetAssignedAmountCommand(categoryId, year, month, amount, DefaultTimeZoneId), ct);
+        => await mediator.Send(new SetAssignedAmountCommand(categoryId, year, month, amount, timeZoneId), ct);
 
     [McpServerTool, Description("Move money from one category envelope to another within the same month")]
     public async Task move_money(
@@ -163,8 +179,9 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Year")] int year,
         [Description("Month 1–12")] int month,
         [Description("Amount to move")] decimal amount,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Prefer to always pass it whenever you know the user's zone; it is strictly required only when either category is marked 'everyday' (a call that omits it then fails, and you cannot tell in advance which categories are marked that way).")] string? timeZoneId,
         CancellationToken ct)
-        => await mediator.Send(new MoveMoneyCommand(fromCategoryId, toCategoryId, year, month, amount, DefaultTimeZoneId), ct);
+        => await mediator.Send(new MoveMoneyCommand(fromCategoryId, toCategoryId, year, month, amount, timeZoneId), ct);
 
     [McpServerTool, Description("Cover overspending in a category by pulling funds from another category")]
     public async Task cover_overspending(
@@ -173,8 +190,9 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Year")] int year,
         [Description("Month 1–12")] int month,
         [Description("Amount to cover")] decimal amount,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Prefer to always pass it whenever you know the user's zone; it is strictly required only when either category is marked 'everyday' (a call that omits it then fails, and you cannot tell in advance which categories are marked that way).")] string? timeZoneId,
         CancellationToken ct)
-        => await mediator.Send(new CoverOverspendingCommand(overspentCategoryId, fromCategoryId, year, month, amount, DefaultTimeZoneId), ct);
+        => await mediator.Send(new CoverOverspendingCommand(overspentCategoryId, fromCategoryId, year, month, amount, timeZoneId), ct);
 
     // ── Transactions ──────────────────────────────────────────────────────────
 

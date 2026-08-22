@@ -6,6 +6,7 @@ import {NumericTextBox} from '@syncfusion/react-inputs'
 import {useAppSelector} from '../../../store'
 import {useMoveMoneyMutation, type EnvelopeDto, type EnvelopeGroupDto} from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 import {formatTHB} from '../BudgetPage.hooks'
 
 interface FormValues {
@@ -47,6 +48,7 @@ export function MoveMoneyDialog({from, groups, onClose}: {
         year,
         month,
         amount: Number(values.amount),
+        timeZoneId: getViewerTimeZone(),
       }).unwrap()
       onClose()
     } catch (e) {
