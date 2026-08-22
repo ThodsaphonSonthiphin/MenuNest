@@ -1154,7 +1154,15 @@ export const api = createApi({
             // No year/month on this request to target a specific cached
             // summary tag, so invalidate the whole 'BudgetSummary' type —
             // every cached month's account balances may now be stale.
-            invalidatesTags: ['BudgetAccounts', 'BudgetAccountDetail', 'BudgetSummary'],
+            //
+            // menunest-190: ReconcileBalanceDialog also calls this
+            // unconfirmed (confirmed=false) purely to preview today's
+            // derived balance — that call writes nothing server-side, so
+            // only invalidate when the response says a write actually
+            // happened. Otherwise opening the dialog would refetch every
+            // cached month's account balances for nothing.
+            invalidatesTags: (result) =>
+                result?.written ? ['BudgetAccounts', 'BudgetAccountDetail', 'BudgetSummary'] : [],
         }),
         listBudgetGroups: build.query<CategoryGroupDto[], void>({
             query: () => '/api/budget/groups',

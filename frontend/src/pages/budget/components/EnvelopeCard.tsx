@@ -35,9 +35,18 @@ export function EnvelopeCard(props: UseEnvelopeCardArgs) {
           {cat.isEveryday && (
             <span className="bdg-env-everyday-dot" data-testid="bdg-env-everyday-dot" aria-label="Everyday envelope" />
           )}
-          {cat.name}
+          <span className="bdg-env-name-text">{cat.name}</span>
         </div>
         <div className="bdg-env-row1-right">
+          {!h.expanded && (
+            <button
+              type="button"
+              className="bdg-env-icon-btn"
+              onClick={(e) => { e.stopPropagation(); h.onAddTransaction() }}
+              aria-label="Add transaction"
+              data-testid="bdg-env-add-icon"
+            >＋</button>
+          )}
           {!h.expanded && overspent && (
             <button
               type="button"
