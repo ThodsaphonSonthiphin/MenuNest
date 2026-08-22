@@ -1,6 +1,17 @@
 import {formatTHB} from '../BudgetPage.hooks'
 import {formatPaceLine} from '../lib/paceLine'
+import {formatFreezeLine} from '../lib/freezeLine'
 import type {DailyAllowanceDto} from '../../../shared/api/api'
+
+// Viewer-local 'YYYY-MM-DD', built from Date's local getters (never
+// `toISOString`/UTC) — same pattern as AccountTransactionList.tsx's
+// `todayIso()`, kept local to each file rather than shared since it's a
+// three-line glue call, not decision logic (the actual logic that needed a
+// lib/ module + tests is formatFreezeLine itself).
+function todayIso(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 /**
  * The frozen "you can spend this much today" figure (menunest-181).
@@ -11,11 +22,14 @@ import type {DailyAllowanceDto} from '../../../shared/api/api'
  *      placeholder.
  *   2. `hasMarks === false` — no everyday envelope has been marked yet.
  *      An invitation to pick some, never a number (menunest-181).
- *   3. otherwise — the frozen amount, the "won't change today" line, and
- *      the pace line (menunest-186) when it has something to say. The
+ *   3. otherwise — the frozen amount, the freeze line (when it froze +
+ *      "won't change if you spend more today", via `formatFreezeLine`),
+ *      and the pace line (menunest-186) when it has something to say. The
  *      pace line is the ONLY part of this card that reacts to spending;
  *      it counts completed days only, so it renders nothing on the
- *      freeze day itself.
+ *      freeze day itself. `frozenOn` is NOT always today — it only moves
+ *      on a Budgeting event or a month rollover, so it can lag behind by
+ *      days within the same month.
  *
  * The whole card is tappable in every rendered state and opens the
  * everyday-marks picker (Task 7) via `onOpenMarks` — this component only
@@ -34,7 +48,7 @@ export function DailyAllowanceCard({
     return (
       <button
         type="button"
-        className="bdg-allowance-hero bdg-allowance-hero--empty"
+        className="bdg-allowance-hero"
         data-testid="bdg-daily-allowance-empty"
         onClick={onOpenMarks}
       >
@@ -72,7 +86,7 @@ export function DailyAllowanceCard({
         </div>
       )}
 
-      <div className="bdg-allowance-freeze">won't change if you spend more today</div>
+      <div className="bdg-allowance-freeze">{formatFreezeLine(dailyAllowance.frozenOn, todayIso())}</div>
     </button>
   )
 }
