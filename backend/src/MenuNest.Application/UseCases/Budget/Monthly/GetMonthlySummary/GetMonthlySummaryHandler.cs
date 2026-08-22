@@ -11,12 +11,14 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly AllowanceFreezer _freezer;
+    private readonly IClock _clock;
 
     // Named projection for in-memory transaction rows (allows passing to static helpers).
     private readonly record struct TxRow(Guid? CategoryId, decimal Amount, DateOnly Date);
 
-    public GetMonthlySummaryHandler(IApplicationDbContext db, IUserProvisioner users, AllowanceFreezer freezer)
-    { _db = db; _users = users; _freezer = freezer; }
+    public GetMonthlySummaryHandler(
+        IApplicationDbContext db, IUserProvisioner users, AllowanceFreezer freezer, IClock clock)
+    { _db = db; _users = users; _freezer = freezer; _clock = clock; }
 
     public async ValueTask<MonthlySummaryDto> Handle(GetMonthlySummaryQuery q, CancellationToken ct)
     {
@@ -136,9 +138,15 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
                 a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed))
             .ToList();
 
-        // menunest-185: the card is current-month only, checked against today's
-        // real date, not the requested month.
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        // menunest-185/189: the card is current-month only, checked against
+        // today's real date — the VIEWER's local day, resolved from the caller's
+        // IANA time zone and the injected clock, never the server's UTC day
+        // (ADR-038's Trips pattern applied to Budget). Every read that could show
+        // the card needs the zone, so it is resolved unconditionally here, before
+        // we even know whether the requested month is "current" — a missing or
+        // unknown id is rejected, never silently read as UTC.
+        var tz = BudgetTimeZone.Resolve(q.TimeZoneId);
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz));
         DailyAllowanceDto? allowance = null;
         if (q.Year == today.Year && q.Month == today.Month)
         {

@@ -26,6 +26,14 @@ namespace MenuNest.McpServer.Tools;
 [McpServerToolType]
 public sealed class BudgetTools(IMediator mediator)
 {
+    // menunest-189: these command/query records now require an IANA time-zone id
+    // for the Daily allowance freeze to use the VIEWER's local "today" instead of
+    // the server's UTC day. Adding a real `timeZoneId` parameter to this tool
+    // belongs to a later task (out of scope here — see task-4-report.md). Until
+    // then, hardcode the app's one actual time zone rather than defaulting to
+    // UTC, which would silently reproduce the exact bug menunest-189 removes.
+    private const string DefaultTimeZoneId = "Asia/Bangkok";
+
     // ── Summary ──────────────────────────────────────────────────────────────
 
     [McpServerTool, Description("Get the monthly budget summary including income, assigned amounts, available to assign, per-category spent and available balances, and all envelope groups with their categories")]
@@ -33,7 +41,7 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Year (e.g. 2026)")] int year,
         [Description("Month 1–12")] int month,
         CancellationToken ct)
-        => await mediator.Send(new GetMonthlySummaryQuery(year, month), ct);
+        => await mediator.Send(new GetMonthlySummaryQuery(year, month, DefaultTimeZoneId), ct);
 
     // ── Accounts ─────────────────────────────────────────────────────────────
 
@@ -146,7 +154,7 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Month 1–12")] int month,
         [Description("Amount to assign (replaces any existing assigned amount)")] decimal amount,
         CancellationToken ct)
-        => await mediator.Send(new SetAssignedAmountCommand(categoryId, year, month, amount), ct);
+        => await mediator.Send(new SetAssignedAmountCommand(categoryId, year, month, amount, DefaultTimeZoneId), ct);
 
     [McpServerTool, Description("Move money from one category envelope to another within the same month")]
     public async Task move_money(
@@ -156,7 +164,7 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Month 1–12")] int month,
         [Description("Amount to move")] decimal amount,
         CancellationToken ct)
-        => await mediator.Send(new MoveMoneyCommand(fromCategoryId, toCategoryId, year, month, amount), ct);
+        => await mediator.Send(new MoveMoneyCommand(fromCategoryId, toCategoryId, year, month, amount, DefaultTimeZoneId), ct);
 
     [McpServerTool, Description("Cover overspending in a category by pulling funds from another category")]
     public async Task cover_overspending(
@@ -166,7 +174,7 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Month 1–12")] int month,
         [Description("Amount to cover")] decimal amount,
         CancellationToken ct)
-        => await mediator.Send(new CoverOverspendingCommand(overspentCategoryId, fromCategoryId, year, month, amount), ct);
+        => await mediator.Send(new CoverOverspendingCommand(overspentCategoryId, fromCategoryId, year, month, amount, DefaultTimeZoneId), ct);
 
     // ── Transactions ──────────────────────────────────────────────────────────
 

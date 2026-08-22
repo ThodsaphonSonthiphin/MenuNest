@@ -10,6 +10,9 @@ namespace MenuNest.Application.UnitTests.Budget.Categories;
 
 public class SetEverydayMarksHandlerTests
 {
+    // The app's one real time zone (menunest-189) — every user is in Thailand.
+    private const string Bkk = "Asia/Bangkok";
+
     // The single most important positive case in this task: marking N
     // envelopes in one request is ONE Budgeting event, not N. A buggy
     // per-mark loop (save + freeze inside the loop) would converge on the
@@ -18,6 +21,10 @@ public class SetEverydayMarksHandlerTests
     public async Task Marking_six_envelopes_in_one_request_saves_and_refreezes_exactly_once()
     {
         using var fx = new HandlerTestFixture();
+        // The freeze's pot is cumulative "as of today's month" — the fixed
+        // clock must be on or after the assigned month, or the assignments
+        // below would (correctly) be excluded as not-yet-current.
+        fx.Clock.UtcNow = new DateTime(2026, 8, 22, 3, 0, 0, DateTimeKind.Utc);
         var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
         fx.Db.BudgetCategoryGroups.Add(group);
         var cats = Enumerable.Range(0, 6)
@@ -31,10 +38,10 @@ public class SetEverydayMarksHandlerTests
         var counting = new SaveChangesCountingDbContext(fx.Db);
         var freezer = new AllowanceFreezer(counting);
         var sut = new SetEverydayMarksHandler(
-            counting, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            counting, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         var marks = cats.Select(c => new EverydayMark(c.Id, true)).ToList();
-        await sut.Handle(new SetEverydayMarksCommand(marks), CancellationToken.None);
+        await sut.Handle(new SetEverydayMarksCommand(marks, Bkk), CancellationToken.None);
 
         // Exactly one save for the marks + one for the freeze — independent of N.
         counting.SaveChangesCallCount.Should().Be(2);
@@ -70,10 +77,10 @@ public class SetEverydayMarksHandlerTests
         var (amountBefore, frozenOnBefore, frozenPotBefore) = (frozen!.Amount, frozen.FrozenOn, frozen.FrozenPot);
 
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         await sut.Handle(
-            new SetEverydayMarksCommand([new EverydayMark(cat.Id, false)]),
+            new SetEverydayMarksCommand([new EverydayMark(cat.Id, false)], Bkk),
             CancellationToken.None);
 
         fx.Db.BudgetCategories.Single().IsEveryday.Should().BeFalse();
@@ -95,6 +102,10 @@ public class SetEverydayMarksHandlerTests
     public async Task Unmarking_one_of_two_everyday_envelopes_refreezes_with_the_reduced_pot()
     {
         using var fx = new HandlerTestFixture();
+        // The freeze's pot is cumulative "as of today's month" — the fixed
+        // clock must be on or after the assigned month, or the assignments
+        // below would (correctly) be excluded as not-yet-current.
+        fx.Clock.UtcNow = new DateTime(2026, 8, 22, 3, 0, 0, DateTimeKind.Utc);
         var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
         fx.Db.BudgetCategoryGroups.Add(group);
         var keep = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
@@ -112,10 +123,10 @@ public class SetEverydayMarksHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         await sut.Handle(
-            new SetEverydayMarksCommand([new EverydayMark(drop.Id, false)]),
+            new SetEverydayMarksCommand([new EverydayMark(drop.Id, false)], Bkk),
             CancellationToken.None);
 
         fx.Db.BudgetCategories.Single(c => c.Id == drop.Id).IsEveryday.Should().BeFalse();
@@ -154,11 +165,11 @@ public class SetEverydayMarksHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         // Re-submits the SAME mark the category already has — nothing changes.
         await sut.Handle(
-            new SetEverydayMarksCommand([new EverydayMark(cat.Id, true)]),
+            new SetEverydayMarksCommand([new EverydayMark(cat.Id, true)], Bkk),
             CancellationToken.None);
 
         var row = fx.Db.DailyAllowances.Single();
@@ -181,10 +192,10 @@ public class SetEverydayMarksHandlerTests
 
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         var act = async () => await sut.Handle(
-            new SetEverydayMarksCommand([new EverydayMark(foreignCat.Id, true)]),
+            new SetEverydayMarksCommand([new EverydayMark(foreignCat.Id, true)], Bkk),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>().WithMessage("Category not found*");
@@ -196,10 +207,10 @@ public class SetEverydayMarksHandlerTests
         using var fx = new HandlerTestFixture();
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         var act = async () => await sut.Handle(
-            new SetEverydayMarksCommand([]), CancellationToken.None);
+            new SetEverydayMarksCommand([], Bkk), CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationException>();
     }
@@ -210,11 +221,69 @@ public class SetEverydayMarksHandlerTests
         using var fx = new HandlerTestFixture();
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
 
         var act = async () => await sut.Handle(
-            new SetEverydayMarksCommand([new EverydayMark(Guid.Empty, true)]), CancellationToken.None);
+            new SetEverydayMarksCommand([new EverydayMark(Guid.Empty, true)], Bkk), CancellationToken.None);
 
         await act.Should().ThrowAsync<ValidationException>();
+    }
+
+    // ── menunest-189: the viewer's local day, not the server's UTC day ──
+
+    /// <summary>
+    /// Same UTC-lag boundary as the three Monthly handlers' tests — pinned here
+    /// too because SetEverydayMarksHandler re-freezes on its own copy of
+    /// "today", independently of the other three sites.
+    /// </summary>
+    [Fact]
+    public async Task Marking_an_envelope_during_the_UTC_lag_window_freezes_on_the_Bangkok_date()
+    {
+        using var fx = new HandlerTestFixture();
+        fx.Clock.UtcNow = new DateTime(2026, 8, 31, 20, 0, 0, DateTimeKind.Utc);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        fx.Db.BudgetCategories.Add(cat);
+        fx.Db.MonthlyAssignments.Add(MonthlyAssignment.Create(fx.Family.Id, cat.Id, 2026, 9, 3000m));
+        await fx.Db.SaveChangesAsync();
+
+        var freezer = new AllowanceFreezer(fx.Db);
+        var sut = new SetEverydayMarksHandler(
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+
+        await sut.Handle(
+            new SetEverydayMarksCommand([new EverydayMark(cat.Id, true)], Bkk),
+            CancellationToken.None);
+
+        var row = fx.Db.DailyAllowances.Single();
+        row.FrozenOn.Should().Be(new DateOnly(2026, 9, 1),
+            "the freeze must land on the viewer's Bangkok day, not the server's UTC day (still Aug 31)");
+        row.IsForMonth(2026, 9).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Marking_an_envelope_with_an_unknown_time_zone_throws_and_freezes_nothing()
+    {
+        using var fx = new HandlerTestFixture();
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "Everyday", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        var cat = BudgetCategory.Create(fx.Family.Id, group.Id, "Groceries", null, 0);
+        fx.Db.BudgetCategories.Add(cat);
+        await fx.Db.SaveChangesAsync();
+
+        var freezer = new AllowanceFreezer(fx.Db);
+        var sut = new SetEverydayMarksHandler(
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+
+        var act = async () => await sut.Handle(
+            new SetEverydayMarksCommand([new EverydayMark(cat.Id, true)], "Not/A/Real/Zone"),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<DomainException>();
+        // The mark itself is applied and saved before the freeze is attempted
+        // (menunest-184's "save once" step), but no row must ever be frozen.
+        fx.Db.DailyAllowances.Should().BeEmpty();
     }
 }

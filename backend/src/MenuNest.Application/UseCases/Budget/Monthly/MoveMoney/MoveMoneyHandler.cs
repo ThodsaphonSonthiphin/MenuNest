@@ -14,13 +14,15 @@ public sealed class MoveMoneyHandler : ICommandHandler<MoveMoneyCommand, Unit>
     private readonly IUserProvisioner _users;
     private readonly IValidator<MoveMoneyCommand> _validator;
     private readonly AllowanceFreezer _freezer;
+    private readonly IClock _clock;
 
     public MoveMoneyHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
         IValidator<MoveMoneyCommand> validator,
-        AllowanceFreezer freezer)
-    { _db = db; _users = users; _validator = validator; _freezer = freezer; }
+        AllowanceFreezer freezer,
+        IClock clock)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; _clock = clock; }
 
     public async ValueTask<Unit> Handle(MoveMoneyCommand cmd, CancellationToken ct)
     {
@@ -34,15 +36,18 @@ public sealed class MoveMoneyHandler : ICommandHandler<MoveMoneyCommand, Unit>
         to.AdjustAmount(+cmd.Amount);
         await _db.SaveChangesAsync(ct);
 
-        // menunest-181: only re-freeze when an everyday envelope is actually
+        // menunest-181/189: only re-freeze when an everyday envelope is actually
         // involved — a move between two non-everyday envelopes is not a
-        // Budgeting event for this purpose.
+        // Budgeting event for this purpose, and so never needs the viewer's
+        // time zone either (only resolved here, where it's actually used).
         var touchesEveryday = await _db.BudgetCategories.AnyAsync(
             c => c.FamilyId == familyId && c.IsEveryday
               && (c.Id == cmd.FromCategoryId || c.Id == cmd.ToCategoryId), ct);
         if (touchesEveryday)
         {
-            var refrozen = await _freezer.RefreezeAsync(familyId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            var tz = BudgetTimeZone.Resolve(cmd.TimeZoneId);
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz));
+            var refrozen = await _freezer.RefreezeAsync(familyId, today, ct);
             if (refrozen is not null) await _db.SaveChangesAsync(ct);
         }
 

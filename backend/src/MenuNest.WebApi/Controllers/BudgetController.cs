@@ -33,10 +33,14 @@ public sealed class BudgetController : ControllerBase
     public BudgetController(IMediator m) { _m = m; }
 
     // ----- summary (page load) -----
+    // tz (menunest-189): the viewer's IANA time zone, e.g. from the SPA's
+    // Intl.DateTimeFormat().resolvedOptions().timeZone (same param shape as
+    // TripsController.GetItinerary's `tz`). Required — every summary read
+    // decides the Daily allowance card off it.
     [HttpGet("summary")]
     public async Task<ActionResult<MonthlySummaryDto>> Summary(
-        [FromQuery] int year, [FromQuery] int month, CancellationToken ct) =>
-        Ok(await _m.Send(new GetMonthlySummaryQuery(year, month), ct));
+        [FromQuery] int year, [FromQuery] int month, [FromQuery] string? tz, CancellationToken ct) =>
+        Ok(await _m.Send(new GetMonthlySummaryQuery(year, month, tz), ct));
 
     // ----- accounts -----
     [HttpGet("accounts")]
@@ -112,15 +116,15 @@ public sealed class BudgetController : ControllerBase
     // ----- monthly ops -----
     [HttpPut("monthly/assigned")]
     public async Task<IActionResult> SetAssigned([FromBody] SetAssignedRequest r, CancellationToken ct)
-    { await _m.Send(new SetAssignedAmountCommand(r.CategoryId, r.Year, r.Month, r.Amount), ct); return NoContent(); }
+    { await _m.Send(new SetAssignedAmountCommand(r.CategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId), ct); return NoContent(); }
 
     [HttpPost("monthly/move")]
     public async Task<IActionResult> Move([FromBody] MoveMoneyRequest r, CancellationToken ct)
-    { await _m.Send(new MoveMoneyCommand(r.FromCategoryId, r.ToCategoryId, r.Year, r.Month, r.Amount), ct); return NoContent(); }
+    { await _m.Send(new MoveMoneyCommand(r.FromCategoryId, r.ToCategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId), ct); return NoContent(); }
 
     [HttpPost("monthly/cover")]
     public async Task<IActionResult> Cover([FromBody] CoverOverspendingRequest r, CancellationToken ct)
-    { await _m.Send(new CoverOverspendingCommand(r.OverspentCategoryId, r.FromCategoryId, r.Year, r.Month, r.Amount), ct); return NoContent(); }
+    { await _m.Send(new CoverOverspendingCommand(r.OverspentCategoryId, r.FromCategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId), ct); return NoContent(); }
 
     // ----- transactions -----
     [HttpGet("transactions")]

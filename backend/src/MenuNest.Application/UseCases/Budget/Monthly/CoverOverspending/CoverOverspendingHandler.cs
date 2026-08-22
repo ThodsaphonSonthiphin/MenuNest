@@ -20,13 +20,15 @@ public sealed class CoverOverspendingHandler : ICommandHandler<CoverOverspending
     private readonly IUserProvisioner _users;
     private readonly IValidator<CoverOverspendingCommand> _validator;
     private readonly AllowanceFreezer _freezer;
+    private readonly IClock _clock;
 
     public CoverOverspendingHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
         IValidator<CoverOverspendingCommand> validator,
-        AllowanceFreezer freezer)
-    { _db = db; _users = users; _validator = validator; _freezer = freezer; }
+        AllowanceFreezer freezer,
+        IClock clock)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; _clock = clock; }
 
     public async ValueTask<Unit> Handle(CoverOverspendingCommand cmd, CancellationToken ct)
     {
@@ -40,15 +42,18 @@ public sealed class CoverOverspendingHandler : ICommandHandler<CoverOverspending
         overspent.AdjustAmount(+cmd.Amount);
         await _db.SaveChangesAsync(ct);
 
-        // menunest-181: only re-freeze when an everyday envelope is actually
+        // menunest-181/189: only re-freeze when an everyday envelope is actually
         // involved — covering overspending between two non-everyday envelopes
-        // is not a Budgeting event for this purpose.
+        // is not a Budgeting event for this purpose, and so never needs the
+        // viewer's time zone either (only resolved here, where it's actually used).
         var touchesEveryday = await _db.BudgetCategories.AnyAsync(
             c => c.FamilyId == familyId && c.IsEveryday
               && (c.Id == cmd.FromCategoryId || c.Id == cmd.OverspentCategoryId), ct);
         if (touchesEveryday)
         {
-            var refrozen = await _freezer.RefreezeAsync(familyId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            var tz = BudgetTimeZone.Resolve(cmd.TimeZoneId);
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz));
+            var refrozen = await _freezer.RefreezeAsync(familyId, today, ct);
             if (refrozen is not null) await _db.SaveChangesAsync(ct);
         }
 

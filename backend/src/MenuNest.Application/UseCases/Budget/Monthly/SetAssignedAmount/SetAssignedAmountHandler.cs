@@ -14,13 +14,15 @@ public sealed class SetAssignedAmountHandler : ICommandHandler<SetAssignedAmount
     private readonly IUserProvisioner _users;
     private readonly IValidator<SetAssignedAmountCommand> _validator;
     private readonly AllowanceFreezer _freezer;
+    private readonly IClock _clock;
 
     public SetAssignedAmountHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
         IValidator<SetAssignedAmountCommand> validator,
-        AllowanceFreezer freezer)
-    { _db = db; _users = users; _validator = validator; _freezer = freezer; }
+        AllowanceFreezer freezer,
+        IClock clock)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; _clock = clock; }
 
     public async ValueTask<Unit> Handle(SetAssignedAmountCommand cmd, CancellationToken ct)
     {
@@ -42,11 +44,15 @@ public sealed class SetAssignedAmountHandler : ICommandHandler<SetAssignedAmount
 
         await _db.SaveChangesAsync(ct);
 
-        // menunest-181: assigning money into an everyday envelope is a Budgeting
-        // event. A non-everyday envelope never touches the freeze.
+        // menunest-181/189: assigning money into an everyday envelope is a
+        // Budgeting event. A non-everyday envelope never touches the freeze —
+        // and so never needs the viewer's time zone either (only resolved here,
+        // where it's actually used, matching ADR-038's Trips pattern).
         if (category.IsEveryday)
         {
-            var refrozen = await _freezer.RefreezeAsync(familyId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+            var tz = BudgetTimeZone.Resolve(cmd.TimeZoneId);
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz));
+            var refrozen = await _freezer.RefreezeAsync(familyId, today, ct);
             if (refrozen is not null) await _db.SaveChangesAsync(ct);
         }
 

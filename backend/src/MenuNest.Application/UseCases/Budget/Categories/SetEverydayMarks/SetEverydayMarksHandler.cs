@@ -20,13 +20,15 @@ public sealed class SetEverydayMarksHandler : ICommandHandler<SetEverydayMarksCo
     private readonly IUserProvisioner _users;
     private readonly IValidator<SetEverydayMarksCommand> _validator;
     private readonly AllowanceFreezer _freezer;
+    private readonly IClock _clock;
 
     public SetEverydayMarksHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
         IValidator<SetEverydayMarksCommand> validator,
-        AllowanceFreezer freezer)
-    { _db = db; _users = users; _validator = validator; _freezer = freezer; }
+        AllowanceFreezer freezer,
+        IClock clock)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; _clock = clock; }
 
     public async ValueTask<Unit> Handle(SetEverydayMarksCommand cmd, CancellationToken ct)
     {
@@ -58,8 +60,12 @@ public sealed class SetEverydayMarksHandler : ICommandHandler<SetEverydayMarksCo
         // One save for the whole sheet — not one per mark.
         await _db.SaveChangesAsync(ct);
 
-        // One freeze for the whole sheet — not one per mark (menunest-184).
-        var refrozen = await _freezer.RefreezeAsync(familyId, DateOnly.FromDateTime(DateTime.UtcNow), ct);
+        // One freeze for the whole sheet — not one per mark (menunest-184). The
+        // viewer's time zone (menunest-189) is only resolved here, where it's
+        // actually used — a no-op sheet returns above without ever needing it.
+        var tz = BudgetTimeZone.Resolve(cmd.TimeZoneId);
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz));
+        var refrozen = await _freezer.RefreezeAsync(familyId, today, ct);
         if (refrozen is not null) await _db.SaveChangesAsync(ct);
 
         return Unit.Value;
