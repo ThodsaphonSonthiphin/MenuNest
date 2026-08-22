@@ -58,7 +58,7 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Whether the account is closed/archived")] bool isClosed,
         [Description("Optional: override the account balance to this exact value (null to skip)")] decimal? setBalance,
         CancellationToken ct)
-        => await mediator.Send(new UpdateAccountCommand(id, name, sortOrder, isClosed, setBalance), ct);
+        => await mediator.Send(new UpdateAccountCommand(id, name, sortOrder, isClosed), ct);
 
     [McpServerTool, Description("Delete a budget account by ID")]
     public async Task delete_budget_account(

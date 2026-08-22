@@ -50,7 +50,7 @@ public sealed class BudgetController : ControllerBase
     [HttpPut("accounts/{id:guid}")]
     public async Task<ActionResult<BudgetAccountDto>> UpdateAccount(
         Guid id, [FromBody] UpdateAccountRequest r, CancellationToken ct) =>
-        Ok(await _m.Send(new UpdateAccountCommand(id, r.Name, r.SortOrder, r.IsClosed, r.SetBalance), ct));
+        Ok(await _m.Send(new UpdateAccountCommand(id, r.Name, r.SortOrder, r.IsClosed), ct));
 
     [HttpDelete("accounts/{id:guid}")]
     public async Task<IActionResult> DeleteAccount(Guid id, CancellationToken ct)

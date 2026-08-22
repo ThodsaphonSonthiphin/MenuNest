@@ -10,7 +10,7 @@ public sealed record CreateAccountRequest(
     string Name, BudgetAccountType Type, decimal OpeningBalance, int SortOrder);
 
 public sealed record UpdateAccountRequest(
-    string Name, int SortOrder, bool IsClosed, decimal? SetBalance);
+    string Name, int SortOrder, bool IsClosed);
 
 // ---------- Groups ----------
 public sealed record CategoryGroupDto(Guid Id, string Name, int SortOrder, bool IsHidden);
