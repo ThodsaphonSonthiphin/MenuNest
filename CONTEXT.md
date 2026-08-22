@@ -507,15 +507,19 @@ glossary and belongs to the tickets that own those decisions._
   everyday money remaining divided by days remaining in the calendar month, **frozen** at a
   **Budgeting event** and then held still. Spending never changes it. Floors at 0 when the
   **Everyday envelopes** are empty or negative. It is a derived, stored figure — not a new kind of
-  **Envelope** and not a target. _Avoid_: daily budget, safe-to-spend, spendable today, per-day
-  amount.
+  **Envelope** and not a target. Exactly **one** is stored per **Family**, overwritten at each
+  freeze, and it is shown **only while the selected month is the current month** — a past month has
+  no today, so the card is absent there rather than showing a stale figure (menunest-185).
+  _Avoid_: daily budget, safe-to-spend, spendable today, per-day amount.
 - **Budgeting event** — one of the three deliberate acts that re-freeze the **Daily allowance**:
   marking or unmarking an **Everyday envelope**, assigning money into one, or the budget month
   rolling over. Recording a spend is explicitly **not** one. _Avoid_: recompute, refresh, budget
   change.
 - **Pace line** — the second line under the **Daily allowance**, comparing what the **User** should
   have spent by now against what they did spend, and reading "you are 2,000 over" or "…under". It
-  is the only part of the daily-allowance card that reacts to spending. _Avoid_: over/under (bare),
+  is the only part of the daily-allowance card that reacts to spending. "By now" counts only
+  **completed** days since the freeze, so the line is **silent on the freeze day itself** — today's
+  share is the headline figure, not a debt already owed (menunest-186). _Avoid_: over/under (bare),
   variance, burn rate, on-track indicator.
 
 ## Build & release
