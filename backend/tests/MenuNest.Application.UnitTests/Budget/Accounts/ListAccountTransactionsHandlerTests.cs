@@ -131,6 +131,39 @@ public class ListAccountTransactionsHandlerTests
         result.HasMore.Should().BeTrue();          // 50 rows beyond the clamp
     }
 
+    // ── menunest-183: the balance is derived as of the requested month ──
+
+    /// <summary>
+    /// Pins the Blocker 2 fix from the final whole-branch review: this DTO's
+    /// balance must be derived as of the requested month (the same rule
+    /// GetMonthlySummaryHandler applies), never the account's cached
+    /// today's-total <c>acct.Balance</c>. <c>SeedAccount</c> gives the
+    /// account a cached balance of 1000m that is never touched by the
+    /// transactions added below, so if the handler regresses to returning
+    /// <c>acct.Balance</c> this test fails with 1000m instead of the May
+    /// total of 500m.
+    /// </summary>
+    [Fact]
+    public async Task Balance_is_derived_for_the_requested_month_not_todays_cached_total()
+    {
+        using var fx = new HandlerTestFixture();
+        var acct = await SeedAccount(fx); // cached Balance = 1000m — unrelated to the tx below
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, acct.Id, null, 500m,
+            new DateOnly(2026, 5, 15), "may deposit", fx.User.Id));
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, acct.Id, null, 300m,
+            new DateOnly(2026, 6, 5), "june deposit — must NOT count toward the May balance", fx.User.Id));
+        await fx.Db.SaveChangesAsync();
+
+        var result = await Build(fx).Handle(
+            new ListAccountTransactionsQuery(acct.Id, Year: 2026, Month: 5, Skip: 0, Take: 50),
+            CancellationToken.None);
+
+        result.Account.Balance.Should().Be(500m,
+            "the May balance is the sum of transactions dated before June 1st, not the account's cached today total (1000m) and not the running total including June's deposit (1800m)");
+    }
+
     [Fact]
     public async Task Throws_when_account_does_not_belong_to_caller_family()
     {
