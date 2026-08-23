@@ -65,10 +65,10 @@ public class BudgetToolsTests
     public async Task create_budget_account_sends_CreateAccountCommand_with_correct_fields()
     {
         _mediator
-            .Setup(m => m.Send(It.Is<CreateAccountCommand>(c => c.Name == "Wallet" && c.Type == BudgetAccountType.Cash && c.OpeningBalance == 500m), It.IsAny<CancellationToken>()))
+            .Setup(m => m.Send(It.Is<CreateAccountCommand>(c => c.Name == "Wallet" && c.Type == BudgetAccountType.Cash && c.OpeningBalance == 500m && c.TimeZoneId == Tz), It.IsAny<CancellationToken>()))
             .Returns<CreateAccountCommand, CancellationToken>((_, _) => new ValueTask<BudgetAccountDto>((BudgetAccountDto)default!));
-        await _sut.create_budget_account("Wallet", BudgetAccountType.Cash, 500m, CancellationToken.None);
-        _mediator.Verify(m => m.Send(It.Is<CreateAccountCommand>(c => c.Name == "Wallet" && c.Type == BudgetAccountType.Cash && c.OpeningBalance == 500m), It.IsAny<CancellationToken>()), Times.Once);
+        await _sut.create_budget_account("Wallet", BudgetAccountType.Cash, 500m, Tz, CancellationToken.None);
+        _mediator.Verify(m => m.Send(It.Is<CreateAccountCommand>(c => c.Name == "Wallet" && c.Type == BudgetAccountType.Cash && c.OpeningBalance == 500m && c.TimeZoneId == Tz), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

@@ -8,6 +8,7 @@ import {
   type BudgetAccountType,
 } from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 
 interface FormValues {
   name: string
@@ -40,6 +41,7 @@ export function AddAccountDialog({onClose}: {onClose: () => void}) {
         name: values.name.trim(),
         type: values.type,
         openingBalance: Number(values.openingBalance ?? 0),
+        timeZoneId: getViewerTimeZone(),
       }).unwrap()
       onClose()
     } catch (e) {

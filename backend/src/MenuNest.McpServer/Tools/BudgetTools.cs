@@ -49,8 +49,9 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Account name")] string name,
         [Description("Account type: Cash, Credit, Loan, or Closed")] BudgetAccountType type,
         [Description("Opening balance (use negative for liabilities such as credit cards)")] decimal openingBalance,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Prefer to always pass it whenever you know the user's zone; it is strictly required only when openingBalance is non-zero (a call that omits it then fails).")] string? timeZoneId,
         CancellationToken ct)
-        => await mediator.Send(new CreateAccountCommand(name, type, openingBalance), ct);
+        => await mediator.Send(new CreateAccountCommand(name, type, openingBalance, timeZoneId), ct);
 
     [McpServerTool, Description("Update a budget account's name, sort order, or closed status")]
     public async Task<BudgetAccountDto> update_budget_account(
