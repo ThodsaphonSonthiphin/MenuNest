@@ -26,6 +26,18 @@ public sealed class ListAccountTransactionsHandler
         var skip = Math.Max(q.Skip, 0);
         var take = Math.Clamp(q.Take, 1, 100);
 
+        // menunest-183: the balance shown here must be derived as of the
+        // requested month — the same "cumulative sum dated before next-month"
+        // rule GetMonthlySummaryHandler.cs:104-112 applies — not acct.Balance
+        // (the cached TODAY total). AccountsStrip on the main Budget page
+        // already shows the derived, as-of-month figure; returning the cached
+        // total here would show two different balances for the same account
+        // and month, one tap apart, for any month other than the current one.
+        var nextMonth = new DateOnly(q.Year, q.Month, 1).AddMonths(1);
+        var balance = await _db.BudgetTransactions
+            .Where(t => t.AccountId == acct.Id && t.Date < nextMonth)
+            .SumAsync(t => (decimal?)t.Amount, ct) ?? 0m;
+
         var inflow = await _db.BudgetTransactions
             .Where(t => t.AccountId == acct.Id
                      && t.Date.Year == q.Year && t.Date.Month == q.Month
@@ -55,7 +67,7 @@ public sealed class ListAccountTransactionsHandler
         var hasMore = await pageQuery.Skip(skip + take).AnyAsync(ct);
 
         return new AccountTransactionsPageDto(
-            new AccountSummaryDto(acct.Id, acct.Name, acct.Type, acct.Balance, inflow, outflow),
+            new AccountSummaryDto(acct.Id, acct.Name, acct.Type, balance, inflow, outflow),
             items,
             hasMore);
     }
