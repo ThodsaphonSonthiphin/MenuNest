@@ -509,6 +509,9 @@ export interface CreateAccountRequest {
     type: BudgetAccountType
     openingBalance: number
     sortOrder?: number
+    // menunest-189: only actually resolved server-side when openingBalance is
+    // non-zero, but always sent — see shared/utils/timeZone.ts.
+    timeZoneId?: string
 }
 
 export interface UpdateAccountRequest {

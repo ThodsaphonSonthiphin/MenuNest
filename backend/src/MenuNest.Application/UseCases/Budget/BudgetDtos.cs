@@ -6,8 +6,11 @@ namespace MenuNest.Application.UseCases.Budget;
 public sealed record BudgetAccountDto(
     Guid Id, string Name, BudgetAccountType Type, decimal Balance, int SortOrder, bool IsClosed);
 
+// TimeZoneId (menunest-189) is the viewer's IANA zone — only actually
+// resolved when OpeningBalance is non-zero and an opening-balance
+// transaction needs to be dated.
 public sealed record CreateAccountRequest(
-    string Name, BudgetAccountType Type, decimal OpeningBalance, int SortOrder);
+    string Name, BudgetAccountType Type, decimal OpeningBalance, int SortOrder, string? TimeZoneId);
 
 public sealed record UpdateAccountRequest(
     string Name, int SortOrder, bool IsClosed);
