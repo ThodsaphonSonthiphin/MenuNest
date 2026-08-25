@@ -1,39 +1,23 @@
-import {useState} from 'react'
 import {Link} from 'react-router-dom'
-import {useAppSelector} from '../../../store'
-import {useListBudgetTransactionsQuery, useDeleteBudgetTransactionMutation} from '../../../shared/api/api'
-import type {BudgetTransactionDto} from '../../../shared/api/api'
-import {useBudgetData} from '../BudgetPage.hooks'
 import {GlobalTransactionList} from './GlobalTransactionList'
 import {TransactionDialog} from '../components/TransactionDialog'
+import {useGlobalTransactionsPage} from './GlobalTransactionsPage.hooks'
 import '../BudgetPage.css' // to ensure .bdg-page and standard styles are available
 
 export function GlobalTransactionsPage() {
-  const {year, month} = useAppSelector(s => s.budget)
-  
-  // Need accounts and groups for the TransactionDialog
-  const {summary, isLoading: isSummaryLoading} = useBudgetData()
-  
-  const {data: txs, isLoading: isTxLoading} = useListBudgetTransactionsQuery({year, month})
-  const [deleteTx] = useDeleteBudgetTransactionMutation()
-
-  const [editingTx, setEditingTx] = useState<BudgetTransactionDto | null>(null)
-  const [isAdding, setIsAdding] = useState(false)
-
-  const isLoading = isSummaryLoading || isTxLoading
+  const {
+    txs,
+    summary,
+    isLoading,
+    editingTx,
+    setEditingTx,
+    isAdding,
+    setIsAdding,
+    handleDelete,
+  } = useGlobalTransactionsPage()
 
   if (isLoading || !summary) {
     return <div className="bdg-page bdg-loading">Loading transactions…</div>
-  }
-
-  const handleDelete = async (tx: BudgetTransactionDto) => {
-    if (window.confirm('Delete this transaction?')) {
-      try {
-        await deleteTx({id: tx.id, year, month}).unwrap()
-      } catch {
-        window.alert('Failed to delete transaction.')
-      }
-    }
   }
 
   const dialogOpen = isAdding || editingTx != null
