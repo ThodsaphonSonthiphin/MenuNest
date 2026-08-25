@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom'
 import {useAppDispatch, useAppSelector} from '../../../store'
 import {goPrevMonth, goNextMonth} from '../budgetSlice'
 
@@ -29,6 +30,14 @@ export function MonthStrip() {
         onClick={() => dispatch(goNextMonth())}
         aria-label="Next month"
       >›</button>
+      <div className="bdg-month-actions">
+        <Link to="/budget/transactions" className="bdg-settings-btn" aria-label="All transactions">
+          <span className="icon">☰</span>
+        </Link>
+        <Link to="/settings" className="bdg-settings-btn" aria-label="Settings">
+          ⚙
+        </Link>
+      </div>
     </div>
   )
 }
