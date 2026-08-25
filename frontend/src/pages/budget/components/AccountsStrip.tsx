@@ -31,13 +31,24 @@ const DOT_BY_TYPE: Record<BudgetAccountDto['type'], string> = {
  * preventDefault/stopPropagation needed, because the two are no longer
  * ancestor/descendant.
  */
-export function AccountsStrip({accounts}: {accounts: BudgetAccountDto[]}) {
+export function AccountsStrip({accounts, totalAvailable}: {accounts: BudgetAccountDto[], totalAvailable: number}) {
   const [addOpen, setAddOpen] = useState(false)
   const [reconcileFor, setReconcileFor] = useState<BudgetAccountDto | null>(null)
+
+  const totalAccounts = accounts.reduce((sum, a) => sum + a.balance, 0)
+  const overage = totalAvailable - totalAccounts
+
   return (
     <>
       <div className="bdg-section-title">
-        <h3>Accounts · newest first</h3>
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          บัญชีรวม {formatTHB(totalAccounts)}
+          {overage > 0 && (
+            <span className="bdg-accounts-overage">
+              (ตั้งงบเกิน -{formatTHB(overage)})
+            </span>
+          )}
+        </h3>
       </div>
       <div className="bdg-accounts-strip" data-testid="bdg-accounts-strip">
         {accounts.map(a => (
