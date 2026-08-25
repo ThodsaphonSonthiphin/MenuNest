@@ -16,7 +16,8 @@ function todayIso(): string {
 function dateHeaderFor(iso: string): string {
   const today = todayIso()
   if (iso === today) return `Today · ${formatDateShort(iso)}`
-  const yest = new Date(Date.now() - 86400_000)
+  const d = new Date()
+  const yest = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1)
   const yestIso = `${yest.getFullYear()}-${String(yest.getMonth() + 1).padStart(2, '0')}-${String(yest.getDate()).padStart(2, '0')}`
   if (iso === yestIso) return `Yesterday · ${formatDateShort(iso)}`
   return formatDateShort(iso)
@@ -31,7 +32,8 @@ function formatDateShort(iso: string): string {
 export function GlobalTransactionList({items, onEdit, onDelete}: GlobalTransactionListProps) {
   // Bucket by Date
   const buckets: {date: string; rows: BudgetTransactionDto[]}[] = []
-  for (const tx of items) {
+  const sortedItems = [...items].sort((a, b) => b.date.localeCompare(a.date))
+  for (const tx of sortedItems) {
     const last = buckets[buckets.length - 1]
     if (last && last.date === tx.date) last.rows.push(tx)
     else buckets.push({date: tx.date, rows: [tx]})
