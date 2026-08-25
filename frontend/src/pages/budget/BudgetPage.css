@@ -711,3 +711,9 @@
   from { width: 100%; }
   to { width: 0%; }
 }
+
+.bdg-accounts-overage {
+  color: var(--red);
+  font-weight: 500;
+  font-size: 0.9em;
+}
