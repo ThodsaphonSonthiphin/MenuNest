@@ -369,8 +369,9 @@
 .bdg-env-action.is-primary { background: var(--accent); color: white; border-color: var(--accent); }
 .bdg-env-action.is-danger  { background: var(--red-bg); color: var(--red); border-color: var(--red); }
 
-/* -------- Account detail page -------- */
+/* -------- Account detail page & Global transactions page -------- */
 .bdg-top-bar { display: flex; align-items: center; gap: 8px; }
+.bdg-acc-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .bdg-back-btn {
   width: 32px; height: 32px; border-radius: 50%;
   background: var(--bg-card); border: 1px solid var(--border);
@@ -378,6 +379,7 @@
   font-size: 16px; color: var(--text); text-decoration: none;
 }
 .bdg-top-bar-title { font-size: 15px; font-weight: 700; flex: 1; }
+.bdg-acc-title { font-size: 15px; font-weight: 700; color: var(--text); }
 
 .bdg-account-hero {
   padding: 18px; border-radius: 18px; color: white;
