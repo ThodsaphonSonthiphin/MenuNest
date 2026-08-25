@@ -57,6 +57,7 @@
 /* -------- Month strip -------- */
 .bdg-month-strip {
   display: flex; align-items: center; justify-content: center; gap: 16px;
+  position: relative;
 }
 .bdg-month-arrow {
   background: none; border: none; color: var(--text-muted); cursor: pointer;
@@ -64,6 +65,17 @@
 }
 .bdg-month-arrow:hover { background: var(--bg-card); color: var(--text); }
 .bdg-month-label { font-size: 15px; font-weight: 700; }
+.bdg-month-actions {
+  position: absolute; right: 0; display: flex; align-items: center; gap: 6px;
+}
+.bdg-settings-btn {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--bg-card); border: 1px solid var(--border);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 15px; color: var(--text); text-decoration: none; cursor: pointer;
+}
+.bdg-settings-btn:hover { background: var(--bg-card-2); }
+
 
 /* ============================================================
    Daily allowance card (menunest-181/186) — the frozen "you can

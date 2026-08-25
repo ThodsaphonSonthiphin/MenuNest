@@ -15,7 +15,7 @@ import { MealPlanPage } from './pages/meal-plan'
 import { ShoppingListsPage, ShoppingListDetailPage } from './pages/shopping'
 import { IngredientsPage } from './pages/ingredients'
 import { AiAssistantPage } from './pages/ai-assistant'
-import { BudgetPage, AccountDetailPage } from './pages/budget'
+import { BudgetPage, AccountDetailPage, GlobalTransactionsPage } from './pages/budget'
 import {TripsPage, TripDetailPage} from './pages/trips'
 import {DiscoverPage} from './pages/discover'
 import { SettingsPage } from './pages/settings'
@@ -92,6 +92,7 @@ export const router = createBrowserRouter([
               { path: '/ingredients', element: <IngredientsPage /> },
               { path: '/family', element: <FamilyPage /> },
               { path: '/budget', element: <BudgetPage /> },
+              { path: '/budget/transactions', element: <GlobalTransactionsPage /> },
               { path: '/budget/accounts/:accountId', element: <AccountDetailPage /> },
               { path: '/ai-assistant', element: <AiAssistantPage /> },
               { path: '*', element: <Navigate to="/" replace /> },
