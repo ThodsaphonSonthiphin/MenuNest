@@ -23,13 +23,12 @@ Provide a clear, persistent view of the user's actual combined account balance o
 
 ## 4. Logic & Calculation
 - `totalAccounts = accounts.reduce((sum, a) => sum + a.balance, 0)`
-- `totalBudget = totalAvailable`
-- `overage = totalBudget - totalAccounts`
+- `overage = readyToAssign < 0 ? Math.abs(readyToAssign) : 0`
 - Display the alert only if `overage > 0`.
 
 ## 5. Data Flow
-- Update `AccountsStrip` component props to accept `totalAvailable: number` alongside `accounts: BudgetAccountDto[]`.
-- Pass `summary.available` into `AccountsStrip` from `BudgetPage.tsx`.
+- Update `AccountsStrip` component props to accept `readyToAssign: number` alongside `accounts: BudgetAccountDto[]`.
+- Pass `summary.readyToAssign` into `AccountsStrip` from `BudgetPage.tsx`.
 
 ## 6. Global Constraints
 - Text labels must match the agreed Thai wording.

@@ -46,7 +46,7 @@ export function BudgetPage() {
       <RtaHero summary={summary} />
       <SuggestedFixCard summary={summary} />
       <QuickAssignChips summary={summary} />
-      <AccountsStrip accounts={summary.accounts} totalAvailable={summary.available} />
+      <AccountsStrip accounts={summary.accounts} readyToAssign={summary.readyToAssign} />
 
       <div className="bdg-filters">
         {chips.map(([k, label, danger]) => (

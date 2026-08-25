@@ -31,12 +31,12 @@ const DOT_BY_TYPE: Record<BudgetAccountDto['type'], string> = {
  * preventDefault/stopPropagation needed, because the two are no longer
  * ancestor/descendant.
  */
-export function AccountsStrip({accounts, totalAvailable}: {accounts: BudgetAccountDto[], totalAvailable: number}) {
+export function AccountsStrip({accounts, readyToAssign}: {accounts: BudgetAccountDto[], readyToAssign: number}) {
   const [addOpen, setAddOpen] = useState(false)
   const [reconcileFor, setReconcileFor] = useState<BudgetAccountDto | null>(null)
 
   const totalAccounts = accounts.reduce((sum, a) => sum + a.balance, 0)
-  const overage = totalAvailable - totalAccounts
+  const overage = readyToAssign < 0 ? Math.abs(readyToAssign) : 0
 
   return (
     <>

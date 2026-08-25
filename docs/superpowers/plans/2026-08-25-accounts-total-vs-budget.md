@@ -30,14 +30,14 @@
 
 - [ ] **Step 1: Update `AccountsStrip` props and calculation**
 
-In `frontend/src/pages/budget/components/AccountsStrip.tsx`, update the props to include `totalAvailable`:
+In `frontend/src/pages/budget/components/AccountsStrip.tsx`, update the props to include `readyToAssign`:
 ```tsx
-export function AccountsStrip({accounts, totalAvailable}: {accounts: BudgetAccountDto[], totalAvailable: number}) {
+export function AccountsStrip({accounts, readyToAssign}: {accounts: BudgetAccountDto[], readyToAssign: number}) {
   const [addOpen, setAddOpen] = useState(false)
   const [reconcileFor, setReconcileFor] = useState<BudgetAccountDto | null>(null)
   
   const totalAccounts = accounts.reduce((sum, a) => sum + a.balance, 0)
-  const overage = totalAvailable - totalAccounts
+  const overage = readyToAssign < 0 ? Math.abs(readyToAssign) : 0
 ```
 
 - [ ] **Step 2: Update UI rendering for the header in `AccountsStrip`**
@@ -58,7 +58,7 @@ In `frontend/src/pages/budget/components/AccountsStrip.tsx`, replace `<h3>Accoun
 
 In `frontend/src/pages/budget/BudgetPage.tsx`, update the `<AccountsStrip>` usage:
 ```tsx
-      <AccountsStrip accounts={summary.accounts} totalAvailable={summary.available} />
+      <AccountsStrip accounts={summary.accounts} readyToAssign={summary.readyToAssign} />
 ```
 
 - [ ] **Step 4: Add CSS for the overage alert**
