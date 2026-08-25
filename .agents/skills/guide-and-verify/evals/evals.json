@@ -1,0 +1,55 @@
+{
+  "skill_name": "guide-and-verify",
+  "evals": [
+    {
+      "id": 0,
+      "name": "dns-cutover-no-agent-access",
+      "prompt": "we're moving the marketing site off the old droplet onto vercel this thursday. our dns is in cloudflare but only our ops lead has the login, and i can get him on a call for about 20 minutes, that's it. can you write me something i can literally read to him line by line? right now there's an A record for www.brightlane.io pointing at 143.198.72.14, and it needs to become a CNAME to cname.vercel-dns.com. i'm nervous about this because last time someone did a cutover we had the site down for three hours and nobody could tell whether it was propagation or just a wrong record.",
+      "expected_output": "A runbook the user can read aloud. Should settle the boundary, capture the current record before it is overwritten, give an exact click path plus reasoned do-nots, separate the apply action from propagation delay, and self-check in a second channel (a resolver, not the Cloudflare UI). Should not present the user-supplied IP as a measured baseline.",
+      "files": [],
+      "assertions": [
+        "States that the agent has no access to the Cloudflare account and that the ops lead performs every change",
+        "Instructs capturing or screenshotting the existing A record BEFORE it is overwritten, because the change destroys the old value",
+        "Gives a concrete navigation path inside Cloudflare rather than a vague description of where to look",
+        "Every 'do not' item carries the reason for the prohibition",
+        "Separates the save/apply action from DNS propagation delay, and says which one explains a stale answer",
+        "The self-check reads a resolver (dig, nslookup, or an external DNS checker) rather than re-reading the Cloudflare UI",
+        "Labels the 143.198.72.14 baseline as user-supplied and unverified, rather than stating it as a measured fact",
+        "Tells the ops lead a rollback action (restore the A record) and what would trigger it"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "rds-parameter-pending-reboot",
+      "prompt": "i need to turn on slow query logging on our production postgres in RDS - set log_min_duration_statement to 500ms. i'm the only one with AWS console access so i have to click it myself, but you can read the database directly, there's a read-only user in .env. can you walk me through it and then confirm it actually took effect? i've been burned before where i changed a parameter group and nothing happened.",
+      "expected_output": "Baseline read from the DB before the console steps, target stated as an assertion, console click path, explicit handling of the saved-vs-in-effect gap, and a SQL self-check.",
+      "files": [],
+      "assertions": [
+        "Reads (or states it will read) the current parameter value from the database BEFORE giving the console steps",
+        "States the expected after-value as an explicit assertion before the user acts",
+        "Addresses the saved-but-not-in-effect gap for RDS parameter groups, including whether a reboot or apply is required",
+        "The self-check is a SQL read the user can run alone (SHOW, current_setting, or pg_settings)",
+        "Verification happens in a channel different from the AWS console where the change was made",
+        "Says plainly that it could not reach the live database, rather than presenting an invented current value",
+        "The apply/save action appears as its own numbered step, not as a clause inside another step",
+        "Warns that the parameter group may be shared by more than one instance, or otherwise names what must not change"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "intercom-property-partial-removal",
+      "prompt": "we're deprecating a custom contact property called legacy_tier in our intercom workspace. when i search for it it shows up in something like 40 places but i'm pretty sure most of those are just references rather than things i actually have to touch. i need it off the contact sidebar and out of any saved segments that filter on it, but absolutely NOT deleted from the underlying data - finance still exports it. i'll do all the clicking, you tell me what to click and then check i did it right.",
+      "expected_output": "Refuses to build the runbook off the '40 places' figure, separates raw matches from actionable objects, carries the do-not-delete near-miss, splits into verified steps, and gives a self-check.",
+      "files": [],
+      "assertions": [
+        "Does not accept the user's '40 places' figure as the work list, and explicitly separates raw search matches from objects the user must actually click",
+        "States that the property and its stored data must NOT be deleted, and names that as the dangerous adjacent action",
+        "Splits the sidebar work and the segment work into separate steps with a verification point between them",
+        "Declares what must not change (a blast-radius assertion) in addition to the success condition",
+        "Provides a self-check the user can run without the agent",
+        "States that it cannot read the workspace and asks the user (or a read-only API call) to supply the real counts, instead of inventing them",
+        "Warns that removing the property from a saved segment can change that segment's membership, or otherwise flags a side effect on dependent objects"
+      ]
+    }
+  ]
+}
