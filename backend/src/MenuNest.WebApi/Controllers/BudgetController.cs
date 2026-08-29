@@ -1,5 +1,7 @@
 using Mediator;
 using MenuNest.Application.UseCases.Budget;
+using MenuNest.Application.UseCases.Budget.History.RedoChange;
+using MenuNest.Application.UseCases.Budget.History.UndoChange;
 using MenuNest.Application.UseCases.Budget.Accounts.CreateAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.DeleteAccount;
 using MenuNest.Application.UseCases.Budget.Accounts.ListAccounts;
@@ -133,6 +135,15 @@ public sealed class BudgetController : ControllerBase
     [HttpPost("monthly/move")]
     public async Task<IActionResult> Move([FromBody] MoveMoneyRequest r, CancellationToken ct)
     { await _m.Send(new MoveMoneyCommand(r.FromCategoryId, r.ToCategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId), ct); return NoContent(); }
+
+    // ----- undo history (menunest-193..198) -----
+    [HttpPost("history/{id:guid}/undo")]
+    public async Task<IActionResult> UndoChange(Guid id, CancellationToken ct)
+    { await _m.Send(new UndoChangeCommand(id), ct); return NoContent(); }
+
+    [HttpPost("history/{id:guid}/redo")]
+    public async Task<IActionResult> RedoChange(Guid id, CancellationToken ct)
+    { await _m.Send(new RedoChangeCommand(id), ct); return NoContent(); }
 
     [HttpPost("monthly/cover")]
     public async Task<IActionResult> Cover([FromBody] CoverOverspendingRequest r, CancellationToken ct)
