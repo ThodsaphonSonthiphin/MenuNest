@@ -1,6 +1,6 @@
 import {SpeedDialComponent} from '@syncfusion/ej2-react-buttons'
 import type {SpeedDialItemModel} from '@syncfusion/ej2-buttons'
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react'
 import {classifyUndoKey} from '../lib/keyBinding'
 import {decideRailVisibility, initialRailScrollState} from '../lib/railVisibility'
 import type {RailAction} from './ShortcutRailProvider'
@@ -28,6 +28,9 @@ export function ShortcutRail({actions}: {actions: RailAction[]}) {
   actionsRef.current = actions
 
   const [scroll, setScroll] = useState(initialRailScrollState)
+  // Mirrored as a ref for the scroll handler (which must not re-subscribe) and
+  // as state for the class that swaps the main glyph.
+  const [isOpen, setIsOpen] = useState(false)
   const isOpenRef = useRef(false)
   const idleTimerRef = useRef<number | null>(null)
 
@@ -35,14 +38,35 @@ export function ShortcutRail({actions}: {actions: RailAction[]}) {
     () =>
       actions.map(a => ({
         id: a.key,
-        // menunest-200: the keyboard hint rides on the label; CSS hides it
-        // below desktop widths, where there is no keyboard to hint about.
-        text: a.hint ? `${a.label} ${a.hint}` : a.label,
+        // `text` is what Syncfusion would paint inside the 44px circle. The
+        // approved mock puts the ICON there and the label in a pill to the
+        // left, so the real content comes from itemTemplate below; this is
+        // kept only for the native tooltip and for accessible naming.
         title: a.label,
         disabled: a.disabled,
       })),
     [actions],
   )
+
+  // The mock's item: a glyph in the circle, and a dark label pill to its left
+  // carrying the name plus — desktop only (menunest-200) — the key binding.
+  const itemTemplate = useCallback((item: SpeedDialItemModel) => {
+    // EJ2 hands the template its internal complex object, not the plain model
+    // that was passed in: the declared values sit one level down on
+    // `properties`, and a bare `item.id` reads undefined.
+    const id = item?.id ?? (item as {properties?: SpeedDialItemModel})?.properties?.id
+    const a = actionsRef.current.find(x => x.key === id)
+    if (!a) return <span />
+    return (
+      <span className="bdg-rail-item">
+        <span className="bdg-rail-ico" aria-hidden="true">{a.icon}</span>
+        <span className="bdg-rail-tag">
+          {a.label}
+          {a.hint ? <span className="bdg-rail-key">{a.hint}</span> : null}
+        </span>
+      </span>
+    )
+  }, [])
 
   // ----- hide on scroll, return on idle (menunest-192) -----
   useEffect(() => {
@@ -97,7 +121,7 @@ export function ShortcutRail({actions}: {actions: RailAction[]}) {
 
   return (
     <div
-      className={`bdg-rail ${scroll.hidden ? 'is-hidden' : ''}`}
+      className={`bdg-rail ${scroll.hidden ? 'is-hidden' : ''} ${isOpen ? 'is-open' : ''}`}
       data-testid="bdg-rail"
     >
       <SpeedDialComponent
@@ -105,15 +129,23 @@ export function ShortcutRail({actions}: {actions: RailAction[]}) {
         mode="Linear"
         direction="Up"
         modal={true}
-        content="⋮"
+        // One icon span whose glyph is chosen in CSS off .is-open. Syncfusion's
+        // own openIconCss/closeIconCss pair is meant to do this, but it does not
+        // swap here — measured open, the button kept the resting glyph.
+        openIconCss="bdg-rail-glyph"
         items={items}
+        itemTemplate={itemTemplate}
         cssClass="bdg-rail-dial"
         // Forwarded onto the rendered <button>. The wrapper above is
         // `display: contents` (Syncfusion positions the button itself), so it
         // has no box — e2e geometry assertions need a testid on the real one.
         data-testid="bdg-rail-fab"
-        beforeOpen={() => { isOpenRef.current = true; setScroll(p => ({...p, hidden: false})) }}
-        beforeClose={() => { isOpenRef.current = false }}
+        beforeOpen={() => {
+          isOpenRef.current = true
+          setIsOpen(true)
+          setScroll(p => ({...p, hidden: false}))
+        }}
+        beforeClose={() => { isOpenRef.current = false; setIsOpen(false) }}
         clicked={(args: {item?: SpeedDialItemModel}) => {
           const hit = actionsRef.current.find(a => a.key === args.item?.id)
           if (hit && !hit.disabled) hit.onPress()

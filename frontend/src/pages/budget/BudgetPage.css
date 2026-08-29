@@ -767,7 +767,9 @@
    on stylesheet order. */
 .bdg-rail .e-fab.e-btn.e-fab-bottom { bottom: 22px; }
 .bdg-rail .e-fab.e-btn.e-fab-right  { right: 16px; }
-.bdg-rail .e-fab.e-btn              { z-index: 40; }
+/* Deliberately NO z-index here. The mock's `z-index: 40` describes the rail
+   against the page; Syncfusion stacks the button above its own scrim at
+   99999, and forcing 40 puts the button UNDER the scrim while open. */
 
 /* Hide on scroll. The transform goes on the elements Syncfusion positions,
    NOT on the wrapper: a transformed ancestor becomes the containing block for
@@ -784,34 +786,73 @@
   pointer-events: none;
 }
 
-/* main button — 52x52, indigo */
-.bdg-rail .e-speeddial-fab,
-.bdg-rail .e-fab {
+/* main button — 52x52, indigo.
+   The theme paints .e-btn.e-primary Material pink (#e3165b) at (0,2,0), which
+   ties with a plain `.bdg-rail .e-fab` and then wins on load order — the rail
+   shipped pink against an indigo page until the e2e measured it. Every visual
+   rule below therefore carries enough classes to beat the theme outright, and
+   the hover/focus/active states are pinned too or the pink returns on press. */
+.bdg-rail .e-fab.e-btn,
+.bdg-rail .e-fab.e-btn:hover,
+.bdg-rail .e-fab.e-btn:focus,
+.bdg-rail .e-fab.e-btn:active {
   width: 52px; height: 52px; border-radius: 50%;
   background: var(--accent); color: #fff; border: none;
   box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
   font-size: 21px; line-height: 1;
 }
 
-/* items — 44x44 on card white */
-.bdg-rail .e-speeddial-li {
+/* items — 44x44 on card white, holding the glyph; the label rides in a dark
+   pill to their left, exactly as the mock draws it. Syncfusion's own linear
+   mode would paint the raw text inside the circle instead, which is what the
+   itemTemplate in ShortcutRail.tsx replaces. */
+.bdg-rail .e-speeddial-popup .e-speeddial-li,
+.bdg-rail .e-speeddial-popup .e-speeddial-li:hover,
+.bdg-rail .e-speeddial-popup .e-speeddial-li:focus {
   width: 44px; height: 44px; border-radius: 50%;
   background: var(--bg-card); border: 1px solid var(--border);
   color: var(--accent); font-size: 17px;
   box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+  padding: 0; overflow: visible;
 }
-.bdg-rail .e-speeddial-li + .e-speeddial-li { margin-top: 10px; }
-.bdg-rail .e-speeddial-ul { margin-bottom: 12px; }
+/* EJ2 wraps every itemTemplate result in a plain <div>; it has to fill the
+   circle too or the glyph will not centre in it. */
+.bdg-rail .e-speeddial-popup .e-speeddial-li > div {
+  width: 100%; height: 100%;
+}
+.bdg-rail .e-speeddial-popup .bdg-rail-item {
+  position: relative;
+  display: grid; place-items: center;
+  width: 100%; height: 100%;
+}
+.bdg-rail .e-speeddial-popup .bdg-rail-ico { line-height: 1; }
+.bdg-rail .e-speeddial-popup .bdg-rail-tag {
+  position: absolute; right: calc(100% + 9px); top: 50%; transform: translateY(-50%);
+  background: var(--text); color: #fff;
+  font-size: 10.5px; font-weight: 600; white-space: nowrap;
+  padding: 4px 9px; border-radius: 6px;
+}
+/* menunest-200: the key binding rides on the label pill, and is dropped below
+   desktop widths where there is no keyboard to hint about. */
+.bdg-rail .e-speeddial-popup .bdg-rail-key { margin-left: 6px; opacity: .72; }
+
+/* Resting glyph, and the close affordance the mock shows while open. */
+.bdg-rail .e-fab.e-btn .bdg-rail-glyph::before { content: '\22ee'; line-height: 1; }
+.bdg-rail.is-open .e-fab.e-btn .bdg-rail-glyph::before { content: '\00d7'; font-size: 24px; }
+@media (max-width: 767px) {
+  .bdg-rail .e-speeddial-popup .bdg-rail-key { display: none; }
+}
+
+/* Syncfusion pads the list and margins each item; take both over so the mock's
+   gap 10 between items and gap 12 to the main button are the real numbers. */
+.bdg-rail .e-speeddial-popup .e-speeddial-ul {
+  display: flex; flex-direction: column-reverse; align-items: center;
+  gap: 10px; padding: 0; margin: 0 0 12px;
+}
+.bdg-rail .e-speeddial-popup .e-speeddial-ul .e-speeddial-li { margin: 0; }
 
 /* scrim */
-.bdg-rail .e-speeddial-overlay { background: rgba(15, 23, 42, 0.20); }
-
-/* menunest-200: the keyboard hint rides on the item label and is hidden
-   below desktop widths, where there is no keyboard to hint about. */
-@media (max-width: 767px) {
-  .bdg-rail .e-speeddial-text { font-size: 0; }
-  .bdg-rail .e-speeddial-text::first-line { font-size: 11px; }
-}
+.bdg-rail .e-speeddial-overlay.e-speeddial-fixed { background: rgba(15, 23, 42, 0.20); }
 
 @media (prefers-reduced-motion: reduce) {
   .bdg-rail .e-fab,
