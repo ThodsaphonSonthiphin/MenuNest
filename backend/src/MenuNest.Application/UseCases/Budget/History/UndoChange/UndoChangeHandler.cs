@@ -25,11 +25,20 @@ public sealed class UndoChangeHandler : ICommandHandler<UndoChangeCommand, Unit>
             c => c.Id == cmd.ChangeId && c.FamilyId == familyId, ct)
             ?? throw new DomainException("Change not found.");
 
-        // menunest-198 also lets the FAMILY HEAD undo anyone's change. That role
-        // does not exist yet — it is built in the family-head plan — so this is
-        // the single seam where the check is widened. Do not scatter the rule.
+        // menunest-198: a member may undo their own; the FAMILY HEAD may undo
+        // anyone's. This is the app's only permission distinction, and
+        // menunest-201 keeps it to exactly this one power. This is the single
+        // seam where that widening lives — do not scatter the rule.
         if (change.UserId != user.Id)
-            throw new DomainException("You can only undo your own changes.");
+        {
+            var isHead = await _db.Families
+                .AnyAsync(f => f.Id == familyId && f.HeadUserId == user.Id, ct);
+
+            if (!isHead)
+            {
+                throw new DomainException("You can only undo your own changes.");
+            }
+        }
 
         await _applier.ApplyAsync(change, -1, ct);
         change.MarkUndone(user.Id, _clock.UtcNow);

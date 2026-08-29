@@ -4,7 +4,9 @@ using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.History.RedoChange;
 using MenuNest.Application.UseCases.Budget.History.UndoChange;
 using MenuNest.Domain.Entities;
+using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
+using Moq;
 
 namespace MenuNest.Application.UnitTests.Budget.History;
 
@@ -48,6 +50,18 @@ public class UndoChangeHandlerTests
     {
         using var fx = new HandlerTestFixture();
         var change = Seed(fx, Guid.NewGuid());
+
+        // The caller must be an ORDINARY member. fx.User created the family, so
+        // they are its head (menunest-201) and the head may undo anyone's change
+        // — that widening is covered by HeadUndoesAnyoneTests.
+        var member = User.CreateFromExternalLogin(
+            "member-oid", "member@example.com", "Member", AuthProvider.Microsoft);
+        member.JoinFamily(fx.Family.Id);
+        fx.Db.Users.Add(member);
+        await fx.Db.SaveChangesAsync();
+        fx.UserProvisioner
+            .Setup(u => u.RequireFamilyAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync((member, fx.Family.Id));
 
         var act = async () => await Sut(fx).Handle(new UndoChangeCommand(change.Id), CancellationToken.None);
 
