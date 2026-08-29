@@ -2,6 +2,7 @@ using FluentAssertions;
 using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Allowance;
+using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.Categories.SetEverydayMarks;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
@@ -38,7 +39,7 @@ public class SetEverydayMarksHandlerTests
         var counting = new SaveChangesCountingDbContext(fx.Db);
         var freezer = new AllowanceFreezer(counting);
         var sut = new SetEverydayMarksHandler(
-            counting, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            counting, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var marks = cats.Select(c => new EverydayMark(c.Id, true)).ToList();
         await sut.Handle(new SetEverydayMarksCommand(marks, Bkk), CancellationToken.None);
@@ -77,7 +78,7 @@ public class SetEverydayMarksHandlerTests
         var (amountBefore, frozenOnBefore, frozenPotBefore) = (frozen!.Amount, frozen.FrozenOn, frozen.FrozenPot);
 
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new SetEverydayMarksCommand([new EverydayMark(cat.Id, false)], Bkk),
@@ -123,7 +124,7 @@ public class SetEverydayMarksHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new SetEverydayMarksCommand([new EverydayMark(drop.Id, false)], Bkk),
@@ -165,7 +166,7 @@ public class SetEverydayMarksHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         // Re-submits the SAME mark the category already has — nothing changes.
         await sut.Handle(
@@ -192,7 +193,7 @@ public class SetEverydayMarksHandlerTests
 
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new SetEverydayMarksCommand([new EverydayMark(foreignCat.Id, true)], Bkk),
@@ -207,7 +208,7 @@ public class SetEverydayMarksHandlerTests
         using var fx = new HandlerTestFixture();
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new SetEverydayMarksCommand([], Bkk), CancellationToken.None);
@@ -221,7 +222,7 @@ public class SetEverydayMarksHandlerTests
         using var fx = new HandlerTestFixture();
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new SetEverydayMarksCommand([new EverydayMark(Guid.Empty, true)], Bkk), CancellationToken.None);
@@ -251,7 +252,7 @@ public class SetEverydayMarksHandlerTests
 
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new SetEverydayMarksCommand([new EverydayMark(cat.Id, true)], Bkk),
@@ -275,7 +276,7 @@ public class SetEverydayMarksHandlerTests
 
         var freezer = new AllowanceFreezer(fx.Db);
         var sut = new SetEverydayMarksHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetEverydayMarksValidator(), freezer, fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new SetEverydayMarksCommand([new EverydayMark(cat.Id, true)], "Not/A/Real/Zone"),
