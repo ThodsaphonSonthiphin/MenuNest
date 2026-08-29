@@ -2,10 +2,10 @@
 title: Build and ship - implement the rail and undo/redo, cover it, put it in prod
 type: task
 mode: HITL
-status: open
-assignee: 
+status: closed
+assignee: ship-2120
 blocked_by: [undo-semantics, rail-architecture, mock-signoff, change-history-view, whose-acts, stale-undo, keyboard-bindings, family-head-role]
-gist: 
+gist: Shipped: rail, undo/redo and the head role are live in prod; the head has no UI yet
 ---
 
 ## Question
@@ -67,3 +67,65 @@ shapes exist to reference.
 This session wrote the plan; it did not build. The claim is cleared so `build-ship` returns to
 the frontier for the sessions that execute plan 1.
 
+<!-- decision-map:resolution:start -->
+## Resolution
+
+Shipped: rail, undo/redo and the head role are live in prod; the head has no UI yet
+
+## Shipped to prod on 2026-08-29
+
+All three plans are built, merged to `main`, deployed, and both migrations are applied
+to the prod database by hand.
+
+```mermaid
+graph TD
+    SHIP["build-ship"]
+    P1["plan 1 - undo engine (backend)"] --> SHIP
+    P2["plan 2 - family head role"] --> SHIP
+    P3["plan 3 - shortcut rail (frontend)"] --> SHIP
+    SHIP --> DONE["shipped: rail + undo/redo live"]
+    SHIP -.->|"deferred"| GAP["family-head UI - no screen yet"]
+```
+
+### What is live
+
+| | |
+|---|---|
+| Rail | bottom-right, 3 slots, undo nearest the thumb (menunest-191/192) |
+| Change history | sheet with per-row undo/redo, undone rows stay (menunest-195) |
+| Undo | compensating write, never a rollback (menunest-193) |
+| Window | min(7 days, since the 1st) - hard month cut (menunest-194) |
+| Permission | family head may undo anyone (menunest-198/201) |
+| Keyboard | Ctrl/Cmd+Z, inert in inputs and while a dialog is open (menunest-200) |
+| Migrations | `AddBudgetChanges`, `AddFamilyHead` - both applied, backfill verified |
+
+### The Playwright gate: it did not exist, and now it does
+
+`playwright.config.ts` deliberately starts no backend. Budget specs written later assume a
+real one, so they have failed on every run since 23 Aug - meaning CLAUDE.md's "only automatic
+gate that can catch a rendering bug" was not actually running for /budget. The new spec is
+mocked (`e2e/helpers/mockRoutes/budgetRoutes.ts`) and passes.
+
+It immediately caught five defects that every other gate passed, all in the rail: the button
+shipped Syncfusion's Material **pink** on an indigo page (equal specificity, lost on load
+order); items painted raw text inside the 44px circle instead of an icon plus a label pill;
+the gap to the main button was 22px not the mock's 12; `z-index: 40` copied from the mock put
+the button UNDER the speed dial's own scrim; and the mobile rule hiding the keyboard hint
+targeted a class the rendered markup does not contain.
+
+**The general lesson, worth carrying to the next mockup-backed task:** a mock's numbers are
+not self-applying when a component library positions and paints its own elements. Assert the
+measured values in the e2e, not merely that something rendered.
+
+### KNOWN GAP - the family head has no UI
+
+`POST /api/families/head` and `FamilyMemberDto.IsHead` are live, but **nothing in the SPA
+calls either** (verified: no `isHead` / `families/head` reference in `frontend/src`).
+
+Consequence: menunest-201 rule 2 cannot be exercised by a user. The head is whoever the
+backfill picked and **cannot be transferred**, because plan 3 was written before plan 2 and
+scoped no screen for it. Prod today: 2 families, both headed by their creator.
+
+This needs its own ticket: a head badge on the family screen, and a transfer control.
+
+<!-- decision-map:resolution:end -->
