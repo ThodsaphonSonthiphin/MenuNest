@@ -556,6 +556,28 @@ export interface SetEverydayMarksRequest {
     timeZoneId?: string
 }
 
+/** menunest-196: the four undoable act kinds. */
+export type BudgetChangeKind = 'Assign' | 'Move' | 'Cover' | 'EverydayMark'
+
+/** One row of the Change history sheet (menunest-195). */
+export interface BudgetChangeDto {
+  id: string
+  userId: string
+  userDisplayName: string
+  kind: BudgetChangeKind
+  batchId: string | null
+  categoryName: string
+  secondCategoryName: string | null
+  delta: number
+  flagValue: boolean | null
+  isUndone: boolean
+  undoneByDisplayName: string | null
+  createdAt: string
+  /** menunest-197: false when the envelope was deleted — the row stays, unpressable. */
+  canUndo: boolean
+  blockedReason: string | null
+}
+
 // menunest-182: replaces the deleted setBalance field — an account's
 // balance can only move by writing a transaction, never a silent overwrite.
 export interface CorrectAccountBalanceRequest {
@@ -705,6 +727,7 @@ export const api = createApi({
         'ChatConversations',
         'ChatMessages',
         'BudgetSummary',
+        'BudgetHistory',
         'BudgetAccounts',
         'BudgetGroups',
         'BudgetTransactions',
@@ -1195,7 +1218,7 @@ export const api = createApi({
             query: (id) => ({url: `/api/budget/categories/${id}`, method: 'DELETE'}),
             invalidatesTags: ['BudgetGroups'],
         }),
-        setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number; timeZoneId?: string}>({
+        setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number; timeZoneId?: string; batchId?: string}>({
             query: (b) => ({url: '/api/budget/monthly/assigned', method: 'PUT', body: b}),
             invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
         }),
@@ -1213,6 +1236,28 @@ export const api = createApi({
         setEverydayMarks: build.mutation<void, SetEverydayMarksRequest>({
             query: (b) => ({url: '/api/budget/categories/everyday-marks', method: 'POST', body: b}),
             invalidatesTags: ['BudgetSummary'],
+        }),
+
+        // ----- undo history (menunest-193..198) -----
+        listBudgetHistory: build.query<BudgetChangeDto[], {year: number; month: number}>({
+            query: ({year, month}) => `/api/budget/history?year=${year}&month=${month}`,
+            providesTags: (_r, _e, a) => [{type: 'BudgetHistory', id: `${a.year}-${a.month}`}],
+        }),
+        // Undo and redo move money, so they invalidate the summary as well as
+        // the history list — the numbers on the page behind the sheet change.
+        undoBudgetChange: build.mutation<void, {id: string; year: number; month: number}>({
+            query: ({id}) => ({url: `/api/budget/history/${id}/undo`, method: 'POST'}),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'BudgetHistory', id: `${a.year}-${a.month}`},
+                {type: 'BudgetSummary', id: `${a.year}-${a.month}`},
+            ],
+        }),
+        redoBudgetChange: build.mutation<void, {id: string; year: number; month: number}>({
+            query: ({id}) => ({url: `/api/budget/history/${id}/redo`, method: 'POST'}),
+            invalidatesTags: (_r, _e, a) => [
+                {type: 'BudgetHistory', id: `${a.year}-${a.month}`},
+                {type: 'BudgetSummary', id: `${a.year}-${a.month}`},
+            ],
         }),
         listBudgetAccountTransactions: build.query<
             AccountTransactionsPageDto,
@@ -1837,6 +1882,9 @@ export const {
     useMoveMoneyMutation,
     useCoverOverspendingMutation,
     useSetEverydayMarksMutation,
+    useListBudgetHistoryQuery,
+    useUndoBudgetChangeMutation,
+    useRedoBudgetChangeMutation,
     useListBudgetAccountTransactionsQuery,
     useListBudgetTransactionsQuery,
     useCreateBudgetTransactionMutation,
