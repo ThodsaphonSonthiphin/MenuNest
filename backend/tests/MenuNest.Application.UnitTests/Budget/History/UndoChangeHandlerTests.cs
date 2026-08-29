@@ -1,4 +1,5 @@
 using FluentAssertions;
+using MenuNest.Application.Abstractions;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.History.RedoChange;
@@ -6,14 +7,18 @@ using MenuNest.Application.UseCases.Budget.History.UndoChange;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace MenuNest.Application.UnitTests.Budget.History;
 
 public class UndoChangeHandlerTests
 {
+    // The push sender is a no-op here: these tests are about the undo itself,
+    // and HeadUndoNotifiesTests owns the notification behaviour.
     private static UndoChangeHandler Sut(HandlerTestFixture fx) =>
-        new(fx.Db, fx.UserProvisioner.Object, new BudgetChangeApplier(fx.Db), fx.Clock);
+        new(fx.Db, fx.UserProvisioner.Object, new BudgetChangeApplier(fx.Db), fx.Clock,
+            Mock.Of<IWebPushSender>(), NullLogger<UndoChangeHandler>.Instance);
 
     private static RedoChangeHandler RedoSut(HandlerTestFixture fx) =>
         new(fx.Db, fx.UserProvisioner.Object, new BudgetChangeApplier(fx.Db));
