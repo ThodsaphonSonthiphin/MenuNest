@@ -21,6 +21,8 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - .bdg-fab is defined in BudgetPage.css but rendered only by AccountDetailPage.tsx - /budget itself has no FAB, so the bottom-right corner is free there and occupied on account-detail.
 - Budget mutations a rail would have to reason about: set assigned amount, move money, cover overspending, quick-assign (fill targets / equally), transaction create/edit/delete, account CRUD.
 - CLAUDE.md: the frontend has NO component/visual test harness, so tsc + build + vitest cannot catch a rendering bug. Any UI decision here must be verified interactively or against a docs/mocks/ file, and a new UI surface needs at least a smoke Playwright spec before it ships. Prod deploys on push to main.
+- Slot rule, binding on every later ticket (menunest-191): a button earns a Shortcut rail slot ONLY by acting on the user's own recent acts. Everything else stays where its context already lives, because the existing one-tap controls know which Envelope is meant and a floating copy would have to ask. The rail is three slots - undo, redo, change history - and that is the whole rail.
+- CONTEXT.md now defines Shortcut rail and Change history. Change history is deliberately NOT the /budget/transactions list (that holds only Budget transactions) and NOT the Budgeting event of menunest-181/185 (that names only the three acts re-freezing the Daily allowance). Use the glossary terms.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -35,6 +37,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 #### rail-visible — see the button and press it open - rail UX decided and mocked, undo engine not yet built
 
 - [Library - build the FAB and its expansion on Syncfusion, on dnd-kit, or by hand?](tickets/library-choice.md) — Syncfusion SpeedDialComponent - one new dep, but its CSS already ships via main.tsx:38. Not @dnd-kit: a free-floating FAB has no droppable.
+- [Rail contents - besides undo and redo, which shortcuts earn a slot?](tickets/rail-contents.md) — A history control, not a launcher: exactly three slots - undo, redo, change history - all working in v1, because every launcher candidate is already one contextual tap away.
 <!-- decision-map:decisions:end -->
 
 ## Not yet specified
@@ -44,6 +47,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - How a first-time user learns the rail exists at all - no evidence yet that discoverability is a real problem here.
 - How the generalized rail coexists with the .bdg-fab already occupying the bottom-right corner of AccountDetailPage - needs rail-architecture first.
 - Whether undo/redo should also be reachable from the AI/MCP surface, or stay a UI-only affordance.
+- Whether Change history should be reachable from anywhere other than the Shortcut rail - the month strip already carries a list icon to /budget/transactions, so two history-ish entry points may confuse rather than help.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
@@ -53,4 +57,5 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Re-architecting the domain into event sourcing or a general audit log.
 - Undo for anything outside the budget feature.
 - Replacing or removing the existing TransactionUndoToast delete flow on AccountDetailPage, unless a ticket here explicitly decides to.
+- Putting launcher actions on the Shortcut rail - add transaction, move money, cover overspending, quick-assign, jump to today. Ruled out by menunest-191: each is already one CONTEXTUAL tap away, so a floating copy would be slower, not faster.
 <!-- decision-map:scope:end -->

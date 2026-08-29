@@ -4,7 +4,7 @@ type: task
 mode: HITL
 status: open
 assignee: 
-blocked_by: [undo-semantics, rail-architecture, mock-signoff]
+blocked_by: [undo-semantics, rail-architecture, mock-signoff, change-history-view]
 gist: 
 ---
 
@@ -16,8 +16,9 @@ Implement the decided rail and the undo/redo engine, then ship to prod. Must inc
 ```mermaid
 graph TD
     ME["build-ship (this ticket)"]
-    P0["mock-signoff"] --> ME
-    P1["rail-architecture"] --> ME
-    P2["undo-semantics"] --> ME
+    P0["change-history-view"] --> ME
+    P1["mock-signoff"] --> ME
+    P2["rail-architecture"] --> ME
+    P3["undo-semantics"] --> ME
 ```
 <!-- decision-map:graph:end -->
