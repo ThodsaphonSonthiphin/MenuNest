@@ -8,5 +8,6 @@ namespace MenuNest.Application.UseCases.Budget.Monthly.SetAssignedAmount;
 /// <see cref="MenuNest.Application.UseCases.Budget.Allowance.BudgetTimeZone"/>.
 /// </summary>
 public sealed record SetAssignedAmountCommand(
-    Guid CategoryId, int Year, int Month, decimal Amount, string? TimeZoneId)
+    Guid CategoryId, int Year, int Month, decimal Amount, string? TimeZoneId,
+    Guid? BatchId)
     : ICommand<Unit>;
