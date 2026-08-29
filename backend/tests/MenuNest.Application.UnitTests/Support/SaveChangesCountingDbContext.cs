@@ -38,6 +38,7 @@ public sealed class SaveChangesCountingDbContext(IApplicationDbContext inner) : 
     public DbSet<MonthlyAssignment> MonthlyAssignments => inner.MonthlyAssignments;
     public DbSet<BudgetTransaction> BudgetTransactions => inner.BudgetTransactions;
     public DbSet<DailyAllowance> DailyAllowances => inner.DailyAllowances;
+    public DbSet<BudgetChange> BudgetChanges => inner.BudgetChanges;
 
     public DbSet<Drug> Drugs => inner.Drugs;
     public DbSet<Symptom> Symptoms => inner.Symptoms;

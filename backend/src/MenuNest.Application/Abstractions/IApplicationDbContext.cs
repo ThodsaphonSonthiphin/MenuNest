@@ -30,6 +30,7 @@ public interface IApplicationDbContext
     DbSet<MonthlyAssignment> MonthlyAssignments { get; }
     DbSet<BudgetTransaction> BudgetTransactions { get; }
     DbSet<DailyAllowance> DailyAllowances { get; }
+    DbSet<BudgetChange> BudgetChanges { get; }
 
     // Health (migraine tracker) module
     DbSet<Drug> Drugs { get; }
