@@ -5,6 +5,7 @@ using MenuNest.Application.UseCases.Families.JoinFamily;
 using MenuNest.Application.UseCases.Families.ListFamilyMembers;
 using MenuNest.Application.UseCases.Families.RotateInviteCode;
 using MenuNest.Application.UseCases.Families.LeaveFamily;
+using MenuNest.Application.UseCases.Families.TransferHead;
 using MenuNest.Application.UseCases.Families.AddRelationship;
 using MenuNest.Application.UseCases.Families.DeleteRelationship;
 using MenuNest.Application.UseCases.Families.ListRelationships;
@@ -66,6 +67,19 @@ public sealed class FamiliesController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>
+    /// Hands the family head role to another member (menunest-201). Only the
+    /// current head may call this, and only for somebody already in the family.
+    /// </summary>
+    [HttpPost("head")]
+    public async Task<IActionResult> TransferHead(
+        [FromBody] TransferHeadRequest request,
+        CancellationToken ct)
+    {
+        await _mediator.Send(new TransferHeadCommand(request.NewHeadUserId), ct);
+        return NoContent();
+    }
+
     [HttpGet("me/relationships")]
     public async Task<ActionResult<IReadOnlyList<RelationshipDto>>> ListRelationships(CancellationToken ct)
     {
@@ -93,4 +107,5 @@ public sealed class FamiliesController : ControllerBase
 
 public sealed record CreateFamilyRequest(string Name);
 public sealed record JoinFamilyRequest(string InviteCode);
+public sealed record TransferHeadRequest(Guid NewHeadUserId);
 public sealed record AddRelationshipRequest(Guid FromUserId, Guid ToUserId, RelationType RelationType);
