@@ -1,6 +1,7 @@
 using FluentAssertions;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Allowance;
+using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.Monthly.SetAssignedAmount;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
@@ -24,10 +25,10 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 15000m, TimeZoneId: Bkk),
+            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 15000m, TimeZoneId: Bkk, BatchId: null),
             CancellationToken.None);
 
         var persisted = fx.Db.MonthlyAssignments.Single();
@@ -50,13 +51,13 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, 2026, 4, 15000m, Bkk),
+            new SetAssignedAmountCommand(cat.Id, 2026, 4, 15000m, Bkk, null),
             CancellationToken.None);
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, 2026, 4, 20000m, Bkk),
+            new SetAssignedAmountCommand(cat.Id, 2026, 4, 20000m, Bkk, null),
             CancellationToken.None);
 
         fx.Db.MonthlyAssignments.Should().HaveCount(1);
@@ -77,10 +78,10 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
-            new SetAssignedAmountCommand(foreignCat.Id, 2026, 4, 100m, Bkk),
+            new SetAssignedAmountCommand(foreignCat.Id, 2026, 4, 100m, Bkk, null),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>().WithMessage("Category not found*");
@@ -105,10 +106,10 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 6000m, TimeZoneId: Bkk),
+            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 6000m, TimeZoneId: Bkk, BatchId: null),
             CancellationToken.None);
 
         fx.Db.DailyAllowances.Should().ContainSingle();
@@ -133,10 +134,10 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 20000m, TimeZoneId: Bkk),
+            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 4, Amount: 20000m, TimeZoneId: Bkk, BatchId: null),
             CancellationToken.None);
 
         fx.Db.DailyAllowances.Should().BeEmpty("assigning into a non-everyday envelope is not a Budgeting event, even though another envelope in the family is marked");
@@ -166,11 +167,11 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         // Assigns for SEPTEMBER — the viewer's real "this month" at this instant.
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 9, Amount: 3000m, TimeZoneId: Bkk),
+            new SetAssignedAmountCommand(cat.Id, Year: 2026, Month: 9, Amount: 3000m, TimeZoneId: Bkk, BatchId: null),
             CancellationToken.None);
 
         var row = fx.Db.DailyAllowances.Single();
@@ -196,10 +197,10 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, 2026, 4, 6000m, "Not/A/Real/Zone"),
+            new SetAssignedAmountCommand(cat.Id, 2026, 4, 6000m, "Not/A/Real/Zone", null),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>();
@@ -219,12 +220,12 @@ public class SetAssignedAmountHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new SetAssignedAmountHandler(
-            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new SetAssignedAmountValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         // No freeze is needed for a non-everyday envelope, so an invalid zone
         // must not block the write — the zone is resolved only where it's used.
         await sut.Handle(
-            new SetAssignedAmountCommand(cat.Id, 2026, 4, 6000m, "Not/A/Real/Zone"),
+            new SetAssignedAmountCommand(cat.Id, 2026, 4, 6000m, "Not/A/Real/Zone", null),
             CancellationToken.None);
 
         fx.Db.MonthlyAssignments.Single().AssignedAmount.Should().Be(6000m);

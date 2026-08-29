@@ -128,7 +128,7 @@ public sealed class BudgetController : ControllerBase
     // ----- monthly ops -----
     [HttpPut("monthly/assigned")]
     public async Task<IActionResult> SetAssigned([FromBody] SetAssignedRequest r, CancellationToken ct)
-    { await _m.Send(new SetAssignedAmountCommand(r.CategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId), ct); return NoContent(); }
+    { await _m.Send(new SetAssignedAmountCommand(r.CategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId, r.BatchId), ct); return NoContent(); }
 
     [HttpPost("monthly/move")]
     public async Task<IActionResult> Move([FromBody] MoveMoneyRequest r, CancellationToken ct)

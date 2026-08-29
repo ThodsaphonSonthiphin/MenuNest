@@ -171,7 +171,9 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Amount to assign (replaces any existing assigned amount)")] decimal amount,
         [Description("The user's IANA time zone, e.g. Asia/Bangkok. Prefer to always pass it whenever you know the user's zone; it is strictly required only when the category is marked 'everyday' (a call that omits it then fails, and you cannot tell in advance which categories are marked that way).")] string? timeZoneId,
         CancellationToken ct)
-        => await mediator.Send(new SetAssignedAmountCommand(categoryId, year, month, amount, timeZoneId), ct);
+        // BatchId is null: the assistant assigns one envelope at a time, so each
+        // call is its own history row. Only the SPA's quick-assign groups N writes.
+        => await mediator.Send(new SetAssignedAmountCommand(categoryId, year, month, amount, timeZoneId, null), ct);
 
     [McpServerTool, Description("Move money from one category envelope to another within the same month")]
     public async Task move_money(

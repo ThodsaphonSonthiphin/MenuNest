@@ -96,7 +96,13 @@ public sealed record UpdateTransactionRequest(
 // TimeZoneId (menunest-189) is the viewer's IANA zone, e.g. from the SPA's
 // Intl.DateTimeFormat().resolvedOptions().timeZone. Only actually resolved
 // when the op touches an everyday envelope and re-freezes the Daily allowance.
-public sealed record SetAssignedRequest(Guid CategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
+/// <summary>
+/// <paramref name="BatchId"/> (menunest-196) groups the N assigns one press of a
+/// quick-assign chip makes into a SINGLE history row. The SPA generates one id
+/// per press and sends it on every call in that press; a lone assign sends null.
+/// </summary>
+public sealed record SetAssignedRequest(
+    Guid CategoryId, int Year, int Month, decimal Amount, string? TimeZoneId, Guid? BatchId);
 public sealed record MoveMoneyRequest(
     Guid FromCategoryId, Guid ToCategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
 public sealed record CoverOverspendingRequest(
