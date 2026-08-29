@@ -2,6 +2,8 @@ using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
 using MenuNest.Application.UseCases.Budget.Allowance;
+using MenuNest.Application.UseCases.Budget.History;
+using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,19 +23,21 @@ public sealed class SetEverydayMarksHandler : ICommandHandler<SetEverydayMarksCo
     private readonly IValidator<SetEverydayMarksCommand> _validator;
     private readonly AllowanceFreezer _freezer;
     private readonly IClock _clock;
+    private readonly BudgetChangeRecorder _recorder;
 
     public SetEverydayMarksHandler(
         IApplicationDbContext db,
         IUserProvisioner users,
         IValidator<SetEverydayMarksCommand> validator,
         AllowanceFreezer freezer,
-        IClock clock)
-    { _db = db; _users = users; _validator = validator; _freezer = freezer; _clock = clock; }
+        IClock clock,
+        BudgetChangeRecorder recorder)
+    { _db = db; _users = users; _validator = validator; _freezer = freezer; _clock = clock; _recorder = recorder; }
 
     public async ValueTask<Unit> Handle(SetEverydayMarksCommand cmd, CancellationToken ct)
     {
         await _validator.ValidateAndThrowAsync(cmd, ct);
-        var (_, familyId) = await _users.RequireFamilyAsync(ct);
+        var (user, familyId) = await _users.RequireFamilyAsync(ct);
 
         var ids = cmd.Marks.Select(m => m.CategoryId).Distinct().ToList();
         var categories = await _db.BudgetCategories
@@ -47,24 +51,35 @@ public sealed class SetEverydayMarksHandler : ICommandHandler<SetEverydayMarksCo
         // actually flipped — otherwise a sheet the caller submits unchanged
         // (e.g. the SPA re-posting on open+close) would silently reset
         // FrozenOn and re-divide the pot over however many days are left.
-        var changed = false;
+        var flipped = new List<EverydayMark>();
         foreach (var mark in cmd.Marks)
         {
             var category = categories.First(c => c.Id == mark.CategoryId);
-            if (category.IsEveryday != mark.IsEveryday) changed = true;
+            if (category.IsEveryday != mark.IsEveryday) flipped.Add(mark);
             category.MarkEveryday(mark.IsEveryday);
         }
 
-        if (!changed) return Unit.Value;
-
-        // One save for the whole sheet — not one per mark.
-        await _db.SaveChangesAsync(ct);
+        if (flipped.Count == 0) return Unit.Value;
 
         // One freeze for the whole sheet — not one per mark (menunest-184). The
         // viewer's time zone (menunest-189) is only resolved here, where it's
         // actually used — a no-op sheet returns above without ever needing it.
+        // It is resolved BEFORE the save because the recorded change also needs
+        // the budget month, and the command carries no year/month of its own.
         var tz = BudgetTimeZone.Resolve(cmd.TimeZoneId);
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(_clock.UtcNow, tz));
+
+        // menunest-196: an everyday mark is undoable, one row per envelope that
+        // ACTUALLY flipped — a sheet re-posted unchanged records nothing, the
+        // same rule the freeze above follows.
+        foreach (var mark in flipped)
+        {
+            _recorder.Record(BudgetChange.RecordEverydayMark(
+                familyId, user.Id, today.Year, today.Month, mark.CategoryId, mark.IsEveryday));
+        }
+
+        // One save for the whole sheet — not one per mark.
+        await _db.SaveChangesAsync(ct);
         var refrozen = await _freezer.RefreezeAsync(familyId, today, ct);
         if (refrozen is not null) await _db.SaveChangesAsync(ct);
 
