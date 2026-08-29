@@ -40,6 +40,15 @@ public sealed class JoinFamilyHandler : ICommandHandler<JoinFamilyCommand, Famil
             ?? throw new DomainException("Invite code is invalid or expired.");
 
         user.JoinFamily(family.Id);
+
+        // menunest-201 rule 4: a Family whose last member left has no head, and
+        // the next person to join takes the role. Without this a headless Family
+        // could never regain one, so no member could ever undo another's change.
+        if (family.HeadUserId is null)
+        {
+            family.AssignHead(user.Id);
+        }
+
         await _db.SaveChangesAsync(ct);
 
         return new FamilyDto(
