@@ -31,6 +31,12 @@ internal sealed class FamilyConfiguration : IEntityTypeConfiguration<Family>
         builder.Property(f => f.UpdatedAt);
         builder.Property(f => f.CreatedByUserId).IsRequired();
 
+        // Nullable: a Family whose last member left has no head until the next
+        // person joins (menunest-201). No FK to Users — the head is always a
+        // member, but membership lives on User.FamilyId, so a FK here would be
+        // a second, contradictable source of truth.
+        builder.Property(f => f.HeadUserId);
+
         builder.HasMany(f => f.Members)
             .WithOne(u => u.Family!)
             .HasForeignKey(u => u.FamilyId)
