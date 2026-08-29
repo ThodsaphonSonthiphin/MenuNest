@@ -33,6 +33,8 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - A 12-step interactive walkthrough of the mechanism is at docs/problem-description/2026-08-29-undo-redo-walkthrough.html - built because a text explanation failed once. Hand it to anyone who has to pick up this map cold.
 - Storage is settled and binding on change-history-view and build-ship (menunest-194): a NEW server-side entity keyed to the Family, holding a window of min(7 days, since the 1st of the budget month) - a HARD cut at the month start, so an undo can never reach into a month already left. Per CLAUDE.md the new DbSet must be added to all THREE IApplicationDbContext implementers with its EF configuration in the SAME commit, and the migration applied to prod BY HAND.
 - The project already runs hosted background services - MenuNest.Infrastructure/BackgroundServices/FollowUpDispatcher.cs - so pruning expired history rows can be a real scheduled delete rather than only a read-time filter. Implementation choice, not a decision.
+- Change history is a SHEET over /budget on the existing budget-modal-overlay / budget-modal scaffolding (menunest-195), not a route. Every row carries its own Undo AND Redo, undo is not last-in-first-out, and an undone row stays on the list marked so it can be redone. An out-of-order undo may leave an Envelope negative and that is allowed - Overspent is already a first-class state in this app.
+- One INFERENCE is riding on menunest-195 and is flagged there rather than asserted: that an undone row stays visible. Nobody stated it; it follows from per-row redo having nowhere to live otherwise. Cheap to overturn - do not treat it as a settled user answer.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -53,6 +55,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 
 #### (unassigned)
 
+- [Change history - what does the third slot show, and how far back?](tickets/change-history-view.md) — A sheet over /budget, not a route. Every row carries its own Undo and Redo, and an undone row stays on the list so it can be redone.
 - [History - where does the undo/redo stack live, and does it survive a refresh?](tickets/history-storage.md) — A new server-side entity keyed to the Family, holding the last 7 days but hard-cut at the month start - so an undo can never reach into a month already left.
 - [Undo - does it withhold a write that has not been sent, or reverse one already committed?](tickets/undo-semantics.md) — Undo sends the opposite write to the server, built from a command the app records when you act - never a restore of an old value. The 5-second delete toast is removed.
 <!-- decision-map:decisions:end -->
@@ -68,6 +71,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Whether the rail should hide on scroll on DESKTOP too, where Ctrl+Z exists, there is no thumb-reach problem and a mouse wheel scrolls for different reasons than a thumb flick. Small, but it has no obvious home yet - keyboard-bindings is about key handling and build-ship should not be inventing behaviour.
 - Whether the recorded command line needs its own name in CONTEXT.md so reversible-actions, stale-undo and history-storage all say the same word for it - Change history already names the LIST, but not one entry in it.
 - Whether the empty-history-on-the-1st consequence of menunest-194 needs any wording on screen, so a user opening Change history on the first of the month does not read it as a bug.
+- Whether the Change history sheet covering the budget numbers actually bites in use - you press Undo and cannot see Ready to Assign move until you close it. menunest-195 names a partial bottom sheet as the escape, but the project has no such pattern and it would be new work.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
@@ -80,4 +84,5 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Putting launcher actions on the Shortcut rail - add transaction, move money, cover overspending, quick-assign, jump to today. Ruled out by menunest-191: each is already one CONTEXTUAL tap away, so a floating copy would be slower, not faster.
 - A draggable rail, as issue #106 originally asked for - rejected by menunest-192 on prototype evidence, not taste: instant drag needs touch-action:none and kills scrolling from the button, hold-to-drag makes every deliberate drag slow, and a saved position lands off a narrower screen. Hide-on-scroll solves the occlusion it was meant to solve at none of that cost.
 - Undoing an act performed in a previous budget month - made impossible by menunest-194's month cut, deliberately, to keep an undo from moving numbers the user considers settled.
+- A /budget/history route - Change history is a sheet (menunest-195). Ruled out because opening a whole page from a floating button is a heavy gesture for a light correction, and the list is only days long.
 <!-- decision-map:scope:end -->
