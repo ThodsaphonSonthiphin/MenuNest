@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shortcut rail — resting · expanded · hidden on scroll (#106)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ============================================================
+     Tokens are copied VERBATIM from the SHIPPED
+     frontend/src/pages/budget/BudgetPage.css.
+
+     Do NOT diff this mock against docs/mocks/budget-redesign-mock.html
+     -- that file predates the current CSS and carries a different,
+     dark-first palette (--accent #6366f1). The app today is
+     light-only: "Light theme -- single palette, no dark mode".
+     ============================================================ */
+  :root {
+    --bg-page:   #f8fafc;
+    --bg-card:   #ffffff;
+    --bg-card-2: #f1f5f9;
+    --border:    #e2e8f0;
+    --text:       #0f172a;
+    --text-muted: #475569;
+    --text-dim:   #94a3b8;
+    --accent:      #4f46e5;
+    --accent-soft: rgba(79, 70, 229, 0.10);
+    --green:  #15803d;
+    --red:    #b91c1c;
+    --orange: #b45309;
+    --orange-bg: rgba(245, 158, 11, 0.12);
+
+    /* page chrome for this document only -- never app colours */
+    --doc-bg:   #0b1220;
+    --doc-card: #131c2e;
+    --doc-line: #26334d;
+    --doc-text: #e2e8f0;
+    --doc-dim:  #8fa0bd;
+    --doc-live: #34d399;
+  }
+
+  html, body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai",
+                 "IBM Plex Sans Thai", "Sarabun", system-ui, sans-serif;
+    background: var(--doc-bg);
+    color: var(--doc-text);
+    min-height: 100vh;
+    padding: 28px 16px 64px;
+    font-size: 13px;
+  }
+
+  .page-header { text-align: center; margin-bottom: 8px; }
+  .page-title  { font-size: 20px; font-weight: 700; }
+  .page-sub    { font-size: 13px; color: var(--doc-dim); margin-top: 6px; line-height: 1.55; }
+  .page-sub code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px; color: var(--doc-live);
+  }
+
+  .adr-row {
+    display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+    margin: 16px 0 30px;
+  }
+  .adr {
+    font-size: 11.5px; color: var(--doc-dim);
+    border: 1px solid var(--doc-line); border-radius: 999px;
+    padding: 5px 12px;
+  }
+  .adr b { color: var(--doc-text); font-weight: 600; }
+
+  .phones {
+    display: flex; gap: 26px; justify-content: center;
+    flex-wrap: wrap; align-items: flex-start;
+  }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 300px; }
+  .col-title {
+    font-size: 12px; font-weight: 700; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--doc-live);
+  }
+  .col-note {
+    font-size: 11.5px; color: var(--doc-dim); line-height: 1.55; text-align: center;
+    min-height: 3.4em;
+  }
+
+  /* phone frame */
+  .phone {
+    position: relative;
+    width: 300px; height: 620px;
+    border: 9px solid #1b2740; border-radius: 32px;
+    background: var(--bg-page);
+    overflow: hidden;
+    box-shadow: 0 22px 60px rgba(2, 6, 23, 0.6);
+  }
+  .screen { position: absolute; inset: 0; overflow: hidden; }
+
+  /* ---------------- app content (abridged /budget) ---------------- */
+
+  .app { padding: 10px 12px 0; display: flex; flex-direction: column; gap: 10px; color: var(--text); }
+  .app-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 12px; margin: -10px -12px 0;
+    background: var(--bg-card); border-bottom: 1px solid var(--border);
+    font-size: 14px; font-weight: 700;
+  }
+  .app-bar .who { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-muted); }
+
+  .month { display: flex; align-items: center; gap: 6px; }
+  .month .name { font-size: 13px; font-weight: 700; }
+  .month .sp { flex: 1; }
+  .month .ic {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    display: grid; place-items: center; font-size: 11px; color: var(--text-muted);
+  }
+
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 13px; }
+  .eyebrow { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+  .figure { font-size: 25px; font-weight: 800; letter-spacing: -.02em; margin: 4px 0 2px; font-variant-numeric: tabular-nums; }
+  .sub { font-size: 10.5px; color: var(--text-dim); line-height: 1.4; }
+  .rta-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .pill { background: var(--orange-bg); color: var(--orange); font-size: 10px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
+  .meter { display: flex; align-items: center; gap: 9px; margin-top: 9px; }
+  .meter .track { flex: 1; height: 5px; border-radius: 999px; background: var(--bg-card-2); overflow: hidden; }
+  .meter .fill { height: 100%; width: 88%; background: var(--orange); border-radius: 999px; }
+  .meter .pct { font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .chips { display: flex; gap: 7px; }
+  .chip {
+    background: var(--bg-card); border: 1px solid var(--accent); color: var(--accent);
+    font-size: 10.5px; font-weight: 600; padding: 7px 11px; border-radius: 999px; white-space: nowrap;
+  }
+
+  .env-group {
+    font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 2px;
+  }
+  .env-group .nums { margin-left: auto; font-size: 10px; letter-spacing: 0; text-transform: none; color: var(--text); font-variant-numeric: tabular-nums; }
+  .env {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 9px 11px; display: flex; align-items: center; gap: 8px;
+  }
+  .env .nm { font-size: 11.5px; font-weight: 600; }
+  .env .acts { margin-left: auto; display: flex; gap: 5px; }
+  .env .act {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--bg-card-2); border: 1px solid var(--border);
+    color: var(--text-muted); display: grid; place-items: center; font-size: 10px;
+  }
+  .env .val { font-size: 11.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* ---------------- THE RAIL — the thing being specified ---------------- */
+
+  .rail {
+    position: absolute; right: 16px; bottom: 22px; z-index: 40;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .rail-items { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .rail-item {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--bg-card); border: 1px solid var(--border);
+    color: var(--accent); font-size: 17px;
+    display: grid; place-items: center;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+    position: relative;
+  }
+  .rail-item .tag {
+    position: absolute; right: calc(100% + 9px); top: 50%; transform: translateY(-50%);
+    background: var(--text); color: #fff;
+    font-size: 10.5px; font-weight: 600; white-space: nowrap;
+    padding: 4px 9px; border-radius: 6px;
+  }
+  .rail-main {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: grid; place-items: center;
+    box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
+    font-size: 21px; line-height: 1;
+  }
+
+  /* state: resting — items absent entirely */
+  .state-rest .rail-items { display: none; }
+
+  /* state: hidden on scroll — the exact transform the build must use */
+  .state-hidden .rail {
+    transform: translateY(96px) scale(.9);
+    opacity: 0;
+  }
+  .state-hidden .rail-items { display: none; }
+
+  .scrim { position: absolute; inset: 0; z-index: 35; background: rgba(15, 23, 42, 0.20); }
+
+  /* measurement callouts drawn over the frame */
+  .callout {
+    position: absolute; z-index: 50;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 9.5px; font-weight: 600;
+    background: var(--doc-bg); color: var(--doc-live);
+    border: 1px solid var(--doc-live); border-radius: 5px;
+    padding: 2px 6px; white-space: nowrap;
+  }
+  .rule {
+    position: absolute; z-index: 49;
+    border: 0; border-top: 1px dashed var(--doc-live); opacity: .75;
+  }
+  .rule.v { border-top: 0; border-left: 1px dashed var(--doc-live); }
+
+  /* ---------------- spec table ---------------- */
+
+  .spec {
+    max-width: 980px; margin: 40px auto 0;
+    background: var(--doc-card); border: 1px solid var(--doc-line); border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .spec h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .spec .lede { font-size: 12.5px; color: var(--doc-dim); line-height: 1.6; margin-bottom: 18px; }
+  .spec table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec th, .spec td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--doc-line); vertical-align: top; }
+  .spec th { font-size: 10px; letter-spacing: .09em; text-transform: uppercase; color: var(--doc-dim); font-weight: 700; }
+  .spec td:first-child { color: var(--doc-dim); width: 34%; }
+  .spec code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; color: var(--doc-live);
+    background: rgba(52, 211, 153, .08); padding: 1px 5px; border-radius: 4px;
+  }
+  .spec .guards { margin-top: 20px; }
+  .spec .guards li { margin: 7px 0 0 18px; line-height: 1.6; }
+  .spec .warn {
+    margin-top: 20px; border-left: 3px solid var(--orange);
+    padding: 4px 0 4px 13px; font-size: 12.5px; color: var(--doc-dim); line-height: 1.6;
+  }
+  .spec .warn b { color: var(--doc-text); }
+
+  @media (max-width: 700px) {
+    .phones { gap: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">Shortcut rail — resting · expanded · hidden on scroll</div>
+  <div class="page-sub">
+    Issue #106 &middot; decision map <code>shortcut-rail-106</code> &middot; ticket <code>mock-signoff</code><br>
+    Tokens copied verbatim from the <b>shipped</b> <code>frontend/src/pages/budget/BudgetPage.css</code>.
+  </div>
+</div>
+
+<div class="adr-row">
+  <span class="adr"><b>menunest-191</b> — three slots, history control, not a launcher</span>
+  <span class="adr"><b>menunest-192</b> — bottom-right speed dial, hides on scroll, not draggable</span>
+</div>
+
+<div class="phones">
+
+  <!-- ============ 1. RESTING ============ -->
+  <div class="col">
+    <div class="col-title">1 · Resting</div>
+    <div class="phone">
+      <div class="screen state-rest">
+        <div class="app">
+          <div class="app-bar"><span>&#9776;</span><span>&#129472; Nest</span><span class="who">&#3607;&#3624;&#3614;&#3621; &#9662;</span></div>
+          <div class="month">
+            <span>&#8249;</span><span class="name">August 2026</span><span>&#8250;</span>
+            <span class="sp"></span><span class="ic">&#9776;</span><span class="ic">&#9881;</span>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Today's allowance</div>
+            <div class="figure">&#3647;0.00</div>
+            <div class="sub">Set this morning &middot; won't change if you spend more today</div>
+          </div>
+          <div class="card">
+            <div class="rta-head"><span class="eyebrow">August 2026</span><span class="pill">Still to place</span></div>
+            <div class="figure">&#3647;2,460.81</div>
+            <div class="sub">&#3647;20,873.00 of &#3647;23,833.81 placed.</div>
+            <div class="meter"><span class="track"><span class="fill"></span></span><span class="pct">88%</span></div>
+          </div>
+          <div class="chips"><span class="chip">+ Fill targets first</span><span class="chip">+ Equally</span></div>
+          <div class="env-group">Bill <span class="nums">&#3647;20,300.00 / &#3647;20,200.00</span></div>
+          <div class="env"><span class="nm">&#3588;&#3656;&#3634;&#3627;&#3629;&#3591;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;12,000.00</span></div>
+          <div class="env"><span class="nm">&#3652;&#3615;&#3615;&#3657;&#3634;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;1,800.00</span></div>
+        </div>
+
+        <div class="rail">
+          <div class="rail-items"></div>
+          <div class="rail-main">&#8942;</div>
+        </div>
+
+        <span class="callout" style="right:14px; bottom:84px;">52 &times; 52</span>
+        <hr class="rule" style="right:0; bottom:22px; width:96px;">
+        <span class="callout" style="right:8px; bottom:4px;">bottom 22 &middot; right 16</span>
+      </div>
+    </div>
+    <div class="col-note">One button. The three items do not exist in the DOM's visual flow until it is opened.</div>
+  </div>
+
+  <!-- ============ 2. EXPANDED ============ -->
+  <div class="col">
+    <div class="col-title">2 · Expanded</div>
+    <div class="phone">
+      <div class="screen">
+        <div class="app">
+          <div class="app-bar"><span>&#9776;</span><span>&#129472; Nest</span><span class="who">&#3607;&#3624;&#3614;&#3621; &#9662;</span></div>
+          <div class="month">
+            <span>&#8249;</span><span class="name">August 2026</span><span>&#8250;</span>
+            <span class="sp"></span><span class="ic">&#9776;</span><span class="ic">&#9881;</span>
+          </div>
+          <div class="card">
+            <div class="eyebrow">Today's allowance</div>
+            <div class="figure">&#3647;0.00</div>
+            <div class="sub">Set this morning &middot; won't change if you spend more today</div>
+          </div>
+          <div class="card">
+            <div class="rta-head"><span class="eyebrow">August 2026</span><span class="pill">Still to place</span></div>
+            <div class="figure">&#3647;2,460.81</div>
+            <div class="sub">&#3647;20,873.00 of &#3647;23,833.81 placed.</div>
+            <div class="meter"><span class="track"><span class="fill"></span></span><span class="pct">88%</span></div>
+          </div>
+          <div class="chips"><span class="chip">+ Fill targets first</span><span class="chip">+ Equally</span></div>
+          <div class="env-group">Bill <span class="nums">&#3647;20,300.00 / &#3647;20,200.00</span></div>
+          <div class="env"><span class="nm">&#3588;&#3656;&#3634;&#3627;&#3629;&#3591;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;12,000.00</span></div>
+        </div>
+
+        <div class="scrim"></div>
+
+        <div class="rail">
+          <div class="rail-items">
+            <div class="rail-item">&#8986;<span class="tag">Change history</span></div>
+            <div class="rail-item">&#8631;<span class="tag">Redo</span></div>
+            <div class="rail-item">&#8630;<span class="tag">Undo</span></div>
+          </div>
+          <div class="rail-main">&times;</div>
+        </div>
+
+        <span class="callout" style="right:14px; bottom:250px;">44 &times; 44</span>
+        <span class="callout" style="left:12px; bottom:196px;">gap 10</span>
+        <span class="callout" style="left:12px; bottom:96px;">gap 12 to main</span>
+        <span class="callout" style="left:12px; top:14px;">scrim rgba(15,23,42,.20)</span>
+      </div>
+    </div>
+    <div class="col-note">Bottom-up: <b>Undo</b> nearest the thumb, then Redo, then Change history. Labels sit to the left. A scrim dims the page.</div>
+  </div>
+
+  <!-- ============ 3. HIDDEN ON SCROLL ============ -->
+  <div class="col">
+    <div class="col-title">3 · Hidden on scroll</div>
+    <div class="phone">
+      <div class="screen state-hidden">
+        <div class="app">
+          <div class="env-group">Bill <span class="nums">&#3647;20,300.00 / &#3647;20,200.00</span></div>
+          <div class="env"><span class="nm">&#3588;&#3656;&#3634;&#3627;&#3629;&#3591;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;12,000.00</span></div>
+          <div class="env"><span class="nm">&#3652;&#3615;&#3615;&#3657;&#3634;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;1,800.00</span></div>
+          <div class="env"><span class="nm">&#3648;&#3609;&#3655;&#3605;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;800.00</span></div>
+          <div class="env-group">Everyday <span class="nums">&#3647;3,400.00 / &#3647;5,000.00</span></div>
+          <div class="env"><span class="nm">&#3588;&#3656;&#3634;&#3585;&#3636;&#3609;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;2,100.00</span></div>
+          <div class="env"><span class="nm">&#3588;&#3656;&#3634;&#3648;&#3604;&#3636;&#3609;&#3607;&#3634;&#3591;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;900.00</span></div>
+          <div class="env"><span class="nm">&#3585;&#3634;&#3649;&#3615;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#9888;</span><span class="act">&#8646;</span></span><span class="val">&#3647;400.00</span></div>
+          <div class="env-group">Savings <span class="nums">&#3647;0.00 / &#3647;3,000.00</span></div>
+          <div class="env"><span class="nm">&#3648;&#3607;&#3637;&#3656;&#3618;&#3623;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;0.00</span></div>
+          <div class="env"><span class="nm">&#3593;&#3640;&#3585;&#3648;&#3593;&#3636;&#3609;</span><span class="acts"><span class="act">&#65291;</span><span class="act">&#8646;</span></span><span class="val">&#3647;0.00</span></div>
+        </div>
+
+        <div class="rail">
+          <div class="rail-items"></div>
+          <div class="rail-main">&#8942;</div>
+        </div>
+
+        <span class="callout" style="left:12px; bottom:16px;">translateY(96px) scale(.9) opacity 0</span>
+        <span class="callout" style="right:14px; top:14px;">flicked down &rarr; gone</span>
+      </div>
+    </div>
+    <div class="col-note">Scrolled down through the envelopes: the rail is gone, so nothing it would have covered is covered. Flick up, or stop, and it returns.</div>
+  </div>
+
+</div>
+
+<div class="spec">
+  <h2>What the build must match</h2>
+  <p class="lede">
+    The review gates are blind to visual fidelity (CLAUDE.md), so this table is the
+    checkable half of the mock. Diff the built CSS against it before merge.
+  </p>
+
+  <table>
+    <thead><tr><th>Property</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Component</td><td><code>SpeedDialComponent</code> from <code>@syncfusion/ej2-react-buttons</code> — the one new dependency (<code>library-choice</code>)</td></tr>
+      <tr><td>Stylesheet</td><td>none to add — <code>@syncfusion/ej2-buttons/styles/material.css</code> is already imported at <code>main.tsx:38</code> and already carries 134 <code>e-speeddial</code> rules</td></tr>
+      <tr><td>Resting position</td><td><code>position="BottomRight"</code> · <code>right: 16px</code> · <code>bottom: 22px</code></td></tr>
+      <tr><td>Expansion</td><td><code>mode="Linear"</code> · <code>direction="Up"</code></td></tr>
+      <tr><td>Main button</td><td>52 &times; 52 · <code>border-radius: 50%</code> · <code>background: var(--accent)</code> · <code>box-shadow: 0 8px 24px rgba(79,70,229,0.45)</code></td></tr>
+      <tr><td>Items</td><td>44 &times; 44 · <code>background: var(--bg-card)</code> · <code>1px solid var(--border)</code> · <code>color: var(--accent)</code> · <code>box-shadow: 0 4px 14px rgba(15,23,42,0.14)</code></td></tr>
+      <tr><td>Spacing</td><td>10px between items · 12px between the top item and the main button</td></tr>
+      <tr><td>Order, bottom&nbsp;&rarr;&nbsp;top</td><td><b>Undo</b>, <b>Redo</b>, <b>Change history</b> — undo nearest the thumb, matching <code>Ctrl+Z</code> / <code>Ctrl+Shift+Z</code></td></tr>
+      <tr><td>Labels</td><td>dark pill left of each item, <code>background: var(--text)</code>, white 10.5px/600</td></tr>
+      <tr><td>Scrim</td><td><code>rgba(15, 23, 42, 0.20)</code> over the page while open; tapping it closes</td></tr>
+      <tr><td>Hide transform</td><td><code>translateY(96px) scale(.9)</code> + <code>opacity: 0</code>, 220ms ease</td></tr>
+      <tr><td>Draggable</td><td><b>No.</b> Ruled out by menunest-192 and listed out of scope on the map</td></tr>
+      <tr><td>Theme</td><td>light only — the app declares "single palette, no dark mode"</td></tr>
+    </tbody>
+  </table>
+
+  <div class="guards">
+    <b>Behaviour guards — part of the decision, not implementation detail:</b>
+    <ul>
+      <li>The rail <b>never hides while the dial is open.</b></li>
+      <li>It <b>returns after roughly 900ms of idle</b>, so it cannot be lost by stopping mid-flick.</li>
+      <li>It only starts hiding past ~40px of scroll, with an ~8px jitter threshold, so a nudge does not flicker it.</li>
+    </ul>
+  </div>
+
+  <div class="warn">
+    <b>Syncfusion SpeedDial has no hide-on-scroll of its own.</b> That behaviour, and the
+    three guards above, are roughly twenty lines MenuNest owns on top of the component.
+    Budget for them; they are the part no library ships.
+  </div>
+
+  <div class="warn">
+    <b>Change history is a new screen.</b> This mock shows its button, not its content —
+    what it lists and how far back it reaches is the open <code>change-history-view</code>
+    ticket, which is blocked behind <code>history-storage</code>.
+  </div>
+</div>
+
+</body>
+</html>

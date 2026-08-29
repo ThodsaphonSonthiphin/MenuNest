@@ -26,6 +26,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Rail shape is settled and binding on mock-signoff and build-ship (menunest-192): ONE button resting bottom-right, tap expands three items vertically upward, NOT draggable, hides on scroll down and returns on scroll up or after ~1s idle. Two guards are part of the decision, not detail - it never hides while the dial is open, and it returns on idle so it cannot be lost mid-flick.
 - Syncfusion SpeedDial has NO hide-on-scroll of its own, so that behaviour is roughly twenty lines MenuNest owns on top of the component library-choice picked. It does not overturn library-choice; it does add to build-ship. position=BottomRight and mode=Linear direction=Up ARE the component's own properties, so the corner and the expansion need no custom positioning.
 - The rail-interaction prototype is at https://claude.ai/code/artifact/21ac73e6-a87a-4dbb-a3a5-70555a8e0202 - a throwaway grilling aid built on the app's own tokens, NOT the mock. mock-signoff still owes a docs/mocks/ file for the build to be diffed against.
+- The approved mock is docs/mocks/budget-shortcut-rail-mock.html - three states plus a spec table of exact px, tokens, shadows and transforms. build-ship diffs its CSS against THAT table before merge. TRAP: do NOT diff against the older docs/mocks/budget-redesign-mock.html, which predates the current CSS and is dark-first with a different accent (#6366f1 vs the shipped #4f46e5); anyone comparing to it will chase a colour difference that is not a defect.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -40,6 +41,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 #### rail-visible — see the button and press it open - rail UX decided and mocked, undo engine not yet built
 
 - [Library - build the FAB and its expansion on Syncfusion, on dnd-kit, or by hand?](tickets/library-choice.md) — Syncfusion SpeedDialComponent - one new dep, but its CSS already ships via main.tsx:38. Not @dnd-kit: a free-floating FAB has no droppable.
+- [Mock - produce the rail mock and get it signed off](tickets/mock-signoff.md) — Signed off: docs/mocks/budget-shortcut-rail-mock.html renders resting, expanded and hidden-on-scroll, with the exact CSS values build-ship is diffed against.
 - [Rail contents - besides undo and redo, which shortcuts earn a slot?](tickets/rail-contents.md) — A history control, not a launcher: exactly three slots - undo, redo, change history - all working in v1, because every launcher candidate is already one contextual tap away.
 - [Rail interaction - one button that expands, or an always-open rail, and can it be dragged?](tickets/rail-interaction.md) — One button bottom-right, tap expands the three items upward. Not draggable: it hides on scroll down instead, which solves the occlusion drag was for at none of drag's cost.
 <!-- decision-map:decisions:end -->
