@@ -6,6 +6,9 @@ public sealed record FamilyMemberDto(
     string Email,
     DateTime JoinedAt,
     bool IsCreator,
+    // menunest-201: separate from IsCreator on purpose. The creator flag is
+    // history and never moves; the head flag is a role that does.
+    bool IsHead,
     RelationshipLabelDto[] Relationships);
 
 public sealed record RelationshipLabelDto(

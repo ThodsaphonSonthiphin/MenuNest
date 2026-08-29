@@ -43,6 +43,7 @@ public sealed class ListFamilyMembersHandler
             Email: m.Email,
             JoinedAt: m.JoinedAt ?? m.CreatedAt,
             IsCreator: m.Id == family.CreatedByUserId,
+            IsHead: m.Id == family.HeadUserId,
             Relationships: relationships
                 .Where(r => r.FromUserId == m.Id)
                 .Select(r => new RelationshipLabelDto(
