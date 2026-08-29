@@ -139,15 +139,19 @@ Always `git add <explicit paths>` — **never** `git add -A` / `git add .`.
 `daily-state.md` (tracked, usually dirty) and `AGENTS.md` (untracked) are
 working files that must never be swept into a feature commit.
 
-## Git remote is named `main` (not `origin`)
+## Git remote — it IS `origin`
 
-The single git remote is `main` → `https://github.com/ThodsaphonSonthiphin/MenuNest.git`.
-- `gh` cannot auto-detect the repo (it looks for `origin`) — pass it explicitly:
-  `gh issue create --repo ThodsaphonSonthiphin/MenuNest …`. Bare `gh issue create`
-  fails with `expected the "[HOST/]OWNER/REPO" format, got "MenuNest"`.
-- Push with `git push main HEAD:main` (there is no `origin`).
+The single git remote is `origin` → `https://github.com/ThodsaphonSonthiphin/MenuNest.git`.
+Verified with `git remote -v` on 2026-08-29; this section previously claimed the
+remote was named `main`, which made every command in it fail.
+- Push with `git push origin main`. **Pushing to `main` deploys to prod** —
+  `.github/workflows/main_menunest.yml` triggers on push to that branch — so it is
+  never a routine step; ask first.
+- `gh` is **not installed** on this machine, so none of it is usable yet
+  (`command -v gh` is empty). When it is, it can auto-detect the repo from
+  `origin` — no `--repo` flag needed.
 
-## Backend tests — Moq (not NSubstitute); three DbContext implementers
+## Backend tests — Moq (not NSubstitute); FOUR DbContext implementers
 
 `backend/tests/MenuNest.Application.UnitTests` uses **xUnit + Moq + FluentAssertions** —
 `Substitute.For<>` (NSubstitute) will NOT compile. Mock `IUserProvisioner` with
@@ -155,10 +159,20 @@ The single git remote is `main` → `https://github.com/ThodsaphonSonthiphin/Men
 then pass `m.Object` to the handler.
 
 Relational handler tests use `SqliteAppDbContext` (applies the real EF configs, so unique
-indexes / FK behaviour the InMemory provider silently ignores are exercised). **Three**
-classes implement `IApplicationDbContext`: `AppDbContext` (prod), `SqliteAppDbContext` and
-`InMemoryAppDbContext` (tests) — a new `DbSet<>` must be added to **all three** or the build
-fails `CS0535`.
+indexes / FK behaviour the InMemory provider silently ignores are exercised). **Four**
+classes implement `IApplicationDbContext` — a new `DbSet<>` must be added to **all four**
+or the build fails `CS0535`:
+
+| class | where |
+|---|---|
+| `AppDbContext` (prod) | `src/MenuNest.Infrastructure/Persistence/` |
+| `SqliteAppDbContext` | `tests/MenuNest.Application.UnitTests/Support/` |
+| `InMemoryAppDbContext` | `tests/MenuNest.Application.UnitTests/Support/` |
+| `SaveChangesCountingDbContext` | `tests/MenuNest.Application.UnitTests/Support/` |
+
+The fourth is the one that gets missed: it is a **decorator** (`(IApplicationDbContext
+inner)`) that does not derive from `DbContext`, so it does not turn up in a search for
+`: DbContext` and it has to forward the new `DbSet<>` by hand.
 **There are four test projects** under `backend/tests/`: `MenuNest.Application.UnitTests`
 (handlers/use-cases; SQLite + InMemory contexts), `MenuNest.Infrastructure.IntegrationTests`,
 `MenuNest.McpServer.UnitTests`, and `MenuNest.WebApi.UnitTests` (web-layer units —
