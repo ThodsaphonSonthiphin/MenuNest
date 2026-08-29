@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { AppInsightsErrorBoundary } from '@microsoft/applicationinsights-react-js'
 import { NavBar } from './NavBar'
 import { ConfirmProvider } from './ConfirmProvider'
+import { ShortcutRailProvider } from './ShortcutRailProvider'
 import { reactPlugin } from '../telemetry/appInsights'
 
 function TelemetryErrorFallback() {
@@ -17,12 +18,14 @@ export function AppLayout() {
   return (
     <AppInsightsErrorBoundary appInsights={reactPlugin} onError={TelemetryErrorFallback}>
       <ConfirmProvider>
-        <div className="app-shell">
-          <NavBar />
-          <main className="app-main">
-            <Outlet />
-          </main>
-        </div>
+        <ShortcutRailProvider>
+          <div className="app-shell">
+            <NavBar />
+            <main className="app-main">
+              <Outlet />
+            </main>
+          </div>
+        </ShortcutRailProvider>
       </ConfirmProvider>
     </AppInsightsErrorBoundary>
   )
