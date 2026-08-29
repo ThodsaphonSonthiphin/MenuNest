@@ -17,5 +17,6 @@ An undo can become invalid between being recorded and being pressed: the month r
 graph TD
     ME["stale-undo (this ticket)"]
     P0["undo-semantics"] --> ME
+    ME --> C0["build-ship"]
 ```
 <!-- decision-map:graph:end -->

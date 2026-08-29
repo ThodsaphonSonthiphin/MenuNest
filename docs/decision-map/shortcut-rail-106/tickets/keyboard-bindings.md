@@ -17,5 +17,6 @@ Desktop keyboard shortcuts are in scope. Decide: which element must be focused f
 graph TD
     ME["keyboard-bindings (this ticket)"]
     P0["undo-semantics"] --> ME
+    ME --> C0["build-ship"]
 ```
 <!-- decision-map:graph:end -->

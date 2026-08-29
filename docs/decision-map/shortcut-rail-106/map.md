@@ -35,6 +35,9 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - The project already runs hosted background services - MenuNest.Infrastructure/BackgroundServices/FollowUpDispatcher.cs - so pruning expired history rows can be a real scheduled delete rather than only a read-time filter. Implementation choice, not a decision.
 - Change history is a SHEET over /budget on the existing budget-modal-overlay / budget-modal scaffolding (menunest-195), not a route. Every row carries its own Undo AND Redo, undo is not last-in-first-out, and an undone row stays on the list marked so it can be redone. An out-of-order undo may leave an Envelope negative and that is allowed - Overspent is already a first-class state in this app.
 - One INFERENCE is riding on menunest-195 and is flagged there rather than asserted: that an undone row stays visible. Nobody stated it; it follows from per-row redo having nowhere to live otherwise. Cheap to overturn - do not treat it as a settled user answer.
+- SUPERSEDES the earlier hard-delete note above. menunest-196 put transactions OUT of undo's scope, so the BudgetTransaction hard delete is no longer a problem this map has to solve: no soft-delete flag, no migration, no filter on every transaction query. The earlier line calling it 'the single most expensive fact on the map' is now false and stays only because chart is additive and never deletes.
+- Undo's scope is settled and binding on stale-undo and build-ship (menunest-196). IN: set assigned amount, move money, cover overspending, quick-assign, everyday marks. OUT: Budget transaction create/edit/delete, balance correction (it IS a Budget transaction), and account / Envelope / group CRUD. Quick-assign is ONE history row that reverses every envelope it touched, not N rows.
+- Departure from YNAB, with its reason on the record: everyday marks are undoable although YNAB has no equivalent. Marking an Everyday envelope is a Budgeting event (menunest-181), so a stray toggle silently re-freezes the Daily allowance, and its inverse is a single boolean.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -57,6 +60,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 
 - [Change history - what does the third slot show, and how far back?](tickets/change-history-view.md) — A sheet over /budget, not a route. Every row carries its own Undo and Redo, and an undone row stays on the list so it can be redone.
 - [History - where does the undo/redo stack live, and does it survive a refresh?](tickets/history-storage.md) — A new server-side entity keyed to the Family, holding the last 7 days but hard-cut at the month start - so an undo can never reach into a month already left.
+- [Reversible actions - which budget mutations join the undo stack, and which deliberately do not?](tickets/reversible-actions.md) — Undo covers five money-placement acts - assign, move, cover, quick-assign, everyday marks - and nothing else. Excluding transactions retires the hard-delete problem entirely.
 - [Undo - does it withhold a write that has not been sent, or reverse one already committed?](tickets/undo-semantics.md) — Undo sends the opposite write to the server, built from a command the app records when you act - never a restore of an old value. The 5-second delete toast is removed.
 <!-- decision-map:decisions:end -->
 
@@ -85,4 +89,6 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - A draggable rail, as issue #106 originally asked for - rejected by menunest-192 on prototype evidence, not taste: instant drag needs touch-action:none and kills scrolling from the button, hold-to-drag makes every deliberate drag slow, and a saved position lands off a narrower screen. Hide-on-scroll solves the occlusion it was meant to solve at none of that cost.
 - Undoing an act performed in a previous budget month - made impossible by menunest-194's month cut, deliberately, to keep an undo from moving numbers the user considers settled.
 - A /budget/history route - Change history is a sheet (menunest-195). Ruled out because opening a whole page from a floating button is a heavy gesture for a light correction, and the list is only days long.
+- Undo for Budget transaction create / edit / delete, for a balance correction, and for account / Envelope / group create / edit / delete - all ruled out by menunest-196. A mistyped transaction is fixed by its own Edit button; a destructive structural act is guarded by a confirm dialog before it happens.
+- Fixing quick-assign's non-atomic commit. QuickAssignDialog.tsx:122 already commits N sequential setAssigned requests with no batch endpoint and no transaction, so a failure at request 7 of 12 leaves the user half-assigned TODAY. Undo inherits this and adds none. It is a real pre-existing defect and deserves its own GitHub issue, not a ticket on this map.
 <!-- decision-map:scope:end -->

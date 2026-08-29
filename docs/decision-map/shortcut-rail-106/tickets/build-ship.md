@@ -4,7 +4,7 @@ type: task
 mode: HITL
 status: open
 assignee: 
-blocked_by: [undo-semantics, rail-architecture, mock-signoff, change-history-view, whose-acts]
+blocked_by: [undo-semantics, rail-architecture, mock-signoff, change-history-view, whose-acts, stale-undo, keyboard-bindings]
 gist: 
 ---
 
@@ -17,9 +17,11 @@ Implement the decided rail and the undo/redo engine, then ship to prod. Must inc
 graph TD
     ME["build-ship (this ticket)"]
     P0["change-history-view"] --> ME
-    P1["mock-signoff"] --> ME
-    P2["rail-architecture"] --> ME
-    P3["undo-semantics"] --> ME
-    P4["whose-acts"] --> ME
+    P1["keyboard-bindings"] --> ME
+    P2["mock-signoff"] --> ME
+    P3["rail-architecture"] --> ME
+    P4["stale-undo"] --> ME
+    P5["undo-semantics"] --> ME
+    P6["whose-acts"] --> ME
 ```
 <!-- decision-map:graph:end -->
