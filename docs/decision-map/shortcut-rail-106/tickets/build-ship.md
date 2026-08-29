@@ -4,7 +4,7 @@ type: task
 mode: HITL
 status: open
 assignee: 
-blocked_by: [undo-semantics, rail-architecture, mock-signoff, change-history-view]
+blocked_by: [undo-semantics, rail-architecture, mock-signoff, change-history-view, whose-acts]
 gist: 
 ---
 
@@ -20,5 +20,6 @@ graph TD
     P1["mock-signoff"] --> ME
     P2["rail-architecture"] --> ME
     P3["undo-semantics"] --> ME
+    P4["whose-acts"] --> ME
 ```
 <!-- decision-map:graph:end -->
