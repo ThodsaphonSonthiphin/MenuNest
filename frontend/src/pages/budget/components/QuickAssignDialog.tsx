@@ -119,12 +119,21 @@ export function QuickAssignDialog({
     setErr(null)
     setApplying(true)
     try {
+      // menunest-196: one press is ONE history row, so every write in this plan
+      // carries the same batch id and the Change history sheet collapses them.
+      //
+      // NOTE this loop is still NOT atomic — a failure at request 7 of 12
+      // leaves the user half-assigned with nothing saying so. That is a
+      // PRE-EXISTING defect, recorded out of scope on the decision map, not
+      // something undo introduced: the forward loop was already like this.
+      const batchId = crypto.randomUUID()
       for (const a of plan) {
         await setAssigned({
           categoryId: a.cat.categoryId,
           year, month,
           amount: a.newAssigned,
           timeZoneId: getViewerTimeZone(),
+          batchId,
         }).unwrap()
       }
       onClose()
