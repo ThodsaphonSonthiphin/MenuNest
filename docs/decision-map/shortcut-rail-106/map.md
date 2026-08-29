@@ -49,6 +49,9 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Keyboard is settled and binding on build-ship (menunest-200): Ctrl+Z and Cmd+Z both, INERT inside input/textarea/contenteditable and INERT while any budget dialog is open; the rail's labels show the binding on desktop widths only, platform-aware. Leaves EnvelopeCard's existing Escape=revert alone - Escape discards an edit not yet sent, Undo reverses one already committed.
 - Build wrinkle handed to build-ship by menunest-200, deliberately not decided: 'is a dialog open' is NOT centrally known - the five budget dialogs are local useState inside their own components. Either the key handler checks the DOM for an open .budget-modal-overlay, or the dialogs register with the ShortcutRailProvider that menunest-199 adds anyway. The second is probably right for that reason.
 - The desktop hide-on-scroll fog line below was written saying it had no obvious home. It has one now: build-ship is the only ticket left that could hold it, since keyboard-bindings is closed and is about key handling rather than scroll behaviour.
+- EVERY decision on this map is now closed. build-ship is the only ticket left and it is unblocked. The decisions are menunest-191 through 201, eleven ADRs; read them in that order and the whole feature is specified.
+- The family head role is settled (menunest-201): a new transferable field on Family, creator is first head, only the head hands it over, and the head CANNOT leave while other members remain - LeaveFamily refuses until they do. Exactly one power: undo another member's act, plus handing over the role. Everything else stays open to every member exactly as today.
+- build-ship touches code OUTSIDE the budget feature for the first time: a guard inside LeaveFamilyHandler, a new field on Family with a hand-applied migration, a new method on IWebPushSender (which stops being single-purpose to the health domain), and a ShortcutRailProvider in AppLayout. None of these is budget code. Plan the commit split accordingly - CLAUDE.md requires an entity and its EF configuration in the SAME commit.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -70,6 +73,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 #### (unassigned)
 
 - [Change history - what does the third slot show, and how far back?](tickets/change-history-view.md) — A sheet over /budget, not a route. Every row carries its own Undo and Redo, and an undone row stays on the list so it can be redone.
+- [Family head - who holds the role, who may transfer it, and what else does it unlock?](tickets/family-head-role.md) — A transferable field on Family: creator is first head, only the head hands it over, and the head cannot leave until they do. Exactly one power - undo another member's act.
 - [History - where does the undo/redo stack live, and does it survive a refresh?](tickets/history-storage.md) — A new server-side entity keyed to the Family, holding the last 7 days but hard-cut at the month start - so an undo can never reach into a month already left.
 - [Keyboard - what do Ctrl+Z and Ctrl+Shift+Z do when focus is somewhere awkward?](tickets/keyboard-bindings.md) — Ctrl+Z and Cmd+Z fire on the budget page but are inert inside inputs and while any dialog is open. The rail labels show the binding on desktop only.
 - [Architecture - how is the rail built so trips and meal-plan can adopt it without a rewrite?](tickets/rail-architecture.md) — A ShortcutRailProvider in AppLayout mirroring the ConfirmProvider already there; a page opts in via a hook. Opt-in also dissolves the .bdg-fab corner collision.
@@ -89,6 +93,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Whether the recorded command line needs its own name in CONTEXT.md so reversible-actions, stale-undo and history-storage all say the same word for it - Change history already names the LIST, but not one entry in it.
 - Whether the empty-history-on-the-1st consequence of menunest-194 needs any wording on screen, so a user opening Change history on the first of the month does not read it as a bug.
 - Whether the Change history sheet covering the budget numbers actually bites in use - you press Undo and cannot see Ready to Assign move until you close it. menunest-195 names a partial bottom sheet as the escape, but the project has no such pattern and it would be new work.
+- Whether the family-head badge belongs on /family - derived rather than asked in menunest-201, because /family already lists members. Cheap to move; noted so a later session does not mistake it for a settled decision.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
