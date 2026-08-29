@@ -2,6 +2,7 @@ using FluentAssertions;
 using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Allowance;
+using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.Monthly.MoveMoney;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
@@ -30,7 +31,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new MoveMoneyCommand(from.Id, to.Id, 2026, 4, 300m, Bkk),
@@ -55,7 +56,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new MoveMoneyCommand(from.Id, to.Id, 2026, 4, 200m, Bkk),
@@ -80,7 +81,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new MoveMoneyCommand(cat.Id, cat.Id, 2026, 4, 100m, Bkk),
@@ -102,7 +103,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var zeroCall = async () => await sut.Handle(
             new MoveMoneyCommand(from.Id, to.Id, 2026, 4, 0m, Bkk),
@@ -136,7 +137,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(new MoveMoneyCommand(from.Id, to.Id, 2026, 4, 300m, Bkk), CancellationToken.None);
 
@@ -163,7 +164,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(new MoveMoneyCommand(from.Id, to.Id, 2026, 4, 300m, Bkk), CancellationToken.None);
 
@@ -194,7 +195,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(new MoveMoneyCommand(from.Id, to.Id, 2026, 9, 300m, Bkk), CancellationToken.None);
 
@@ -219,7 +220,7 @@ public class MoveMoneyHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new MoveMoneyHandler(
-            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new MoveMoneyValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new MoveMoneyCommand(from.Id, to.Id, 2026, 4, 300m, "Not/A/Real/Zone"),
