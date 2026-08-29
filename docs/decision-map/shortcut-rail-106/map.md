@@ -27,6 +27,10 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Syncfusion SpeedDial has NO hide-on-scroll of its own, so that behaviour is roughly twenty lines MenuNest owns on top of the component library-choice picked. It does not overturn library-choice; it does add to build-ship. position=BottomRight and mode=Linear direction=Up ARE the component's own properties, so the corner and the expansion need no custom positioning.
 - The rail-interaction prototype is at https://claude.ai/code/artifact/21ac73e6-a87a-4dbb-a3a5-70555a8e0202 - a throwaway grilling aid built on the app's own tokens, NOT the mock. mock-signoff still owes a docs/mocks/ file for the build to be diffed against.
 - The approved mock is docs/mocks/budget-shortcut-rail-mock.html - three states plus a spec table of exact px, tokens, shadows and transforms. build-ship diffs its CSS against THAT table before merge. TRAP: do NOT diff against the older docs/mocks/budget-redesign-mock.html, which predates the current CSS and is dark-first with a different accent (#6366f1 vs the shipped #4f46e5); anyone comparing to it will chase a colour difference that is not a defect.
+- YNAB precedent, live-verified 2026-08-29 and binding input for reversible-actions and change-history-view (NOT a decision - nobody has chosen it): YNAB undoes money movements and assignments and does NOT undo transactions; its iOS Recent Moves page lets you swipe left to undo ANY recent move, not only the last; redo is 'undo your undo', one step, not a long forward list; and it cannot restore a budget to a date. MenuNest copies YNAB deliberately, so departing from this needs a stated reason.
+- TRAP for the SPA: RTK Query's api.util.updateQueryData(...).undo() is NOT user-facing undo. It rolls the cache back when a REQUEST FAILS. Same word, different job. Do not build the Undo button on it.
+- Deleting a Budget transaction is a HARD delete today - DeleteTransactionHandler does _db.BudgetTransactions.Remove(tx) - while Trip, Drug, Photo and WritingEntry all carry a soft-delete flag. So undoing a delete would create a NEW record with a NEW id unless the model changes. This is the single most expensive fact on the map for reversible-actions.
+- A 12-step interactive walkthrough of the mechanism is at docs/problem-description/2026-08-29-undo-redo-walkthrough.html - built because a text explanation failed once. Hand it to anyone who has to pick up this map cold.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -44,6 +48,10 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - [Mock - produce the rail mock and get it signed off](tickets/mock-signoff.md) — Signed off: docs/mocks/budget-shortcut-rail-mock.html renders resting, expanded and hidden-on-scroll, with the exact CSS values build-ship is diffed against.
 - [Rail contents - besides undo and redo, which shortcuts earn a slot?](tickets/rail-contents.md) — A history control, not a launcher: exactly three slots - undo, redo, change history - all working in v1, because every launcher candidate is already one contextual tap away.
 - [Rail interaction - one button that expands, or an always-open rail, and can it be dragged?](tickets/rail-interaction.md) — One button bottom-right, tap expands the three items upward. Not draggable: it hides on scroll down instead, which solves the occlusion drag was for at none of drag's cost.
+
+#### (unassigned)
+
+- [Undo - does it withhold a write that has not been sent, or reverse one already committed?](tickets/undo-semantics.md) — Undo sends the opposite write to the server, built from a command the app records when you act - never a restore of an old value. The 5-second delete toast is removed.
 <!-- decision-map:decisions:end -->
 
 ## Not yet specified
@@ -55,6 +63,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Whether undo/redo should also be reachable from the AI/MCP surface, or stay a UI-only affordance.
 - Whether Change history should be reachable from anywhere other than the Shortcut rail - the month strip already carries a list icon to /budget/transactions, so two history-ish entry points may confuse rather than help.
 - Whether the rail should hide on scroll on DESKTOP too, where Ctrl+Z exists, there is no thumb-reach problem and a mouse wheel scrolls for different reasons than a thumb flick. Small, but it has no obvious home yet - keyboard-bindings is about key handling and build-ship should not be inventing behaviour.
+- Whether the recorded command line needs its own name in CONTEXT.md so reversible-actions, stale-undo and history-storage all say the same word for it - Change history already names the LIST, but not one entry in it.
 <!-- decision-map:fog:end -->
 
 ## Out of scope

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8">
+<title>Undo, Redo และ Change history ทำงานยังไง (#106)</title>
+<style>
+  :root {
+    --bg:#0a0e14; --panel:#1a2330; --surface:#0f1722; --surface-2:#0f1419;
+    --border:#2a3441; --border-dim:#3d4a5f; --surface-active:#233040;
+    --text:#e0e6ed; --text-dim:#b8c4cf; --muted:#6b7785; --muted-2:#8a96a3;
+    --accent:#5fb4ff; --accent-bright:#7ed4ff;
+    --amber:#ffd479; --warn:#ffaa00; --warn-text:#ffaa44;
+    --magic:#b070ff; --magic-text:#d4a4ff; --magic-bg:#2a1a3a;
+    --success:#4ade80; --success-text:#a3e8b9;
+    --error:#ff5757; --error-text:#ff8888; --conflict:#ff3030;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 20px;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', 'Sukhumvit Set', 'Tahoma', sans-serif;
+  }
+  .container { max-width: 1400px; margin: 0 auto; }
+  h1 { color: var(--accent); font-size: 22px; margin: 0 0 4px; }
+  h2 { color: var(--text-dim); font-size: 13px; font-weight: 400; margin: 0 0 18px; }
+  code { background: var(--panel); padding: 1px 5px; border-radius: 3px;
+         font-family: 'Consolas', monospace; color: var(--amber); font-size: 0.9em; }
+
+  /* progress dots */
+  .step-progress { display: flex; gap: 4px; justify-content: center;
+                   margin: 12px 0 14px; flex-wrap: wrap; }
+  .step-dot { width: 22px; height: 22px; border-radius: 50%;
+              background: var(--panel); color: var(--muted);
+              display: flex; align-items: center; justify-content: center;
+              font-size: 10px; font-weight: 700; transition: all 0.3s; }
+  .step-dot.done    { background: #1a3a5f; color: var(--accent); }
+  .step-dot.current { background: var(--accent); color: var(--bg); transform: scale(1.2); }
+
+  /* narration — the canonical NESTED shape (badge+title+body inside #narration) */
+  .narration {
+    background: var(--panel); padding: 12px 18px; border-radius: 6px;
+    border-left: 3px solid var(--accent); margin-bottom: 16px;
+    font-size: 14.5px; line-height: 1.65; min-height: 60px;
+  }
+  .narration.warn    { border-color: var(--warn);    background: #2a2018; }
+  .narration.error   { border-color: var(--error);   background: #2a1818; }
+  .narration.success { border-color: var(--success); background: #182a1f; }
+  .narration.magic   { border-color: var(--magic);   background: #1f1830; }
+  .narration .step-badge { background: var(--accent); color: var(--bg);
+                           padding: 3px 10px; border-radius: 12px; font-size: 12px;
+                           font-weight: 700; display: inline-block; margin-right: 8px; }
+  .narration .step-title { color: var(--accent); font-weight: 700; font-size: 16px;
+                           display: block; margin: 8px 0 6px; }
+  .narration.warn    .step-title { color: var(--amber); }
+  .narration.error   .step-title { color: var(--error-text); }
+  .narration.success .step-title { color: var(--success-text); }
+  .narration.magic   .step-title { color: var(--magic-text); }
+
+  /* shared hidden panel (replaces the old .extra-panel/.toggleable/.key-question) */
+  .wt-panel { background: var(--panel); border-radius: 6px; padding: 14px 18px;
+              margin-bottom: 16px; font-size: 14px; line-height: 1.6; }
+  .wt-panel .wt-panel-title { font-weight: 700; margin-bottom: 6px; }
+  .wt-panel.question { background: #1f1830; border: 2px solid var(--magic); }
+  .wt-panel.question .wt-panel-title { color: var(--magic-text); }
+  .wt-panel.race     { background: #2a1818; border: 2px solid var(--error); }
+  .wt-panel.race .wt-panel-title { color: var(--error-text); }
+  .wt-panel.summary  { background: #182a1f; border: 2px solid var(--success); }
+  .wt-panel.summary .wt-panel-title { color: var(--success-text); }
+
+  /* controls */
+  .controls { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+  button { background: var(--accent); color: var(--bg); border: none;
+           padding: 10px 22px; border-radius: 6px; font-size: 14px; font-weight: 700;
+           cursor: pointer; transition: background 0.2s, transform 0.1s; }
+  button:hover:not(:disabled)  { background: var(--accent-bright); }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button.tertiary { background: var(--border); color: var(--text); }
+  button.tertiary:hover:not(:disabled) { background: var(--border-dim); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .hidden { display: none !important; }
+  
+  .diagram-wrapper { background: var(--surface-2); border: 1px solid var(--panel);
+                     border-radius: 8px; padding: 12px; margin-bottom: 16px; }
+  svg.diagram { width: 100%; height: auto; display: block; }
+  .comp rect { fill: var(--panel); stroke: var(--border); stroke-width: 2; transition: all 0.4s; }
+  .comp .comp-title { font-family: 'Segoe UI', sans-serif; font-size: 14px; font-weight: 700; fill: var(--text-dim); transition: fill 0.4s; }
+  .comp .comp-sub { font-family: 'Consolas', monospace; font-size: 11px; fill: var(--muted); transition: fill 0.4s; }
+  .comp .comp-val { font-family: 'Consolas', monospace; font-size: 12px; fill: var(--amber); transition: fill 0.4s; }
+  .comp.active rect { fill: #1a3a5f; stroke: var(--accent); stroke-width: 3; filter: drop-shadow(0 0 8px #5fb4ff88); }
+  .comp.active .comp-title { fill: var(--accent-bright); }
+  .comp.active .comp-sub { fill: var(--text-dim); }
+  .comp.firing rect { fill: #2a2818; stroke: var(--amber); stroke-width: 3; filter: drop-shadow(0 0 8px #ffd47988); animation: pulse-fire 1.2s ease-in-out infinite; }
+  .comp.firing .comp-title { fill: var(--amber); }
+  @keyframes pulse-fire { 0%, 100% { filter: drop-shadow(0 0 8px #ffd47988); } 50% { filter: drop-shadow(0 0 16px #ffd479dd); } }
+  .comp.locked rect { fill: var(--magic-bg); stroke: var(--magic); stroke-width: 3; filter: drop-shadow(0 0 10px #b070ff88); }
+  .comp.locked .comp-title { fill: var(--magic-text); }
+  .comp.locked .comp-val { fill: var(--magic-text); }
+  .comp.blocked rect { fill: #2a1f10; stroke: var(--warn); stroke-width: 2; animation: blink-block 1s ease-in-out infinite alternate; }
+  .comp.blocked .comp-title { fill: var(--warn-text); }
+  @keyframes blink-block { from { opacity: 0.55; } to { opacity: 0.9; } }
+  .comp.done rect { fill: #18301f; stroke: var(--success); stroke-width: 2; }
+  .comp.done .comp-title { fill: var(--success-text); }
+  .comp.done .comp-val { fill: var(--success-text); }
+  .comp.error rect { fill: #2a1818; stroke: var(--error); stroke-width: 3; filter: drop-shadow(0 0 10px #ff575788); }
+  .comp.error .comp-title { fill: var(--error-text); }
+  .comp.dimmed { opacity: 0.35; }
+  .arrow { fill: none; stroke: var(--border-dim); stroke-width: 2; transition: stroke 0.3s, stroke-width 0.3s; }
+  .arrow.active { stroke: var(--accent); stroke-width: 3; stroke-dasharray: 8 4; animation: flow 1.8s linear infinite; }
+  .arrow.magic { stroke: var(--magic); stroke-width: 3.5; filter: drop-shadow(0 0 4px var(--magic)); }
+  .arrow.done { stroke: var(--success); stroke-width: 2.5; }
+  .arrow.error { stroke: var(--error); stroke-width: 3; }
+  .arrow.dimmed { opacity: 0.2; }
+  @keyframes flow { to { stroke-dashoffset: -24; } }
+  .flow-label { fill: var(--amber); font-family: 'Consolas', monospace; font-size: 12px; font-weight: 700; pointer-events: none; }
+  .flow-label-bg { fill: #2a2818; stroke: var(--amber); stroke-width: 1.5; }
+  .flow-label-group { opacity: 0; transition: opacity 0.3s; }
+  .flow-label-group.show { opacity: 1; }
+  .flow-label-group.magic .flow-label { fill: var(--magic-text); }
+  .flow-label-group.magic .flow-label-bg { fill: #1f1830; stroke: var(--magic); }
+  .flow-label-group.error .flow-label { fill: var(--error-text); }
+  .flow-label-group.error .flow-label-bg { fill: #2a1818; stroke: var(--error); }
+  /* two-column compare block inside a .wt-panel — engine tokens only, no new hexes */
+  .cmp { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+  .cmp > div { flex: 1 1 260px; border-radius: 6px; padding: 10px 12px; background: var(--surface-2); }
+  .cmp .cmp-bad  { border: 1px solid var(--error); }
+  .cmp .cmp-good { border: 1px solid var(--success); }
+  .cmp h4 { margin: 0 0 6px; font-size: 13px; }
+  .cmp .cmp-bad h4  { color: var(--error-text); }
+  .cmp .cmp-good h4 { color: var(--success-text); }
+  .cmp code { font-family: 'Consolas', monospace; color: var(--amber); }
+  
+  /* Colors are engine :root tokens (var(--token)), so a palette change in the engine
+     propagates here too; the standalone demo's :root above supplies them when opened raw. */
+  .term { border-bottom: 1px dotted var(--accent); color: var(--accent); cursor: help; }
+  .term:hover { color: var(--accent-bright); }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 340px; max-width: 86vw;
+    background: var(--panel); border-left: 2px solid var(--accent);
+    box-shadow: -8px 0 24px #00000088;
+    padding: 18px 20px; overflow-y: auto; z-index: 50;
+  }
+  .drawer-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .drawer-term { color: var(--accent-bright); font-size: 17px; font-weight: 700; line-height: 1.3; }
+  .drawer-source { font-size: 10px; color: var(--muted); text-transform: uppercase;
+                   letter-spacing: 0.5px; margin: 2px 0 12px; }
+  .drawer-def { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 16px; }
+  .drawer-seealso-title { font-size: 11px; color: var(--muted-2); text-transform: uppercase;
+                          letter-spacing: 0.5px; margin-bottom: 8px; }
+  .seealso-chip {
+    display: inline-block; background: var(--panel); border: 1px solid var(--border);
+    color: var(--accent); border-radius: 14px; padding: 4px 12px;
+    margin: 0 6px 6px 0; font-size: 13px; cursor: pointer;
+  }
+  .seealso-chip:hover { background: var(--surface-active); border-color: var(--accent); }
+  .drawer-btns { display: flex; gap: 8px; margin-top: 18px; }
+  
+</style></head>
+<body>
+<div class="container">
+  <h1>Undo, Redo และ Change history ทำงานยังไง (#106)</h1>
+  <h2>กด <strong>ถัดไป →</strong> เพื่อดูทีละ step</h2>
+
+  <div class="step-progress" id="stepProgress"></div>
+
+  <div class="narration" id="narration">
+    <span class="step-badge" id="stepBadge">Step 0 / 0</span>
+    <span class="step-title" id="sceneTitle">เริ่มต้น</span>
+    <div id="narrationBody"></div>
+  </div>
+
+  <!-- ===== MODE CONTENT — assembly inserts the chosen mode pack's §HTML here ===== -->
+<div class="diagram-wrapper">
+  <svg class="diagram" viewBox="0 0 1000 500" xmlns="http://www.w3.org/2000/svg">
+
+    <g class="comp" id="compTod">
+      <rect x="40" y="25" width="220" height="90" rx="10"/>
+      <text class="comp-title" x="150" y="58"  text-anchor="middle">📱 ทศพล</text>
+      <text class="comp-sub"   x="150" y="80"  text-anchor="middle">Shortcut rail</text>
+      <text class="comp-val"   x="150" y="102" text-anchor="middle" id="todState">พร้อม</text>
+    </g>
+
+    <g class="comp" id="compStack">
+      <rect x="40" y="185" width="220" height="150" rx="10"/>
+      <text class="comp-title" x="150" y="215" text-anchor="middle">🗂️ Undo stack</text>
+      <text class="comp-sub"   x="150" y="237" text-anchor="middle">บนเครื่องทศพล</text>
+      <text class="comp-val"   x="150" y="270" text-anchor="middle" id="stackTop">(ว่าง)</text>
+      <text class="comp-val"   x="150" y="298" text-anchor="middle" id="stackRedo">redo: (ว่าง)</text>
+    </g>
+
+    <g class="comp" id="compMalee">
+      <rect x="40" y="395" width="220" height="85" rx="10"/>
+      <text class="comp-title" x="150" y="428" text-anchor="middle">📱 มาลี</text>
+      <text class="comp-sub"   x="150" y="452" text-anchor="middle">คนที่สองใน Family</text>
+    </g>
+
+    <g class="comp" id="compApi">
+      <rect x="390" y="200" width="200" height="120" rx="10"/>
+      <text class="comp-title" x="490" y="234" text-anchor="middle">⚙️ MenuNest API</text>
+      <text class="comp-sub"   x="490" y="256" text-anchor="middle">/api/budget/monthly</text>
+      <text class="comp-val"   x="490" y="288" text-anchor="middle" id="apiState">idle</text>
+    </g>
+
+    <g class="comp" id="compDb">
+      <rect x="700" y="170" width="260" height="180" rx="10"/>
+      <text class="comp-title" x="830" y="204" text-anchor="middle">🗄️ ฐานข้อมูล</text>
+      <text class="comp-sub"   x="830" y="226" text-anchor="middle">สิงหาคม 2026</text>
+      <text class="comp-val"   x="830" y="266" text-anchor="middle" id="dbKagin">ค่ากิน: ฿0</text>
+      <text class="comp-val"   x="830" y="298" text-anchor="middle" id="dbRta">Ready to Assign: ฿500</text>
+    </g>
+
+    <path class="arrow" id="arrTodStack"  d="M 150 115 L 150 183" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrTodApi"    d="M 260 70 Q 360 70 388 208" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrStackApi"  d="M 260 260 L 388 260" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrApiDb"     d="M 590 260 L 698 260" marker-end="url(#arrowhead)"/>
+    <path class="arrow" id="arrMaleeApi"  d="M 260 430 Q 360 430 388 312" marker-end="url(#arrowhead)"/>
+
+    <g class="flow-label-group" id="lblTodStack">
+      <rect class="flow-label-bg" x="163" y="136" width="120" height="22" rx="5"/>
+      <text class="flow-label"    x="223" y="152" text-anchor="middle">จดไว้ 1 บรรทัด</text>
+    </g>
+    <g class="flow-label-group" id="lblTodApi">
+      <rect class="flow-label-bg" x="276" y="96" width="130" height="22" rx="5"/>
+      <text class="flow-label"    x="341" y="112" text-anchor="middle">ใส่ ฿300 ค่ากิน</text>
+    </g>
+    <g class="flow-label-group" id="lblStackApi">
+      <rect class="flow-label-bg" x="272" y="228" width="112" height="22" rx="5"/>
+      <text class="flow-label"    x="328" y="244" text-anchor="middle" id="lblStackApiText">undo: −฿300</text>
+    </g>
+    <g class="flow-label-group" id="lblApiDb">
+      <rect class="flow-label-bg" x="596" y="228" width="96" height="22" rx="5"/>
+      <text class="flow-label"    x="644" y="244" text-anchor="middle">เขียนจริง</text>
+    </g>
+    <g class="flow-label-group" id="lblMaleeApi">
+      <rect class="flow-label-bg" x="276" y="348" width="130" height="22" rx="5"/>
+      <text class="flow-label"    x="341" y="364" text-anchor="middle">ใส่ ฿100 ค่ากิน</text>
+    </g>
+  </svg>
+</div>
+
+<div class="wt-panel question hidden" id="panelQuestion">
+  <div class="wt-panel-title">🤔 คำถาม — ตอบในใจก่อนกด ถัดไป</div>
+  <div>ทศพลกด <b>Undo</b>. แอปต้องส่งอะไรไปที่ server?</div>
+  <ul style="margin:8px 0 0 18px; line-height:1.8">
+    <li><b>ก.</b> "ตั้งค่ากินเป็น ฿0" — เพราะก่อนหน้านี้มันเป็น ฿0</li>
+    <li><b>ข.</b> "ลบ ฿300 ออกจากค่ากิน" — เพราะทศพลใส่เข้าไป ฿300</li>
+  </ul>
+  <div style="margin-top:8px">ตอนนี้ทั้งสองข้อให้ผลเท่ากัน คือ ฿0. เลือกข้อไหนก็ดูเหมือนถูก. กด ถัดไป เพื่อดูว่าทำไมมันไม่เท่ากัน</div>
+</div>
+
+<div class="wt-panel race hidden" id="panelCompare">
+  <div class="wt-panel-title">⚖️ สองวิธี ผลไม่เหมือนกัน</div>
+  <div class="cmp">
+    <div class="cmp-bad">
+      <h4>❌ Rollback — เอาค่าเก่ากลับไปใส่</h4>
+      <div>ส่ง <code>ค่ากิน = ฿0</code> เพราะก่อนหน้านี้เป็น ฿0</div>
+      <div style="margin-top:6px">ผล: ค่ากิน <code>฿0</code> — <b>เงิน ฿100 ของมาลีหายไป</b></div>
+    </div>
+    <div class="cmp-good">
+      <h4>✅ Compensating — ส่งคำสั่งตรงข้าม</h4>
+      <div>ส่ง <code>ค่ากิน −฿300</code> เพราะทศพลใส่ ฿300</div>
+      <div style="margin-top:6px">ผล: ค่ากิน <code>฿100</code> — <b>เงินของมาลีอยู่ครบ</b></div>
+    </div>
+  </div>
+</div>
+
+<div class="wt-panel summary hidden" id="panelSummary">
+  <div class="wt-panel-title">🧾 ราคาที่ต้องจ่าย</div>
+  <ul style="margin:4px 0 0 18px; line-height:1.9">
+    <li><b>ทุกคำสั่งต้องมีคำสั่งตรงข้าม.</b> ถ้าเขียนคำสั่งใหม่แล้วลืมเขียนตัวตรงข้าม ปุ่ม Undo จะพังเงียบ ๆ</li>
+    <li><b>บางคำสั่งไม่มีตรงข้าม.</b> เช่น ลบซองทิ้ง. ต้องตัดสินว่าจะไม่ให้ undo หรือจะเปลี่ยนวิธีลบ</li>
+    <li><b>รายการที่จดไว้อาจใช้ไม่ได้แล้ว.</b> ซองถูกลบ เดือนเปลี่ยน หรือคนอื่นแก้ทับ</li>
+    <li><b>เก็บไว้ที่ไหน.</b> ในหน่วยความจำ (หายเมื่อ refresh) หรือบน server (ตามไปทุกเครื่อง)</li>
+  </ul>
+  <div style="margin-top:10px">สามข้อนี้คือ ticket <code>reversible-actions</code>, <code>stale-undo</code> และ <code>history-storage</code> บนแผนที่ ยังไม่ได้ตัดสิน</div>
+</div>
+  
+
+  <div class="controls">
+    <button id="prevBtn" class="tertiary" disabled>← ย้อนกลับ</button>
+    <button id="nextBtn">ถัดไป →</button>
+    <button id="resetBtn" class="tertiary">↻ เริ่มใหม่</button>
+  </div>
+
+    <aside id="termDrawer" class="drawer hidden" aria-label="term definition">
+    <div class="drawer-head">
+      <span class="drawer-term" id="drawerTerm"></span>
+      <button class="tertiary" id="drawerClose" title="ปิด">✕</button>
+    </div>
+    <div class="drawer-source" id="drawerSource"></div>
+    <div class="drawer-def" id="drawerDef"></div>
+    <div class="drawer-seealso-title hidden" id="drawerSeeAlsoTitle">ดูเพิ่ม</div>
+    <div id="drawerSeeAlso"></div>
+    <div class="drawer-btns">
+      <button class="tertiary hidden" id="drawerBack">← ย้อน</button>
+    </div>
+  </aside>
+  
+</div>
+
+<!-- The engine owns the fixed 5 markerheads; SVG modes select from them (ADR 0022). -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="arrowhead"        markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#3d4a5f"/></marker>
+  <marker id="arrowhead-active" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#5fb4ff"/></marker>
+  <marker id="arrowhead-magic"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#b070ff"/></marker>
+  <marker id="arrowhead-done"   markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#4ade80"/></marker>
+  <marker id="arrowhead-error"  markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#ff5757"/></marker>
+</defs></svg>
+<script>
+let currentStep = 0;
+let TOTAL = 0;                 // the authored bootstrap sets TOTAL = scenes.length - 1
+let MODE = null;              // the authored bootstrap sets MODE = '<mode name>'
+const RENDER_HOOKS = [];      // cross-cutting per-render actions; capabilities self-register (e.g. drawer pushes closeDrawer)
+const modeRenderers = {};     // modes self-register: modeRenderers['<name>'] = { registry, clear, <setters> }
+
+function show(id) { const el = document.getElementById(id); if (el) el.classList.remove('hidden'); }
+function hide(id) { const el = document.getElementById(id); if (el) el.classList.add('hidden'); }
+
+// canonical 3-arg narration (nested shape). setSceneTitle kept for scenes that set only the title.
+function setNarration(cls, title, bodyHTML) {
+  const n = document.getElementById('narration');
+  n.className = 'narration' + (cls ? ' ' + cls : '');
+  document.getElementById('sceneTitle').textContent = title;
+  document.getElementById('narrationBody').innerHTML = bodyHTML || '';
+}
+function setSceneTitle(text) { document.getElementById('sceneTitle').textContent = text; }
+
+function buildProgressDots() {
+  const p = document.getElementById('stepProgress');
+  p.innerHTML = '';
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'step-dot'; d.textContent = i; d.id = 'dot' + i;
+    p.appendChild(d);
+  }
+}
+
+function render(step) {
+  RENDER_HOOKS.forEach(h => h());                 // runs FIRST (drawer closes here), before any paint
+  const R = modeRenderers[MODE];
+  if (R && R.clear) R.clear(R.registry);          // engine calls the mode's reset generically
+  if (typeof scenes !== 'undefined' && scenes[step]) scenes[step]();
+  for (let i = 0; i <= TOTAL; i++) {
+    const d = document.getElementById('dot' + i);
+    if (!d) continue;
+    d.classList.remove('done', 'current');
+    if (i < step)  d.classList.add('done');
+    if (i === step) d.classList.add('current');
+  }
+  document.getElementById('stepBadge').textContent = 'Step ' + step + ' / ' + TOTAL;
+  document.getElementById('prevBtn').disabled = step === 0;
+  document.getElementById('nextBtn').disabled = step === TOTAL;
+}
+
+document.getElementById('prevBtn').onclick  = () => { if (currentStep > 0)     { currentStep--; render(currentStep); } };
+document.getElementById('nextBtn').onclick  = () => { if (currentStep < TOTAL) { currentStep++; render(currentStep); } };
+document.getElementById('resetBtn').onclick = () => { currentStep = 0; render(0); };
+
+/* GLOSSARY is provided by the generated walkthrough's authored bootstrap (inlined from
+   CONTEXT.md at authoring time): an object keyed by slug -> {term, short, seeAlso, source}
+   where source is 'CONTEXT.md' | 'authored'. The §JS below only READS it; the standalone
+   demo declares a demo GLOSSARY in its DEMO-ONLY block at the bottom of this file. */
+
+let drawerStack = [];   // GLOSSARY keys visited this open, for ← back
+
+function renderTerm(key) {
+  const entry = GLOSSARY[key];
+  if (!entry) return;
+  document.getElementById('drawerTerm').textContent = entry.term;
+  document.getElementById('drawerSource').textContent =
+    entry.source === 'CONTEXT.md' ? 'จาก CONTEXT.md' : 'อธิบายเพิ่มเติม';
+  document.getElementById('drawerDef').textContent = entry.short;
+  const wrap = document.getElementById('drawerSeeAlso');
+  wrap.innerHTML = '';
+  const related = (entry.seeAlso || []).filter(k => GLOSSARY[k]);
+  if (related.length) {
+    document.getElementById('drawerSeeAlsoTitle').classList.remove('hidden');
+    related.forEach(k => {
+      const chip = document.createElement('span');
+      chip.className = 'seealso-chip';
+      chip.textContent = GLOSSARY[k].term;
+      chip.dataset.hop = k;
+      wrap.appendChild(chip);
+    });
+  } else {
+    document.getElementById('drawerSeeAlsoTitle').classList.add('hidden');
+  }
+  document.getElementById('drawerBack').classList.toggle('hidden', drawerStack.length <= 1);
+}
+
+function openTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+  document.getElementById('termDrawer').classList.remove('hidden');
+}
+
+function hopTerm(key) {
+  if (!GLOSSARY[key]) return;
+  drawerStack.push(key);
+  renderTerm(key);
+}
+
+function backTerm() {
+  if (drawerStack.length <= 1) return;
+  drawerStack.pop();
+  renderTerm(drawerStack[drawerStack.length - 1]);
+}
+
+function closeDrawer() {
+  drawerStack = [];
+  document.getElementById('termDrawer').classList.add('hidden');
+}
+
+document.addEventListener('click', (e) => {
+  const termEl = e.target.closest('[data-term]');
+  if (termEl) { openTerm(termEl.dataset.term); return; }
+  const hopEl = e.target.closest('[data-hop]');
+  if (hopEl) { hopTerm(hopEl.dataset.hop); return; }
+});
+document.getElementById('drawerClose').onclick = closeDrawer;
+document.getElementById('drawerBack').onclick  = backTerm;
+
+// Self-register with the walkthrough engine so stepping closes the drawer
+// (Phase 2 RENDER_HOOKS model). Guarded so this file still runs standalone.
+if (typeof RENDER_HOOKS !== 'undefined' && RENDER_HOOKS.indexOf(closeDrawer) === -1) RENDER_HOOKS.push(closeDrawer);
+
+modeRenderers['diagram'] = {
+  registry: {
+    COMPONENTS: ['compTod', 'compStack', 'compMalee', 'compApi', 'compDb'],
+    ARROWS: ['arrTodStack', 'arrTodApi', 'arrStackApi', 'arrApiDb', 'arrMaleeApi'],
+    LABELS: ['lblTodStack', 'lblTodApi', 'lblStackApi', 'lblApiDb', 'lblMaleeApi'],
+    LIVE: {
+      todState: 'พร้อม',
+      stackTop: '(ว่าง)',
+      stackRedo: 'redo: (ว่าง)',
+      apiState: 'idle',
+      lblStackApiText: 'undo: −฿300',
+      dbKagin: 'ค่ากิน: ฿0',
+      dbRta: 'Ready to Assign: ฿500',
+    },
+  },
+  clear(reg) {
+    reg.COMPONENTS.forEach(id => this.setComp(id, ''));
+    reg.ARROWS.forEach(id => this.setArrow(id, ''));
+    reg.LABELS.forEach(id => this.setLabel(id, false));
+    Object.keys(reg.LIVE).forEach(id => this.setText(id, reg.LIVE[id]));
+    document.querySelectorAll('.wt-panel').forEach(p => p.classList.add('hidden'));
+  },
+  setComp(id, state) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'comp' + (state ? ' ' + state : '')); },
+  setArrow(id, state) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.setAttribute('class', 'arrow' + (state ? ' ' + state : ''));
+    const m = { '': 'url(#arrowhead)', dimmed: 'url(#arrowhead)', active: 'url(#arrowhead-active)', magic: 'url(#arrowhead-magic)', done: 'url(#arrowhead-done)', error: 'url(#arrowhead-error)' };
+    el.setAttribute('marker-end', m[state] || 'url(#arrowhead)');
+  },
+  setLabel(id, show, variant) { const el = document.getElementById(id); if (el) el.setAttribute('class', 'flow-label-group' + (variant ? ' ' + variant : '') + (show ? ' show' : '')); },
+  setText(id, text) { const el = document.getElementById(id); if (el) el.textContent = text; },
+  assertRegistryComplete() {
+    const got = { comp: '.comp', arrow: '.arrow', flow: '.flow-label-group' };
+    const lists = { comp: this.registry.COMPONENTS, arrow: this.registry.ARROWS, flow: this.registry.LABELS };
+    const miss = [];
+    Object.keys(got).forEach(k => [].forEach.call(document.querySelectorAll(got[k]), e => { if (e.id && !lists[k].includes(e.id)) miss.push(e.id); }));
+    [].concat(this.registry.COMPONENTS, this.registry.ARROWS, this.registry.LABELS, Object.keys(this.registry.LIVE))
+      .forEach(id => { if (!document.getElementById(id)) miss.push(id); });
+    if (miss.length) throw new Error('diagram registry/DOM mismatch: ' + miss.join(', '));
+    return true;
+  },
+};
+
+MODE = 'diagram';
+const { setComp, setArrow, setLabel, setText } = modeRenderers[MODE];
+
+/* Drillable terms. Prerequisite knowledge assumed: the reader owns this budget
+   app and already knows Envelope, Ready to Assign and Budget transaction, so
+   those are deliberately NOT marked. Only terms beyond that are drillable. */
+const GLOSSARY = {
+  'shortcut-rail': {
+    term: "Shortcut rail",
+    short: "the floating control on the budget screen holding exactly three slots: Undo, Redo and Change history, in that order out from the main button. It is a history control, never a launcher.",
+    seeAlso: ['change-history', 'undo-stack'],
+    source: "CONTEXT.md",
+  },
+  'change-history': {
+    term: "Change history",
+    short: "the third slot of the Shortcut rail: the list of the User's recent undoable acts on the budget. It is NOT the transaction list on /budget/transactions.",
+    seeAlso: ['undo-stack', 'shortcut-rail'],
+    source: "CONTEXT.md",
+  },
+  'command-pattern': {
+    term: "Command pattern",
+    short: "each action is stored as a small object that knows what it did and how to reverse itself. The app keeps a list of them. This is the standard way to build undo and redo.",
+    seeAlso: ['undo-stack', 'memento', 'compensating-transaction'],
+    source: "authored",
+  },
+  'compensating-transaction': {
+    term: "compensating transaction",
+    short: "an undo that sends a NEW, opposite write to the server instead of restoring an old copy. Needed whenever other people can change the same data. Microsoft names it as a distributed-systems pattern.",
+    seeAlso: ['rollback', 'command-pattern'],
+    source: "authored",
+  },
+  'rollback': {
+    term: "rollback",
+    short: "putting a saved copy of the old value back. Safe inside one database transaction. Unsafe as an undo button, because it overwrites what other people changed in between.",
+    seeAlso: ['compensating-transaction', 'memento'],
+    source: "authored",
+  },
+  'memento': {
+    term: "Memento pattern",
+    short: "save a copy of the state before each action; undo puts the copy back. Simpler than Command, but it is a rollback, so it has the same problem when other people share the data.",
+    seeAlso: ['command-pattern', 'rollback'],
+    source: "authored",
+  },
+  'undo-stack': {
+    term: "undo stack",
+    short: "the list of recorded actions, newest first. Undo takes the top one off and reverses it. Redo puts it back. The same list is what the Change history screen shows.",
+    seeAlso: ['command-pattern', 'change-history'],
+    source: "authored",
+  },
+};
+
+const T = {
+  rail: '<span class="term" data-term="shortcut-rail">Shortcut rail</span>',
+  hist: '<span class="term" data-term="change-history">Change history</span>',
+  cmd: '<span class="term" data-term="command-pattern">Command pattern</span>',
+  comp: '<span class="term" data-term="compensating-transaction">compensating transaction</span>',
+  roll: '<span class="term" data-term="rollback">rollback</span>',
+  mem: '<span class="term" data-term="memento">Memento</span>',
+  stack: '<span class="term" data-term="undo-stack">undo stack</span>',
+};
+
+const scenes = [
+
+  /* 0 — overview */
+  () => {
+    setNarration('info', 'ขั้น 0 — ตั้งต้น',
+      'สิงหาคม 2026. เงินที่ยังไม่ได้ใส่ซองมี <b>฿500</b>. ซอง <b>ค่ากิน</b> มี <b>฿0</b>.<br>' +
+      'ทศพลกับมาลีอยู่ Family เดียวกัน ทั้งคู่แก้งบก้อนเดียวกันได้. ตอนนี้ยังไม่มีใครทำอะไร.<br>' +
+      'คำที่มีเส้นประใต้คำ กดดูคำอธิบายได้ เช่น ' + T.rail + '.');
+  },
+
+  /* 1 — trigger */
+  () => {
+    setNarration('warn', 'ขั้น 1 — ทศพลใส่เงิน ฿300 เข้าซองค่ากิน',
+      'ทศพลแตะซองค่ากินแล้วใส่ ฿300. เครื่องส่งคำสั่งไปที่ API ทันที.<br>' +
+      '<b>ทำไมต้องส่งเลย:</b> นี่คือสิ่งที่แอปทำอยู่แล้ววันนี้. ยังไม่มีอะไรเกี่ยวกับ undo ในขั้นนี้.');
+    setComp('compTod', 'firing'); setText('todState', 'ส่งคำสั่ง');
+    setArrow('arrTodApi', 'active'); setLabel('lblTodApi', true);
+    setComp('compApi', 'active'); setText('apiState', 'รับคำสั่งแล้ว');
+  },
+
+  /* 2 — the write lands */
+  () => {
+    setNarration('info', 'ขั้น 2 — API เขียนลงฐานข้อมูล',
+      'ค่ากินขึ้นเป็น <b>฿300</b>. เงินที่ยังไม่ได้ใส่ซองลดเหลือ <b>฿200</b>.<br>' +
+      '<b>ทำไมสองตัวเลขขยับพร้อมกัน:</b> เงินรวมเท่าเดิม. การใส่เงินเข้าซองคือการย้าย ไม่ใช่การเพิ่ม.<br>' +
+      'ถึงตรงนี้ คำสั่งถูกเขียนจริงแล้ว. ยกเลิกด้วยการ "ไม่ส่ง" ไม่ได้อีกต่อไป.');
+    setComp('compTod', 'done'); setText('todState', 'ส่งแล้ว');
+    setArrow('arrTodApi', 'done');
+    setComp('compApi', 'active'); setText('apiState', 'เขียน...');
+    setArrow('arrApiDb', 'active'); setLabel('lblApiDb', true);
+    setComp('compDb', 'active');
+    setText('dbKagin', 'ค่ากิน: ฿300'); setText('dbRta', 'Ready to Assign: ฿200');
+  },
+
+  /* 3 — the Command is recorded */
+  () => {
+    setNarration('magic', 'ขั้น 3 — แอปจดไว้ 1 บรรทัด นี่คือหัวใจ',
+      'พร้อมกับที่ส่งคำสั่ง แอปจดบันทึกไว้บนเครื่องทศพล 1 บรรทัด: <i>"ทศพล ใส่ ฿300 เข้าค่ากิน"</i>.<br>' +
+      '<b>บรรทัดนี้ไม่ใช่สำเนาของยอดเงิน.</b> มันคือบันทึกว่า<b>ทำอะไรลงไป</b> และ<b>ตรงข้ามคืออะไร</b>.<br>' +
+      'นี่คือ ' + T.cmd + '. กองบรรทัดพวกนี้เรียกว่า ' + T.stack + '.<br>' +
+      'วิธีอีกแบบคือ ' + T.mem + ' คือเก็บสำเนายอดเงินเก่าไว้แทน. ขั้นที่ 7 จะแสดงว่าทำไมแบบนั้นพัง.');
+    setComp('compTod', 'done'); setText('todState', 'ส่งแล้ว');
+    setArrow('arrTodApi', 'done'); setArrow('arrApiDb', 'done');
+    setComp('compApi', 'done'); setText('apiState', 'เขียนเสร็จ');
+    setComp('compDb', 'done');
+    setText('dbKagin', 'ค่ากิน: ฿300'); setText('dbRta', 'Ready to Assign: ฿200');
+    setArrow('arrTodStack', 'magic'); setLabel('lblTodStack', true, 'magic');
+    setComp('compStack', 'locked'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+  },
+
+  /* 4 — THE KEY QUESTION */
+  () => {
+    setNarration('magic', 'ขั้น 4 — คำถาม หยุดคิดก่อน',
+      'ทศพลรู้ตัวว่าใส่ผิดซอง แล้วกด <b>Undo</b> บน ' + T.rail + '.<br>' +
+      'อ่านคำถามในกล่องม่วงข้างล่าง แล้วตอบในใจก่อนกด ถัดไป.');
+    setComp('compDb', 'done');
+    setText('dbKagin', 'ค่ากิน: ฿300'); setText('dbRta', 'Ready to Assign: ฿200');
+    setComp('compStack', 'locked'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+    setComp('compTod', 'firing'); setText('todState', 'กด Undo');
+    show('panelQuestion');
+  },
+
+  /* 5 — the naive answer, and it works (counter-example set-up) */
+  () => {
+    setNarration('warn', 'ขั้น 5 — คำตอบ ก. ใช้ได้ ตอนที่ไม่มีใครอื่น',
+      'ส่ง "ตั้งค่ากินเป็น ฿0". ค่ากินกลับเป็น ฿0 เงินกลับมา ฿500. ถูกต้องทุกตัวเลข.<br>' +
+      '<b>ทำไมมันถูก:</b> เพราะระหว่างที่ทศพลใส่เงินกับกด Undo <b>ไม่มีใครแตะซองนี้เลย</b>.<br>' +
+      'วิธีนี้เรียกว่า ' + T.roll + '. จำไว้ว่ามันถูก<b>เพราะเงื่อนไขนั้น</b> ไม่ใช่เพราะมันถูกโดยตัวมันเอง.');
+    setComp('compStack', 'active'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+    setArrow('arrStackApi', 'active'); setLabel('lblStackApi', true);
+    setText('lblStackApiText', 'ค่ากิน = ฿0');
+    setComp('compApi', 'active'); setText('apiState', 'เขียน...');
+    setArrow('arrApiDb', 'active'); setLabel('lblApiDb', true);
+    setComp('compDb', 'done');
+    setText('dbKagin', 'ค่ากิน: ฿0'); setText('dbRta', 'Ready to Assign: ฿500');
+  },
+
+  /* 6 — the conflict arrives */
+  () => {
+    setNarration('warn', 'ขั้น 6 — มาลีใส่ ฿100 เข้าซองเดียวกัน',
+      'ย้อนกลับไปที่ค่ากิน ฿300. คราวนี้ก่อนที่ทศพลจะกด Undo <b>มาลีใส่ ฿100 เข้าค่ากิน</b>.<br>' +
+      'ค่ากินเป็น <b>฿400</b>. เงินที่ยังไม่ได้ใส่ซองเหลือ <b>฿100</b>.<br>' +
+      '<b>จุดสำคัญ:</b> เครื่องของทศพลไม่รู้เรื่องนี้เลย. บรรทัดที่จดไว้ยังเขียนว่า "+฿300" เหมือนเดิม.');
+    setComp('compMalee', 'firing');
+    setArrow('arrMaleeApi', 'active'); setLabel('lblMaleeApi', true);
+    setComp('compApi', 'active'); setText('apiState', 'เขียน...');
+    setArrow('arrApiDb', 'active'); setLabel('lblApiDb', true);
+    setComp('compDb', 'active');
+    setText('dbKagin', 'ค่ากิน: ฿400'); setText('dbRta', 'Ready to Assign: ฿100');
+    setComp('compStack', 'locked'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+    setComp('compTod', 'blocked'); setText('todState', 'ยังไม่รู้เรื่อง');
+  },
+
+  /* 7 — the naive answer now destroys data (the counter-example lands) */
+  () => {
+    setNarration('error', 'ขั้น 7 — คำตอบ ก. ตอนนี้ทำลายเงินของมาลี',
+      'ส่ง "ตั้งค่ากินเป็น ฿0" เหมือนเดิม. ค่ากินเป็น ฿0.<br>' +
+      '<b>เงิน ฿100 ที่มาลีเพิ่งใส่ หายไปเฉย ๆ</b> ทั้งที่ทศพลตั้งใจจะยกเลิกแค่ของตัวเอง.<br>' +
+      '<b>ทำไมถึงพัง:</b> ค่าเก่าที่จดไว้เป็นความจริงของ<b>เมื่อกี้</b> ไม่ใช่ความจริงของ<b>ตอนนี้</b>. ' +
+      'เอาค่าเก่าไปทับ = ลบทุกอย่างที่เกิดขึ้นระหว่างนั้น.');
+    setComp('compMalee', 'done');
+    setArrow('arrMaleeApi', 'done');
+    setComp('compStack', 'active'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+    setArrow('arrStackApi', 'error'); setLabel('lblStackApi', true, 'error');
+    setText('lblStackApiText', 'ค่ากิน = ฿0');
+    setComp('compApi', 'active'); setText('apiState', 'เขียนทับ');
+    setArrow('arrApiDb', 'error'); setLabel('lblApiDb', true, 'error');
+    setComp('compDb', 'error');
+    setText('dbKagin', 'ค่ากิน: ฿0  ← ฿100 หาย'); setText('dbRta', 'Ready to Assign: ฿500');
+    show('panelCompare');
+  },
+
+  /* 8 — the compensating transaction */
+  () => {
+    setNarration('success', 'ขั้น 8 — คำตอบ ข. ส่งคำสั่งตรงข้าม',
+      'ส่ง "<b>ลบ ฿300 ออกจากค่ากิน</b>" แทน. ค่ากิน 400 − 300 = <b>฿100</b>.<br>' +
+      '<b>เงินของมาลียังอยู่ครบ</b> และของทศพลถูกยกเลิกครบ.<br>' +
+      '<b>ทำไมถึงถูก:</b> คำสั่งนี้พูดถึง<b>สิ่งที่ทศพลทำ</b> ไม่ได้พูดถึง<b>ยอดรวมควรเป็นเท่าไร</b>. ' +
+      'มันจึงไม่ไปยุ่งกับของคนอื่น.<br>' +
+      'วิธีนี้คือ ' + T.comp + '. Undo ไม่ใช่การย้อนเวลา มันคือ<b>การเขียนครั้งใหม่ที่หักล้างของเก่า</b>.');
+    setComp('compMalee', 'done'); setArrow('arrMaleeApi', 'done');
+    setComp('compStack', 'done');
+    setText('stackTop', '(ว่าง)'); setText('stackRedo', 'redo: ทศพล +฿300');
+    setArrow('arrStackApi', 'magic'); setLabel('lblStackApi', true, 'magic');
+    setText('lblStackApiText', 'ค่ากิน −฿300');
+    setComp('compApi', 'done'); setText('apiState', 'เขียนเสร็จ');
+    setArrow('arrApiDb', 'done'); setLabel('lblApiDb', true);
+    setComp('compDb', 'done');
+    setText('dbKagin', 'ค่ากิน: ฿100'); setText('dbRta', 'Ready to Assign: ฿400');
+    show('panelCompare');
+  },
+
+  /* 9 — redo */
+  () => {
+    setNarration('info', 'ขั้น 9 — Redo ใช้บรรทัดเดิม เดินไปข้างหน้า',
+      'ทศพลเปลี่ยนใจ กด <b>Redo</b>. แอปหยิบบรรทัดเดิมจากกอง redo แล้ว<b>ทำตามที่มันเขียนไว้อีกครั้ง</b>.<br>' +
+      'ค่ากินกลับไป ฿400. เงินที่ยังไม่ได้ใส่ซองเหลือ ฿100.<br>' +
+      '<b>ทำไมถึงง่ายกว่า Undo:</b> Redo ไม่ต้องคิดคำสั่งตรงข้าม มันแค่ส่งคำสั่งเดิมซ้ำ. ' +
+      'นี่คือเหตุผลที่ ' + T.cmd + ' ให้ทั้ง undo และ redo มาพร้อมกัน.');
+    setComp('compMalee', 'done'); setArrow('arrMaleeApi', 'done');
+    setComp('compStack', 'active');
+    setText('stackTop', 'ทศพล +฿300 → ค่ากิน'); setText('stackRedo', 'redo: (ว่าง)');
+    setArrow('arrStackApi', 'magic'); setLabel('lblStackApi', true, 'magic');
+    setText('lblStackApiText', 'redo: +฿300');
+    setComp('compApi', 'done'); setText('apiState', 'เขียนเสร็จ');
+    setArrow('arrApiDb', 'done'); setLabel('lblApiDb', true);
+    setComp('compDb', 'done');
+    setText('dbKagin', 'ค่ากิน: ฿400'); setText('dbRta', 'Ready to Assign: ฿100');
+  },
+
+  /* 10 — the history screen is the same list */
+  () => {
+    setNarration('magic', 'ขั้น 10 — ปุ่มที่สามไม่ต้องสร้างข้อมูลใหม่',
+      'กองบรรทัดนี้<b>คือ</b>หน้า ' + T.hist + '. ปุ่มที่สามบน ' + T.rail + ' แค่เอามันมาแสดง.<br>' +
+      '<b>ทำไมถึงสำคัญ:</b> ตอนตัดสินใจใส่ปุ่มประวัติ เราคิดว่าต้องสร้างของใหม่ทั้งชุด. ไม่ใช่. ' +
+      'ข้อมูลชุดเดียวกันรับใช้ทั้งสามปุ่ม.<br>' +
+      'YNAB ทำแบบนี้จริง เรียกว่า Recent Moves และปัดซ้ายที่แถวไหนก็ยกเลิกแถวนั้นได้ ไม่ต้องไล่จากบนสุด.');
+    setComp('compMalee', 'dimmed'); setArrow('arrMaleeApi', 'dimmed');
+    setArrow('arrTodApi', 'dimmed'); setArrow('arrStackApi', 'dimmed'); setArrow('arrApiDb', 'dimmed');
+    setComp('compApi', 'dimmed'); setComp('compDb', 'dimmed');
+    setComp('compStack', 'locked'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+    setArrow('arrTodStack', 'magic'); setLabel('lblTodStack', true, 'magic');
+    setComp('compTod', 'locked'); setText('todState', 'แตะปุ่มที่ 3');
+    setText('dbKagin', 'ค่ากิน: ฿400'); setText('dbRta', 'Ready to Assign: ฿100');
+  },
+
+  /* 11 — summary with the costs named */
+  () => {
+    setNarration('success', 'ขั้น 11 — สรุป และราคาที่ต้องจ่าย',
+      '<b>ประโยคเดียวที่ต้องจำ:</b> Undo ไม่ใช่การย้อนเวลากลับ. ' +
+      'มันคือ<b>การเขียนครั้งใหม่ที่หักล้างของเก่า</b> สร้างจากบรรทัดที่แอปจดไว้ตอนคุณกดปุ่ม.<br>' +
+      'เพราะแบบนี้ Undo จึงไม่ทำลายงานของคนอื่น และหน้าประวัติจึงได้มาฟรี.<br>' +
+      'แต่มันไม่ฟรีจริง ๆ อ่านสี่ข้อในกล่องเขียวข้างล่าง.');
+    setComp('compTod', 'done'); setText('todState', 'พร้อม');
+    setComp('compStack', 'done'); setText('stackTop', 'ทศพล +฿300 → ค่ากิน');
+    setComp('compApi', 'done'); setText('apiState', 'idle');
+    setComp('compDb', 'done');
+    setText('dbKagin', 'ค่ากิน: ฿400'); setText('dbRta', 'Ready to Assign: ฿100');
+    setComp('compMalee', 'done');
+    setArrow('arrTodStack', 'done'); setArrow('arrStackApi', 'done'); setArrow('arrApiDb', 'done');
+    show('panelSummary');
+  },
+];
+
+TOTAL = scenes.length - 1;
+modeRenderers[MODE].assertRegistryComplete();
+buildProgressDots();
+render(0);
+
+</script>
+</body></html>
