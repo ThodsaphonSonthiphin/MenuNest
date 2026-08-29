@@ -72,6 +72,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 
 #### (unassigned)
 
+- [Build and ship - implement the rail and undo/redo, cover it, put it in prod](tickets/build-ship.md) — Shipped: rail, undo/redo and the head role are live in prod; the head has no UI yet
 - [Change history - what does the third slot show, and how far back?](tickets/change-history-view.md) — A sheet over /budget, not a route. Every row carries its own Undo and Redo, and an undone row stays on the list so it can be redone.
 - [Family head - who holds the role, who may transfer it, and what else does it unlock?](tickets/family-head-role.md) — A transferable field on Family: creator is first head, only the head hands it over, and the head cannot leave until they do. Exactly one power - undo another member's act.
 - [History - where does the undo/redo stack live, and does it survive a refresh?](tickets/history-storage.md) — A new server-side entity keyed to the Family, holding the last 7 days but hard-cut at the month start - so an undo can never reach into a month already left.
