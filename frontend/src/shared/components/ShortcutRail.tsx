@@ -108,6 +108,10 @@ export function ShortcutRail({actions}: {actions: RailAction[]}) {
         content="⋮"
         items={items}
         cssClass="bdg-rail-dial"
+        // Forwarded onto the rendered <button>. The wrapper above is
+        // `display: contents` (Syncfusion positions the button itself), so it
+        // has no box — e2e geometry assertions need a testid on the real one.
+        data-testid="bdg-rail-fab"
         beforeOpen={() => { isOpenRef.current = true; setScroll(p => ({...p, hidden: false})) }}
         beforeClose={() => { isOpenRef.current = false }}
         clicked={(args: {item?: SpeedDialItemModel}) => {
