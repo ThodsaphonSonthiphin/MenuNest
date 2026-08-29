@@ -1,10 +1,12 @@
 using FluentAssertions;
+using MenuNest.Application.Abstractions;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.History.UndoChange;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
 using MenuNest.Domain.Exceptions;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace MenuNest.Application.UnitTests.Budget.History;
@@ -16,6 +18,12 @@ namespace MenuNest.Application.UnitTests.Budget.History;
 /// </summary>
 public class HeadUndoesAnyoneTests
 {
+    // Notification behaviour lives in HeadUndoNotifiesTests; a no-op sender
+    // keeps these tests about the permission check alone.
+    private static UndoChangeHandler Sut(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object, new BudgetChangeApplier(fx.Db), fx.Clock,
+            Mock.Of<IWebPushSender>(), NullLogger<UndoChangeHandler>.Instance);
+
     private static (User other, BudgetChange change) Seed(HandlerTestFixture fx)
     {
         var other = User.CreateFromExternalLogin(
@@ -41,7 +49,7 @@ public class HeadUndoesAnyoneTests
         using var fx = new HandlerTestFixture();   // fx.User created the family, so is head
         var (_, change) = Seed(fx);
 
-        await new UndoChangeHandler(fx.Db, fx.UserProvisioner.Object, new BudgetChangeApplier(fx.Db), fx.Clock)
+        await Sut(fx)
             .Handle(new UndoChangeCommand(change.Id), CancellationToken.None);
 
         fx.Db.MonthlyAssignments.Single().AssignedAmount.Should().Be(0m);
@@ -66,7 +74,7 @@ public class HeadUndoesAnyoneTests
 
         var change = fx.Db.BudgetChanges.Single();
         var act = async () =>
-            await new UndoChangeHandler(fx.Db, fx.UserProvisioner.Object, new BudgetChangeApplier(fx.Db), fx.Clock)
+            await Sut(fx)
                 .Handle(new UndoChangeCommand(change.Id), CancellationToken.None);
 
         await act.Should().ThrowAsync<DomainException>().WithMessage("*your own*");

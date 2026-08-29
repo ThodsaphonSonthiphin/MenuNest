@@ -2,6 +2,7 @@ using Mediator;
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Exceptions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace MenuNest.Application.UseCases.Budget.History.UndoChange;
 
@@ -11,11 +12,14 @@ public sealed class UndoChangeHandler : ICommandHandler<UndoChangeCommand, Unit>
     private readonly IUserProvisioner _users;
     private readonly BudgetChangeApplier _applier;
     private readonly IClock _clock;
+    private readonly IWebPushSender _push;
+    private readonly ILogger<UndoChangeHandler> _logger;
 
     public UndoChangeHandler(
         IApplicationDbContext db, IUserProvisioner users,
-        BudgetChangeApplier applier, IClock clock)
-    { _db = db; _users = users; _applier = applier; _clock = clock; }
+        BudgetChangeApplier applier, IClock clock,
+        IWebPushSender push, ILogger<UndoChangeHandler> logger)
+    { _db = db; _users = users; _applier = applier; _clock = clock; _push = push; _logger = logger; }
 
     public async ValueTask<Unit> Handle(UndoChangeCommand cmd, CancellationToken ct)
     {
@@ -43,6 +47,31 @@ public sealed class UndoChangeHandler : ICommandHandler<UndoChangeCommand, Unit>
         await _applier.ApplyAsync(change, -1, ct);
         change.MarkUndone(user.Id, _clock.UtcNow);
         await _db.SaveChangesAsync(ct);
+
+        // menunest-201: the author is told when somebody else undid their work.
+        // AFTER the save, so a push failure can never roll back a completed
+        // undo, and wrapped, because best-effort must actually be best-effort —
+        // the Change history row names the undoer regardless, which is the
+        // notice that always lands.
+        if (change.UserId != user.Id)
+        {
+            try
+            {
+                await _push.SendToUserAsync(
+                    change.UserId,
+                    "A budget change was undone",
+                    $"{user.DisplayName} undid one of your budget changes.",
+                    "/budget",
+                    ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Undo notification failed for change {ChangeId}; the undo itself succeeded.",
+                    change.Id);
+            }
+        }
+
         return Unit.Value;
     }
 }
