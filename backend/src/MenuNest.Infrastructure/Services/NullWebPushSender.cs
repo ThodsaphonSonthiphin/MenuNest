@@ -23,4 +23,12 @@ internal sealed class NullWebPushSender : IWebPushSender
             ping.Id, ping.SymptomEpisodeId);
         return Task.FromResult(0);
     }
+
+    public Task<int> SendToUserAsync(
+        Guid userId, string title, string body, string url, CancellationToken ct = default)
+    {
+        _logger.LogInformation(
+            "[NULL PUSH] Would push to user {UserId}: {Title} -> {Url}", userId, title, url);
+        return Task.FromResult(0);
+    }
 }

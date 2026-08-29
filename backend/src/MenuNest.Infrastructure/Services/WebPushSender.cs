@@ -64,19 +64,55 @@ internal sealed class WebPushSender : IWebPushSender
             return 0;
         }
 
+        var payload = await BuildPayloadAsync(ping, episode, ct);
+        return await DispatchAsync(episode.UserId, payload, ct);
+    }
+
+    /// <summary>
+    /// menunest-201: a plain title/body push to one user, used when the family
+    /// head undoes somebody's budget change. `url` rides in `data` because the
+    /// Service Worker's notificationclick falls back to /health when it finds
+    /// no follow-up context, which is the wrong place for a budget notice.
+    /// </summary>
+    public async Task<int> SendToUserAsync(
+        Guid userId, string title, string body, string url, CancellationToken ct = default)
+    {
+        if (!HasValidVapidKeys(_options))
+        {
+            _logger.LogWarning(
+                "WebPushSender: VAPID keys are not configured — skipping push to user {UserId}.",
+                userId);
+            return 0;
+        }
+
+        var payload = JsonSerializer.Serialize(new
+        {
+            title,
+            body,
+            data = new { url }
+        });
+
+        return await DispatchAsync(userId, payload, ct);
+    }
+
+    /// <summary>
+    /// The per-subscription send loop, shared by both public methods so the
+    /// revoked-endpoint cleanup and the failure accounting cannot drift apart.
+    /// </summary>
+    private async Task<int> DispatchAsync(Guid userId, string payload, CancellationToken ct)
+    {
         var subscriptions = await _db.WebPushSubscriptions
-            .Where(s => s.UserId == episode.UserId)
+            .Where(s => s.UserId == userId)
             .ToListAsync(ct);
 
         if (subscriptions.Count == 0)
         {
             _logger.LogDebug(
-                "WebPushSender: user {UserId} has no push subscriptions — episode {EpisodeId} push skipped",
-                episode.UserId, episode.Id);
+                "WebPushSender: user {UserId} has no push subscriptions — push skipped",
+                userId);
             return 0;
         }
 
-        var payload = await BuildPayloadAsync(ping, episode, ct);
         var vapid = new VapidDetails(
             _options.VapidSubject,
             _options.VapidPublicKey,

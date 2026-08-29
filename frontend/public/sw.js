@@ -71,8 +71,10 @@ self.addEventListener('notificationclick', (event) => {
   const action = event.action
 
   if (!pingId) {
-    // No follow-up context — just open the home screen.
-    event.waitUntil(self.clients.openWindow('/health'))
+    // No follow-up context. A push that names its own destination (the budget
+    // undo notice, menunest-201) lands there; anything else falls back to the
+    // health home screen, which is where follow-up pings come from.
+    event.waitUntil(self.clients.openWindow(data.url || '/health'))
     return
   }
 
