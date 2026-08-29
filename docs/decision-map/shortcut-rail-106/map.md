@@ -31,6 +31,8 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - TRAP for the SPA: RTK Query's api.util.updateQueryData(...).undo() is NOT user-facing undo. It rolls the cache back when a REQUEST FAILS. Same word, different job. Do not build the Undo button on it.
 - Deleting a Budget transaction is a HARD delete today - DeleteTransactionHandler does _db.BudgetTransactions.Remove(tx) - while Trip, Drug, Photo and WritingEntry all carry a soft-delete flag. So undoing a delete would create a NEW record with a NEW id unless the model changes. This is the single most expensive fact on the map for reversible-actions.
 - A 12-step interactive walkthrough of the mechanism is at docs/problem-description/2026-08-29-undo-redo-walkthrough.html - built because a text explanation failed once. Hand it to anyone who has to pick up this map cold.
+- Storage is settled and binding on change-history-view and build-ship (menunest-194): a NEW server-side entity keyed to the Family, holding a window of min(7 days, since the 1st of the budget month) - a HARD cut at the month start, so an undo can never reach into a month already left. Per CLAUDE.md the new DbSet must be added to all THREE IApplicationDbContext implementers with its EF configuration in the SAME commit, and the migration applied to prod BY HAND.
+- The project already runs hosted background services - MenuNest.Infrastructure/BackgroundServices/FollowUpDispatcher.cs - so pruning expired history rows can be a real scheduled delete rather than only a read-time filter. Implementation choice, not a decision.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -51,6 +53,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 
 #### (unassigned)
 
+- [History - where does the undo/redo stack live, and does it survive a refresh?](tickets/history-storage.md) — A new server-side entity keyed to the Family, holding the last 7 days but hard-cut at the month start - so an undo can never reach into a month already left.
 - [Undo - does it withhold a write that has not been sent, or reverse one already committed?](tickets/undo-semantics.md) — Undo sends the opposite write to the server, built from a command the app records when you act - never a restore of an old value. The 5-second delete toast is removed.
 <!-- decision-map:decisions:end -->
 
@@ -64,6 +67,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Whether Change history should be reachable from anywhere other than the Shortcut rail - the month strip already carries a list icon to /budget/transactions, so two history-ish entry points may confuse rather than help.
 - Whether the rail should hide on scroll on DESKTOP too, where Ctrl+Z exists, there is no thumb-reach problem and a mouse wheel scrolls for different reasons than a thumb flick. Small, but it has no obvious home yet - keyboard-bindings is about key handling and build-ship should not be inventing behaviour.
 - Whether the recorded command line needs its own name in CONTEXT.md so reversible-actions, stale-undo and history-storage all say the same word for it - Change history already names the LIST, but not one entry in it.
+- Whether the empty-history-on-the-1st consequence of menunest-194 needs any wording on screen, so a user opening Change history on the first of the month does not read it as a bug.
 <!-- decision-map:fog:end -->
 
 ## Out of scope
@@ -75,4 +79,5 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Replacing or removing the existing TransactionUndoToast delete flow on AccountDetailPage, unless a ticket here explicitly decides to.
 - Putting launcher actions on the Shortcut rail - add transaction, move money, cover overspending, quick-assign, jump to today. Ruled out by menunest-191: each is already one CONTEXTUAL tap away, so a floating copy would be slower, not faster.
 - A draggable rail, as issue #106 originally asked for - rejected by menunest-192 on prototype evidence, not taste: instant drag needs touch-action:none and kills scrolling from the button, hold-to-drag makes every deliberate drag slow, and a saved position lands off a narrower screen. Hide-on-scroll solves the occlusion it was meant to solve at none of that cost.
+- Undoing an act performed in a previous budget month - made impossible by menunest-194's month cut, deliberately, to keep an undo from moving numbers the user considers settled.
 <!-- decision-map:scope:end -->
