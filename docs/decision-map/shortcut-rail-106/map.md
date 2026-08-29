@@ -44,6 +44,8 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - menunest-198 creates MenuNest's FIRST permission distinction. Before it, the app had none by explicit design - UserRelationship says outright that relationships have no effect on permissions, and Family.CreatedByUserId is never consulted for authorization anywhere. Every future feature now inherits a question it did not have: may the family head do this too?
 - CORRECTS the whose-acts ticket's own text, which claimed the app has no notification mechanism. It has one: the REAL WebPushSender over VAPID is registered, not the NullWebPushSender placeholder, and FollowUpDispatcher drives it. What is missing is a general API - IWebPushSender exposes only SendFollowUpAsync(FollowUpPing). Notifying someone costs a new method on a working sender, not new infrastructure.
 - Attribution on a history row is NOT new work: BudgetTransaction already carries CreatedByUserId and the transaction DTO already projects CreatedByDisplayName.
+- Architecture is settled and binding on build-ship (menunest-199): a ShortcutRailProvider in AppLayout beside the ConfirmProvider already there, with the rail rendered in the shell and each page declaring its contents through a hook. A page that declares nothing gets no rail. Shared from day one: the shell, the expand, hide-on-scroll with its two guards, and the hook. NOT generalized: the slot contents (191), the history store (194/196), and the .bdg-fab corner.
+- Two fog lines were DELETED BY HAND this session because they are now answered, not because they graduated into tickets. The concurrent-family-member line: menunest-193 chose compensating writes precisely so it is not a problem, and menunest-197 records that. The .bdg-fab collision line: menunest-199's opt-in means AccountDetailPage declares no rail, so nothing renders there and the fab is untouched.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -66,6 +68,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 
 - [Change history - what does the third slot show, and how far back?](tickets/change-history-view.md) — A sheet over /budget, not a route. Every row carries its own Undo and Redo, and an undone row stays on the list so it can be redone.
 - [History - where does the undo/redo stack live, and does it survive a refresh?](tickets/history-storage.md) — A new server-side entity keyed to the Family, holding the last 7 days but hard-cut at the month start - so an undo can never reach into a month already left.
+- [Architecture - how is the rail built so trips and meal-plan can adopt it without a rewrite?](tickets/rail-architecture.md) — A ShortcutRailProvider in AppLayout mirroring the ConfirmProvider already there; a page opts in via a hook. Opt-in also dissolves the .bdg-fab corner collision.
 - [Reversible actions - which budget mutations join the undo stack, and which deliberately do not?](tickets/reversible-actions.md) — Undo covers five money-placement acts - assign, move, cover, quick-assign, everyday marks - and nothing else. Excluding transactions retires the hard-delete problem entirely.
 - [Stale undo - what happens when the thing being undone is no longer there?](tickets/stale-undo.md) — Only one stale case survives the other ADRs - the Envelope was deleted. That row stays visible and disabled with its reason; the sheet checks at load, the rail button at press.
 - [Undo - does it withhold a write that has not been sent, or reverse one already committed?](tickets/undo-semantics.md) — Undo sends the opposite write to the server, built from a command the app records when you act - never a restore of an old value. The 5-second delete toast is removed.
@@ -75,9 +78,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 ## Not yet specified
 
 <!-- decision-map:fog:start -->
-- What undo means when another family member changed the same envelope in between - cannot be phrased sharply until undo-semantics lands.
 - How a first-time user learns the rail exists at all - no evidence yet that discoverability is a real problem here.
-- How the generalized rail coexists with the .bdg-fab already occupying the bottom-right corner of AccountDetailPage - needs rail-architecture first.
 - Whether undo/redo should also be reachable from the AI/MCP surface, or stay a UI-only affordance.
 - Whether Change history should be reachable from anywhere other than the Shortcut rail - the month strip already carries a list icon to /budget/transactions, so two history-ish entry points may confuse rather than help.
 - Whether the rail should hide on scroll on DESKTOP too, where Ctrl+Z exists, there is no thumb-reach problem and a mouse wheel scrolls for different reasons than a thumb flick. Small, but it has no obvious home yet - keyboard-bindings is about key handling and build-ship should not be inventing behaviour.
