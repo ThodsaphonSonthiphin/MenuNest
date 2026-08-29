@@ -1,5 +1,6 @@
 using Mediator;
 using MenuNest.Application.UseCases.Budget;
+using MenuNest.Application.UseCases.Budget.History.ListChanges;
 using MenuNest.Application.UseCases.Budget.History.RedoChange;
 using MenuNest.Application.UseCases.Budget.History.UndoChange;
 using MenuNest.Application.UseCases.Budget.Accounts.CreateAccount;
@@ -137,6 +138,10 @@ public sealed class BudgetController : ControllerBase
     { await _m.Send(new MoveMoneyCommand(r.FromCategoryId, r.ToCategoryId, r.Year, r.Month, r.Amount, r.TimeZoneId), ct); return NoContent(); }
 
     // ----- undo history (menunest-193..198) -----
+    [HttpGet("history")]
+    public async Task<IActionResult> ListChanges([FromQuery] int year, [FromQuery] int month, CancellationToken ct)
+        => Ok(await _m.Send(new ListChangesQuery(year, month), ct));
+
     [HttpPost("history/{id:guid}/undo")]
     public async Task<IActionResult> UndoChange(Guid id, CancellationToken ct)
     { await _m.Send(new UndoChangeCommand(id), ct); return NoContent(); }
