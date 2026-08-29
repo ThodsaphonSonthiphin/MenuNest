@@ -744,16 +744,41 @@
 
 .bdg-rail {
   /* Its own token scope: AppLayout is outside .bdg-page, which is where
-     the budget palette is declared. */
+     the budget palette is declared.
+
+     `display: contents` is deliberate. Syncfusion positions the FAB, its
+     popup and its scrim ITSELF, in JS, from the button's own fixed
+     coordinates — a wrapper that positions them instead collapses to 0x0 and
+     sends the expanded items off-screen to the top-left. So this element
+     carries no box at all: it is the token scope and the .is-hidden hook,
+     nothing more. Assert on [data-testid="bdg-rail-fab"] for anything that
+     needs a rendered box. */
+  display: contents;
+
   --accent:  #4f46e5;
   --bg-card: #ffffff;
   --border:  #e2e8f0;
   --text:    #0f172a;
+}
 
-  position: fixed; right: 16px; bottom: 22px; z-index: 40;
+/* menunest-192's resting position. Syncfusion's own .e-fab-bottom sits at
+   16px; the approved mock says 22px, and its rule is (0,3,0), so match it
+   class-for-class and add .bdg-rail on top to win on specificity rather than
+   on stylesheet order. */
+.bdg-rail .e-fab.e-btn.e-fab-bottom { bottom: 22px; }
+.bdg-rail .e-fab.e-btn.e-fab-right  { right: 16px; }
+.bdg-rail .e-fab.e-btn              { z-index: 40; }
+
+/* Hide on scroll. The transform goes on the elements Syncfusion positions,
+   NOT on the wrapper: a transformed ancestor becomes the containing block for
+   its position:fixed descendants, so animating the wrapper would teleport the
+   button to a new origin and only then slide it. */
+.bdg-rail .e-fab,
+.bdg-rail .e-speeddial-popup {
   transition: transform .22s ease, opacity .22s ease;
 }
-.bdg-rail.is-hidden {
+.bdg-rail.is-hidden .e-fab,
+.bdg-rail.is-hidden .e-speeddial-popup {
   transform: translateY(96px) scale(.9);
   opacity: 0;
   pointer-events: none;
@@ -789,7 +814,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bdg-rail { transition-duration: .01ms; }
+  .bdg-rail .e-fab,
+  .bdg-rail .e-speeddial-popup { transition-duration: .01ms; }
 }
 
 /* -------- Change history sheet (menunest-195) -------- */
