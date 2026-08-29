@@ -731,3 +731,89 @@
   font-weight: 500;
   font-size: 0.9em;
 }
+
+/* ============================================================
+   Shortcut rail (#106) — menunest-192 / 195 / 200.
+   Every value here is copied from the approved mock's spec table,
+   docs/mocks/budget-shortcut-rail-mock.html. Diff against THAT file,
+   not budget-redesign-mock.html, which predates this palette.
+   Tokens only; no new hexes.
+   The rail renders from AppLayout, so it is scoped by its own class
+   rather than nested under .bdg-page.
+   ============================================================ */
+
+.bdg-rail {
+  /* Its own token scope: AppLayout is outside .bdg-page, which is where
+     the budget palette is declared. */
+  --accent:  #4f46e5;
+  --bg-card: #ffffff;
+  --border:  #e2e8f0;
+  --text:    #0f172a;
+
+  position: fixed; right: 16px; bottom: 22px; z-index: 40;
+  transition: transform .22s ease, opacity .22s ease;
+}
+.bdg-rail.is-hidden {
+  transform: translateY(96px) scale(.9);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* main button — 52x52, indigo */
+.bdg-rail .e-speeddial-fab,
+.bdg-rail .e-fab {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none;
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.45);
+  font-size: 21px; line-height: 1;
+}
+
+/* items — 44x44 on card white */
+.bdg-rail .e-speeddial-li {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--bg-card); border: 1px solid var(--border);
+  color: var(--accent); font-size: 17px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+}
+.bdg-rail .e-speeddial-li + .e-speeddial-li { margin-top: 10px; }
+.bdg-rail .e-speeddial-ul { margin-bottom: 12px; }
+
+/* scrim */
+.bdg-rail .e-speeddial-overlay { background: rgba(15, 23, 42, 0.20); }
+
+/* menunest-200: the keyboard hint rides on the item label and is hidden
+   below desktop widths, where there is no keyboard to hint about. */
+@media (max-width: 767px) {
+  .bdg-rail .e-speeddial-text { font-size: 0; }
+  .bdg-rail .e-speeddial-text::first-line { font-size: 11px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bdg-rail { transition-duration: .01ms; }
+}
+
+/* -------- Change history sheet (menunest-195) -------- */
+.bdg-history-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.bdg-history-empty { font-size: 12.5px; color: var(--text-dim); padding: 18px 0; text-align: center; }
+.bdg-history-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--bg-card-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+}
+.bdg-history-row.is-undone { opacity: .72; }
+.bdg-history-row.is-dead { opacity: .55; }
+.bdg-history-main { flex: 1; min-width: 0; }
+.bdg-history-text { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.bdg-history-who { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.bdg-history-blocked { font-size: 11px; color: var(--red); margin-top: 3px; }
+.bdg-history-btn {
+  flex: 0 0 auto;
+  background: var(--bg-card); border: 1px solid var(--accent); color: var(--accent);
+  font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; cursor: pointer;
+}
+.bdg-history-btn:disabled { border-color: var(--border); color: var(--text-dim); cursor: not-allowed; }
+.bdg-history-actions { display: flex; justify-content: flex-end; margin-top: 14px; }
+.bdg-history-close {
+  background: var(--bg-card-2); border: 1px solid var(--border); color: var(--text);
+  font-size: 13px; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+}
