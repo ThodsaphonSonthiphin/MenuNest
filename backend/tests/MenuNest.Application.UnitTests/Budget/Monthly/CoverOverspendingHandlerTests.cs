@@ -2,6 +2,7 @@ using FluentAssertions;
 using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
 using MenuNest.Application.UseCases.Budget.Allowance;
+using MenuNest.Application.UseCases.Budget.History;
 using MenuNest.Application.UseCases.Budget.Monthly.CoverOverspending;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Exceptions;
@@ -30,7 +31,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         // Use CoverOverspendingCommand explicitly — this assertion proves
         // the command is wired to the CoverOverspending handler (not MoveMoney).
@@ -60,7 +61,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new CoverOverspendingCommand(cat.Id, cat.Id, 2026, 4, 100m, Bkk),
@@ -82,7 +83,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var zeroCall = async () => await sut.Handle(
             new CoverOverspendingCommand(overspent.Id, from.Id, 2026, 4, 0m, Bkk),
@@ -112,7 +113,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new CoverOverspendingCommand(overspent.Id, from.Id, 2026, 4, 150m, Bkk), CancellationToken.None);
@@ -140,7 +141,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new CoverOverspendingCommand(overspent.Id, from.Id, 2026, 4, 150m, Bkk), CancellationToken.None);
@@ -172,7 +173,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         await sut.Handle(
             new CoverOverspendingCommand(overspent.Id, from.Id, 2026, 9, 150m, Bkk), CancellationToken.None);
@@ -198,7 +199,7 @@ public class CoverOverspendingHandlerTests
         await fx.Db.SaveChangesAsync();
 
         var sut = new CoverOverspendingHandler(
-            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock);
+            fx.Db, fx.UserProvisioner.Object, new CoverOverspendingValidator(), new AllowanceFreezer(fx.Db), fx.Clock, new BudgetChangeRecorder(fx.Db));
 
         var act = async () => await sut.Handle(
             new CoverOverspendingCommand(overspent.Id, from.Id, 2026, 4, 150m, "Not/A/Real/Zone"),
