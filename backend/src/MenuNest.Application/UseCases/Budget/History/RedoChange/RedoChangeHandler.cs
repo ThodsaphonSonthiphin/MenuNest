@@ -29,9 +29,18 @@ public sealed class RedoChangeHandler : ICommandHandler<RedoChangeCommand, Unit>
             c => c.Id == cmd.ChangeId && c.FamilyId == familyId, ct)
             ?? throw new DomainException("Change not found.");
 
-        // Same seam as UndoChangeHandler — widened by the family-head plan.
+        // Same seam as UndoChangeHandler, and widened the same way: a member may
+        // redo their own, the FAMILY HEAD may redo anyone's (menunest-198).
         if (change.UserId != user.Id)
-            throw new DomainException("You can only redo your own changes.");
+        {
+            var isHead = await _db.Families
+                .AnyAsync(f => f.Id == familyId && f.HeadUserId == user.Id, ct);
+
+            if (!isHead)
+            {
+                throw new DomainException("You can only redo your own changes.");
+            }
+        }
 
         await _applier.ApplyAsync(change, +1, ct);
         change.MarkRedone();
