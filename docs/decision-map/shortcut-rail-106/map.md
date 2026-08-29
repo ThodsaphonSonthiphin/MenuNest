@@ -41,6 +41,9 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - Staleness is settled and MUCH smaller than the map once feared (menunest-197). Only ONE case survives: the Envelope was deleted. A concurrent change by another Family member is NOT staleness - menunest-193 chose compensating writes precisely so 'subtract 300' stays correct whatever the figure is now. Do not re-open that as a problem.
 - DeleteCategoryHandler refuses to delete an Envelope holding any Budget transaction ('hide it instead') and otherwise removes the Envelope WITH every MonthlyAssignment on it - so the money is already back in Ready to Assign and a naive undo would remove it TWICE. That is why a dead row is disabled rather than best-effort.
 - Accepted rough edge for build-ship (menunest-197): the rail's Undo button can look pressable and then refuse, because the budget page does not carry the top history row's state. The Change history sheet does not have this problem - the server marks each row undoable at load.
+- menunest-198 creates MenuNest's FIRST permission distinction. Before it, the app had none by explicit design - UserRelationship says outright that relationships have no effect on permissions, and Family.CreatedByUserId is never consulted for authorization anywhere. Every future feature now inherits a question it did not have: may the family head do this too?
+- CORRECTS the whose-acts ticket's own text, which claimed the app has no notification mechanism. It has one: the REAL WebPushSender over VAPID is registered, not the NullWebPushSender placeholder, and FollowUpDispatcher drives it. What is missing is a general API - IWebPushSender exposes only SendFollowUpAsync(FollowUpPing). Notifying someone costs a new method on a working sender, not new infrastructure.
+- Attribution on a history row is NOT new work: BudgetTransaction already carries CreatedByUserId and the transaction DTO already projects CreatedByDisplayName.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -66,6 +69,7 @@ The budget page carries a shortcut rail with working undo and redo, shipped to p
 - [Reversible actions - which budget mutations join the undo stack, and which deliberately do not?](tickets/reversible-actions.md) — Undo covers five money-placement acts - assign, move, cover, quick-assign, everyday marks - and nothing else. Excluding transactions retires the hard-delete problem entirely.
 - [Stale undo - what happens when the thing being undone is no longer there?](tickets/stale-undo.md) — Only one stale case survives the other ADRs - the Envelope was deleted. That row stays visible and disabled with its reason; the sheet checks at load, the rail button at press.
 - [Undo - does it withhold a write that has not been sent, or reverse one already committed?](tickets/undo-semantics.md) — Undo sends the opposite write to the server, built from a command the app records when you act - never a restore of an old value. The 5-second delete toast is removed.
+- [Whose acts - can one Family member undo another member's change?](tickets/whose-acts.md) — Change history shows every member's acts with names; you undo your own, the family head may undo anyone's. The head is a real transferable role - MenuNest's first permission distinction.
 <!-- decision-map:decisions:end -->
 
 ## Not yet specified
