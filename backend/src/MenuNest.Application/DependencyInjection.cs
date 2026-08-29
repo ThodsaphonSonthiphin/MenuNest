@@ -23,6 +23,7 @@ public static class DependencyInjection
         // Application services
         services.AddScoped<AllowanceFreezer>();
         services.AddScoped<UseCases.Budget.History.BudgetChangeRecorder>();
+        services.AddScoped<UseCases.Budget.History.BudgetChangeApplier>();
 
         return services;
     }
