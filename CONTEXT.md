@@ -521,6 +521,19 @@ glossary and belongs to the tickets that own those decisions._
   **completed** days since the freeze, so the line is **silent on the freeze day itself** — today's
   share is the headline figure, not a debt already owed (menunest-186). _Avoid_: over/under (bare),
   variance, burn rate, on-track indicator.
+- **Shortcut rail** — the floating control on the budget screen holding exactly three slots:
+  **Undo**, **Redo** and **Change history**, in that order out from the main button. It is a
+  *history* control, never a launcher: a button earns a slot only by acting on the **User**'s own
+  recent acts, and everything else stays where its context already lives, because the existing
+  one-tap controls know which **Envelope** is meant and a floating copy would have to ask
+  (menunest-191). _Avoid_: FAB (that is the shape, not the thing), speed dial, quick actions,
+  action bar, toolbar.
+- **Change history** — the third slot of the **Shortcut rail**: the list of the **User**'s recent
+  undoable acts on the budget. It is **not** the transaction list on `/budget/transactions`, which
+  holds only **Budget transactions** — assigning, moving money and covering overspending appear in
+  neither place today. It is also **not** a **Budgeting event**, which names only the three acts
+  that re-freeze the **Daily allowance**. Which acts it lists, and how far back, is not yet decided.
+  _Avoid_: activity log, audit trail, recent transactions, timeline.
 
 ## Build & release
 
