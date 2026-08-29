@@ -38,6 +38,7 @@ public sealed class InMemoryAppDbContext : DbContext, IApplicationDbContext
     public DbSet<MonthlyAssignment> MonthlyAssignments => Set<MonthlyAssignment>();
     public DbSet<BudgetTransaction> BudgetTransactions => Set<BudgetTransaction>();
     public DbSet<DailyAllowance> DailyAllowances => Set<DailyAllowance>();
+    public DbSet<BudgetChange> BudgetChanges => Set<BudgetChange>();
 
     // Health (migraine tracker) module
     public DbSet<Drug> Drugs => Set<Drug>();
