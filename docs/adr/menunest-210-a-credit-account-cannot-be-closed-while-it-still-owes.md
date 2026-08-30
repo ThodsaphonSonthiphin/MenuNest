@@ -8,10 +8,41 @@ flowchart TD
     Q -->|rejected| C["close anyway and delete the Envelope —<br/>destroys the record of what was funded"]
 ```
 
-Deleting is already safe: `DeleteAccountHandler` refuses any **Account** carrying **Budget
+Deleting is half-safe on its own: `DeleteAccountHandler` refuses any **Account** carrying **Budget
 transactions** — *"Cannot delete account with transactions — close it instead."* A Credit
-**Account** that has ever been used therefore cannot be deleted at all, and an unused one has an
-empty **Payment envelope**, so both go together harmlessly.
+**Account** that has ever been used therefore cannot be deleted at all, which is why this ADR is
+about closing rather than about deleting.
+
+An **unused** card is the case that needed work, and an earlier version of this paragraph got it
+wrong. It said the unused card "has an empty **Payment envelope**, so both go together harmlessly",
+and that sentence is what justified writing no delete guard at all. They do not go together: the
+**Payment envelope** carries the foreign key
+(`BudgetCategoryConfiguration`: `HasForeignKey(x => x.PaymentForAccountId).OnDelete(DeleteBehavior.Restrict)`),
+`DeleteAccountHandler` never loads it, and so EF issues a bare `DELETE` on the **Account** which
+the database refuses — `FOREIGN KEY constraint failed`, an unhandled `DbUpdateException`, HTTP 500,
+*"An unexpected error occurred."* on a card with zero transactions. Deleting an unused card worked
+before menunest-202 gave every Credit **Account** an **Envelope**, so leaving it there was a
+regression this feature introduced.
+
+What the handler does now: before removing the **Account** it removes that **Account**'s **Payment
+envelope**, together with the envelope's `MonthlyAssignment` rows (that FK is `Restrict` too, so
+they have to go in the same unit of work). Nothing is lost by doing so — the **Account** has no
+transactions, and a **Payment envelope**'s **Available** is derived from its own card's rows alone,
+so all that can remain is assignments; removing them returns their money to **Ready to Assign**,
+which is the same outcome this ADR already specifies for a card that no longer holds debt.
+
+One case is refused rather than deleted. `BudgetChange → BudgetCategory` is `Restrict` **on
+purpose** (menunest-197: a row whose **Envelope** was deleted must stay on the history list, greyed,
+saying why), so an **Account** whose **Payment envelope** appears in the change history — as
+`CategoryId` or as a **Move**'s `SecondCategoryId` — cannot have that envelope deleted out from
+under it. Rather than reach the same `DbUpdateException` by another route, the handler raises a
+domain error the SPA can show: *"Cannot delete an account whose payment envelope has recent budget
+history — close it instead."* That mirrors `DeleteCategoryHandler`, which already refuses the same
+thing for the same reason.
+
+`DeleteAccountRelationalTests` pins all of it on a relational context with foreign keys enforced;
+the InMemory provider enforces none, which is exactly why the original `DeleteAccountHandlerTests`
+could not see any of this.
 
 Closing is the real case, and it takes the same posture the codebase already takes on delete:
 refuse rather than lose data quietly. A card with money still owed on it is not closed in life
