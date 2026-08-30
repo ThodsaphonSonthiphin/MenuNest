@@ -1,6 +1,7 @@
 using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Budget.Accounts;
 using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -13,9 +14,11 @@ public sealed class CreateAccountHandler : ICommandHandler<CreateAccountCommand,
     private readonly IUserProvisioner _users;
     private readonly IValidator<CreateAccountCommand> _validator;
     private readonly IClock _clock;
+    private readonly PaymentEnvelopeProvisioner _envelopes;
     public CreateAccountHandler(
-        IApplicationDbContext db, IUserProvisioner users, IValidator<CreateAccountCommand> v, IClock clock)
-    { _db = db; _users = users; _validator = v; _clock = clock; }
+        IApplicationDbContext db, IUserProvisioner users, IValidator<CreateAccountCommand> v, IClock clock,
+        PaymentEnvelopeProvisioner envelopes)
+    { _db = db; _users = users; _validator = v; _clock = clock; _envelopes = envelopes; }
 
     public async ValueTask<BudgetAccountDto> Handle(CreateAccountCommand cmd, CancellationToken ct)
     {
@@ -55,6 +58,15 @@ public sealed class CreateAccountHandler : ICommandHandler<CreateAccountCommand,
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // menunest-202: a Credit account is never without its Payment envelope.
+        // EnsureForFamilyAsync queries the database with LINQ, so it must run
+        // AFTER the account above is saved — it cannot see an Added-but-unsaved
+        // entity in the change tracker. A second SaveChangesAsync persists the
+        // envelope (and its group, the first time) in its own step right after.
+        await _envelopes.EnsureForFamilyAsync(familyId, ct);
+        await _db.SaveChangesAsync(ct);
+
         return new BudgetAccountDto(acc.Id, acc.Name, acc.Type, acc.Balance, acc.SortOrder, acc.IsClosed);
     }
 }

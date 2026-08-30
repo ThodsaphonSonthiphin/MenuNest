@@ -1,6 +1,7 @@
 using FluentAssertions;
 using FluentValidation;
 using MenuNest.Application.UnitTests.Support;
+using MenuNest.Application.UseCases.Budget.Accounts;
 using MenuNest.Application.UseCases.Budget.Accounts.CreateAccount;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
@@ -14,7 +15,8 @@ public class CreateAccountHandlerTests
     private const string Bkk = "Asia/Bangkok";
 
     private static CreateAccountHandler Build(HandlerTestFixture fx) =>
-        new(fx.Db, fx.UserProvisioner.Object, new CreateAccountValidator(), fx.Clock);
+        new(fx.Db, fx.UserProvisioner.Object, new CreateAccountValidator(), fx.Clock,
+            new PaymentEnvelopeProvisioner(fx.Db));
 
     [Fact]
     public async Task First_account_in_family_gets_sort_order_zero()
