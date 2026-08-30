@@ -7,8 +7,7 @@ import {
 } from '../../../shared/api/api'
 import type {BudgetTransactionDto} from '../../../shared/api/api'
 import {useBudgetData} from '../BudgetPage.hooks'
-import type {PaymentTxRow} from '../lib/paymentRows'
-import type {PaymentDraft} from '../components/PaymentDialog'
+import {paymentDraftFromRow, type PaymentDraft, type PaymentTxRow} from '../lib/paymentRows'
 
 export function useGlobalTransactionsPage() {
   const {year, month} = useAppSelector(s => s.budget)
@@ -21,10 +20,8 @@ export function useGlobalTransactionsPage() {
 
   const [editingTx, setEditingTx] = useState<BudgetTransactionDto | null>(null)
   const [isAdding, setIsAdding] = useState(false)
-  // menunest-209: a payment is edited as a PAIR, through its own route. The
-  // draft carries the paying account and the funding Envelope off the OUTFLOW
-  // leg — the only leg that ever holds a category (menunest-214).
-  const [editingPayment, setEditingPayment] = useState<PaymentDraft & {toAccountId: string} | null>(null)
+  // menunest-209: a payment is edited as a PAIR, through its own route.
+  const [editingPayment, setEditingPayment] = useState<PaymentDraft | null>(null)
 
   const isLoading = isSummaryLoading || isTxLoading
 
@@ -38,17 +35,11 @@ export function useGlobalTransactionsPage() {
     }
   }
 
+  // Returns null unless BOTH legs are present, and reads the funding Envelope
+  // off the outflow leg (menunest-214) — see lib/paymentRows.ts, where that
+  // rule is pinned by test.
   const handleEditPayment = (row: PaymentTxRow) => {
-    if (!row.fromLeg || !row.toLeg) return   // an edit needs both halves
-    setEditingPayment({
-      paymentId: row.paymentId,
-      fromAccountId: row.fromLeg.accountId,
-      toAccountId: row.toLeg.accountId,
-      amount: row.amount,
-      date: row.date,
-      notes: row.notes,
-      categoryId: row.fromLeg.categoryId,
-    })
+    setEditingPayment(paymentDraftFromRow(row))
   }
 
   const handleDeletePayment = async (row: PaymentTxRow) => {

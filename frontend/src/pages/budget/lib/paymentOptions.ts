@@ -67,31 +67,59 @@ export interface PayingCardWarning {
 }
 
 /**
- * Paying one card with another moves **Ready to Assign UP**. That is correct —
- * the paid card's envelope empties while the paying card's debt widens with no
- * offsetting envelope — but it is surprising enough that a user would read it
- * as a bug. So the dialog says it out loud, and names the paying card's own
- * shortfall so the loop can be closed rather than wondered at.
+ * What paying with a **Credit** card does to that card, which differs entirely
+ * with what is being paid — hence `toAccountType`, without which this function
+ * cannot tell the two apart and silently reports the card-to-card figures for
+ * both.
  *
- * The arithmetic is `PaymentEnvelopeMath.Shortfall`, forward one payment: the
- * outflow leg is an uncategorised NEGATIVE row, which never moves the paying
- * card's `Available`, so only its balance changes.
+ * Both branches carry `PaymentEnvelopeMath` forward one payment. The paying
+ * card's balance falls by the amount either way; what changes is whether its
+ * own `Available` follows.
+ *
+ * **Paying a card** — the outflow leg is UNCATEGORISED, so
+ * `PaymentEnvelopeMath.Available` never counts it and the paying card's
+ * `Available` stands still while its balance falls: its shortfall grows by the
+ * full amount. And Ready to Assign moves **UP** — the paid card's envelope
+ * empties while this card's debt widens with no offsetting envelope. That is
+ * correct but surprising enough to read as a bug, so it is said out loud.
+ *
+ * **Paying a loan** (menunest-214) — the outflow leg is CATEGORISED, so
+ * `Available = assigned − categorised − …` rises by the very amount the
+ * balance falls. The shortfall is therefore **unchanged**, and Ready to Assign
+ * does not move either: the funding Envelope falls while the Payment envelope
+ * rises, and no cash account is touched. Reporting a rise here — as this
+ * function did before — overstates the shortfall by the whole payment and
+ * states a falsehood about Ready to Assign.
  */
 export function payingCardWarning(
   from: BudgetAccountDto | null | undefined,
   fromEnvelopeAvailable: number,
   amount: number | null | undefined,
+  toAccountType: BudgetAccountType,
 ): PayingCardWarning | null {
   if (!from || from.type !== 'Credit') return null
   const a = Number(amount ?? 0)
   if (!(a > 0)) return null
 
+  if (toAccountType === 'Loan') {
+    // Balance −a and Available +a cancel: max(0, −balance − available).
+    const shortfallAfter = Math.max(0, -from.balance - fromEnvelopeAvailable)
+    return {
+      shortfallAfter,
+      text:
+        `จ่ายด้วยบัตร ${from.name} จะทำให้ยอดบัตรเพิ่มอีก ${formatTHB(a)} — ` +
+        `เงินในซองที่เลือกจะย้ายไปอยู่ในซองจ่ายบัตร ${from.name} แทน ` +
+        `ซองนั้นจึงยังขาดอีก ${formatTHB(shortfallAfter)} เท่าเดิม ` +
+        `และเงินพร้อมจัดสรรไม่เปลี่ยน`,
+    }
+  }
+
   const shortfallAfter = Math.max(0, -(from.balance - a) - fromEnvelopeAvailable)
   return {
     shortfallAfter,
     text:
-      `จ่ายด้วยบัตร ${from.name} เป็นการย้ายหนี้ ไม่ใช่จ่ายจริง — ` +
-      `หนี้บัตร ${from.name} จะเพิ่มอีก ${formatTHB(a)} ` +
+      `จ่ายด้วยบัตร ${from.name} เป็นการย้ายยอดค้าง ไม่ใช่จ่ายจริง — ` +
+      `ยอดบัตร ${from.name} จะเพิ่มอีก ${formatTHB(a)} ` +
       `ซองจ่ายบัตร ${from.name} จะขาดอีก ${formatTHB(shortfallAfter)} ` +
       `และเงินพร้อมจัดสรรจะเพิ่มขึ้น ${formatTHB(a)}`,
   }

@@ -74,7 +74,7 @@ export function PaymentTransactionRow({
               disabled={!row.complete}
               title={row.complete
                 ? undefined
-                : 'การจ่ายหนี้แก้ได้ทั้งคู่เท่านั้น — เปิดหน้า Transactions'}
+                : 'การจ่ายต้องแก้ทั้งสองฝั่งพร้อมกัน — เปิดหน้า Transactions'}
               onClick={() => { onToggleMenu(null); onEditPayment(row) }}
             >
               <span className="icon">✎</span>

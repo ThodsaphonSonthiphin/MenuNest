@@ -99,16 +99,6 @@ describe('every budget write endpoint is wired to the helper', () => {
         ).toContain('BudgetHistory')
     })
 
-    // Pins the SET, not just each member. Adding a fifth caller of the helper —
-    // or quietly dropping one — then has to be a deliberate act with a reason,
-    // rather than something a diff can slide past.
-    //
-    // This replaces an earlier assertion named "no budget mutation invalidates
-    // BudgetSummary alone", which was deleted for being both vacuous and false:
-    // its regex only matched arrays whose FIRST element was BudgetSummary, so it
-    // never examined `['BudgetGroups', 'BudgetSummary']`; and the rule it named
-    // is wrong anyway, because createBudgetGroup and createBudgetCategory
-    // legitimately invalidate the summary without touching history.
     it.each(paymentEndpoints)('%s invalidates every month via the helper', (endpoint) => {
         expect(
             endpointBlock(endpoint),
@@ -117,10 +107,25 @@ describe('every budget write endpoint is wired to the helper', () => {
         ).toMatch(/budgetWriteTagsAllMonths/)
     })
 
+    // Pins the SET, not just each member. Adding a caller of the helper — or
+    // quietly dropping one — then has to be a deliberate act with a reason,
+    // rather than something a diff can slide past.
+    //
+    // This replaces an earlier assertion named "no budget mutation invalidates
+    // BudgetSummary alone", which was deleted for being both vacuous and false:
+    // its regex only matched arrays whose FIRST element was BudgetSummary, so it
+    // never examined `['BudgetGroups', 'BudgetSummary']`; and the rule it named
+    // is wrong anyway, because createBudgetGroup and createBudgetCategory
+    // legitimately invalidate the summary without touching history.
+    //
+    // Counts CALL SITES, not lines. An earlier version filtered lines holding
+    // both 'invalidatesTags' and 'budgetWriteTags', which silently depended on
+    // the two staying on one line: wrapping any caller across lines would drop
+    // the count and fail here confusingly, reading as "a caller was removed"
+    // when nothing but the formatting had changed. The trailing `(` is what
+    // keeps the import line from counting as a call.
     it('exactly the write and payment endpoints use the helper', () => {
-        const callers = source
-            .split('\n')
-            .filter((l) => l.includes('invalidatesTags') && l.includes('budgetWriteTags'))
-        expect(callers).toHaveLength(writeEndpoints.length + paymentEndpoints.length)
+        const callSites = source.match(/budgetWriteTags(?:AllMonths)?\(/g) ?? []
+        expect(callSites).toHaveLength(writeEndpoints.length + paymentEndpoints.length)
     })
 })

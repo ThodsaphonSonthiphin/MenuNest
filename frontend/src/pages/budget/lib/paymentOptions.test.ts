@@ -104,10 +104,12 @@ describe('fundingEnvelopeOptions', () => {
 describe('payingCardWarning', () => {
   const card = acc({id: 'scb', name: 'SCB', type: 'Credit', balance: -2000})
 
-  // Correction #4: paying one card with another moves Ready to Assign UP.
+  // Correction #4: paying a CARD with another card moves Ready to Assign UP.
   // Correct, but surprising — so the paying card's own shortfall is surfaced.
+  // The outflow leg is uncategorised, so it never moves the paying card's
+  // Available (PaymentEnvelopeMath.Available) — only its balance falls.
   it('names the paying card, its new shortfall, and the Ready-to-Assign rise', () => {
-    const w = payingCardWarning(card, 500, 1000)
+    const w = payingCardWarning(card, 500, 1000, 'Credit')
     expect(w).not.toBeNull()
     expect(w!.shortfallAfter).toBe(2500) // −(−2000 − 1000) − 500
     expect(w!.text).toContain('SCB')
@@ -116,20 +118,38 @@ describe('payingCardWarning', () => {
   })
 
   it('floors the new shortfall at zero when the card is over-funded', () => {
-    const w = payingCardWarning(card, 5000, 1000)
-    expect(w!.shortfallAfter).toBe(0)
+    expect(payingCardWarning(card, 5000, 1000, 'Credit')!.shortfallAfter).toBe(0)
+  })
+
+  // Paying a LOAN is the mirror image, and the card-to-card reasoning above is
+  // simply wrong for it. menunest-214 makes the outflow leg CATEGORISED, so by
+  // PaymentEnvelopeMath.Available the paying card's own Payment envelope rises
+  // by the same amount its balance falls — the shortfall does not move at all.
+  it('leaves the shortfall unchanged when the card pays a Loan', () => {
+    const w = payingCardWarning(card, 500, 1000, 'Loan')
+    expect(w).not.toBeNull()
+    expect(w!.shortfallAfter).toBe(1500) // −(−2000) − 500, the SAME as before
+  })
+
+  // Ready to Assign does not move either: the funding Envelope falls by the
+  // amount while the Payment envelope rises by it, and no cash account is
+  // touched. Claiming a rise here would be a plain falsehood on screen.
+  it('never claims a Ready-to-Assign rise when the card pays a Loan', () => {
+    const w = payingCardWarning(card, 500, 1000, 'Loan')
+    expect(w!.text).not.toContain('เงินพร้อมจัดสรรจะเพิ่มขึ้น')
+    expect(w!.text).toContain('SCB')
   })
 
   it('says nothing when paying from cash', () => {
-    expect(payingCardWarning(acc({id: 'cash', name: 'เงินสด'}), 0, 1000)).toBeNull()
+    expect(payingCardWarning(acc({id: 'cash', name: 'เงินสด'}), 0, 1000, 'Credit')).toBeNull()
   })
 
   it('says nothing before an amount is typed', () => {
-    expect(payingCardWarning(card, 0, null)).toBeNull()
-    expect(payingCardWarning(card, 0, 0)).toBeNull()
+    expect(payingCardWarning(card, 0, null, 'Credit')).toBeNull()
+    expect(payingCardWarning(card, 0, 0, 'Credit')).toBeNull()
   })
 
   it('says nothing when no paying account is picked yet', () => {
-    expect(payingCardWarning(null, 0, 1000)).toBeNull()
+    expect(payingCardWarning(null, 0, 1000, 'Credit')).toBeNull()
   })
 })
