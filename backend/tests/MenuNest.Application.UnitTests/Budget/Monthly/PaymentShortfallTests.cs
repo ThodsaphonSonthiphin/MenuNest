@@ -190,4 +190,95 @@ public class PaymentShortfallTests
             "R-1: the payment envelope's Available must be explained by its own three terms, " +
             "the same way an ordinary envelope's Assigned+Activity explains its Available");
     }
+
+    /// <summary>
+    /// The identity that is ALWAYS true (per the fix report) is the DELTA form,
+    /// not the absolute one above — <c>Available</c> is cumulative across every
+    /// month a card has existed, while Assigned/CardSpending/Activity are each
+    /// scoped to the selected month alone. The test above only ever exercises a
+    /// card's first month, where the prior-month carry-in is trivially 0 and the
+    /// absolute form happens to hold too — that says nothing about month 2
+    /// onward, which is every month in real use. This test runs a card through
+    /// TWO months and checks the delta form, which is the property R-1 exists to
+    /// guarantee (a payment envelope's Available must never move for a reason
+    /// the row's own three numbers don't add up to).
+    /// </summary>
+    [Fact]
+    public async Task Card_spending_delta_explains_the_change_in_available_across_months()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var feb = new DateOnly(2026, 2, 15);
+
+        // Provision the payment envelope before staging month-1 data — the
+        // handler provisions lazily on read (menunest-202), and nothing
+        // creates it before the first Handle call.
+        await Build(w).Handle(new GetMonthlySummaryQuery(2026, 1, Bkk), default);
+        var envelopeId = w.Fx.Db.BudgetCategories.Single(c => c.PaymentForAccountId == w.CardId).Id;
+
+        // ---- Month 1 (January): assign 1,000; one 400 categorised purchase; one 300 payment.
+        w.Fx.Db.MonthlyAssignments.Add(MonthlyAssignment.Create(w.Fx.Family.Id, envelopeId, 2026, 1, 1_000m));
+        w.Fx.Db.SaveChanges();
+        AddTx(w, w.CardId, w.FoodId, -400m);
+        var pay1 = Guid.NewGuid();
+        w.Fx.Db.BudgetTransactions.AddRange(
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -300m, D, null, w.Fx.User.Id, pay1),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 300m, D, null, w.Fx.User.Id, pay1));
+        w.Fx.Db.SaveChanges();
+
+        var s1 = await Build(w).Handle(new GetMonthlySummaryQuery(2026, 1, Bkk), default);
+        var env1 = s1.Groups.SelectMany(g => g.Categories).Single(e => e.CategoryId == envelopeId);
+
+        // By hand, §4.2/R-1 (all cumulative through end of January, which is
+        // ALL of it — this is the card's first month):
+        //   assignedToDate = 1,000
+        //   Σ(categorised)        = −400                     (the purchase)
+        //   Σ(uncategorised, pos) = +300                      (the payment leg on the card)
+        //   Available1 = 1,000 − (−400) − 300 = 1,100
+        env1.Assigned.Should().Be(1_000m);
+        env1.CardSpending.Should().Be(400m);
+        env1.Activity.Should().Be(-300m);
+        env1.Available.Should().Be(1_100m);
+
+        // ---- Month 2 (February): assign 800 more; one 600 categorised purchase; one 500 payment.
+        w.Fx.Db.MonthlyAssignments.Add(MonthlyAssignment.Create(w.Fx.Family.Id, envelopeId, 2026, 2, 800m));
+        w.Fx.Db.SaveChanges();
+        w.Fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            w.Fx.Family.Id, w.CardId, w.FoodId, -600m, feb, null, w.Fx.User.Id));
+        var pay2 = Guid.NewGuid();
+        w.Fx.Db.BudgetTransactions.AddRange(
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, feb, null, w.Fx.User.Id, pay2),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, feb, null, w.Fx.User.Id, pay2));
+        w.Fx.Db.SaveChanges();
+
+        var s2 = await Build(w).Handle(new GetMonthlySummaryQuery(2026, 2, Bkk), default);
+        var env2 = s2.Groups.SelectMany(g => g.Categories).Single(e => e.CategoryId == envelopeId);
+
+        // By hand, cumulative through end of February (January's rows plus
+        // February's):
+        //   assignedToDate = 1,000 + 800 = 1,800
+        //   Σ(categorised)        = −400 − 600 = −1,000
+        //   Σ(uncategorised, pos) = 300 + 500 = 800
+        //   Available2 = 1,800 − (−1,000) − 800 = 2,000
+        // February-only (what EnvelopeNumbers reports as Assigned/Activity/CardSpending):
+        env2.Assigned.Should().Be(800m);
+        env2.CardSpending.Should().Be(600m);
+        env2.Activity.Should().Be(-500m);
+        env2.Available.Should().Be(2_000m);
+
+        // The DELTA identity — the one that is generally, always true (this is
+        // what the DTO comment on EnvelopeDto.CardSpending now states):
+        //   Available2 − Available1 = 2,000 − 1,100 = 900
+        //   Assigned2 + CardSpending2 + Activity2 = 800 + 600 − 500 = 900
+        (env2.Available - env1.Available).Should().Be(
+            env2.Assigned + env2.CardSpending!.Value + env2.Activity,
+            "R-1: from month 2 onward only the DELTA form holds — a card carrying a balance " +
+            "from a prior month must still have its month-over-month CHANGE in Available " +
+            "explained by that month's own Assigned + CardSpending + Activity");
+
+        // And, made concrete: the ABSOLUTE form (which DID hold for month 1
+        // above, and is asserted by Available_equals_assigned_plus_card_spending_plus_activity_for_the_month)
+        // no longer holds by month 2 — this is exactly the gap the delta form
+        // exists to close, not a form that was ever meant to survive a second month.
+        env2.Available.Should().NotBe(env2.Assigned + env2.CardSpending!.Value + env2.Activity);
+    }
 }

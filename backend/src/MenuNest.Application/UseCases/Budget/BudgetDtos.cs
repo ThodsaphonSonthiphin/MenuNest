@@ -64,7 +64,14 @@ public sealed record EnvelopeDto(
     // Assigned + Activity alone does not explain the change in Available (a
     // categorised card purchase moves Available while both stay 0), so this is
     // the display term the UI shows instead of Activity. Month-scoped, like
-    // Assigned and Activity: Available == Assigned + CardSpending + Activity.
+    // Assigned and Activity. The identity that ALWAYS holds is the
+    // month-over-month DELTA of a Payment envelope's Available (Available
+    // itself is cumulative, these three terms are not):
+    //   Available(this month) − Available(prior month)
+    //     == Assigned + CardSpending + Activity
+    // The un-subtracted form, Available == Assigned + CardSpending + Activity,
+    // is true ONLY when there is no carried-in Available from a prior month
+    // (e.g. the card's first month) — do not rely on it after month 1.
     decimal? CardSpending = null);
 
 public sealed record EnvelopeGroupDto(
