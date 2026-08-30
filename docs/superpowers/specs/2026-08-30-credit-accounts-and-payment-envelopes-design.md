@@ -154,10 +154,19 @@ number issue #112 asks for.
 
 ### 4.4 The invariant (this is the acceptance test)
 
-**No activity on a Credit account may change Ready to Assign. Not one case, the payment included.**
+**No activity on a Credit account, funded from outside the debt system, may change Ready to
+Assign. Not one such case, the payment included.**
 
 A payment does move cash out, but it spends down the **Payment envelope** by the same amount, so
 the two cancel — which is the point: paying a card spends money you had already set aside.
+
+The scope clause is not a hedge; it is the whole content of the invariant. **Ready to Assign** is
+`Σ(non-debt balances) − Σ(Available across all envelopes)`, so it can only move when money crosses
+the boundary between the debt system and everything else. Every ordinary card event stays on one
+side of that boundary and nets to zero. One event does not: paying a card **with another card**
+never touches a non-debt account at all, and the two envelopes involved do not cancel — so RTA
+moves, correctly, by the payment. Stating the invariant absolutely made the document's own
+acceptance test false in exactly the case the arithmetic is subtlest.
 
 | event | Δ cash accounts | Δ envelopes | Δ RTA |
 |---|---|---|---|
@@ -165,9 +174,24 @@ the two cancel — which is the point: paying a card spends money you had alread
 | categorised refund +500 | 0 | อาหาร +500, จ่ายบัตร −500 = **0** | **0** ✅ |
 | uncategorised card purchase −500 | 0 | 0 | **0** ✅ |
 | opening balance −20,000 | 0 | 0 | **0** ✅ |
-| payment of 500 | **−500** | จ่ายบัตร **−500** | **0** ✅ |
+| payment of 500 from cash | **−500** | จ่ายบัตร **−500** | **0** ✅ |
+| payment of 500 **card → card** | **0** | จ่ายบัตร(paid) **−500**, จ่ายบัตร(payer) **0** | **+500** ⚠️ |
 
-Every row must be a test. If any is non-zero, the model is wrong.
+The last row, in full. The payer's outflow leg is **uncategorised and negative**, and
+`PaymentEnvelopeMath.Available` subtracts only categorised rows and uncategorised **positive** ones
+— so the paying card's own envelope does not move. The paid card's inflow leg is uncategorised and
+positive, so its envelope falls by the full 500. Neither account is a non-debt account, so
+`Σ(non-debt balances)` is unchanged. RTA therefore rises by 500: the paid card's envelope has
+emptied while the payer's debt widened with no envelope holding it. That is the honest number — a
+balance transfer really does hand you 500 of unassigned money and a larger debt — and
+`payingCardWarning` says so on screen in Thai before the user commits
+(*"…และเงินพร้อมจัดสรรจะเพิ่มขึ้น ฿500.00"*).
+
+Every row must be a test, **including the last one, and including its Δ RTA**. Asserting only the
+paying envelope there — as the suite originally did — leaves the single case that breaks the
+invariant as the single case the invariant suite does not measure. See
+`MakePaymentHandlerTests.Paying_a_card_with_another_card_…`, which now asserts the `+500`
+explicitly. If any of the first five rows is non-zero, the model is wrong.
 
 ### 4.5 Income
 
@@ -309,7 +333,11 @@ unit tests **cannot** see rendering. Playwright is the only automatic guard on t
 - **`MenuNest.WebApi.UnitTests`** — the three new routes.
 - **Playwright** — extend `budget.smoke.spec.ts` and add `budget.credit-payment.spec.ts`: the
   **บัตรเครดิต** group renders, the shortfall line reads **จ่ายเต็มได้** then **ขาดอีก**, and the
-  payment sheet opens.
+  payment sheet opens. Plus `budget.payment-row.spec.ts`: menunest-209's headline outcome — a
+  payment renders as **one** row — is a rendering claim, so it is only ever verified in a browser.
+  It needs a payment-pair fixture (two legs sharing a `paymentId`) on `budgetRoutes.ts`'s
+  **global** `/api/budget/transactions` route and a spec that visits `/budget/transactions`;
+  without both, `PaymentTransactionRow` ships with no rendering coverage at all — the #97 shape.
 - **Interactive check before merge** — required by `CLAUDE.md`, and diff the built card against the
   confirmed mock. The gates do not see visual fidelity.
 

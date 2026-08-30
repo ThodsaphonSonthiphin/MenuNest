@@ -225,10 +225,69 @@ const paymentFixture = {
   notes: null,
 }
 
+// menunest-209 — a payment is ONE row to the user, and `PaymentTransactionRow`
+// is the component that makes it so. It had no rendering coverage anywhere:
+// vitest runs in `environment: 'node'` (no jsdom), and the only transaction
+// fixture in this file was `items: []`. That is exactly the #97 shape CLAUDE.md
+// warns about — Playwright is the sole automatic gate that can see a render,
+// and it only sees what a spec exercises.
+//
+// The two legs share `paymentId`, which is what `lib/paymentRows.ts`'s
+// `groupPaymentLegs` collapses on. Both legs are present here, so the row is
+// `complete` and its Edit item is ENABLED — the account-detail feed, filtered to
+// one account, is the case that leaves it disabled.
+export const PAYMENT_ID = 'pay-fixture-1'
+const PAYMENT_DATE = '2026-08-20'
+
+const txLeg = (over: {
+  id: string
+  accountId: string
+  accountName: string
+  amount: number
+  paymentId?: string | null
+  categoryId?: string | null
+  categoryName?: string | null
+  categoryEmoji?: string | null
+  notes?: string | null
+  date?: string
+}) => ({
+  categoryId: null,
+  categoryName: null,
+  categoryEmoji: null,
+  notes: null,
+  paymentId: null,
+  date: PAYMENT_DATE,
+  createdByUserId: 'user-1',
+  createdByDisplayName: 'ทศพล',
+  ...over,
+})
+
+/**
+ * One payment (เงินสด → KBank, ฿500) as its two legs, plus one ordinary
+ * transaction so a spec can prove the payment row is the SPECIAL one rather
+ * than the only one.
+ */
+export const globalTransactionsFixture = [
+  txLeg({
+    id: 'tx-pay-from', accountId: accountCash.id, accountName: accountCash.name,
+    amount: -500, paymentId: PAYMENT_ID,
+  }),
+  txLeg({
+    id: 'tx-pay-to', accountId: accountCreditKBank.id, accountName: accountCreditKBank.name,
+    amount: 500, paymentId: PAYMENT_ID,
+  }),
+  txLeg({
+    id: 'tx-plain', accountId: accountCash.id, accountName: accountCash.name,
+    amount: -120, categoryId: CATEGORY_FOOD, categoryName: 'ค่ากิน', categoryEmoji: '🍜',
+    notes: 'ข้าวมันไก่', date: '2026-08-19',
+  }),
+]
+
 type BudgetConfig = {
   me: unknown
   summary: unknown
   history: unknown[]
+  transactions: unknown[]
 }
 
 export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
@@ -236,6 +295,7 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
     me: meResponse,
     summary: budgetSummaryFixture,
     history: historyResponse,
+    transactions: globalTransactionsFixture,
   }
 
   const self = {
@@ -250,6 +310,11 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
     /** Pass [] to prove the rail's Undo/Redo go disabled with nothing to undo. */
     history: (rows: unknown[]) => {
       config.history = rows
+      return self
+    },
+    /** GET /api/budget/transactions — the GLOBAL feed. Pass [] for the empty state. */
+    transactions: (rows: unknown[]) => {
+      config.transactions = rows
       return self
     },
     apply: async () => {
@@ -270,6 +335,15 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
       await page.route(/\/api\/budget\/history\/[^/]+\/(undo|redo)$/, async (route, request) => {
         await recordRequest(route, request, capture)
         await route.fulfill({ status: 204, body: '' })
+      })
+      // The GLOBAL transaction feed (`/budget/transactions`), which is where a
+      // payment's two legs are BOTH visible and therefore collapse into one
+      // editable row. Registered before the account-scoped route below; the
+      // patterns are disjoint (`/accounts/{id}/transactions` vs
+      // `/budget/transactions`), so neither shadows the other.
+      await page.route(/\/api\/budget\/transactions(\?|$)/, async (route, request) => {
+        await recordRequest(route, request, capture)
+        await route.fulfill({ json: config.transactions })
       })
       await page.route(/\/api\/budget\/accounts\/([^/]+)\/transactions(\?|$)/, async (route, request) => {
         await recordRequest(route, request, capture)

@@ -155,9 +155,11 @@ public class MakePaymentHandlerTests
         w.Fx.Db.BudgetAccounts.Add(card2);
         w.Fx.Db.SaveChanges();
 
-        var sourceAvailableBefore = (await SummaryAsync(w.Fx))
-            .Groups.SelectMany(g => g.Categories).Single(e => e.PaymentForAccountId == card2.Id)
-            .Available;
+        var before = await SummaryAsync(w.Fx);
+        var sourceAvailableBefore = before.Groups.SelectMany(g => g.Categories)
+            .Single(e => e.PaymentForAccountId == card2.Id).Available;
+        // 10,000 cash − (อาหาร 3,000 + จ่ายบัตร KBank 0 + จ่ายบัตร SCB 0) = 7,000.
+        before.ReadyToAssign.Should().Be(7_000m);
 
         var dto = await Handler(w.Fx).Handle(
             new MakePaymentCommand(card2.Id, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
@@ -173,6 +175,26 @@ public class MakePaymentHandlerTests
             .Single(e => e.PaymentForAccountId == card2.Id).Available;
         sourceAvailableAfter.Should().Be(sourceAvailableBefore,
             "the source card's own payment envelope must not move just because it paid another card");
+
+        // Spec §4.4's one real exception, now measured rather than assumed.
+        // The invariant "no activity on a Credit account may change Ready to
+        // Assign" holds for everything funded from OUTSIDE the debt system; a
+        // card paying a card is funded from inside it, and RTA moves UP by the
+        // payment:
+        //   · SCB's outflow leg is UNCATEGORISED and NEGATIVE, so
+        //     PaymentEnvelopeMath.Available ignores it — SCB's envelope stays 0.
+        //   · KBank's inflow leg is UNCATEGORISED and POSITIVE, so it IS
+        //     subtracted — KBank's envelope falls to −500.
+        //   · No cash account moved: both accounts are debt types and left the
+        //     account total already (menunest-203/206).
+        //   RTA = 10,000 − (3,000 + 0 + (−500)) = 7,500, i.e. +500.
+        // The behaviour is correct — `payingCardWarning` says so in Thai — but
+        // it is the ONE case §4.4's suite must measure, or the document's
+        // acceptance test is checked everywhere except where it is false.
+        s.ReadyToAssign.Should().Be(7_500m,
+            "a card paying a card is the one payment that moves Ready to Assign, and it moves it UP by the amount");
+        s.Groups.SelectMany(g => g.Categories).Single(e => e.PaymentForAccountId == w.CardId)
+            .Available.Should().Be(-500m, "the paid card's envelope is what falls");
     }
 
     [Fact]

@@ -48,7 +48,17 @@ public sealed class BudgetTools(IMediator mediator)
 
     // ── Accounts ─────────────────────────────────────────────────────────────
 
-    [McpServerTool, Description("List all budget accounts (checking, savings, credit cards, loans)")]
+    // menunest-213 / correction: `shortfall` needs a month's Payment envelope
+    // Available, which only GetMonthlySummaryHandler has — this query carries no
+    // Year/Month, so ListAccountsHandler hardcodes null. Said out loud here
+    // because an assistant reading `shortfall: null` off this tool would
+    // otherwise answer "nothing owed" on a card short ฿20,000.
+    [McpServerTool, Description(
+        "List all budget accounts (checking, savings, credit cards, loans). "
+        + "NOTE: `shortfall` is ALWAYS null from this tool — it has no month context to compute it in. "
+        + "To answer how much is still owed but unfunded on a credit card, call get_budget_summary "
+        + "and read `shortfall` off the account there (or off its จ่ายบัตร Payment envelope). "
+        + "Never report a card as fully funded on the strength of this tool's null.")]
     public async Task<IReadOnlyList<BudgetAccountDto>> list_budget_accounts(
         CancellationToken ct)
         => await mediator.Send(new ListAccountsQuery(), ct);
