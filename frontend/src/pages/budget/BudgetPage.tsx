@@ -96,7 +96,7 @@ export function BudgetPage() {
       <QuickAssignChips summary={summary} />
       <AccountsStrip accounts={summary.accounts} readyToAssign={summary.readyToAssign} />
 
-      <div className="bdg-filters">
+      <div className="bdg-filters" data-testid="bdg-filters">
         {chips.map(([k, label, danger]) => (
           <button
             key={k}
