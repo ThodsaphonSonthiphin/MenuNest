@@ -25,6 +25,12 @@ public sealed class UpdateTransactionHandler
             t => t.Id == c.Id && t.FamilyId == familyId, ct)
             ?? throw new DomainException("Transaction not found.");
 
+        // menunest-209: a payment is ONE row to the user. Editing one leg would
+        // leave the debt paid in the budget and unpaid on the card.
+        if (tx.PaymentId is not null)
+            throw new DomainException(
+                "This is a payment — edit it from the payment, not one side of it.");
+
         // Validate new category if provided.
         if (c.CategoryId.HasValue)
         {

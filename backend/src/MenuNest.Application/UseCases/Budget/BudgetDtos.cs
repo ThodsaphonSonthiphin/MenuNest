@@ -156,3 +156,9 @@ public sealed record PaymentDto(
 public sealed record MakePaymentRequest(
     Guid FromAccountId, Guid ToAccountId, decimal Amount,
     DateOnly? Date, string? Notes, string? TimeZoneId, Guid? CategoryId = null);
+
+// menunest-209 / R-3: CategoryId carries the SAME rules as MakePaymentRequest's
+// — required for a Loan, refused for a Credit card. See UpdatePaymentHandler.
+public sealed record UpdatePaymentRequest(
+    Guid FromAccountId, Guid ToAccountId, decimal Amount,
+    DateOnly Date, string? Notes, Guid? CategoryId = null);

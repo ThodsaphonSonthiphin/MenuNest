@@ -76,26 +76,11 @@ public sealed class MakePaymentHandler : ICommandHandler<MakePaymentCommand, Pay
         if (from.Type == BudgetAccountType.Loan)
             throw new DomainException("A Loan account cannot be the paying account.");
 
-        // menunest-214: the Envelope funding the instalment lives on the
+        // menunest-214 / R-3: the Envelope funding the instalment lives on the
         // from-leg only, and its requiredness is the mirror image of the
-        // target account's own derivation.
-        BudgetCategory? category = null;
-        if (to.Type == BudgetAccountType.Loan)
-        {
-            if (c.CategoryId is not { } categoryId)
-                throw new DomainException("Paying a Loan requires an Envelope to fund it.");
-            category = await _db.BudgetCategories.FirstOrDefaultAsync(
-                x => x.Id == categoryId && x.FamilyId == familyId && x.PaymentForAccountId == null, ct)
-                ?? throw new DomainException(
-                    "Category not found, or is a Payment envelope — a Payment envelope cannot fund another debt's payment.");
-        }
-        else if (c.CategoryId is not null)
-        {
-            // to.Type == Credit here (the IsDebtType guard above already
-            // narrowed it to Credit or Loan).
-            throw new DomainException(
-                "Paying a Credit card cannot be categorised — its Payment envelope already falls by derivation.");
-        }
+        // target account's own derivation. Shared with UpdatePaymentHandler
+        // via PaymentCategoryRule so an edit can never check it differently.
+        var category = await PaymentCategoryRule.ResolveAsync(_db, to.Type, c.CategoryId, familyId, ct);
 
         var tz = BudgetTimeZone.Resolve(c.TimeZoneId);
         var date = c.Date ?? DateOnly.FromDateTime(
