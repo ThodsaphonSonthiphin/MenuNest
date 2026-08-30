@@ -25,6 +25,15 @@ public sealed class BudgetCategory : Entity
     /// </summary>
     public bool IsEveryday { get; private set; }
 
+    /// <summary>
+    /// Non-null exactly on a Payment envelope — the Credit account this envelope
+    /// holds money to pay (menunest-202). One per account, enforced by a filtered
+    /// unique index. A Loan account never has one (menunest-206).
+    /// </summary>
+    public Guid? PaymentForAccountId { get; private set; }
+
+    public bool IsPaymentEnvelope => PaymentForAccountId.HasValue;
+
     // Target / goal
     public BudgetTargetType TargetType { get; private set; }
     public decimal? TargetAmount { get; private set; }
@@ -51,8 +60,45 @@ public sealed class BudgetCategory : Entity
         };
     }
 
+    public static BudgetCategory CreatePaymentEnvelope(
+        Guid familyId, Guid groupId, Guid accountId, string accountName, int sortOrder)
+    {
+        if (string.IsNullOrWhiteSpace(accountName))
+            throw new DomainException("Account name is required.");
+        return new BudgetCategory
+        {
+            FamilyId = familyId,
+            GroupId = groupId,
+            Name = $"จ่ายบัตร {accountName.Trim()}",
+            Emoji = "💳",
+            SortOrder = sortOrder,
+            IsHidden = false,
+            IsEveryday = false,
+            TargetType = BudgetTargetType.None,
+            PaymentForAccountId = accountId
+        };
+    }
+
+    /// <summary>
+    /// The only path that may retitle a Payment envelope: its name follows its
+    /// Account (menunest-205, menunest-212), so an account rename pushes through
+    /// here while <see cref="Update"/> stays closed.
+    /// </summary>
+    public void RenameForAccount(string accountName)
+    {
+        if (!IsPaymentEnvelope)
+            throw new DomainException("Not a payment envelope.");
+        if (string.IsNullOrWhiteSpace(accountName))
+            throw new DomainException("Account name is required.");
+        Name = $"จ่ายบัตร {accountName.Trim()}";
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void Update(string name, string? emoji, Guid groupId, int sortOrder)
     {
+        if (IsPaymentEnvelope)
+            throw new DomainException(
+                "A payment envelope cannot be renamed or moved — its name follows its account.");
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("Category name is required.");
         Name = name.Trim();
@@ -105,11 +151,32 @@ public sealed class BudgetCategory : Entity
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Hide()   { IsHidden = true;  UpdatedAt = DateTime.UtcNow; }
+    public void Hide()
+    {
+        if (IsPaymentEnvelope)
+            throw new DomainException("A payment envelope cannot be hidden.");
+        IsHidden = true;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void Unhide() { IsHidden = false; UpdatedAt = DateTime.UtcNow; }
+
+    /// <summary>
+    /// Closing a Credit account hides its Payment envelope (menunest-210). That is
+    /// the app's own act, not the User's, so it bypasses <see cref="Hide"/>'s guard.
+    /// </summary>
+    public void SetHiddenForAccountClosure(bool hidden)
+    {
+        if (!IsPaymentEnvelope) throw new DomainException("Not a payment envelope.");
+        IsHidden = hidden;
+        UpdatedAt = DateTime.UtcNow;
+    }
 
     public void MarkEveryday(bool isEveryday)
     {
+        if (isEveryday && IsPaymentEnvelope)
+            throw new DomainException(
+                "A payment envelope cannot be an everyday envelope — it would inflate the daily allowance.");
         IsEveryday = isEveryday;
         UpdatedAt = DateTime.UtcNow;
     }

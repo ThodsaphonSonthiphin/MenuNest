@@ -17,6 +17,8 @@ internal sealed class BudgetTransactionConfiguration : IEntityTypeConfiguration<
         b.Property(x => x.Notes).HasMaxLength(500);
         b.HasIndex(x => new { x.FamilyId, x.Date });
         b.HasIndex(x => new { x.FamilyId, x.CategoryId, x.Date });
+        // menunest-209: both legs of one payment are found by this.
+        b.HasIndex(x => new { x.FamilyId, x.PaymentId });
         b.HasOne<Family>().WithMany().HasForeignKey(x => x.FamilyId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<BudgetAccount>().WithMany().HasForeignKey(x => x.AccountId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<BudgetCategory>().WithMany().HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Restrict);
