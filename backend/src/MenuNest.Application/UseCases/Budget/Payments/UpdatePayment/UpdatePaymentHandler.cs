@@ -46,21 +46,22 @@ public sealed class UpdatePaymentHandler : ICommandHandler<UpdatePaymentCommand,
         var outLeg = legs.Single(l => l.Amount < 0);
         var inLeg = legs.Single(l => l.Amount > 0);
 
-        // Reverse the OLD balance effect on whichever accounts the legs were
-        // actually on — these may not be c.FromAccountId/c.ToAccountId if the
-        // edit is moving the payment to different accounts.
+        // Resolve whichever accounts the legs are CURRENTLY on — these may
+        // not be c.FromAccountId/c.ToAccountId if the edit is moving the
+        // payment to different accounts. Resolved, not yet mutated: every
+        // guard below can still throw before any balance is touched.
         var oldFromAcc = await _db.BudgetAccounts.FirstOrDefaultAsync(
             a => a.Id == outLeg.AccountId && a.FamilyId == familyId, ct)
             ?? throw new DomainException("Account not found.");
         var oldToAcc = await _db.BudgetAccounts.FirstOrDefaultAsync(
             a => a.Id == inLeg.AccountId && a.FamilyId == familyId, ct)
             ?? throw new DomainException("Account not found.");
-        oldFromAcc.AdjustBalance(-outLeg.Amount);
-        oldToAcc.AdjustBalance(-inLeg.Amount);
 
         // Re-resolve the (possibly new) accounts and re-validate exactly as
         // MakePaymentHandler — the pair may have changed to a different Cash
         // account, a different card, or even a different debt entirely.
+        // Matching MakePaymentHandler's shape: resolve and validate everything
+        // FIRST, mutate balances only once nothing can throw.
         var from = await _db.BudgetAccounts.FirstOrDefaultAsync(
             a => a.Id == c.FromAccountId && a.FamilyId == familyId, ct)
             ?? throw new DomainException("Paying account not found.");
@@ -74,6 +75,11 @@ public sealed class UpdatePaymentHandler : ICommandHandler<UpdatePaymentCommand,
             throw new DomainException("A Loan account cannot be the paying account.");
 
         var category = await PaymentCategoryRule.ResolveAsync(_db, to.Type, c.CategoryId, familyId, ct);
+
+        // Nothing past this point can throw — reverse the OLD balance effect,
+        // rewrite both legs, then apply the NEW balance effect.
+        oldFromAcc.AdjustBalance(-outLeg.Amount);
+        oldToAcc.AdjustBalance(-inLeg.Amount);
 
         outLeg.Update(from.Id, category?.Id, -c.Amount, c.Date, c.Notes);
         inLeg.Update(to.Id, null, c.Amount, c.Date, c.Notes);
