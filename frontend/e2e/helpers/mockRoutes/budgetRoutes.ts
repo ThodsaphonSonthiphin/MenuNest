@@ -57,7 +57,12 @@ const envelope = (categoryId: string, name: string, available: number) => ({
   isEveryday: false,
 })
 
-const summaryResponse = {
+/**
+ * Exported so a spec can reshape one field (e.g. drive a category negative to
+ * make the "⚠ Overspent" filter chip render its danger variant) without
+ * hand-rolling a whole summary payload that then drifts from this one.
+ */
+export const budgetSummaryFixture = {
   year: 2026,
   month: 8,
   income: 20000,
@@ -125,7 +130,7 @@ type BudgetConfig = {
 export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
   const config: BudgetConfig = {
     me: meResponse,
-    summary: summaryResponse,
+    summary: budgetSummaryFixture,
     history: historyResponse,
   }
 

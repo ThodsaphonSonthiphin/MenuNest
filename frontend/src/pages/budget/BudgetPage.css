@@ -299,21 +299,26 @@
 }
 .bdg-chip:hover { background: var(--bg-card); color: var(--text); }
 .bdg-chip.is-danger { background: var(--red-bg); border-color: var(--red); color: var(--red); }
-/* Selected filter — a FILLED pill (issue #110). The previous treatment was
+/* Selected filter — a FILLED pill (issue #110). The old treatment was
    `--bg-card` (#fff) on the `--bg-page` (#f8fafc) body: a ~1.02:1 difference
-   that reads as no selection at all on a phone, which is what the bug reports.
-   `.is-danger.is-active` is spelled out because `.is-danger` alone ties
-   `.is-active` on specificity and, declared later, used to win — so picking
-   "⚠ Overspent" changed nothing on screen. */
-.bdg-chip.is-active {
+   that reads as nothing selected on a phone, which is what the bug reports.
+
+   These two carry the `.bdg-filters` ancestor ONLY to buy specificity, so
+   selection wins over `:hover` (0,2,0) and `.is-danger` (0,2,0) by weight
+   rather than by declaration order. That ordering tie is the bug's other
+   half: `.is-danger` sat after `.is-active` at equal weight and won, so
+   picking "⚠ Overspent" changed nothing at all on screen. Anything added
+   below must not re-introduce that dependency.
+
+   `.is-danger.is-active` keeps the chip red so it still reads as a warning
+   while selected; unselected it keeps its soft outline, untouched above. */
+.bdg-filters .bdg-chip.is-active {
   background: var(--accent); border-color: var(--accent);
   color: #fff; font-weight: 600;
 }
-.bdg-chip.is-active:hover { background: var(--accent); color: #fff; }
-.bdg-chip.is-danger.is-active {
+.bdg-filters .bdg-chip.is-danger.is-active {
   background: var(--red); border-color: var(--red); color: #fff;
 }
-.bdg-chip.is-danger.is-active:hover { background: var(--red); color: #fff; }
 
 /* -------- Envelopes -------- */
 .bdg-envelopes { display: flex; flex-direction: column; gap: 10px; }
