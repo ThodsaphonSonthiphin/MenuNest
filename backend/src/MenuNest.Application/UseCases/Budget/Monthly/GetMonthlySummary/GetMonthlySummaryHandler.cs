@@ -201,8 +201,20 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         // Shortfall computed below — keyed by the CARD's account id, not the
         // envelope's category id.
         var availableByPaymentEnvelope = new Dictionary<Guid, decimal>();
+        var closedAccountIds = accountRows.Where(a => a.IsClosed).Select(a => a.Id).ToHashSet();
         foreach (var cat in categories)
         {
+            // menunest-210: a closed card's envelope leaves the total, which is
+            // what returns any over-funded remainder to Ready to Assign. This
+            // loop otherwise walks HIDDEN categories too (closing hides the
+            // envelope), so the exclusion has to be explicit here on top of the
+            // hide — SetHiddenForAccountClosure alone would leave the
+            // remainder locked in an envelope belonging to a card no longer in
+            // use. MonthlyAssignment rows are untouched, so reopening restores
+            // both the envelope and this sum exactly.
+            if (cat.PaymentForAccountId is { } closedAccId && closedAccountIds.Contains(closedAccId))
+                continue;
+
             var (available, _, _, _) = EnvelopeNumbers(cat);
             totalEnvelopeAvailableAllCats += available;
             if (cat.PaymentForAccountId is { } accId) availableByPaymentEnvelope[accId] = available;
