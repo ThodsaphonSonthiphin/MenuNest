@@ -182,4 +182,111 @@ public class PaymentEnvelopeProvisionerTests
 
         (await seedDb.BudgetCategories.CountAsync(c => c.PaymentForAccountId == acc.Id)).Should().Be(1);
     }
+
+    // ── LooksLikeDuplicatePaymentEnvelope: the numeric-code reflection path ──
+    //
+    // These exercise PaymentEnvelopeProvisioner.LooksLikeDuplicatePaymentEnvelope
+    // directly (internal, exposed to this assembly via InternalsVisibleTo) with
+    // small fake exception types that expose the SAME property names/shapes as
+    // the real SqlException/SqliteException, so the reflection lookup is proven
+    // to recognise both providers' unique-violation codes with neither provider
+    // actually present in this test project. The real SqliteException path is
+    // ALSO exercised end-to-end by Losing_the_race_for_the_same_account_...
+    // above, via a genuine constraint violation — these fill in the SQL Server
+    // side that no live server here can produce, plus the negative case.
+
+    private sealed class FakeSqlException : Exception
+    {
+        public FakeSqlException(int number, string message) : base(message) => Number = number;
+        public int Number { get; }
+    }
+
+    private sealed class FakeSqliteException : Exception
+    {
+        public FakeSqliteException(int sqliteExtendedErrorCode, string message) : base(message) =>
+            SqliteExtendedErrorCode = sqliteExtendedErrorCode;
+        public int SqliteExtendedErrorCode { get; }
+    }
+
+    /// <summary>
+    /// Deliberately phrased so it contains NEITHER "UNIQUE KEY constraint" nor
+    /// "duplicate key" — simulating a non-English SQL Server session, the
+    /// exact scenario the numeric check exists for. If this passes only
+    /// because of the text-fallback match, that would be a false positive for
+    /// what this test claims to prove; it must pass on the Number == 2627
+    /// reflection path alone.
+    /// </summary>
+    [Fact]
+    public void Recognises_SqlServer_unique_constraint_violation_by_number_2627()
+    {
+        var inner = new FakeSqlException(2627,
+            "Verletzung der EINDEUTIGE-EINSCHRÄNKUNG 'IX_BudgetCategories_PaymentForAccountId'. " +
+            "Der doppelte Schlüsselwert ist ...");
+        var ex = new DbUpdateException("Beim Speichern der Entitätsänderungen ist ein Fehler aufgetreten.", inner);
+
+        PaymentEnvelopeProvisioner.LooksLikeDuplicatePaymentEnvelope(ex).Should().BeTrue();
+    }
+
+    /// <summary>Same non-English-message reasoning as the 2627 case above.</summary>
+    [Fact]
+    public void Recognises_SqlServer_duplicate_key_row_by_number_2601()
+    {
+        var inner = new FakeSqlException(2601, "Ein Zeilenschlüssel kann nicht doppelt eingefügt werden.");
+        var ex = new DbUpdateException("Beim Speichern der Entitätsänderungen ist ein Fehler aufgetreten.", inner);
+
+        PaymentEnvelopeProvisioner.LooksLikeDuplicatePaymentEnvelope(ex).Should().BeTrue();
+    }
+
+    /// <summary>
+    /// The reflection check must not swallow an unrelated SQL Server failure.
+    /// 1205 is a deadlock victim, not a constraint violation — its message
+    /// contains neither "UNIQUE KEY constraint" nor "duplicate key" either,
+    /// so both the numeric and the text-fallback checks must independently
+    /// agree it is NOT this race.
+    /// </summary>
+    [Fact]
+    public void Does_not_recognise_an_unrelated_SqlServer_error_such_as_a_deadlock()
+    {
+        var inner = new FakeSqlException(1205,
+            "Transaction (Process ID 52) was deadlocked on lock resources with another process " +
+            "and has been chosen as the deadlock victim.");
+        var ex = new DbUpdateException("An error occurred while saving the entity changes.", inner);
+
+        PaymentEnvelopeProvisioner.LooksLikeDuplicatePaymentEnvelope(ex).Should().BeFalse();
+    }
+
+    /// <summary>
+    /// SQLite's own error text does not localise (unlike SQL Server's), so
+    /// the real captured text is exercised end-to-end by
+    /// Losing_the_race_for_the_same_account_does_not_throw_or_duplicate
+    /// above. This test instead isolates the reflection path on its own —
+    /// the message deliberately does NOT contain "UNIQUE constraint failed",
+    /// so a pass here proves SqliteExtendedErrorCode == 2067 alone drives the
+    /// match, not the text fallback.
+    /// </summary>
+    [Fact]
+    public void Recognises_Sqlite_unique_constraint_violation_by_extended_error_code_2067()
+    {
+        var inner = new FakeSqliteException(2067, "sqlite3 result code 2067: constraint failed");
+        var ex = new DbUpdateException("An error occurred while saving the entity changes.", inner);
+
+        PaymentEnvelopeProvisioner.LooksLikeDuplicatePaymentEnvelope(ex).Should().BeTrue();
+    }
+
+    /// <summary>
+    /// A SQLite constraint violation that is NOT the unique-index one (e.g. a
+    /// NOT NULL or FOREIGN KEY violation shares the primary SQLITE_CONSTRAINT
+    /// error family, code 19, but a different extended code) must not be
+    /// swallowed — proving the check reads the specific extended code (2067)
+    /// rather than the broad primary one.
+    /// </summary>
+    [Fact]
+    public void Does_not_recognise_a_non_unique_Sqlite_constraint_violation()
+    {
+        var inner = new FakeSqliteException(1299, // SQLITE_CONSTRAINT_NOTNULL
+            "SQLite Error 19: 'NOT NULL constraint failed: BudgetCategories.Name'.");
+        var ex = new DbUpdateException("An error occurred while saving the entity changes.", inner);
+
+        PaymentEnvelopeProvisioner.LooksLikeDuplicatePaymentEnvelope(ex).Should().BeFalse();
+    }
 }
