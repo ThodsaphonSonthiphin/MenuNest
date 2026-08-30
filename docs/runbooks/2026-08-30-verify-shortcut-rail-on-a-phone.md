@@ -74,29 +74,61 @@ Stated before you act, so the after-check is a test and not an opinion.
 
 ---
 
-## Step 0 — Write down what the numbers are now
+## Step 0 — The before-snapshot
 
-This is the before-snapshot. Without it, Steps 4–6 prove nothing.
+**Taken read-only through the MenuNest connector at 2026-08-30T08:2xZ**, not from the screen and
+not from memory. August 2026, `Asia/Bangkok`.
+
+**Chosen Envelope: `ของใช้ในบ้าน` 🛒** (group `ใช้จ่ายประจำวัน`, id `e04efab7-…`)
+
+| | |
+|---|---|
+| **V** — its Assigned | **71.00** |
+| **R** — Ready to Assign | **2,160.81** |
+| **C** — rows in Change history | **0** — operator-counted 2026-08-30T08:4xZ. Expected: the undo engine only began recording on 2026-08-29, and no Envelope has been assigned or moved since. An empty sheet here is correct, not a fault. |
+
+**Why this Envelope and not another.** It is the only kind with no second moving part:
+`targetType: None`, so no target bar or hint moves, and `isEveryday: false`, so the
+**Daily allowance** is untouched. Its Available is `0.00`, so after assigning 100 it reads
+exactly `100.00` — unmistakable, and unmistakably back to `0.00` after Undo.
+
+Ruled out, with the reason:
+
+| Envelope | why not |
+|---|---|
+| `Monthly use` 😶‍🌫️ | `isEveryday: true` — assigning re-freezes the **Daily allowance** (a **Budgeting event**) |
+| `ค่าบ้าน` 🏠 | target met exactly (20,500 / 20,500, fraction `1`); +100 pushes it past target and changes its state |
+| `Tax` | has a target hint — `฿3,600.00 more needed this month` would become `฿3,500.00` |
+
+**Full state of every Envelope before the test** — this is what proves *what* moved, where the
+assertions only prove *whether* something moved.
+
+| group | Envelope | assigned | activity | available | target | everyday |
+|---|---|---|---|---|---|---|
+| Bill | `Tax` | 100.00 | −100.00 | 0.00 | MonthlyAmount 3,700 | no |
+| Bill | `ค่าบ้าน` 🏠 | 20,500.00 | 0 | 20,500.00 | MonthlyAmount 20,500 | no |
+| ใช้จ่ายประจำวัน | **`ของใช้ในบ้าน` 🛒** | **71.00** | −71.00 | **0.00** | None | no |
+| ใช้จ่ายประจำวัน | `ค่าทางด่วน` 🚗 | 40.00 | −40.00 | 0.00 | None | no |
+| ใช้จ่ายประจำวัน | `Monthly use` 😶‍🌫️ | 300.00 | −300.00 | 0.00 | None | **yes** |
+| ใช้จ่ายประจำวัน | `ของใช้ Santy` 🧴 | 162.00 | −162.00 | 0.00 | None | no |
+
+Month totals: income 23,833.81 · assigned 21,173.00 · activity −673.00 · available 20,500.00 ·
+**Ready to Assign 2,160.81**. Accounts: `Make` 22,660.81, `เงินสด` 0.00.
+**Daily allowance** 0.00, frozen `2026-08-29`, has marks.
+
+**The one thing the operator must still record:**
 
 **Go to:** https://green-rock-098e70e00.7.azurestaticapps.net/budget
 
 **Do:**
-1. Sign in as yourself.
-2. Choose one **Envelope** you will use for the whole test. Write its name here: `__________`
-3. Write down that Envelope's **Assigned** figure. This is **V** = `__________`
-4. Write down the **Ready to Assign** figure at the top. This is **R** = `__________`
-5. Press the rail, then press **Change history**. Count the rows. This is **C** = `__________`
-6. Close the sheet.
+1. Press the rail.
+2. Press **Change history**.
+3. Count the rows. This is **C** = `__________`
+4. Close the sheet.
 
-**Do not:**
-- Do not pick an **Everyday envelope** — assigning into one re-freezes the **Daily allowance**
-  (a **Budgeting event**), which adds a second moving part to every later check.
-- Do not skip writing V, R and C down. Reading them off the screen afterwards is not a
-  baseline; it is a memory.
+**How to verify yourself:** you have one number written down.
 
-**How to verify yourself:** you have three numbers written down and an Envelope name.
-
-**Then report:** write V, R, C and the Envelope name into this file, under Step 0.
+**Then report:** C, into this file under Step 0.
 
 ---
 
@@ -330,16 +362,101 @@ This is the check that catches over-reach. Nothing above would fail if the rail 
   **Change history** entry still says "Which acts it lists, and how far back, is not yet
   decided" — menunest-194 and menunest-196 decided both.
 
+## Step 4a measured — the assign landed, and nothing else moved
+
+**Measured 2026-08-30T08:5xZ through the MenuNest connector — a different channel from the UI
+the operator acted in.** This is measurement, not a report.
+
+| | before | after | verdict |
+|---|---|---|---|
+| `ของใช้ในบ้าน` Assigned | 71.00 | **171.00** | +100 exactly |
+| `ของใช้ในบ้าน` Available | 0.00 | **100.00** | +100 exactly |
+| **Ready to Assign** | 2,160.81 | **2,060.81** | −100 exactly |
+| month totalAssigned | 21,173.00 | 21,273.00 | +100, consistent |
+
+**Blast radius — everything that had to stay still, did.**
+
+| | before | after |
+|---|---|---|
+| `Tax` | 100 / −100 / 0, hint `฿3,600.00 more needed` | identical |
+| `ค่าบ้าน` 🏠 | 20,500 / 0 / 20,500, fraction 1 | identical |
+| `ค่าทางด่วน` 🚗 | 40 / −40 / 0 | identical |
+| `Monthly use` 😶‍🌫️ | 300 / −300 / 0 | identical |
+| `ของใช้ Santy` 🧴 | 162 / −162 / 0 | identical |
+| **Daily allowance** | 0.00, frozen `2026-08-29` | **identical — not re-frozen** |
+| accounts | `Make` 22,660.81, `เงินสด` 0.00 | identical |
+| income / totalActivity | 23,833.81 / −673.00 | identical |
+
+The **Daily allowance** holding still is the payoff from ruling out `Monthly use` in Step 0: had
+the test used the Everyday envelope, this row would have moved and every later assertion would
+have had two causes.
+
+---
+
+## DEFECT FOUND at Step 4b — Change history never refetches after a write
+
+**Confirmed 2026-08-30 by disproof, not by inspection.** Prod build `a821517`.
+
+### Symptom
+
+Assign 100 to an Envelope through the SPA. The money moves. **Change history stays empty and
+the rail's Undo stays grey — permanently, until the page is fully reloaded.**
+
+### Cause — the frontend cache, not the backend
+
+`frontend/src/shared/api/api.ts`. Four mutations write a `BudgetChange` row server-side. **None
+of them invalidates the `BudgetHistory` tag.**
+
+| mutation | backend records | invalidates `BudgetHistory` |
+|---|---|---|
+| `setAssignedAmount` | `RecordAssign` | **no** — only `BudgetSummary` |
+| `moveMoney` | `RecordMove` | **no** |
+| `coverOverspending` | `RecordMove` (cover) | **no** |
+| `setEverydayMarks` | `RecordEverydayMark` | **no** |
+| `undoBudgetChange` | — | yes |
+| `redoBudgetChange` | — | yes |
+
+Only undo and redo — the two that do **not** create rows — invalidate it.
+
+`BudgetPage.tsx:37` holds a live subscription to `useListBudgetHistoryQuery` for as long as the
+page is mounted, so the cached empty list never expires. Closing and reopening the sheet cannot
+help: the page still holds the subscription. **One cause, both symptoms** — the rail reads its
+Undo enablement from that same cached list.
+
+### How it was confirmed
+
+The disproof was run first: a full page reload clears the RTK Query cache. **After the reload the
+row appeared and Undo became pressable** — proving the row had been in the database all along,
+and that recording is not at fault.
+
+### Why every gate missed it
+
+- **backend unit tests** — correct, and they are testing the correct thing. The handler does record.
+- **`tsc` / `npm run build` / vitest** — a missing `invalidatesTags` entry is valid TypeScript.
+- **the new Playwright spec** — it mocks `/api/budget/history` with a fixture that *already has
+  rows*, and never performs an assign. It exercises the rail's appearance, not the write→refetch
+  loop. The gate that was built for this feature could not see this class of fault.
+- **App Insights** — would show `PUT /api/budget/monthly/assigned` → 200. The fault is in the
+  browser. No server-side telemetry can reach it.
+
+### The lesson for the next feature
+
+A mutation and the queries it makes stale are **two separate facts**, and only one of them is
+checked by the compiler. Whenever a handler writes a row that some *other* query reads, the
+mutation's `invalidatesTags` is a required part of the change, not a follow-up.
+
+---
+
 ## Record the outcome here
 
 Write the result into this file and commit it. This file is the record; the chat is not.
 
 | step | assertion | result | when (UTC) |
 |---|---|---|---|
-| 1 | commit is `a821517` | | |
-| 2 | A1 indigo | | |
-| 3 | A2 = 3, A3 order | | |
-| 4 | A4, A5 return to V and R | | |
-| 5 | A6 = C + 1 | | |
-| 7 | back to V and R | | |
+| 1 | commit is `a821517` | **ตรงกัน** — operator-reported, not independently measured (I cannot see the phone). The API side I did measure: `a821517`. | 2026-08-30T08:3xZ |
+| 2 | A1 indigo | **PASS — indigo**, operator-reported. The live stylesheet was measured separately: `.bdg-rail .e-fab.e-btn` → `background:var(--accent)`, `--accent:#4f46e5`. No pink regression. | 2026-08-30T08:3xZ |
+| 3 | A2 = 3, A3 order | **PASS** — 3 circles; bottom to top **Undo, Redo, Change history**, exactly menunest-191/192. Operator-reported. *Not reported:* whether the main button swapped to `×`. | 2026-08-30T08:4xZ |
+| 4 | A4, A5 return to V and R | **PASS — measured, not reported.** After Undo: Assigned `171.00 → 71.00` = **V**; Ready to Assign `2,060.81 → 2,160.81` = **R**; Available back to `0.00`; month totalAssigned back to `21,173.00`. Blast radius clean — every other Envelope, both accounts and the **Daily allowance** byte-identical to Step 0. **Caveat: reaching Undo required a full page reload** — see the DEFECT section. | 2026-08-30T09:0xZ |
+| 5 | A6 = C + 1 | **PASS, but only after a full reload.** C was `0`; the row appeared and Undo became pressable **only** once the page was reloaded. Operator-reported. Without the reload the sheet stayed empty indefinitely — that is the defect, not the assertion failing. | 2026-08-30T09:0xZ |
+| 7 | back to V and R | **PASS — measured.** The Step 4b Undo already restored it; no separate action was needed because Step 6 (Redo) was not reached. Budget verified at V=71.00 / R=2,160.81. | 2026-08-30T09:0xZ |
 | 9 | A7 present, A8 absent | | |
