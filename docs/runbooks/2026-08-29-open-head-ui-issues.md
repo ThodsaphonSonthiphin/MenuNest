@@ -1,8 +1,28 @@
 # Runbook — open the two follow-up issues for #106
 
-**Boundary.** `gh` is not installed on this machine and `gh auth login` is interactive, so
-Claude cannot create GitHub issues. **Both issues below are yours to create.** The bodies are
-written out in full so this is copy-and-paste, not a research task.
+> ## ✅ DONE — 2026-08-30
+>
+> | | |
+> |---|---|
+> | **#107** | Family head has no UI — label `enhancement` |
+> | **#108** | Change history offers Undo on rows the member is not allowed to undo — label `bug` |
+>
+> https://github.com/ThodsaphonSonthiphin/MenuNest/issues/107
+> https://github.com/ThodsaphonSonthiphin/MenuNest/issues/108
+>
+> The boundary moved. `gh` was installed (2.98.0) and **the operator signed in**, which is the
+> part Claude could not do. Claude then created both issues from the bodies below, so the
+> issue text and this record are the same bytes rather than a retyping.
+>
+> Verified after, read-only: open issues **10 → 12** (exactly +2), **#106 still CLOSED**
+> (blast radius held), and #108's body ends `Refs #106` — a reference, not a close-link.
+>
+> The remaining steps in this file are kept as the record of what was asked and checked.
+> Do not re-run "How to create them" — it would duplicate #107 and #108.
+
+**Boundary as it stood when this was written.** `gh` was not installed and `gh auth login` is
+interactive, so Claude could not create GitHub issues. **Both issues below were yours to
+create.** The bodies are written out in full so this was copy-and-paste, not a research task.
 
 **Measured, not inherited.** Every number in this document was read from the live system on
 **2026-08-29**, not from a ticket or a plan. Provenance is given per line.
@@ -171,11 +191,15 @@ finds them without asking. This file is the record — not the chat.
 
 State them before acting, so the after-check is a test and not a description.
 
-| assertion | before | after |
-|---|---|---|
-| open issues referencing #106 | 0 | **2** |
-| #106 itself | closed | **still closed** (blast radius) |
-| any other issue modified | — | **none** (blast radius) |
+| assertion | before | after | result |
+|---|---|---|---|
+| open issues referencing #106 | 0 | **2** | ✅ #107, #108 |
+| open issues, total | 10 | **12** | ✅ exactly +2 |
+| #106 itself | closed | **still closed** (blast radius) | ✅ still CLOSED |
+| any other issue modified | — | **none** (blast radius) | ✅ none |
+
+Measured 2026-08-30 with `gh issue list` / `gh issue view` — a different channel from the
+`gh issue create` that made them.
 
 ## What is still owed after this
 

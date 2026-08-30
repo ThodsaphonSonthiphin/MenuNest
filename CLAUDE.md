@@ -147,9 +147,12 @@ remote was named `main`, which made every command in it fail.
 - Push with `git push origin main`. **Pushing to `main` deploys to prod** —
   `.github/workflows/main_menunest.yml` triggers on push to that branch — so it is
   never a routine step; ask first.
-- `gh` is **not installed** on this machine, so none of it is usable yet
-  (`command -v gh` is empty). When it is, it can auto-detect the repo from
-  `origin` — no `--repo` flag needed.
+- `gh` **is installed** (2.98.0, via `brew install gh` on 2026-08-30) and
+  authenticated as `ThodsaphonSonthiphin`, scopes `gist, read:org, repo, workflow`.
+- **`gh` auto-detects this repo — do NOT pass `--repo`.** Confirmed by running
+  `gh repo view` with no flag: it resolved `ThodsaphonSonthiphin/MenuNest`. The
+  older claim here that it could not (because the remote was supposedly named
+  `main`) was wrong on both counts.
 
 ## Backend tests — Moq (not NSubstitute); FOUR DbContext implementers
 
