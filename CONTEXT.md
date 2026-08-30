@@ -543,15 +543,20 @@ glossary and belongs to the tickets that own those decisions._
   card purchase never leaves the payment unfunded. It is **fundable but not editable** (menunest-205):
   assigning into it, a **Target** and **Move money** are all on — funding it by hand is the only way to
   pay down **pre-budget debt** — while rename, regroup, delete, hide and the **Everyday envelope** mark
-  are all off. It is never spent from directly; money leaves it only through **จ่ายบัตร**
+  are all off. It is never spent from directly; money leaves it only through a **Payment**
   (menunest-204). _Avoid_: credit envelope, card envelope, payment category, debt envelope; **Envelope**
   (bare — a Payment envelope is not one the **User** made).
-- **จ่ายบัตร** — the single action that pays a **Credit** **Account**'s bill: pick the paying
-  **Account**, give an amount, and MenuNest writes **both** **Budget transactions** as one pair — the
-  outflow on the payer and the inflow on the card — spending down the **Payment envelope**. It exists
-  because MenuNest has no transfer (a **Budget transaction** carries exactly one account), so by hand
-  the inflow would read as **Income** and half a pair would save cleanly (menunest-204).
-  _Avoid_: transfer, card payment (bare), pay off, settle.
+- **Payment** — the single action that pays down a debt **Account**: pick the paying **Account**, give
+  an amount, and MenuNest writes **both** **Budget transactions** as one pair — the outflow on the
+  payer and the inflow on the debt — spending down the **Payment envelope** where there is one. It
+  exists because MenuNest has no transfer (a **Budget transaction** carries exactly one account), so by
+  hand the inflow would read as **Income** and half a pair would save cleanly (menunest-204). It serves
+  **Credit** and **Loan** **Accounts** alike (menunest-207) and is the assistant's own MCP tool, never
+  two `create_transaction` calls (menunest-211). It is **one row** everywhere it is shown, and deleting
+  or editing it moves both halves or neither (menunest-209).
+  Its **button label follows the Account type** — **จ่ายบัตร** on a card, **จ่ายค่างวด** on a loan —
+  with no branch beneath the word (menunest-212).
+  _Avoid_: transfer, จ่ายหนี้, ชำระ, card payment (bare), pay off, settle.
 - **Pre-budget debt** — the part of a **Credit** **Account**'s balance that no **Budget transaction**
   in MenuNest created: what was already on the card when the **Family** started budgeting. It sits
   **outside** the budget — it never enters **Ready to Assign** and never enters the **Payment
