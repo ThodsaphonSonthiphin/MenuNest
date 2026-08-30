@@ -20,6 +20,12 @@ public sealed class DeleteTransactionHandler : ICommandHandler<DeleteTransaction
             t => t.Id == c.Id && t.FamilyId == familyId, ct)
             ?? throw new DomainException("Transaction not found.");
 
+        // menunest-209: a payment is ONE row to the user. Deleting one leg would
+        // leave the debt paid in the budget and unpaid on the card.
+        if (tx.PaymentId is not null)
+            throw new DomainException(
+                "This is a payment — delete it from the payment, not one side of it.");
+
         var acc = await _db.BudgetAccounts.FirstOrDefaultAsync(
             a => a.Id == tx.AccountId && a.FamilyId == familyId, ct)
             ?? throw new DomainException("Account not found.");
