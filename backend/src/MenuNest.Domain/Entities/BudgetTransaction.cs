@@ -18,6 +18,14 @@ public sealed class BudgetTransaction : Entity
     public string? Notes { get; private set; }
     public Guid CreatedByUserId { get; private set; }
 
+    /// <summary>
+    /// Shared by the two legs of one payment (menunest-204, menunest-209), so the
+    /// pair is found, edited and deleted as one row. Pairing only — it carries no
+    /// arithmetic weight, which is why payments written before this feature
+    /// shipped still compute correctly (spec §4.2).
+    /// </summary>
+    public Guid? PaymentId { get; private set; }
+
     private BudgetTransaction() { }
 
     public static BudgetTransaction Create(
@@ -34,6 +42,25 @@ public sealed class BudgetTransaction : Entity
             Date = date,
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
             CreatedByUserId = createdByUserId
+        };
+    }
+
+    public static BudgetTransaction CreatePaymentLeg(
+        Guid familyId, Guid accountId, decimal amount, DateOnly date,
+        string? notes, Guid createdByUserId, Guid paymentId)
+    {
+        if (amount == 0) throw new DomainException("Transaction amount cannot be zero.");
+        if (paymentId == Guid.Empty) throw new DomainException("PaymentId is required.");
+        return new BudgetTransaction
+        {
+            FamilyId = familyId,
+            AccountId = accountId,
+            CategoryId = null,          // a payment is not spending
+            Amount = amount,
+            Date = date,
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+            CreatedByUserId = createdByUserId,
+            PaymentId = paymentId
         };
     }
 
