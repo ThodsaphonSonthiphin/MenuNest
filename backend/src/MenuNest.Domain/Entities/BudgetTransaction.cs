@@ -45,8 +45,20 @@ public sealed class BudgetTransaction : Entity
         };
     }
 
+    /// <summary>
+    /// <paramref name="categoryId"/> (menunest-214) is null on both legs of a Credit
+    /// payment — the Payment envelope already falls by derivation
+    /// (<c>PaymentEnvelopeMath</c>), so categorising either leg would double-count
+    /// it. It is REQUIRED on the outflow leg of a Loan payment: a Loan has no
+    /// Payment envelope of its own (menunest-206), so the outflow leg's Envelope is
+    /// the only thing that ever gets spent by paying a loan — without it the
+    /// instalment drains Ready to Assign every month while the Envelope funding it
+    /// is never touched (see menunest-214). The inflow leg, into the debt account
+    /// itself, is ALWAYS null on both Credit and Loan: a payment landing on the
+    /// debt account is never itself "spending".
+    /// </summary>
     public static BudgetTransaction CreatePaymentLeg(
-        Guid familyId, Guid accountId, decimal amount, DateOnly date,
+        Guid familyId, Guid accountId, Guid? categoryId, decimal amount, DateOnly date,
         string? notes, Guid createdByUserId, Guid paymentId)
     {
         if (amount == 0) throw new DomainException("Transaction amount cannot be zero.");
@@ -55,7 +67,7 @@ public sealed class BudgetTransaction : Entity
         {
             FamilyId = familyId,
             AccountId = accountId,
-            CategoryId = null,          // a payment is not spending
+            CategoryId = categoryId,
             Amount = amount,
             Date = date,
             Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),

@@ -111,8 +111,8 @@ public class CreditRtaInvariantTests
         var before = await RtaAsync(w);
         var payId = Guid.NewGuid();
         w.Fx.Db.BudgetTransactions.AddRange(
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, D, null, w.Fx.User.Id, payId),
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, D, null, w.Fx.User.Id, payId));
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, null, -500m, D, null, w.Fx.User.Id, payId),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, null, 500m, D, null, w.Fx.User.Id, payId));
         w.Fx.Db.SaveChanges();
         (await RtaAsync(w)).Should().Be(before, "you spend money you had already set aside");
     }
@@ -165,8 +165,8 @@ public class CreditRtaInvariantTests
         AddTx(w, w.CardId, null, -300m);         // 5. cash advance
         var payId = Guid.NewGuid();              // 6. pay 500
         w.Fx.Db.BudgetTransactions.AddRange(
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, D, null, w.Fx.User.Id, payId),
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, D, null, w.Fx.User.Id, payId));
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, null, -500m, D, null, w.Fx.User.Id, payId),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, null, 500m, D, null, w.Fx.User.Id, payId));
         w.Fx.Db.SaveChanges();
 
         var s = await SummaryAsync(w);
@@ -197,8 +197,8 @@ public class CreditRtaInvariantTests
         AddTx(w, w.CardId, w.FoodId, -500m);
         var payId = Guid.NewGuid();
         w.Fx.Db.BudgetTransactions.AddRange(
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, D, null, w.Fx.User.Id, payId),
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, D, null, w.Fx.User.Id, payId));
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, null, -500m, D, null, w.Fx.User.Id, payId),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, null, 500m, D, null, w.Fx.User.Id, payId));
         w.Fx.Db.SaveChanges();
 
         var s = await SummaryAsync(w);
