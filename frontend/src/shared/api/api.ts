@@ -372,6 +372,11 @@ export interface BudgetAccountDto {
     balance: number
     sortOrder: number
     isClosed: boolean
+    // menunest-202: what is still owed and not yet funded. NULL on anything but
+    // a Credit account — a Loan has no Payment envelope (menunest-206), so it
+    // must never read "ขาดอีก" for its whole outstanding balance. Also null on
+    // GET /api/budget/accounts, which has no month to fund against.
+    shortfall: number | null
 }
 
 export interface CategoryGroupDto {
@@ -412,6 +417,19 @@ export interface EnvelopeDto {
     // menunest-181/184 — feeds the Daily allowance; set in bulk from
     // EverydayMarksSheet, never per-row (that's the whole point of the sheet).
     isEveryday: boolean
+    // menunest-202: non-null ⇒ this is a Payment envelope, and names the Credit
+    // account it pays. Every special case on the card keys off this one field.
+    paymentForAccountId: string | null
+    // §4.3 — the one number issue #112 asks for. Non-null only on a Payment
+    // envelope; see lib/paymentLabel.ts `shortfallLine`.
+    shortfall: number | null
+    // R-1: −Σ(categorised rows on the card) for the selected month. Positive
+    // when the card was used. Non-null only on a Payment envelope — for those,
+    // `assigned + activity` alone does not explain the change in `available`
+    // (a categorised card purchase moves `available` while both stay 0), so
+    // this is the display term the expanded card shows (รูดบัตร) INSTEAD of
+    // `activity`. Month-scoped, like `assigned` and `activity`.
+    cardSpending: number | null
 }
 
 export interface EnvelopeGroupDto {
@@ -477,6 +495,11 @@ export interface BudgetTransactionDto {
     notes: string | null
     createdByUserId: string
     createdByDisplayName: string
+    // R-4 / menunest-209: non-null on BOTH legs of a payment, shared by the
+    // pair. The backend refuses PUT/DELETE on a single leg, so a feed that does
+    // not group by this field renders two ordinary-looking rows whose Edit and
+    // Delete both fail. See lib/paymentRows.ts `groupPaymentLegs`.
+    paymentId: string | null
 }
 
 export interface CreateTransactionRequest {
@@ -519,6 +542,48 @@ export interface UpdateAccountRequest {
     name: string
     sortOrder: number
     isClosed: boolean
+}
+
+// ---------- Payments (menunest-204, menunest-207, menunest-214) ----------
+export interface PaymentDto {
+    paymentId: string
+    fromAccountId: string
+    fromAccountName: string
+    toAccountId: string
+    toAccountName: string
+    amount: number
+    date: string
+    notes: string | null
+}
+
+// menunest-214: `categoryId` is the ordinary Envelope funding the instalment —
+// REQUIRED when paying a Loan (a Loan has no Payment envelope, so this is the
+// only thing a loan payment ever spends), REFUSED when paying a Credit card
+// (its Payment envelope already falls by derivation; categorising the outflow
+// leg too would double-spend one payment). It may never be a Payment envelope.
+// See lib/paymentOptions.ts and the backend's PaymentCategoryRule.
+export interface MakePaymentRequest {
+    fromAccountId: string
+    toAccountId: string
+    amount: number
+    /** Omitted ⇒ today in `timeZoneId`. */
+    date?: string | null
+    notes: string | null
+    // menunest-189: only actually resolved server-side when `date` is absent,
+    // but always sent — see shared/utils/timeZone.ts.
+    timeZoneId?: string
+    categoryId?: string | null
+}
+
+// menunest-209 / R-3: `categoryId` carries the SAME rules as
+// MakePaymentRequest's. `date` is required here — an edit always states it.
+export interface UpdatePaymentRequest {
+    fromAccountId: string
+    toAccountId: string
+    amount: number
+    date: string
+    notes: string | null
+    categoryId?: string | null
 }
 
 export interface MoveMoneyRequest {
@@ -1175,6 +1240,29 @@ export const api = createApi({
         deleteBudgetAccount: build.mutation<void, string>({
             query: (id) => ({url: `/api/budget/accounts/${id}`, method: 'DELETE'}),
             invalidatesTags: ['BudgetAccounts', 'BudgetAccountDetail'],
+        }),
+        // ----- payments (menunest-204, menunest-207, menunest-209, menunest-214) -----
+        // A payment writes two transactions and moves two account balances, and
+        // a Payment envelope's Available is CUMULATIVE (§4.2) — so a payment
+        // dated in one month changes every later month's derived figures too.
+        // `budgetWriteTagsAllMonths` is therefore the only correct choice; a
+        // per-month tag would leave the next month's shortfall stale on screen.
+        makePayment: build.mutation<PaymentDto, MakePaymentRequest>({
+            query: (b) => ({url: '/api/budget/payments', method: 'POST', body: b}),
+            invalidatesTags: () => [...budgetWriteTagsAllMonths(),
+                'BudgetAccounts', 'BudgetAccountDetail', 'BudgetTransactions'],
+        }),
+        // menunest-209: edits and deletes BOTH halves or neither — there is no
+        // route to one leg, by design.
+        updatePayment: build.mutation<PaymentDto, {paymentId: string} & UpdatePaymentRequest>({
+            query: ({paymentId, ...b}) => ({url: `/api/budget/payments/${paymentId}`, method: 'PUT', body: b}),
+            invalidatesTags: () => [...budgetWriteTagsAllMonths(),
+                'BudgetAccounts', 'BudgetAccountDetail', 'BudgetTransactions'],
+        }),
+        deletePayment: build.mutation<void, string>({
+            query: (paymentId) => ({url: `/api/budget/payments/${paymentId}`, method: 'DELETE'}),
+            invalidatesTags: () => [...budgetWriteTagsAllMonths(),
+                'BudgetAccounts', 'BudgetAccountDetail', 'BudgetTransactions'],
         }),
         correctAccountBalance: build.mutation<BalanceCorrectionResultDto, {accountId: string} & CorrectAccountBalanceRequest>({
             query: ({accountId, ...b}) => ({url: `/api/budget/accounts/${accountId}/correct-balance`, method: 'POST', body: b}),
@@ -1878,6 +1966,9 @@ export const {
     useUpdateBudgetAccountMutation,
     useDeleteBudgetAccountMutation,
     useCorrectAccountBalanceMutation,
+    useMakePaymentMutation,
+    useUpdatePaymentMutation,
+    useDeletePaymentMutation,
     useListBudgetGroupsQuery,
     useCreateBudgetGroupMutation,
     useUpdateBudgetGroupMutation,

@@ -62,6 +62,16 @@ describe('every budget write endpoint is wired to the helper', () => {
     // the group still has categories, so it can never affect a history row.
     const envelopeShapeEndpoints = ['updateBudgetCategory', 'deleteBudgetCategory']
 
+    // menunest-204/209 (#112). These record NO Change history row — spec §7:
+    // a payment is two Budget transactions, so it is fixed where transactions
+    // are fixed, and the Shortcut rail keeps exactly its three slots. They use
+    // the helper for its OTHER half: a Payment envelope's Available is
+    // cumulative (§4.2), so a payment dated in one month moves every later
+    // month's derived shortfall, and only the month-independent variant covers
+    // that. Listed separately from `writeEndpoints` so the distinction between
+    // "records history" and "merely invalidates it" stays visible.
+    const paymentEndpoints = ['makePayment', 'updatePayment', 'deletePayment']
+
     /** The source text of one endpoint definition, up to the next one. */
     function endpointBlock(endpoint: string): string {
         const start = source.indexOf(`${endpoint}: build.mutation`)
@@ -99,10 +109,18 @@ describe('every budget write endpoint is wired to the helper', () => {
     // never examined `['BudgetGroups', 'BudgetSummary']`; and the rule it named
     // is wrong anyway, because createBudgetGroup and createBudgetCategory
     // legitimately invalidate the summary without touching history.
-    it('exactly the four write endpoints use the helper', () => {
+    it.each(paymentEndpoints)('%s invalidates every month via the helper', (endpoint) => {
+        expect(
+            endpointBlock(endpoint),
+            `${endpoint} moves a Payment envelope's cumulative Available, so every ` +
+            `cached month goes stale — not just the payment's own`,
+        ).toMatch(/budgetWriteTagsAllMonths/)
+    })
+
+    it('exactly the write and payment endpoints use the helper', () => {
         const callers = source
             .split('\n')
             .filter((l) => l.includes('invalidatesTags') && l.includes('budgetWriteTags'))
-        expect(callers).toHaveLength(writeEndpoints.length)
+        expect(callers).toHaveLength(writeEndpoints.length + paymentEndpoints.length)
     })
 })

@@ -1,11 +1,17 @@
 import {Fragment, useEffect, useRef, useState} from 'react'
-import type {BudgetTransactionDto} from '../../../shared/api/api'
+import type {BudgetAccountDto, BudgetTransactionDto} from '../../../shared/api/api'
 import {formatTHB} from '../BudgetPage.hooks'
+import {groupPaymentLegs, type PaymentTxRow, type TxRow} from '../lib/paymentRows'
+import {PaymentTransactionRow} from '../components/PaymentTransactionRow'
 
 export interface GlobalTransactionListProps {
   items: BudgetTransactionDto[]
+  /** Resolves the paid account's TYPE, which picks menunest-212's action word. */
+  accounts: BudgetAccountDto[]
   onEdit: (tx: BudgetTransactionDto) => void
   onDelete: (tx: BudgetTransactionDto) => void
+  onEditPayment: (row: PaymentTxRow) => void
+  onDeletePayment: (row: PaymentTxRow) => void
 }
 
 function todayIso(): string {
@@ -29,14 +35,24 @@ function formatDateShort(iso: string): string {
   return `${months[m - 1]} ${d}`
 }
 
-export function GlobalTransactionList({items, onEdit, onDelete}: GlobalTransactionListProps) {
-  // Bucket by Date
-  const buckets: {date: string; rows: BudgetTransactionDto[]}[] = []
+export function GlobalTransactionList({
+  items, accounts, onEdit, onDelete, onEditPayment, onDeletePayment,
+}: GlobalTransactionListProps) {
+  // menunest-209: collapse the two legs of a payment into ONE row BEFORE
+  // bucketing — rendered as two rows they offer two Edit and two Delete
+  // buttons, every one of which the backend refuses.
   const sortedItems = [...items].sort((a, b) => b.date.localeCompare(a.date))
-  for (const tx of sortedItems) {
+  const rows = groupPaymentLegs(sortedItems)
+
+  const typeById = new Map(accounts.map(a => [a.id, a.type]))
+
+  // Bucket by Date
+  const buckets: {date: string; rows: TxRow[]}[] = []
+  for (const row of rows) {
+    const date = row.kind === 'payment' ? row.date : row.tx.date
     const last = buckets[buckets.length - 1]
-    if (last && last.date === tx.date) last.rows.push(tx)
-    else buckets.push({date: tx.date, rows: [tx]})
+    if (last && last.date === date) last.rows.push(row)
+    else buckets.push({date, rows: [row]})
   }
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -64,10 +80,25 @@ export function GlobalTransactionList({items, onEdit, onDelete}: GlobalTransacti
       {buckets.map((b) => (
         <Fragment key={b.date}>
           <div className="bdg-tx-date-header">{dateHeaderFor(b.date)}</div>
-          {b.rows.map(tx => {
+          {b.rows.map(row => {
+            if (row.kind === 'payment') {
+              return (
+                <PaymentTransactionRow
+                  key={row.key}
+                  row={row}
+                  toAccountType={row.toLeg ? typeById.get(row.toLeg.accountId) ?? null : null}
+                  isOpen={openMenuId === row.key}
+                  onToggleMenu={setOpenMenuId}
+                  onEditPayment={onEditPayment}
+                  onDeletePayment={onDeletePayment}
+                  testId="global-tx-row"
+                />
+              )
+            }
+            const tx = row.tx
             const isOpen = openMenuId === tx.id
             const subtitle = [tx.categoryName ?? 'Uncategorized', tx.accountName].filter(Boolean).join(' • ')
-            
+
             return (
               <div key={tx.id} className="bdg-tx-row" data-testid="global-tx-row" data-tx-id={tx.id}>
                 <div className="bdg-tx-icon">{tx.categoryEmoji ?? '•'}</div>

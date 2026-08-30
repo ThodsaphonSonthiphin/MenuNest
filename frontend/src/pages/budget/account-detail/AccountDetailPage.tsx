@@ -11,10 +11,12 @@ import {useAppDispatch, useAppSelector} from '../../../store'
 import {
   api,
   useDeleteBudgetTransactionMutation,
+  useDeletePaymentMutation,
   useGetBudgetSummaryQuery,
   type BudgetTransactionDto,
 } from '../../../shared/api/api'
 import {getViewerTimeZone} from '../../../shared/utils/timeZone'
+import type {PaymentTxRow} from '../lib/paymentRows'
 
 interface PendingDelete {
   tx: BudgetTransactionDto
@@ -38,6 +40,7 @@ export function AccountDetailPage() {
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   const [deleteTx] = useDeleteBudgetTransactionMutation()
+  const [deletePayment] = useDeletePaymentMutation()
   const {year, month} = useAppSelector(s => s.budget)
   const {data: summary} = useGetBudgetSummaryQuery({year, month, tz: getViewerTimeZone()})
 
@@ -108,6 +111,27 @@ export function AccountDetailPage() {
     }, UNDO_MS)
     setPending({tx, timerId})
   }, [pending, commitPending, applyDelete])
+
+  // menunest-209: a payment is deleted as a PAIR, through its own route —
+  // DELETE on either leg is refused. This feed only ever holds one leg, so the
+  // undo toast (which restores a single BudgetTransaction) cannot cover it;
+  // a confirm takes its place and the row is dropped locally on success.
+  const handleDeletePayment = useCallback(async (row: PaymentTxRow) => {
+    if (!window.confirm('Delete this payment? Both halves are removed.')) return
+    try {
+      await deletePayment(row.paymentId).unwrap()
+      for (const leg of row.legs) applyDelete(leg.id)
+    } catch {
+      setErrorToast('Could not delete this payment.')
+    }
+  }, [deletePayment, applyDelete])
+
+  // Editing needs BOTH legs, and this feed is filtered to one account, so it
+  // never has them. PaymentTransactionRow disables its Edit item for exactly
+  // this reason; this is the belt-and-braces half of the same rule.
+  const handleEditPayment = useCallback(() => {
+    setErrorToast('การจ่ายหนี้แก้ได้ทั้งคู่เท่านั้น — เปิดหน้า Transactions')
+  }, [])
 
   const handleUndo = useCallback(() => {
     if (!pending) return
@@ -181,9 +205,12 @@ export function AccountDetailPage() {
 
       <AccountTransactionList
         items={items}
+        accountType={account.type}
         endSentinelRef={endSentinelRef}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onEditPayment={handleEditPayment}
+        onDeletePayment={handleDeletePayment}
       />
 
       {!hasMore && items.length === 0 && (

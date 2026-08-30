@@ -1,5 +1,5 @@
 import {useState, Fragment} from 'react'
-import type {MonthlySummaryDto, EnvelopeDto} from '../../../shared/api/api'
+import type {BudgetAccountDto, MonthlySummaryDto, EnvelopeDto} from '../../../shared/api/api'
 import {useAppSelector} from '../../../store'
 import {EnvelopeCard} from './EnvelopeCard'
 import {TransactionDialog} from './TransactionDialog'
@@ -7,6 +7,7 @@ import {MoveMoneyDialog} from './MoveMoneyDialog'
 import {CoverOverspendingDialog} from './CoverOverspendingDialog'
 import {AddCategoryDialog} from './AddCategoryDialog'
 import {AddGroupDialog} from './AddGroupDialog'
+import {PaymentDialog} from './PaymentDialog'
 import {formatTHB} from '../BudgetPage.hooks'
 
 /**
@@ -21,6 +22,17 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
   const [coverFor, setCoverFor] = useState<EnvelopeDto | null>(null)
   const [addCatGroupId, setAddCatGroupId] = useState<string | null>(null)
   const [addGroupOpen, setAddGroupOpen] = useState(false)
+  // menunest-204: the payment sheet, opened from a Payment envelope's card.
+  const [payFor, setPayFor] = useState<BudgetAccountDto | null>(null)
+
+  // menunest-202: a Payment envelope names its Credit account, but the card
+  // needs that account's BALANCE (the ยอดบัตร half of the shortfall line) and
+  // its TYPE (menunest-212's action word) — neither is on the EnvelopeDto, so
+  // the lookup happens here, where the whole summary is in hand.
+  const accountFor = (cat: EnvelopeDto): BudgetAccountDto | null =>
+    cat.paymentForAccountId === null
+      ? null
+      : summary.accounts.find(a => a.id === cat.paymentForAccountId) ?? null
 
   const groups = summary.groups
     .map(g => ({
@@ -61,9 +73,11 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
             <EnvelopeCard
               key={c.categoryId}
               cat={c}
+              account={accountFor(c)}
               onAddTransaction={(categoryId) => setTxPreset({categoryId})}
               onMoveMoney={setMoveFrom}
               onCoverOverspending={setCoverFor}
+              onPay={(_cat, account) => setPayFor(account)}
             />
           ))}
         </Fragment>
@@ -97,6 +111,14 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
         />
       )}
       {addGroupOpen && <AddGroupDialog onClose={() => setAddGroupOpen(false)} />}
+      {payFor && (
+        <PaymentDialog
+          toAccount={payFor}
+          accounts={summary.accounts}
+          groups={summary.groups}
+          onClose={() => setPayFor(null)}
+        />
+      )}
     </div>
   )
 }
