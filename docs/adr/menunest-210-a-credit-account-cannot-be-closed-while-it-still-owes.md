@@ -34,3 +34,27 @@ The exclusion has to be written explicitly: a closed **Credit** **Account**'s **
 is dropped from the envelope total as well as hidden. Its `MonthlyAssignment` rows stay untouched
 as history, so reopening the **Account** restores the **Envelope** and its money exactly. No money
 moves — that part of the claim stands — but a line of code is required to make it so.
+
+## Consequences
+
+Despite the title and the prose above naming only cards, the shipped guard is written against
+`PaymentEnvelopeMath.IsDebtType`, which is true for both **Credit** and **Loan**. That was a
+deliberate choice, not scope creep caught late: a **Loan** you still owe on is not closed in real
+life either, and before this change there was no close guard for a **Loan** at all — narrowing the
+guard back to Credit only, to keep this ADR's title literal, would have been a regression in
+behaviour purely to keep the wording tidy.
+
+A **Loan** has no **Payment envelope** of its own (menunest-206), so the "envelope drops out of the
+total" half of this decision is Credit-only by construction — closing an indebted Loan is refused
+before that ever matters. What a Loan *does* share with a Credit account is the refusal itself: the
+same non-zero-balance check, on the same `IsClosed` transition, in the same handler.
+
+The refusal message is per **Account** type, following menunest-212's vocabulary rather than one
+shared string:
+
+- Credit: **ยังจ่ายบัตรไม่ครบ — ปิดบัญชีไม่ได้**
+- Loan: **ยังจ่ายค่างวดไม่ครบ — ปิดบัญชีไม่ได้**
+
+`บัตร` (card) is wrong on a Loan for the same reason menunest-212 rejected one generic label for
+the payment button — a car loan is not a card, and telling its owner otherwise reads as a bug, not
+a translation nicety.

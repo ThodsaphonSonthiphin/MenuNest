@@ -111,12 +111,15 @@ public class CreditAccountLifecycleTests
         var w = await Seed(); using var _ = w.Fx;
         await AddTx(w, w.CardId, w.FoodId, -500m);
 
-        var act = async () => await UpdateAccount(w, w.CardId, "KBank", isClosed: true);
+        var act = async () => await UpdateAccount(w, w.CardId, "KBank Renamed", isClosed: true);
 
-        await act.Should().ThrowAsync<DomainException>().WithMessage("*ยังจ่ายบัตรไม่ครบ*");
+        (await act.Should().ThrowAsync<DomainException>())
+            .Which.Message.Should().Be("ยังจ่ายบัตรไม่ครบ — ปิดบัญชีไม่ได้");
 
-        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId).IsClosed.Should().BeFalse(
-            "a refused close must not leave the account half-closed");
+        var reloaded = w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId);
+        reloaded.IsClosed.Should().BeFalse("a refused close must not leave the account half-closed");
+        reloaded.Name.Should().Be("KBank",
+            "the debt check must run BEFORE any mutation — a refusal must not leave a half-applied rename behind it");
     }
 
     [Fact]
@@ -162,6 +165,11 @@ public class CreditAccountLifecycleTests
         w.Fx.Db.BudgetCategories.Single(c => c.PaymentForAccountId == w.CardId).IsHidden.Should().BeFalse();
     }
 
+    // Pinned to the exact loan-specific string (not the card one, and not a
+    // wildcard) so a regression that reunifies the two messages — or that
+    // just reuses the card wording for a loan — fails loudly. menunest-212's
+    // vocabulary: a loan is "จ่ายค่างวด" (an instalment), never "จ่ายบัตร"
+    // (a card) — a Loan owner must not be told they haven't paid a "card".
     [Fact]
     public async Task Closing_a_loan_that_still_owes_is_refused()
     {
@@ -177,7 +185,8 @@ public class CreditAccountLifecycleTests
         var act = async () => await sut.Handle(
             new UpdateAccountCommand(loan.Id, "Car Loan", 0, IsClosed: true), CancellationToken.None);
 
-        await act.Should().ThrowAsync<DomainException>().WithMessage("*ยังจ่ายบัตรไม่ครบ*");
+        (await act.Should().ThrowAsync<DomainException>())
+            .Which.Message.Should().Be("ยังจ่ายค่างวดไม่ครบ — ปิดบัญชีไม่ได้");
     }
 
     // ── Regression: an ordinary Cash account must be entirely unaffected ────
