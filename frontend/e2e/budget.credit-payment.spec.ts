@@ -1,4 +1,4 @@
-import {expect} from '@playwright/test'
+import {expect, type Locator} from '@playwright/test'
 import {test} from './fixtures/healthFixture'
 import {
   budgetSummaryFixture,
@@ -6,6 +6,22 @@ import {
   CREDIT_ACCOUNT_ID,
   LOAN_ACCOUNT_ID,
 } from './helpers/mockRoutes/budgetRoutes'
+
+/**
+ * The progress-bar fill's width is an unrounded float (`paymentProgress` in
+ * lib/paymentLabel.ts divides two currency amounts directly — see
+ * EnvelopeCard.tsx's `pct`), so pinning an exact string would be fragile.
+ * Reading the percentage out of the inline `style` and comparing as a number
+ * is stable against that rounding while still catching a bar left green/full
+ * on an underfunded card, or orange/empty on a funded one — the mock draws
+ * both, and nothing else in this file reads pixel geometry.
+ */
+async function progressWidthPct(fill: Locator): Promise<number> {
+  const style = await fill.getAttribute('style')
+  const match = style?.match(/width:\s*([\d.]+)%/)
+  if (!match) throw new Error(`Could not read a width percentage from style="${style}"`)
+  return Number(match[1])
+}
 
 /**
  * Issue #112 — the Payment envelope card (menunest-202/204/205) and the Loan
@@ -74,6 +90,21 @@ test.describe('Budget — the payment envelope and its shortfall line (#112)', (
     await expect(card.getByTestId('bdg-env-add-icon')).toHaveCount(0)
     // ⇄ Move stays reachable even collapsed.
     await expect(card.getByTestId('bdg-env-move-icon')).toBeVisible()
+
+    // Symmetric with the underfunded test below: `paymentPillTone` and
+    // `shortfallLine` must agree on "funded" the same way they must agree on
+    // "short" — a pill/text desync (#46's shape: the logic is right, the
+    // colour is wrong) would sail through if only the text were checked here.
+    const pill = card.locator('.bdg-env-pill')
+    await expect(pill).toHaveClass(/is-green/)
+    const shortfallText = card.locator('.bdg-env-row2 b')
+    await expect(shortfallText).not.toHaveClass(/short/)
+
+    // The mock draws this card's bar FULL and green — the funded twin of the
+    // underfunded test's "nearly-empty orange bar" assertion.
+    const fill = card.locator('.bdg-env-progress-fill')
+    await expect(fill).toHaveClass(/is-green/)
+    expect(await progressWidthPct(fill)).toBeGreaterThanOrEqual(99)
   })
 
   test('an underfunded card names the gap in red, and the pill turns orange', async ({
@@ -96,6 +127,14 @@ test.describe('Budget — the payment envelope and its shortfall line (#112)', (
 
     const shortfallText = card.locator('.bdg-env-row2 b')
     await expect(shortfallText).toHaveClass(/short/)
+
+    // The mock draws this exact state's bar nearly-empty and orange (2.4%) —
+    // unguarded by anything but a now-deleted throwaway screenshot script.
+    // `paymentProgress`'s pct is an unrounded float, so the width is read as
+    // a number rather than pinned to a string (see `progressWidthPct`).
+    const fill = card.locator('.bdg-env-progress-fill')
+    await expect(fill).toHaveClass(/is-orange/)
+    expect(await progressWidthPct(fill)).toBeLessThan(10)
   })
 
   test('expanding the card shows รูดบัตร / คงเหลือ and a struck-through disabled ✎ Edit', async ({
