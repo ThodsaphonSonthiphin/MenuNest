@@ -233,8 +233,11 @@ This step **writes to your real budget**. Step 0 is what makes it safe to do so.
 - Do not use the rail's Undo before checking that step 2 and 3 actually moved. If they did not,
   the assign failed and Undo has nothing to act on — a different fault with a different fix.
 - Do not expect the money to be *restored from a copy*. Undo sends an **opposite assign**, not
-  a rollback (menunest-193). The figure returning to V is the correct evidence; a new row in
-  **Change history** is not a bug.
+  a rollback (menunest-193). The figure returning to V is the correct evidence.
+- Do not accept a **second row** appearing in **Change history**. Undo marks the original row
+  undone and writes no row of its own — `BudgetChangeApplier` adjusts the assignment and never
+  calls `Record`. An earlier draft of this runbook said a new row was fine; that was wrong, and
+  it would have taught you to shrug at a real fault. C+1 rows, not C+2.
 
 **How to verify yourself:** the two figures both returned to what you wrote in Step 0. If
 Assigned returned but Ready to Assign did not, stop — that is a real defect, not a display lag.

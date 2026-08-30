@@ -26,7 +26,14 @@ describe('budgetWriteTags', () => {
     })
 
     it('invalidates both types wholesale when the write carries no month', () => {
-        expect(budgetWriteTagsAllMonths).toEqual(['BudgetSummary', 'BudgetHistory'])
+        expect(budgetWriteTagsAllMonths()).toEqual(['BudgetSummary', 'BudgetHistory'])
+    })
+
+    it('hands every caller its own array rather than one shared instance', () => {
+        expect(budgetWriteTagsAllMonths()).not.toBe(budgetWriteTagsAllMonths())
+        expect(budgetWriteTags({year: 2026, month: 8})).not.toBe(
+            budgetWriteTags({year: 2026, month: 8}),
+        )
     })
 })
 
@@ -46,27 +53,56 @@ describe('every budget write endpoint is wired to the helper', () => {
         'setEverydayMarks',
     ]
 
-    it.each(writeEndpoints)('%s invalidates BudgetHistory', (endpoint) => {
+    // These record no row, but they change what the history list RENDERS: the
+    // envelope's name, and whether it still exists at all. Missing them is the
+    // same staleness one seam over — the failure #109's first fix did not cover,
+    // because it enumerated only the endpoints that WRITE rows.
+    //
+    // deleteBudgetGroup is deliberately absent: DeleteGroupHandler refuses while
+    // the group still has categories, so it can never affect a history row.
+    const envelopeShapeEndpoints = ['updateBudgetCategory', 'deleteBudgetCategory']
+
+    /** The source text of one endpoint definition, up to the next one. */
+    function endpointBlock(endpoint: string): string {
         const start = source.indexOf(`${endpoint}: build.mutation`)
         expect(start, `${endpoint} is no longer a mutation in api.ts`).toBeGreaterThan(-1)
 
-        // The endpoint block runs to the NEXT endpoint definition. Do not stop
-        // at the first `}),` — that one closes the `query:` object literal, and
-        // slicing there cuts the block off before invalidatesTags is reached.
+        // The block runs to the NEXT endpoint definition. Do not stop at the
+        // first `}),` — that one closes the `query:` object literal, and slicing
+        // there cuts the block off before invalidatesTags is reached.
         const rest = source.slice(start)
         const next = rest.slice(1).search(/\n\s+\w+: build\.(mutation|query)/)
-        const block = rest.slice(0, next === -1 ? 600 : next + 1)
+        return rest.slice(0, next === -1 ? 600 : next + 1)
+    }
 
-        expect(block, `${endpoint} must invalidate Change history, not only the summary`).toMatch(
-            /budgetWriteTags(AllMonths)?/,
-        )
+    it.each(writeEndpoints)('%s invalidates BudgetHistory via the helper', (endpoint) => {
+        expect(
+            endpointBlock(endpoint),
+            `${endpoint} must invalidate Change history, not only the summary`,
+        ).toMatch(/budgetWriteTags(AllMonths)?/)
     })
 
-    it('no budget mutation invalidates BudgetSummary alone', () => {
-        const summaryOnly = /invalidatesTags:\s*(\(_r, _e, a\) =>\s*)?\[\s*(\{type: )?'?BudgetSummary'?[^\]]*\]/g
-        const offenders = [...source.matchAll(summaryOnly)]
-            .map((m) => m[0])
-            .filter((m) => !m.includes('BudgetHistory'))
-        expect(offenders).toEqual([])
+    it.each(envelopeShapeEndpoints)('%s invalidates BudgetHistory', (endpoint) => {
+        expect(
+            endpointBlock(endpoint),
+            `${endpoint} changes what a history row renders, so it must invalidate BudgetHistory`,
+        ).toContain('BudgetHistory')
+    })
+
+    // Pins the SET, not just each member. Adding a fifth caller of the helper —
+    // or quietly dropping one — then has to be a deliberate act with a reason,
+    // rather than something a diff can slide past.
+    //
+    // This replaces an earlier assertion named "no budget mutation invalidates
+    // BudgetSummary alone", which was deleted for being both vacuous and false:
+    // its regex only matched arrays whose FIRST element was BudgetSummary, so it
+    // never examined `['BudgetGroups', 'BudgetSummary']`; and the rule it named
+    // is wrong anyway, because createBudgetGroup and createBudgetCategory
+    // legitimately invalidate the summary without touching history.
+    it('exactly the four write endpoints use the helper', () => {
+        const callers = source
+            .split('\n')
+            .filter((l) => l.includes('invalidatesTags') && l.includes('budgetWriteTags'))
+        expect(callers).toHaveLength(writeEndpoints.length)
     })
 })

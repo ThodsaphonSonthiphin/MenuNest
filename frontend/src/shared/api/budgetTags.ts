@@ -36,5 +36,10 @@ export function budgetWriteTags(arg: {year: number; month: number}): BudgetWrite
  * Invalidating the whole type is deliberately blunt: with no month in the
  * request there is no way to know which cached months the write touched, and a
  * stale Undo button is a worse outcome than an extra refetch.
+ *
+ * A function, not a constant, for the same reason `budgetWriteTags` is: every
+ * caller gets its own array rather than sharing one instance with the store.
  */
-export const budgetWriteTagsAllMonths: BudgetWriteTag[] = ['BudgetSummary', 'BudgetHistory']
+export function budgetWriteTagsAllMonths(): BudgetWriteTag[] {
+    return ['BudgetSummary', 'BudgetHistory']
+}

@@ -1211,13 +1211,19 @@ export const api = createApi({
             query: (b) => ({url: '/api/budget/categories', method: 'POST', body: b}),
             invalidatesTags: ['BudgetGroups', 'BudgetSummary'],
         }),
+        // These two record no BudgetChange row, but they change what the history
+        // list RENDERS, so 'BudgetHistory' belongs here just as much as on the
+        // writers. A rename leaves every cached history row showing the OLD
+        // envelope name; a delete leaves rows still marked undoable when
+        // ListChangesHandler would now return CanUndo: false. Both were stale
+        // for exactly the same reason as #109, one seam over.
         updateBudgetCategory: build.mutation<BudgetCategoryDto, {id: string} & UpsertCategoryRequest>({
             query: ({id, ...b}) => ({url: `/api/budget/categories/${id}`, method: 'PUT', body: b}),
-            invalidatesTags: ['BudgetGroups'],
+            invalidatesTags: ['BudgetGroups', 'BudgetSummary', 'BudgetHistory'],
         }),
         deleteBudgetCategory: build.mutation<void, string>({
             query: (id) => ({url: `/api/budget/categories/${id}`, method: 'DELETE'}),
-            invalidatesTags: ['BudgetGroups'],
+            invalidatesTags: ['BudgetGroups', 'BudgetSummary', 'BudgetHistory'],
         }),
         setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number; timeZoneId?: string; batchId?: string}>({
             query: (b) => ({url: '/api/budget/monthly/assigned', method: 'PUT', body: b}),
@@ -1236,7 +1242,7 @@ export const api = createApi({
         // correctAccountBalance above.
         setEverydayMarks: build.mutation<void, SetEverydayMarksRequest>({
             query: (b) => ({url: '/api/budget/categories/everyday-marks', method: 'POST', body: b}),
-            invalidatesTags: budgetWriteTagsAllMonths,
+            invalidatesTags: () => budgetWriteTagsAllMonths(),
         }),
 
         // ----- undo history (menunest-193..198) -----
