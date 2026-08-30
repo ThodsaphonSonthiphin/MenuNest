@@ -16,33 +16,44 @@ deployment, the bundle and the database; I do not click.
 
 ## Baseline
 
-Measured against the live system on **2026-08-30T00:47Z**. Provenance per line — nothing here
-was taken from a plan or a ticket.
+**Re-measured 2026-08-30T08:10Z, and it had moved.** The first baseline (00:47Z) is kept below
+it, struck through, because the difference is the point.
 
 | fact | value | measured how |
 |---|---|---|
-| `origin/main` | `964ff38` | `git rev-parse` |
-| API `GET /version` | `0.1.0+964ff38`, built `2026-08-29T14:24:33Z` | public HTTP, no auth |
+| `origin/main` | `a821517` | `git rev-parse --short origin/main` |
+| API `GET /version` | `0.1.0+a821517`, built `2026-08-30T00:57:06Z` | public HTTP, no auth |
 | API commit vs `origin/main` | **match** | compared the two above |
-| backend deployment | `9da1b3bd-…`, status 4, active, ended `14:25:38Z` | Azure ARM API |
-| SPA JS bundle | `/assets/index-AbkhhBiA.js` | fetched `index.html` from the SWA |
-| SPA CSS bundle | `/assets/index-BZ4bw_uv.css` | same |
-| `bdg-rail-fab` in bundle | present | grep of the fetched bundle |
-| `bdg-rail-glyph` in bundle | present | grep of the fetched bundle |
-| `bdg-rail-tag` in bundle | present | grep of the fetched bundle |
-| `bdg-history-sheet` in bundle | present | grep of the fetched bundle |
+| SPA JS bundle | `/assets/index-BnvfCauN.js` | fetched `index.html` from the SWA |
+| SPA CSS bundle | `/assets/index-BZ4bw_uv.css` — **unchanged** | same |
+| `bdg-rail-fab` / `-glyph` / `-tag` / `-item` in JS bundle | all present | grep of the fetched bundle |
+| `bdg-history-sheet` in JS bundle | present | grep of the fetched bundle |
+| rail CSS rules in the shipped stylesheet | **19**, all as authored | parsed the fetched CSS |
+| the rail's accent | `#4f46e5` on `.bdg-rail` | same parse |
+| the FAB colour rule | `.bdg-rail .e-fab.e-btn` + `:hover/:focus/:active` → `background:var(--accent)` | same parse |
+| the glyph swap | `⋮` on `.bdg-rail-glyph:before`, `×` under `.is-open` | same parse |
 
-**Older than the rest — 2026-08-29T14:15Z, about 10 hours stale:** 2 families in prod, both
-with a head, each head a current member, **1 member each**.
+**What changed since 00:47Z, and why it matters more than it looks.** The baseline said
+`964ff38`. It is now `a821517` — *the commit that added this runbook*. Pushing it to `main`
+deployed to prod (`.github/workflows/main_menunest.yml`), which rebuilt the app, which moved
+the **App version** the runbook tells you to check. **The act of recording the baseline
+invalidated the baseline.** Had you followed Step 1 unamended you would have read `a821517`,
+compared it against a runbook demanding `964ff38`, and reported a deployment fault that does
+not exist. Step 1 and the outcome table are corrected to `a821517`.
 
-**Not measured:** the `BudgetChanges` row count. Reading it needs a temporary SQL firewall
+The JS bundle hash moved with it (`index-AbkhhBiA.js` → `index-BnvfCauN.js`) because the short
+SHA is embedded at build time (ADR-107/109). The **CSS** hash did not move — no stylesheet
+byte changed. That pairing is the confirmation that this was a rebuild, not a code change.
+
+**Not re-measured at 08:10Z:** the Azure deployment record. `GET /version` is the running app's
+own answer and is stronger evidence than the deployment log, so I did not open the ARM call again.
+
+**Never measured:** the `BudgetChanges` row count. Reading it needs a temporary SQL firewall
 rule, and I did not open one. Step 0 has you record the equivalent from the screen instead,
 which is the surface you will re-check anyway.
 
-**Why the bundle hash moved since yesterday.** It was `index-C75Rzh3k.js` at 14:25Z and is
-`index-AbkhhBiA.js` now. **App version** embeds the git short SHA at build time (ADR-107/109),
-so every commit produces a new bundle even when no source changed. This is expected. It is not
-evidence of a stray deploy.
+**Older than the rest — 2026-08-29T14:15Z, about 18 hours stale:** 2 families in prod, both
+with a head, each head a current member, **1 member each**.
 
 ---
 
@@ -102,7 +113,7 @@ This step exists because of the trap below. Do it first, every time.
 
 **Do:**
 1. Read the version badge. It must say **ตรงกัน**.
-2. Read the commit shown. It must be `964ff38`.
+2. Read the commit shown. It must be `a821517`.
 3. If either is wrong: close every tab of the app, then reopen the URL.
 4. If it is still wrong: open the page in a private/incognito window.
 
@@ -111,7 +122,7 @@ This step exists because of the trap below. Do it first, every time.
   build, and you would report a fault that was fixed yesterday.
 
 **How to verify yourself:** open https://menunest.azurewebsites.net/version in the phone
-browser. It needs no sign-in. It must show `"commit":"964ff38"`. That is the API's own answer,
+browser. It needs no sign-in. It must show `"commit":"a821517"`. That is the API's own answer,
 independent of anything the app shows you.
 
 **Then report:** the commit you saw.
@@ -325,7 +336,7 @@ Write the result into this file and commit it. This file is the record; the chat
 
 | step | assertion | result | when (UTC) |
 |---|---|---|---|
-| 1 | commit is `964ff38` | | |
+| 1 | commit is `a821517` | | |
 | 2 | A1 indigo | | |
 | 3 | A2 = 3, A3 order | | |
 | 4 | A4, A5 return to V and R | | |
