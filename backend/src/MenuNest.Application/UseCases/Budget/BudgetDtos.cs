@@ -143,3 +143,14 @@ public sealed record AccountTransactionsPageDto(
     IReadOnlyList<BudgetTransactionDto> Items,
     bool HasMore
 );
+
+// ---------- Payments (menunest-204, menunest-207) ----------
+public sealed record PaymentDto(
+    Guid PaymentId,
+    Guid FromAccountId, string FromAccountName,
+    Guid ToAccountId, string ToAccountName,
+    decimal Amount, DateOnly Date, string? Notes);
+
+public sealed record MakePaymentRequest(
+    Guid FromAccountId, Guid ToAccountId, decimal Amount,
+    DateOnly? Date, string? Notes, string? TimeZoneId);
