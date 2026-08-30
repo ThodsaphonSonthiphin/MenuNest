@@ -279,6 +279,12 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
         // row here, not fall back to the cash fixture — otherwise the page
         // never gets past "Loading…" for those accounts.
         const acct = (id && accountsById[id]) || accountCash
+        // `items` stays [] — no spec in this repo reads a transaction row off
+        // this route, so there is no row for BudgetTransactionDto's
+        // `paymentId` to land on. Not a dropped field: if a spec ever needs a
+        // grouped-payment-row fixture, add one row here with a real
+        // `paymentId` shared by both legs, per `lib/paymentRows.ts`'s
+        // `groupPaymentLegs`.
         await route.fulfill({
           json: { account: { ...acct, monthInflow: 0, monthOutflow: 0 }, items: [], hasMore: false },
         })
