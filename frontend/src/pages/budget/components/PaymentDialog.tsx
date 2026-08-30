@@ -19,16 +19,9 @@ import {
   payingAccountOptions,
   payingCardWarning,
 } from '../lib/paymentOptions'
-
-/** An existing payment, opened for edit from a transaction feed. */
-export interface PaymentDraft {
-  paymentId: string
-  fromAccountId: string
-  amount: number
-  date: string
-  notes: string | null
-  categoryId: string | null
-}
+// PaymentDraft lives beside `paymentDraftFromRow`, which is the only thing
+// that builds one — see lib/paymentRows.ts.
+import type {PaymentDraft} from '../lib/paymentRows'
 
 interface FormValues {
   fromAccountId: string
@@ -107,7 +100,8 @@ export function PaymentDialog({
   const payingEnvelope = fromAccount
     ? groups.flatMap(g => g.categories).find(c => c.paymentForAccountId === fromAccount.id)
     : undefined
-  const cardWarning = payingCardWarning(fromAccount, payingEnvelope?.available ?? 0, amount)
+  const cardWarning = payingCardWarning(
+    fromAccount, payingEnvelope?.available ?? 0, amount, toAccount.type)
 
   const owed = shortfallLine(toAccount.shortfall)
 

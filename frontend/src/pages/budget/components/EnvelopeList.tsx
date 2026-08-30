@@ -40,7 +40,12 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
       categories: g.categories.filter(c => {
         switch (filter) {
           case 'overspent':   return c.available < 0
-          case 'underfunded': return c.targetType !== 'None' && (c.targetProgressFraction ?? 0) < 1
+          // A Payment envelope has targetType 'None', so the target-progress
+          // clause alone excludes it — hiding a card short ฿20,000 from the one
+          // control a user reaches for to find exactly that. Its shortfall is
+          // #112's headline number; being short IS being underfunded.
+          case 'underfunded': return (c.shortfall ?? 0) > 0 ||
+                                     (c.targetType !== 'None' && (c.targetProgressFraction ?? 0) < 1)
           case 'overfunded':  return c.available > (c.targetAmount ?? 0)
           case 'available':   return c.available > 0
           case 'snoozed':     return c.isHidden

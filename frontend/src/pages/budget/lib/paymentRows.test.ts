@@ -1,6 +1,8 @@
 import {describe, expect, it} from 'vitest'
 import type {BudgetTransactionDto} from '../../../shared/api/api'
-import {groupPaymentLegs, paymentRowLabel, type PaymentTxRow} from './paymentRows'
+import {
+  groupPaymentLegs, paymentDraftFromRow, paymentRowLabel, type PaymentTxRow,
+} from './paymentRows'
 
 function tx(over: Partial<BudgetTransactionDto> & {id: string}): BudgetTransactionDto {
   return {
@@ -116,8 +118,55 @@ describe('paymentRowLabel', () => {
     expect(label.subtitle).toBe('Payment · other half is on the paying account')
   })
 
+  // menunest-212's closing line: "Avoid, per CONTEXT.md: จ่ายหนี้, ชำระ,
+  // transfer, pay off, settle." This is NOT a rare fallback — on any Cash
+  // account's detail page every card payment's outflow leg lands here — so the
+  // neutral word has to be clean, not merely short.
   it('does not guess the action word when the account being paid is unknown', () => {
     const row = groupPaymentLegs([outLeg])[0] as PaymentTxRow
-    expect(paymentRowLabel(row, null).title).toBe('ชำระหนี้')
+    expect(paymentRowLabel(row, null).title).toBe('การจ่าย')
+  })
+
+  it('uses none of menunest-212\'s avoided words in the neutral fallback', () => {
+    const row = groupPaymentLegs([outLeg])[0] as PaymentTxRow
+    const {title, subtitle} = paymentRowLabel(row, null)
+    for (const banned of ['จ่ายหนี้', 'ชำระ']) {
+      expect(title).not.toContain(banned)
+      expect(subtitle).not.toContain(banned)
+    }
+  })
+})
+
+describe('paymentDraftFromRow', () => {
+  // menunest-214: ONLY the outflow leg ever carries a category (the Envelope
+  // funding a loan instalment). Reading it off the wrong leg would send null
+  // for every loan edit, which the API refuses — and nothing else in the app
+  // would notice, so the rule is pinned here rather than left inline.
+  it('reads the funding envelope off the OUTFLOW leg', () => {
+    const row = groupPaymentLegs([
+      {...outLeg, categoryId: 'cat-car'},
+      inLeg,
+    ])[0] as PaymentTxRow
+    expect(paymentDraftFromRow(row)).toEqual({
+      paymentId: 'P1',
+      fromAccountId: 'cash',
+      toAccountId: 'kbank',
+      amount: 500,
+      date: '2026-08-12',
+      notes: null,
+      categoryId: 'cat-car',
+    })
+  })
+
+  it('carries a null category for an uncategorised card payment', () => {
+    const row = groupPaymentLegs([outLeg, inLeg])[0] as PaymentTxRow
+    expect(paymentDraftFromRow(row)?.categoryId).toBeNull()
+  })
+
+  // An account-detail feed only ever holds one leg, so it can never build a
+  // draft — the edit path must stay closed there rather than send half a payment.
+  it('refuses to build a draft from a lone leg', () => {
+    expect(paymentDraftFromRow(groupPaymentLegs([inLeg])[0] as PaymentTxRow)).toBeNull()
+    expect(paymentDraftFromRow(groupPaymentLegs([outLeg])[0] as PaymentTxRow)).toBeNull()
   })
 })

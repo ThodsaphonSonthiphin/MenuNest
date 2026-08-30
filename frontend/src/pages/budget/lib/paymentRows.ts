@@ -101,8 +101,11 @@ export function paymentRowLabel(
   toAccountType: BudgetAccountType | null,
 ): {title: string; subtitle: string} {
   const paidName = row.toLeg?.accountName ?? null
+  // menunest-212 forbids จ่ายหนี้ and ชำระ. This branch is common, not rare —
+  // on a Cash account's detail page every card payment's outflow leg reaches
+  // it — so the neutral word must be clean, not just short.
   const action = toAccountType === null
-    ? 'ชำระหนี้'
+    ? 'การจ่าย'
     : paidName === null
       ? payActionWord(toAccountType)
       : `${payActionWord(toAccountType)} ${paidName}`
@@ -114,4 +117,42 @@ export function paymentRowLabel(
       : 'Payment · other half is on the account being paid'
 
   return {title: row.notes ?? action, subtitle}
+}
+
+/**
+ * An existing payment, opened for edit. `PaymentDialog` takes this as its
+ * `existing` prop.
+ */
+export interface PaymentDraft {
+  paymentId: string
+  fromAccountId: string
+  toAccountId: string
+  amount: number
+  date: string
+  notes: string | null
+  categoryId: string | null
+}
+
+/**
+ * Build the edit draft for a payment row, or `null` when the feed holds only
+ * one leg (an account-detail feed always does) — half a payment must never
+ * reach `PUT /api/budget/payments/{id}`.
+ *
+ * `categoryId` comes off the **outflow** leg, and only ever could:
+ * menunest-214 puts the funding Envelope there and leaves the inflow leg
+ * uncategorised. Reading the wrong leg would send `null` for every loan edit —
+ * which the API refuses outright — and nothing else in the app would notice,
+ * so the rule lives here with a test on it rather than inline in a hook.
+ */
+export function paymentDraftFromRow(row: PaymentTxRow): PaymentDraft | null {
+  if (!row.fromLeg || !row.toLeg) return null
+  return {
+    paymentId: row.paymentId,
+    fromAccountId: row.fromLeg.accountId,
+    toAccountId: row.toLeg.accountId,
+    amount: row.amount,
+    date: row.date,
+    notes: row.notes,
+    categoryId: row.fromLeg.categoryId,
+  }
 }
