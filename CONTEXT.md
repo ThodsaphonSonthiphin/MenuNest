@@ -476,8 +476,10 @@ vocabulary — **Available**, **Assigned**, **Activity**, **Target** — is stil
 glossary and belongs to the tickets that own those decisions._
 
 - **Account** — a place a **Family**'s money sits (`BudgetAccount` in code): Cash, Credit, Loan or
-  Closed. A **Credit** one is the only type that behaves differently: it is excluded from **Ready to
-  Assign** and carries a **Payment envelope** (menunest-202, menunest-203). Its balance is **derived**
+  Closed. The two **debt** types behave differently: **Credit** and **Loan** are both excluded from
+  **Ready to Assign** (menunest-203, menunest-206) and both refuse to close while they still owe
+  (menunest-210). What is **Credit**-only is the **Payment envelope** (menunest-202) — a **Loan** has
+  none, and the **Envelope** funding its instalment is an ordinary one the **User** made. Its balance is **derived**
   — the sum of its **Budget transactions** up to the end of the month being viewed — so a past month shows what the **Account** held *then*, not today. The stored
   `Balance` field survives only as a fast copy of today's total, never as the truth for a past month.
   _Avoid_: wallet, bank account (only some are), balance (that is the number, not the thing).
@@ -486,10 +488,12 @@ glossary and belongs to the tickets that own those decisions._
   and it lands in **Ready to Assign**. Every change to an **Account**'s money is one of these, with no
   exception for the assistant. _Avoid_: entry, payment, expense, spend (bare).
 - **Ready to Assign** — the money a **Family** holds that is in no **Envelope** yet: the total of its
-  **non-credit** accounts minus everything sitting in envelopes, both measured as of the month being
+  **non-debt** accounts minus everything sitting in envelopes, both measured as of the month being
   viewed. The target state is zero. It is loud when non-zero and never blocks.
-  **Credit accounts are excluded** (menunest-203): once a **Payment envelope** holds the money owed on
-  a card, counting the card's negative balance as well would hold that money back twice, and every
+  **Debt accounts — Credit AND Loan — are excluded** (menunest-203, menunest-206; in code, the one
+  predicate `PaymentEnvelopeMath.IsDebtType`): once a **Payment envelope** holds the money owed on
+  a card — or, for a **Loan**, once an ordinary **Envelope** holds the instalment — counting the
+  account's negative balance as well would hold that money back twice, and every
   fully-budgeted card purchase would silently cut Ready to Assign by its own amount. The exclusion is
   also what leaves **pre-budget debt** outside the budget entirely — it is neither money nor an
   over-assignment, and it shows only as the gap between a Credit **Account**'s balance and its
