@@ -1,3 +1,4 @@
+using System.Reflection;
 using MenuNest.Application.Abstractions;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
@@ -147,25 +148,64 @@ public sealed class PaymentEnvelopeProvisioner(IApplicationDbContext db)
     /// Narrows the catch in <see cref="EnsureForFamilyAndSaveAsync"/> to the
     /// one failure it exists to swallow — a second insert rejected by the
     /// filtered unique index on PaymentForAccountId. Deliberately NOT
-    /// narrowed by exception TYPE (SqlException / SqliteException): the
-    /// Application layer takes no package dependency on either ADO provider,
-    /// so this method only ever sees the provider-agnostic DbUpdateException.
-    /// This matches on message text instead — the best narrowing available at
-    /// this layer without adding a provider-specific reference just to catch
-    /// one exception. Verified against both providers this codebase actually
-    /// runs on: SQL Server's "Violation of UNIQUE KEY constraint
-    /// 'IX_BudgetCategories_PaymentForAccountId' ... duplicate key ..." and
-    /// SQLite's "UNIQUE constraint failed: BudgetCategories.PaymentForAccountId"
-    /// (see the fix report for the exact captured SQLite text). If neither
-    /// substring matches, this is some other failure and is left to
+    /// narrowed by exception TYPE (a typed <c>catch (SqlException)</c> /
+    /// <c>catch (SqliteException)</c>): the Application layer takes no
+    /// package dependency on either ADO provider (only the provider-agnostic
+    /// <c>Microsoft.EntityFrameworkCore</c>), so a typed catch would not
+    /// compile here.
+    ///
+    /// That rules out a typed catch, not a numeric check — a provider's error
+    /// NUMBER is available by reflection with no package reference, and
+    /// unlike message text it does not move with server language: a
+    /// non-English SQL Server session's error text contains neither "UNIQUE
+    /// KEY constraint" nor "duplicate key", which would make a text-only
+    /// check silently stop matching and let the original DbUpdateException
+    /// (and the HTTP 500 this method exists to prevent) through in
+    /// production. So <see cref="MatchesByNumber"/> — reading
+    /// <c>SqlException.Number</c> (2627 unique-constraint violation, 2601
+    /// duplicate key row) or <c>SqliteException.SqliteExtendedErrorCode</c>
+    /// (2067, SQLITE_CONSTRAINT_UNIQUE) off the inner exception by property
+    /// name — is checked FIRST. <see cref="PaymentEnvelopeProvisionerTests"/>
+    /// proves both codes are recognised with no SQL Server or SQLite
+    /// exception actually thrown, using small fake exception types exposing
+    /// the same property names, plus a negative case (SQL Server 1205,
+    /// deadlock victim) proving an unrelated failure is NOT swallowed.
+    ///
+    /// The message-text match is kept as a SECOND, fallback check — not
+    /// deleted — for a provider/version whose exception type does not expose
+    /// these properties. Its accuracy is asymmetric between the two
+    /// providers actually in use: the SQLite text below was captured live,
+    /// verbatim, from a real <c>Microsoft.Data.Sqlite.SqliteException</c> in
+    /// <c>Losing_the_race_for_the_same_account_does_not_throw_or_duplicate</c>
+    /// ("SQLite Error 19: 'UNIQUE constraint failed:
+    /// BudgetCategories.PaymentForAccountId'."). The SQL Server text
+    /// ("Violation of UNIQUE KEY constraint
+    /// 'IX_BudgetCategories_PaymentForAccountId'. Cannot insert duplicate key
+    /// row...") is NOT independently verified — no SQL Server instance exists
+    /// in this environment to capture it against; it is transcribed from SQL
+    /// Server's documented standard unique-index-violation message shape and
+    /// has not been run against a live server. If neither the numeric nor the
+    /// text check matches, this is some other failure and is left to
     /// propagate rather than being silently absorbed.
     /// </summary>
-    private static bool LooksLikeDuplicatePaymentEnvelope(DbUpdateException ex)
+    internal static bool LooksLikeDuplicatePaymentEnvelope(DbUpdateException ex)
     {
+        if (ex.InnerException is { } inner && MatchesByNumber(inner))
+            return true;
+
         var text = $"{ex.Message} {ex.InnerException?.Message}";
         return text.Contains("PaymentForAccountId", StringComparison.OrdinalIgnoreCase)
             && (text.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase)
                 || text.Contains("UNIQUE KEY constraint", StringComparison.OrdinalIgnoreCase)
                 || text.Contains("duplicate key", StringComparison.OrdinalIgnoreCase));
     }
+
+    private static bool MatchesByNumber(Exception inner) =>
+        HasIntPropertyValue(inner, "Number", 2627)                 // SqlException: unique constraint
+        || HasIntPropertyValue(inner, "Number", 2601)               // SqlException: duplicate key row
+        || HasIntPropertyValue(inner, "SqliteExtendedErrorCode", 2067); // SQLITE_CONSTRAINT_UNIQUE
+
+    private static bool HasIntPropertyValue(object obj, string propertyName, int expected) =>
+        obj.GetType().GetProperty(propertyName, BindingFlags.Public | BindingFlags.Instance)
+            ?.GetValue(obj) is int value && value == expected;
 }
