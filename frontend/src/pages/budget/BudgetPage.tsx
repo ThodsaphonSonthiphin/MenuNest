@@ -102,6 +102,7 @@ export function BudgetPage() {
             key={k}
             type="button"
             className={`bdg-chip ${filter === k ? 'is-active' : ''} ${danger && overspentCount > 0 ? 'is-danger' : ''}`}
+            aria-pressed={filter === k}
             onClick={() => dispatch(setFilter(k))}
           >{label}</button>
         ))}
