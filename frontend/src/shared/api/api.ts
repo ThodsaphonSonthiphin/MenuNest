@@ -5,6 +5,7 @@ import {getGoogleToken} from '../auth/googleAuth'
 import {handleAuthFailure} from '../auth/reauth'
 import {clearAppSession, getAppSession, isAppSessionExpired} from '../auth/appSession'
 import {refreshAppSession, TransientSessionError} from '../auth/appSessionApi'
+import {budgetWriteTags, budgetWriteTagsAllMonths} from './budgetTags'
 import type {
     AttachedPhotoInfo,
     CreateCustomSymptomRequest,
@@ -1220,22 +1221,22 @@ export const api = createApi({
         }),
         setAssignedAmount: build.mutation<void, {categoryId: string; year: number; month: number; amount: number; timeZoneId?: string; batchId?: string}>({
             query: (b) => ({url: '/api/budget/monthly/assigned', method: 'PUT', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+            invalidatesTags: (_r, _e, a) => budgetWriteTags(a),
         }),
         moveMoney: build.mutation<void, MoveMoneyRequest>({
             query: (b) => ({url: '/api/budget/monthly/move', method: 'POST', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+            invalidatesTags: (_r, _e, a) => budgetWriteTags(a),
         }),
         coverOverspending: build.mutation<void, CoverOverspendingRequest>({
             query: (b) => ({url: '/api/budget/monthly/cover', method: 'POST', body: b}),
-            invalidatesTags: (_r, _e, a) => [{type: 'BudgetSummary', id: `${a.year}-${a.month}`}],
+            invalidatesTags: (_r, _e, a) => budgetWriteTags(a),
         }),
-        // No year/month on this request (the mark is month-independent), so
-        // invalidate the whole 'BudgetSummary' type — same reasoning as
+        // No year/month on this request (the mark is month-independent), so both
+        // tags are invalidated as whole types — same reasoning as
         // correctAccountBalance above.
         setEverydayMarks: build.mutation<void, SetEverydayMarksRequest>({
             query: (b) => ({url: '/api/budget/categories/everyday-marks', method: 'POST', body: b}),
-            invalidatesTags: ['BudgetSummary'],
+            invalidatesTags: budgetWriteTagsAllMonths,
         }),
 
         // ----- undo history (menunest-193..198) -----
