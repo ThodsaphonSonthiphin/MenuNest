@@ -20,6 +20,9 @@ using MenuNest.Application.UseCases.Budget.Transactions.ListTransactions;
 using MenuNest.Application.UseCases.Budget.Transactions.CreateTransaction;
 using MenuNest.Application.UseCases.Budget.Transactions.UpdateTransaction;
 using MenuNest.Application.UseCases.Budget.Transactions.DeleteTransaction;
+using MenuNest.Application.UseCases.Budget.Payments.MakePayment;
+using MenuNest.Application.UseCases.Budget.Payments.UpdatePayment;
+using MenuNest.Application.UseCases.Budget.Payments.DeletePayment;
 using MenuNest.Domain.Enums;
 
 namespace MenuNest.McpServer.Tools;
@@ -29,7 +32,13 @@ public sealed class BudgetTools(IMediator mediator)
 {
     // ── Summary ──────────────────────────────────────────────────────────────
 
-    [McpServerTool, Description("Get the monthly budget summary including income, assigned amounts, available to assign, per-category spent and available balances, and all envelope groups with their categories")]
+    [McpServerTool, Description(
+        "Get the monthly budget summary including income, assigned amounts, available to assign, "
+        + "per-category spent and available balances, and all envelope groups with their categories. "
+        + "A category with a non-null `paymentForAccountId` is a Payment envelope for that credit card. "
+        + "Its `shortfall` is how much of the card's balance is not yet funded — 0 means the bill can be "
+        + "paid in full right now. Its `cardSpending` is the card spending that moved money into the "
+        + "envelope this month.")]
     public async Task<MonthlySummaryDto> get_budget_summary(
         [Description("Year (e.g. 2026)")] int year,
         [Description("Month 1–12")] int month,
@@ -233,4 +242,58 @@ public sealed class BudgetTools(IMediator mediator)
         [Description("Transaction ID")] Guid id,
         CancellationToken ct)
         => await mediator.Send(new DeleteTransactionCommand(id), ct);
+
+    // ── Payments ──────────────────────────────────────────────────────────────
+
+    [McpServerTool, Description(
+        "Pay down a credit card or loan. Writes BOTH sides as one paired payment — "
+        + "an outflow on the paying account and an inflow on the debt — and spends "
+        + "down that card's payment envelope. This is the ONLY correct way to pay: "
+        + "two create_transaction calls would leave the halves unlinked and the "
+        + "inflow would be counted as income. `toAccountId` must be a Credit or "
+        + "Loan account. `categoryId` rules depend on which: paying a CREDIT card, "
+        + "it must be null — the card's payment envelope already falls by "
+        + "derivation, so categorising would double-count. Paying a LOAN, it is "
+        + "REQUIRED — a loan has no payment envelope of its own, so this names the "
+        + "ordinary Envelope the instalment was budgeted in; omit it and the "
+        + "payment silently drains Ready to Assign every month while that envelope "
+        + "is never recorded as spent. Either way the category must not itself be "
+        + "a Payment envelope.")]
+    public async Task<PaymentDto> pay_account(
+        [Description("The account the money comes FROM (usually cash/checking)")] Guid fromAccountId,
+        [Description("The Credit or Loan account being paid")] Guid toAccountId,
+        [Description("How much to pay. Positive.")] decimal amount,
+        [Description("Optional: the date of the payment (defaults to today)")] DateOnly? date,
+        [Description("Optional: a note")] string? notes,
+        [Description("The user's IANA time zone, e.g. Asia/Bangkok. Required when date is omitted (menunest-189).")] string? timeZoneId,
+        [Description("The Envelope funding this payment. REQUIRED when toAccountId is a Loan (its only Envelope, since a loan has no payment envelope of its own); must be NULL when toAccountId is a Credit account (its payment envelope already falls by derivation — categorising would double-count). Must not itself be a Payment envelope.")] Guid? categoryId,
+        CancellationToken ct)
+        => await mediator.Send(new MakePaymentCommand(
+            fromAccountId, toAccountId, amount, date, notes, timeZoneId, categoryId), ct);
+
+    [McpServerTool, Description(
+        "Correct a payment. A payment is ONE row: this moves both sides together. "
+        + "Never use update_transaction on one side — that leaves the budget wrong. "
+        + "`categoryId` carries the SAME rules as pay_account's: REQUIRED (and must "
+        + "name the funding Envelope) when toAccountId is a Loan, NULL when it is a "
+        + "Credit account.")]
+    public async Task<PaymentDto> update_payment(
+        [Description("The payment's ID. Get it from pay_account's result, or from list_transactions / list_account_transactions — the two legs of one payment share a non-null PaymentId there.")] Guid paymentId,
+        [Description("The account the money comes FROM")] Guid fromAccountId,
+        [Description("The Credit or Loan account being paid")] Guid toAccountId,
+        [Description("The corrected amount. Positive.")] decimal amount,
+        [Description("The date of the payment")] DateOnly date,
+        [Description("Optional: a note")] string? notes,
+        [Description("The Envelope funding this payment. REQUIRED when toAccountId is a Loan; must be NULL when toAccountId is a Credit account. Must not itself be a Payment envelope.")] Guid? categoryId,
+        CancellationToken ct)
+        => await mediator.Send(new UpdatePaymentCommand(
+            paymentId, fromAccountId, toAccountId, amount, date, notes, categoryId), ct);
+
+    [McpServerTool, Description(
+        "Delete a payment. Removes BOTH sides together and restores the card's "
+        + "payment envelope. Never use delete_transaction on one side.")]
+    public async Task delete_payment(
+        [Description("The payment's ID. Get it from pay_account's result, or from list_transactions / list_account_transactions — the two legs of one payment share a non-null PaymentId there.")] Guid paymentId,
+        CancellationToken ct)
+        => await mediator.Send(new DeletePaymentCommand(paymentId), ct);
 }
