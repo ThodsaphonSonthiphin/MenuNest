@@ -4,7 +4,11 @@ namespace MenuNest.Application.UseCases.Budget;
 
 // ---------- Accounts ----------
 public sealed record BudgetAccountDto(
-    Guid Id, string Name, BudgetAccountType Type, decimal Balance, int SortOrder, bool IsClosed);
+    Guid Id, string Name, BudgetAccountType Type, decimal Balance, int SortOrder, bool IsClosed,
+    // menunest-202: what is still owed and not yet funded. NULL on anything but a
+    // Credit account — a Loan has no Payment envelope (menunest-206), so it must
+    // never read "ขาดอีก" for its whole outstanding balance.
+    decimal? Shortfall = null);
 
 // TimeZoneId (menunest-189) is the viewer's IANA zone — only actually
 // resolved when OpeningBalance is non-zero and an opening-balance
@@ -52,7 +56,16 @@ public sealed record EnvelopeDto(
     int? TargetDayOfMonth,
     decimal? TargetProgressFraction,    // 0..1, null if no target
     string? TargetHint,                  // e.g. "฿300.00 more needed by the 1st"
-    bool IsEveryday);                    // menunest-181/184 — feeds the Daily allowance; set in bulk from EverydayMarksSheet
+    bool IsEveryday,                     // menunest-181/184 — feeds the Daily allowance; set in bulk from EverydayMarksSheet
+    Guid? PaymentForAccountId = null,   // non-null ⇒ this is a Payment envelope
+    decimal? Shortfall = null,          // §4.3, non-null only on a Payment envelope
+    // R-1: −Σ(categorised rows on the card) for the selected month. Positive
+    // when the card was used. Non-null only on a Payment envelope — for those,
+    // Assigned + Activity alone does not explain the change in Available (a
+    // categorised card purchase moves Available while both stay 0), so this is
+    // the display term the UI shows instead of Activity. Month-scoped, like
+    // Assigned and Activity: Available == Assigned + CardSpending + Activity.
+    decimal? CardSpending = null);
 
 public sealed record EnvelopeGroupDto(
     Guid GroupId, string Name, int SortOrder, bool IsHidden,

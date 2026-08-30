@@ -17,7 +17,10 @@ public sealed class ListAccountsHandler : IQueryHandler<ListAccountsQuery, IRead
         return await _db.BudgetAccounts
             .Where(a => a.FamilyId == familyId && !a.IsClosed)
             .OrderByDescending(a => a.CreatedAt)
-            .Select(a => new BudgetAccountDto(a.Id, a.Name, a.Type, a.Balance, a.SortOrder, a.IsClosed))
+            // Shortfall is always null here: the funded figure needs the month
+            // context (this month's Payment envelope Available) that only
+            // GetMonthlySummaryHandler has — this endpoint has no Year/Month.
+            .Select(a => new BudgetAccountDto(a.Id, a.Name, a.Type, a.Balance, a.SortOrder, a.IsClosed, null))
             .ToListAsync(ct);
     }
 }

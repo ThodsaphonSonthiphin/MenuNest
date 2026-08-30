@@ -103,14 +103,17 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
 
         // A Payment envelope is derived from its card's rows (menunest-208), not
         // from the assignment-plus-activity walk every other Envelope uses.
-        (decimal Available, decimal Assigned, decimal Activity) EnvelopeNumbers(
+        // CardSpending is null for an ordinary envelope; R-1 for a Payment one.
+        (decimal Available, decimal Assigned, decimal Activity, decimal? CardSpending) EnvelopeNumbers(
             Domain.Entities.BudgetCategory cat)
         {
             var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
             if (cat.PaymentForAccountId is not { } accId)
             {
                 var catTx = allTx.Where(t => t.CategoryId == cat.Id).ToList();
-                return ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
+                var (available0, assignedThis0, activityThis0) =
+                    ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
+                return (available0, assignedThis0, activityThis0, null);
             }
 
             var assignedToDate = catAssignments.Sum(a => a.AssignedAmount);
@@ -132,7 +135,20 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
                 .Where(t => t.CategoryId == null && t.Amount > 0m
                          && t.Date.Year == q.Year && t.Date.Month == q.Month)
                 .Sum(t => t.Amount);
-            return (available, assignedThis, activityThis);
+            // R-1: CardSpending is the term Available loses vs. Assigned+Activity
+            // for a Payment envelope — every categorised row on the card this
+            // month, negated so a purchase (a negative tx) reads as positive
+            // spending. Together with assignedThis and activityThis this is
+            // exactly the month-over-month change decomposition of
+            // PaymentEnvelopeMath.Available (assigned − categorised −
+            // uncategorisedInflow), so Available == assignedThis + cardSpendingThis
+            // + activityThis whenever there is no carried-in Available from a
+            // prior month (§4.3/R-1).
+            var cardSpendingThis = -rows
+                .Where(t => t.CategoryId != null
+                         && t.Date.Year == q.Year && t.Date.Month == q.Month)
+                .Sum(t => t.Amount);
+            return (available, assignedThis, activityThis, cardSpendingThis);
         }
 
         // 3. Per-category: walk months and compute Available as of end of selected month,
@@ -149,14 +165,19 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
 
             foreach (var cat in categories.Where(c => c.GroupId == group.Id && !c.IsHidden))
             {
-                var (available, assignedThis, activityThis) = EnvelopeNumbers(cat);
+                var (available, assignedThis, activityThis, cardSpendingThis) = EnvelopeNumbers(cat);
 
                 var progress = ComputeProgress(cat, assignedThis, available, selected);
                 envelopes.Add(new EnvelopeDto(
                     cat.Id, cat.Name, cat.Emoji, cat.SortOrder, cat.IsHidden,
                     assignedThis, activityThis, available,
                     cat.TargetType, cat.TargetAmount, cat.TargetDueDate, cat.TargetDayOfMonth,
-                    progress.Fraction, progress.Hint, cat.IsEveryday));
+                    progress.Fraction, progress.Hint, cat.IsEveryday,
+                    cat.PaymentForAccountId,
+                    cat.PaymentForAccountId is { } payAcc
+                        ? PaymentEnvelopeMath.Shortfall(DerivedBalance(payAcc), available)
+                        : null,
+                    cardSpendingThis));
 
                 gAssigned += assignedThis; gActivity += activityThis; gAvailable += available;
             }
@@ -176,10 +197,15 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         // instead. Payment envelopes MUST be in this sum: they are what holds a
         // card's funded debt back, now that the card itself has left the balance.
         decimal totalEnvelopeAvailableAllCats = 0;
+        // §4.3: Available per Payment envelope's account, for the account-level
+        // Shortfall computed below — keyed by the CARD's account id, not the
+        // envelope's category id.
+        var availableByPaymentEnvelope = new Dictionary<Guid, decimal>();
         foreach (var cat in categories)
         {
-            var (available, _, _) = EnvelopeNumbers(cat);
+            var (available, _, _, _) = EnvelopeNumbers(cat);
             totalEnvelopeAvailableAllCats += available;
+            if (cat.PaymentForAccountId is { } accId) availableByPaymentEnvelope[accId] = available;
         }
 
         // 5. Total account balance.
@@ -207,9 +233,15 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         //    projected in memory here. Every account is listed, including the
         //    debt ones dropped from totalAccountBalance — they leave Ready to
         //    Assign, not the UI.
+        var shortfallByAccount = accountRows
+            .Where(a => a.Type == BudgetAccountType.Credit)
+            .ToDictionary(a => a.Id, a => PaymentEnvelopeMath.Shortfall(
+                DerivedBalance(a.Id), availableByPaymentEnvelope.GetValueOrDefault(a.Id)));
+
         var accounts = accountRows
             .Select(a => new BudgetAccountDto(
-                a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed))
+                a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed,
+                shortfallByAccount.TryGetValue(a.Id, out var sf) ? sf : null))
             .ToList();
 
         // menunest-185/189: the card is current-month only, checked against
