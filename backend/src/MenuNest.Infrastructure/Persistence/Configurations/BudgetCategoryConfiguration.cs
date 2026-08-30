@@ -19,6 +19,15 @@ internal sealed class BudgetCategoryConfiguration : IEntityTypeConfiguration<Bud
         b.Property(x => x.TargetType).HasConversion<int>();
         b.Property(x => x.TargetAmount).HasColumnType("decimal(18,4)");
         b.HasIndex(x => new { x.FamilyId, x.GroupId, x.SortOrder });
+        // menunest-202: one Payment envelope per Credit account. Filtered so the
+        // many NULLs on ordinary envelopes do not collide.
+        b.HasIndex(x => x.PaymentForAccountId)
+            .IsUnique()
+            .HasFilter("[PaymentForAccountId] IS NOT NULL");
+        b.HasOne<BudgetAccount>()
+            .WithMany()
+            .HasForeignKey(x => x.PaymentForAccountId)
+            .OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Family>().WithMany().HasForeignKey(x => x.FamilyId).OnDelete(DeleteBehavior.Cascade);
         b.HasOne<BudgetCategoryGroup>().WithMany().HasForeignKey(x => x.GroupId).OnDelete(DeleteBehavior.Restrict);
     }

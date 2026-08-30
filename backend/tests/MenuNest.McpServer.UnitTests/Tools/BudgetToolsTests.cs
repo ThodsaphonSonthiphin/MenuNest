@@ -1,3 +1,4 @@
+using FluentAssertions;
 using Mediator;
 using MenuNest.Application.UseCases.Budget;
 using MenuNest.Application.UseCases.Budget.Accounts.ListAccounts;
@@ -23,6 +24,8 @@ using MenuNest.Application.UseCases.Budget.Transactions.DeleteTransaction;
 using MenuNest.Domain.Enums;
 using MenuNest.McpServer.Tools;
 using Moq;
+using System.ComponentModel;
+using System.Reflection;
 
 namespace MenuNest.McpServer.UnitTests.Tools;
 
@@ -313,5 +316,24 @@ public class BudgetToolsTests
             .Returns(new ValueTask<Unit>(Unit.Value));
         await _sut.delete_transaction(id, CancellationToken.None);
         _mediator.Verify(m => m.Send(It.Is<DeleteTransactionCommand>(c => c.Id == id), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    // menunest-213 / correction: ListAccountsHandler hardcodes `shortfall: null`
+    // here — the funded figure needs a month's Payment envelope Available, which
+    // only GetMonthlySummaryHandler has. An assistant asked "how much do I still
+    // owe unfunded on my card?" can reach for this tool, read null, and report
+    // NOTHING OWED on a card short ฿20,000. The only thing standing between that
+    // answer and the user is this Description, so it is pinned by test.
+    [Fact]
+    public void list_budget_accounts_says_that_its_shortfall_is_always_null()
+    {
+        var description = typeof(BudgetTools)
+            .GetMethod(nameof(BudgetTools.list_budget_accounts))!
+            .GetCustomAttribute<DescriptionAttribute>()!.Description;
+
+        description.Should().Contain("shortfall");
+        description.Should().Contain("null");
+        description.Should().Contain("get_budget_summary",
+            "the description has to name where the real number lives, not just withhold this one");
     }
 }

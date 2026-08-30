@@ -46,6 +46,16 @@ public sealed class SetEverydayMarksHandler : ICommandHandler<SetEverydayMarksCo
         if (categories.Count != ids.Count)
             throw new DomainException("Category not found.");
 
+        // menunest-205: a payment envelope in the Everyday pot would raise the
+        // Daily allowance every time the card is used. Checked up front, over
+        // the whole batch, so a request marking several envelopes at once is
+        // refused as a whole rather than applying the earlier ones and failing
+        // partway through — SetEverydayMarksHandler is a bulk path.
+        var toMark = cmd.Marks.Where(m => m.IsEveryday)
+            .Select(m => categories.First(c => c.Id == m.CategoryId));
+        if (toMark.Any(c => c.IsPaymentEnvelope))
+            throw new DomainException("A payment envelope cannot be an everyday envelope.");
+
         // MarkEveryday has no change detection of its own (it always stamps
         // UpdatedAt), so the handler must notice for itself whether anything
         // actually flipped — otherwise a sheet the caller submits unchanged

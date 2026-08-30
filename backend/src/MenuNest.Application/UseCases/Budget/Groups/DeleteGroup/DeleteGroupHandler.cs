@@ -18,6 +18,16 @@ public sealed class DeleteGroupHandler : ICommandHandler<DeleteGroupCommand, Uni
         var group = await _db.BudgetCategoryGroups
             .FirstOrDefaultAsync(g => g.Id == c.Id && g.FamilyId == familyId, ct)
             ?? throw new DomainException("Group not found.");
+
+        // menunest-205: closes the group-delete side door — a payment envelope
+        // must not be deleted this way either, so this check runs before the
+        // generic "has categories" one below, which would otherwise report an
+        // unhelpful reason for the exact same refusal.
+        var holdsPaymentEnvelope = await _db.BudgetCategories
+            .AnyAsync(cat => cat.GroupId == group.Id && cat.PaymentForAccountId != null, ct);
+        if (holdsPaymentEnvelope)
+            throw new DomainException("This group holds a payment envelope and cannot be deleted.");
+
         var hasCategories = await _db.BudgetCategories.AnyAsync(cat => cat.GroupId == c.Id, ct);
         if (hasCategories)
             throw new DomainException("Cannot delete group with categories — move or delete the categories first.");
