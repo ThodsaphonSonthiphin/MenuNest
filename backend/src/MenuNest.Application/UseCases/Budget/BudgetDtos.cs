@@ -100,11 +100,18 @@ public sealed record MonthlySummaryDto(
 public sealed record DailyAllowanceDto(decimal Amount, DateOnly FrozenOn, decimal PaceDelta, bool HasMarks);
 
 // ---------- Transactions ----------
+// PaymentId (R-4): non-null on both legs of a payment, shared by the pair —
+// without this a client cannot find the two rows that make up one payment
+// (ListTransactions renders them as two ordinary-looking rows otherwise, and
+// PUT/DELETE /api/budget/payments/{paymentId} would be unreachable for any
+// payment that outlives the call that created it). Trailing with a null
+// default so existing positional constructions keep compiling.
 public sealed record BudgetTransactionDto(
     Guid Id, Guid AccountId, string AccountName,
     Guid? CategoryId, string? CategoryName, string? CategoryEmoji,
     decimal Amount, DateOnly Date, string? Notes,
-    Guid CreatedByUserId, string CreatedByDisplayName);
+    Guid CreatedByUserId, string CreatedByDisplayName,
+    Guid? PaymentId = null);
 
 public sealed record CreateTransactionRequest(
     Guid AccountId, Guid? CategoryId, decimal Amount, DateOnly Date, string? Notes);

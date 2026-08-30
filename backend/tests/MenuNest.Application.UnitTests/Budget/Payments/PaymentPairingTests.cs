@@ -8,6 +8,7 @@ using MenuNest.Application.UseCases.Budget.Payments.DeletePayment;
 using MenuNest.Application.UseCases.Budget.Payments.MakePayment;
 using MenuNest.Application.UseCases.Budget.Payments.UpdatePayment;
 using MenuNest.Application.UseCases.Budget.Transactions.DeleteTransaction;
+using MenuNest.Application.UseCases.Budget.Transactions.ListTransactions;
 using MenuNest.Application.UseCases.Budget.Transactions.UpdateTransaction;
 using MenuNest.Domain.Entities;
 using MenuNest.Domain.Enums;
@@ -39,6 +40,9 @@ public class PaymentPairingTests
     private static GetMonthlySummaryHandler SummaryHandler(HandlerTestFixture fx) =>
         new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db),
             new PaymentEnvelopeProvisioner(fx.Db), fx.Clock);
+
+    private static ListTransactionsHandler ListHandler(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object);
 
     private static async Task<MonthlySummaryDto> SummaryAsync(World w) =>
         await SummaryHandler(w.Fx).Handle(new GetMonthlySummaryQuery(2026, 1, "Asia/Bangkok"), default);
@@ -136,11 +140,15 @@ public class PaymentPairingTests
         var w = Seed(); using var _ = w.Fx;
         var p = await MakePayment(w, 500m);
         var leg = w.Fx.Db.BudgetTransactions.First(t => t.PaymentId == p.PaymentId);
+        var originalAmount = leg.Amount;
 
         var act = async () => await new UpdateTransactionHandler(
                 w.Fx.Db, w.Fx.UserProvisioner.Object, new UpdateTransactionValidator())
             .Handle(new UpdateTransactionCommand(leg.Id, leg.AccountId, leg.CategoryId, -999m, D, null), default);
         await act.Should().ThrowAsync<DomainException>().WithMessage("*payment*");
+
+        // Symmetric with the delete twin: nothing must have been touched.
+        w.Fx.Db.BudgetTransactions.Single(t => t.Id == leg.Id).Amount.Should().Be(originalAmount);
     }
 
     // ---------- Update ----------
@@ -192,16 +200,27 @@ public class PaymentPairingTests
             .Available.Should().Be(2_000m);
     }
 
+    // menunest-209 review: UpdatePaymentHandler must validate BEFORE it mutates
+    // any balance, exactly like MakePaymentHandler — nothing may leave a
+    // tracked BudgetAccount holding a reversed-but-never-reapplied delta on
+    // the throw path. Asserting balances are untouched here is what would
+    // catch a regression back to reverse-then-validate.
     [Fact]
     public async Task Editing_a_loan_payment_to_drop_its_category_is_refused()
     {
         var w = SeedLoan(); using var _ = w.Fx;
         var dto = await MakeHandler(w.Fx).Handle(
             new MakePaymentCommand(w.CashId, w.LoanId, 8_000m, D, null, "Asia/Bangkok", w.LoanEnvelopeId), default);
+        var cashBefore = w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CashId).Balance;
+        var loanBefore = w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.LoanId).Balance;
 
         var act = async () => await UpdateHandler(w.Fx).Handle(new UpdatePaymentCommand(
             dto.PaymentId, w.CashId, w.LoanId, 8_000m, D, null, CategoryId: null), default);
         await act.Should().ThrowAsync<DomainException>().WithMessage("*Envelope*");
+
+        // Nothing must have been touched.
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CashId).Balance.Should().Be(cashBefore);
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.LoanId).Balance.Should().Be(loanBefore);
     }
 
     [Fact]
@@ -209,10 +228,16 @@ public class PaymentPairingTests
     {
         var w = Seed(); using var _ = w.Fx;
         var p = await MakePayment(w, 500m);
+        var cashBefore = w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CashId).Balance;
+        var cardBefore = w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId).Balance;
 
         var act = async () => await UpdateHandler(w.Fx).Handle(new UpdatePaymentCommand(
             p.PaymentId, w.CashId, w.CardId, 500m, D, null, CategoryId: w.FoodId), default);
         await act.Should().ThrowAsync<DomainException>().WithMessage("*cannot be categorised*");
+
+        // Nothing must have been touched.
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CashId).Balance.Should().Be(cashBefore);
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId).Balance.Should().Be(cardBefore);
     }
 
     [Fact]
@@ -222,6 +247,123 @@ public class PaymentPairingTests
         var act = async () => await UpdateHandler(w.Fx).Handle(new UpdatePaymentCommand(
             Guid.NewGuid(), w.CashId, w.CardId, 500m, D, null), default);
         await act.Should().ThrowAsync<DomainException>().WithMessage("*not found*");
+    }
+
+    // ---------- Update: moving accounts (menunest-209 review: "the riskiest
+    // code in the handler" — every other Update test passes back the SAME
+    // from/to the payment already had, so oldFromAcc/oldToAcc are never
+    // observed diverging from from/to without these) ----------
+
+    [Fact]
+    public async Task Editing_a_payment_to_a_different_paying_account_moves_the_outflow_leg()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var cash2 = BudgetAccount.Create(w.Fx.Family.Id, "ธนาคาร", BudgetAccountType.Cash, 2_000m, 2);
+        w.Fx.Db.BudgetAccounts.Add(cash2);
+        await w.Fx.Db.SaveChangesAsync();
+
+        var cashBefore = w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CashId).Balance; // 10,000
+        var p = await MakePayment(w, 500m); // Cash -> Card
+
+        // Move the SAME payment off Cash onto Cash2, and change the amount too.
+        await UpdateHandler(w.Fx).Handle(new UpdatePaymentCommand(
+            p.PaymentId, cash2.Id, w.CardId, 700m, D, null), default);
+
+        // The ORIGINAL Cash account is back to its pre-payment balance — the
+        // outflow leg moved off it entirely, it did not just net to zero delta.
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CashId).Balance.Should().Be(cashBefore);
+        // Cash2 carries the NEW amount only (2,000 opening − 700, not −500 too).
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == cash2.Id).Balance.Should().Be(1_300m);
+        // Card, unchanged as the target, carries the new amount (not old+new).
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId).Balance.Should().Be(700m);
+
+        var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == p.PaymentId).ToList();
+        legs.Single(l => l.Amount < 0).AccountId.Should().Be(cash2.Id);
+        legs.Single(l => l.Amount > 0).AccountId.Should().Be(w.CardId);
+    }
+
+    [Fact]
+    public async Task Editing_a_payment_to_move_its_target_from_Credit_to_Loan_requires_and_applies_a_category()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var loan = BudgetAccount.Create(w.Fx.Family.Id, "รถ", BudgetAccountType.Loan, 0m, 2);
+        w.Fx.Db.BudgetAccounts.Add(loan);
+        await w.Fx.Db.SaveChangesAsync();
+
+        var p = await MakePayment(w, 500m); // Cash -> Card, both legs uncategorised
+        var before = await SummaryAsync(w);
+
+        // Re-target the SAME payment from the Credit card to the Loan — the
+        // new-target rule (Loan requires a category) must be checked against
+        // the NEW `to`, not the Card the payment used to pay.
+        await UpdateHandler(w.Fx).Handle(new UpdatePaymentCommand(
+            p.PaymentId, w.CashId, loan.Id, 500m, D, null, CategoryId: w.FoodId), default);
+
+        var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == p.PaymentId).ToList();
+        var outLeg = legs.Single(l => l.Amount < 0);
+        var inLeg = legs.Single(l => l.Amount > 0);
+        outLeg.AccountId.Should().Be(w.CashId);
+        outLeg.CategoryId.Should().Be(w.FoodId);
+        inLeg.AccountId.Should().Be(loan.Id);
+        inLeg.CategoryId.Should().BeNull();
+
+        // Card is back to zero — the payment no longer targets it at all.
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId).Balance.Should().Be(0m);
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == loan.Id).Balance.Should().Be(500m);
+
+        // A payment never moves Ready to Assign, regardless of which debt
+        // type it targets before vs. after the edit.
+        var after = await SummaryAsync(w);
+        after.ReadyToAssign.Should().Be(before.ReadyToAssign);
+        // Food is the Loan's funding Envelope now — Available fell by 500
+        // (3,000 assigned − 500 categorised), exactly like a Loan payment.
+        after.Groups.SelectMany(g => g.Categories).Single(e => e.CategoryId == w.FoodId)
+            .Available.Should().Be(2_500m);
+    }
+
+    [Fact]
+    public async Task Editing_a_payment_to_move_its_target_to_Loan_without_a_category_is_refused()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var loan = BudgetAccount.Create(w.Fx.Family.Id, "รถ", BudgetAccountType.Loan, 0m, 2);
+        w.Fx.Db.BudgetAccounts.Add(loan);
+        await w.Fx.Db.SaveChangesAsync();
+        var p = await MakePayment(w, 500m); // Cash -> Card, uncategorised
+
+        var act = async () => await UpdateHandler(w.Fx).Handle(new UpdatePaymentCommand(
+            p.PaymentId, w.CashId, loan.Id, 500m, D, null, CategoryId: null), default);
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Envelope*");
+
+        // The payment must still be sitting exactly where it was.
+        var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == p.PaymentId).ToList();
+        legs.Single(l => l.Amount < 0).AccountId.Should().Be(w.CashId);
+        legs.Single(l => l.Amount > 0).AccountId.Should().Be(w.CardId);
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == w.CardId).Balance.Should().Be(500m);
+        w.Fx.Db.BudgetAccounts.Single(a => a.Id == loan.Id).Balance.Should().Be(0m);
+    }
+
+    // ---------- PaymentId visibility (R-4: the field a client needs to find
+    // and act on the OTHER leg of a payment — without it, nothing can call
+    // PUT/DELETE /api/budget/payments/{paymentId} for a payment that outlives
+    // the call that created it) ----------
+
+    [Fact]
+    public async Task Listing_transactions_exposes_a_shared_nonnull_PaymentId_on_both_legs()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var ordinary = BudgetTransaction.Create(w.Fx.Family.Id, w.CashId, w.FoodId, -100m, D, null, w.Fx.User.Id);
+        w.Fx.Db.BudgetTransactions.Add(ordinary);
+        await w.Fx.Db.SaveChangesAsync();
+
+        var p = await MakePayment(w, 500m);
+
+        var rows = await ListHandler(w.Fx).Handle(new ListTransactionsQuery(2026, 1, null), default);
+
+        var paymentRows = rows.Where(r => r.PaymentId == p.PaymentId).ToList();
+        paymentRows.Should().HaveCount(2);
+        paymentRows.Select(r => r.AccountId).Should().BeEquivalentTo(new[] { w.CashId, w.CardId });
+
+        rows.Single(r => r.Id == ordinary.Id).PaymentId.Should().BeNull();
     }
 
     // ---------- Loan seed (shared with MakePaymentHandlerTests' shape) ----------
