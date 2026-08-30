@@ -28,6 +28,11 @@ namespace MenuNest.Application.UseCases.Budget.Payments.MakePayment;
 /// the only thing a loan payment ever spends. Without it the instalment drains
 /// Ready to Assign every month while the Envelope meant to fund it is never
 /// touched (see docs/adr/menunest-214-a-loan-payment-carries-the-envelope-that-funds-it.md).
+/// The category lookup excludes a Payment envelope (<c>PaymentForAccountId != null</c>):
+/// a card's Payment envelope is derived solely from THAT card's own rows
+/// (<see cref="PaymentEnvelopeMath"/>), so a categorised row on the Loan's
+/// from-leg would land on it and vanish from every derivation — reproducing
+/// the exact original defect one level down.
 ///
 /// <see cref="MakePaymentCommand.FromAccountId"/> may be a Credit account
 /// (paying one card with another — a balance-transfer / cash-advance style
@@ -80,8 +85,9 @@ public sealed class MakePaymentHandler : ICommandHandler<MakePaymentCommand, Pay
             if (c.CategoryId is not { } categoryId)
                 throw new DomainException("Paying a Loan requires an Envelope to fund it.");
             category = await _db.BudgetCategories.FirstOrDefaultAsync(
-                x => x.Id == categoryId && x.FamilyId == familyId, ct)
-                ?? throw new DomainException("Category not found.");
+                x => x.Id == categoryId && x.FamilyId == familyId && x.PaymentForAccountId == null, ct)
+                ?? throw new DomainException(
+                    "Category not found, or is a Payment envelope — a Payment envelope cannot fund another debt's payment.");
         }
         else if (c.CategoryId is not null)
         {
