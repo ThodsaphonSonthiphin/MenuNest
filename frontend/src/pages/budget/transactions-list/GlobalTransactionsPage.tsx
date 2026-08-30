@@ -1,6 +1,7 @@
 import {Link} from 'react-router-dom'
 import {GlobalTransactionList} from './GlobalTransactionList'
 import {TransactionDialog} from '../components/TransactionDialog'
+import {PaymentDialog} from '../components/PaymentDialog'
 import {useGlobalTransactionsPage} from './GlobalTransactionsPage.hooks'
 import '../BudgetPage.css' // to ensure .bdg-page and standard styles are available
 
@@ -14,6 +15,10 @@ export function GlobalTransactionsPage() {
     isAdding,
     setIsAdding,
     handleDelete,
+    editingPayment,
+    setEditingPayment,
+    handleEditPayment,
+    handleDeletePayment,
   } = useGlobalTransactionsPage()
 
   if (isLoading || !summary) {
@@ -40,7 +45,14 @@ export function GlobalTransactionsPage() {
 
       <div style={{padding: '16px'}}>
         {txs && txs.length > 0 ? (
-          <GlobalTransactionList items={txs} onEdit={setEditingTx} onDelete={handleDelete} />
+          <GlobalTransactionList
+            items={txs}
+            accounts={summary.accounts}
+            onEdit={setEditingTx}
+            onDelete={handleDelete}
+            onEditPayment={handleEditPayment}
+            onDeletePayment={handleDeletePayment}
+          />
         ) : (
           <div style={{textAlign: 'center', color: '#666', marginTop: '32px'}}>
             No transactions this month.
@@ -59,6 +71,20 @@ export function GlobalTransactionsPage() {
           }}
         />
       )}
+
+      {editingPayment && (() => {
+        const toAccount = summary.accounts.find(a => a.id === editingPayment.toAccountId)
+        if (!toAccount) return null
+        return (
+          <PaymentDialog
+            toAccount={toAccount}
+            accounts={summary.accounts}
+            groups={summary.groups}
+            existing={editingPayment}
+            onClose={() => setEditingPayment(null)}
+          />
+        )
+      })()}
     </div>
   )
 }

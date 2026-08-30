@@ -371,10 +371,17 @@
 .bdg-env-pill.is-zero   { background: var(--border);    color: var(--text-dim); }
 
 .bdg-env-row2 { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-muted); }
+/* menunest-202: the shortfall line — the one number issue #112 asks for.
+   Green for จ่ายเต็มได้, red for ขาดอีก. Scoped to row 2 exactly as the
+   confirmed mock draws it. */
+.bdg-env-row2 b       { color: var(--green); font-weight: 700; }
+.bdg-env-row2 b.short { color: var(--red); }
 .bdg-env-progress { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
 .bdg-env-progress-fill { height: 100%; border-radius: 2px; }
 .bdg-env-progress-fill.is-green { background: var(--green); }
 .bdg-env-progress-fill.is-red   { background: var(--red); }
+/* An underfunded Payment envelope: money set aside against money owed. */
+.bdg-env-progress-fill.is-orange { background: var(--orange); }
 
 .bdg-env-expanded {
   margin-top: 10px; padding-top: 10px;
@@ -399,6 +406,20 @@
 }
 .bdg-env-action.is-primary { background: var(--accent); color: white; border-color: var(--accent); }
 .bdg-env-action.is-danger  { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+.bdg-env-action:disabled   { opacity: .34; cursor: not-allowed; }
+/* menunest-205: struck through, not merely greyed — the mock's device for
+   "this control is refused on a Payment envelope", not "not built yet". */
+.bdg-env-action.is-off     { opacity: .34; text-decoration: line-through; }
+
+/* menunest-203: paying one card with another moves Ready to Assign UP. The
+   note that says so out loud, inside PaymentDialog. */
+.bdg-payment-note {
+  margin: 4px 0 0; padding: 8px 10px; border-radius: 8px;
+  background: var(--orange-bg); color: var(--orange);
+  font-size: 11px; line-height: 1.5;
+}
+.budget-modal .subtitle b       { color: var(--green); font-weight: 700; }
+.budget-modal .subtitle b.short { color: var(--red); }
 
 /* -------- Account detail page & Global transactions page -------- */
 .bdg-top-bar { display: flex; align-items: center; gap: 8px; }

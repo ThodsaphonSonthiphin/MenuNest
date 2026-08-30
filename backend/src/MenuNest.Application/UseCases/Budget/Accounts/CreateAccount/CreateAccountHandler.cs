@@ -1,6 +1,7 @@
 using FluentValidation;
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Budget.Accounts;
 using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -13,9 +14,11 @@ public sealed class CreateAccountHandler : ICommandHandler<CreateAccountCommand,
     private readonly IUserProvisioner _users;
     private readonly IValidator<CreateAccountCommand> _validator;
     private readonly IClock _clock;
+    private readonly PaymentEnvelopeProvisioner _envelopes;
     public CreateAccountHandler(
-        IApplicationDbContext db, IUserProvisioner users, IValidator<CreateAccountCommand> v, IClock clock)
-    { _db = db; _users = users; _validator = v; _clock = clock; }
+        IApplicationDbContext db, IUserProvisioner users, IValidator<CreateAccountCommand> v, IClock clock,
+        PaymentEnvelopeProvisioner envelopes)
+    { _db = db; _users = users; _validator = v; _clock = clock; _envelopes = envelopes; }
 
     public async ValueTask<BudgetAccountDto> Handle(CreateAccountCommand cmd, CancellationToken ct)
     {
@@ -55,6 +58,19 @@ public sealed class CreateAccountHandler : ICommandHandler<CreateAccountCommand,
         }
 
         await _db.SaveChangesAsync(ct);
+
+        // menunest-202: a Credit account is never without its Payment envelope.
+        // EnsureForFamilyAndSaveAsync queries the database with LINQ, so it
+        // must run AFTER the account above is saved — it cannot see an
+        // Added-but-unsaved entity in the change tracker. It saves itself, in
+        // its OWN SaveChangesAsync call — this is two separate units of work,
+        // not one: a failure between them leaves a Credit account without its
+        // envelope until the next summary read provisions it lazily
+        // (menunest-181's precedent). It also swallows the one concurrent-
+        // caller race that would otherwise surface as an HTTP 500 — see
+        // PaymentEnvelopeProvisioner's docstring.
+        await _envelopes.EnsureForFamilyAndSaveAsync(familyId, ct);
+
         return new BudgetAccountDto(acc.Id, acc.Name, acc.Type, acc.Balance, acc.SortOrder, acc.IsClosed);
     }
 }

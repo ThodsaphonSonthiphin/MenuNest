@@ -16,6 +16,15 @@ import { recordRequest, type RequestCapture } from './types'
 const CATEGORY_FOOD = 'cat-food'
 const CATEGORY_POWER = 'cat-power'
 
+// menunest-202/207/212 — issue #112 fixtures. Exported so a spec can locate
+// these rows and build its own override summaries (e.g. driving the Credit
+// card's shortfall to 20,000, matching the mock's second panel) without
+// hand-rolling a whole payload that then drifts from this one.
+export const CREDIT_GROUP_ID = 'grp-credit'
+export const CREDIT_ENVELOPE_ID = 'cat-payment-kbank'
+export const CREDIT_ACCOUNT_ID = 'acct-credit-kbank'
+export const LOAN_ACCOUNT_ID = 'acct-loan-car'
+
 const meResponse = {
   userId: 'user-1',
   email: 'test@menunest.app',
@@ -28,15 +37,6 @@ const meResponse = {
   uvWarnThreshold: null,
   feelsLikeWarnThreshold: null,
   activeTargetRule: null,
-}
-
-const account = {
-  id: 'acct-1',
-  name: 'เงินสด',
-  type: 'Cash',
-  balance: 5000,
-  sortOrder: 0,
-  isClosed: false,
 }
 
 const envelope = (categoryId: string, name: string, available: number) => ({
@@ -55,7 +55,85 @@ const envelope = (categoryId: string, name: string, available: number) => ({
   targetProgressFraction: null,
   targetHint: null,
   isEveryday: false,
+  // Ordinary envelopes carry neither field — only a Payment envelope does
+  // (menunest-202). Present here so the shape matches EnvelopeDto exactly.
+  paymentForAccountId: null,
+  shortfall: null,
+  cardSpending: null,
 })
+
+// menunest-202/205 — the Payment envelope docs/mocks/… shows on the "จ่ายบัตร
+// KBank" card: funded (shortfall 0 ⇒ จ่ายเต็มได้) by default. A spec drives it
+// underfunded by spreading the summary and overriding `shortfall` on both the
+// envelope and its account, per the mock's second panel (−฿20,500 / ขาดอีก
+// ฿20,000).
+const paymentEnvelope = (
+  accountName: string,
+  available: number,
+  shortfall: number,
+  cardSpending: number,
+) => ({
+  categoryId: CREDIT_ENVELOPE_ID,
+  name: `จ่ายบัตร ${accountName}`,
+  emoji: '💳',
+  sortOrder: 0,
+  isHidden: false,
+  assigned: 0,
+  activity: 0,
+  available,
+  targetType: 'None',
+  targetAmount: null,
+  targetDueDate: null,
+  targetDayOfMonth: null,
+  targetProgressFraction: null,
+  targetHint: null,
+  // menunest-205: a Payment envelope can never be Everyday.
+  isEveryday: false,
+  paymentForAccountId: CREDIT_ACCOUNT_ID,
+  shortfall,
+  cardSpending,
+})
+
+const accountCash = {
+  id: 'acct-1',
+  name: 'เงินสด',
+  type: 'Cash',
+  balance: 5000,
+  sortOrder: 0,
+  isClosed: false,
+  shortfall: null,
+}
+
+// Funded by default (balance −500, envelope available 500 ⇒ shortfall 0),
+// matching the mock's first panel exactly.
+const accountCreditKBank = {
+  id: CREDIT_ACCOUNT_ID,
+  name: 'KBank',
+  type: 'Credit',
+  balance: -500,
+  sortOrder: 1,
+  isClosed: false,
+  shortfall: 0,
+}
+
+// menunest-207/212/214 — a Loan has NO Payment envelope (menunest-206), so
+// its only pay path is the account-menu's `จ่ายค่างวด` item → PaymentDialog's
+// funding-envelope picker. `shortfall` is always null on a Loan.
+const accountLoanCar = {
+  id: LOAN_ACCOUNT_ID,
+  name: 'ผ่อนรถ',
+  type: 'Loan',
+  balance: -100000,
+  sortOrder: 2,
+  isClosed: false,
+  shortfall: null,
+}
+
+const accountsById: Record<string, typeof accountCash> = {
+  [accountCash.id]: accountCash,
+  [accountCreditKBank.id]: accountCreditKBank,
+  [accountLoanCar.id]: accountLoanCar,
+}
 
 /**
  * Exported so a spec can reshape one field (e.g. drive a category negative to
@@ -81,8 +159,20 @@ export const budgetSummaryFixture = {
       totalAvailable: 1200,
       categories: [envelope(CATEGORY_FOOD, 'ค่ากิน', 700), envelope(CATEGORY_POWER, 'ค่าไฟ', 500)],
     },
+    {
+      // menunest-202: "its own group, made with the Account" — a Credit
+      // account's Payment envelope never lands inside a group the user made.
+      groupId: CREDIT_GROUP_ID,
+      name: 'บัตรเครดิต',
+      sortOrder: 1,
+      isHidden: false,
+      totalAssigned: 0,
+      totalActivity: 0,
+      totalAvailable: 500,
+      categories: [paymentEnvelope('KBank', 500, 0, 500)],
+    },
   ],
-  accounts: [account],
+  accounts: [accountCash, accountCreditKBank, accountLoanCar],
   dailyAllowance: null,
 }
 
@@ -121,10 +211,83 @@ const historyResponse = [
   },
 ]
 
+// menunest-204/207 — `POST /api/budget/payments` returns the created pair as
+// a PaymentDto. The dialog's own success path only reads that it resolved
+// (onSaved/onClose), so one fixed shape covers every payment a spec makes.
+const paymentFixture = {
+  paymentId: 'pay-1',
+  fromAccountId: accountCash.id,
+  fromAccountName: accountCash.name,
+  toAccountId: accountCreditKBank.id,
+  toAccountName: accountCreditKBank.name,
+  amount: 500,
+  date: '2026-08-30',
+  notes: null,
+}
+
+// menunest-209 — a payment is ONE row to the user, and `PaymentTransactionRow`
+// is the component that makes it so. It had no rendering coverage anywhere:
+// vitest runs in `environment: 'node'` (no jsdom), and the only transaction
+// fixture in this file was `items: []`. That is exactly the #97 shape CLAUDE.md
+// warns about — Playwright is the sole automatic gate that can see a render,
+// and it only sees what a spec exercises.
+//
+// The two legs share `paymentId`, which is what `lib/paymentRows.ts`'s
+// `groupPaymentLegs` collapses on. Both legs are present here, so the row is
+// `complete` and its Edit item is ENABLED — the account-detail feed, filtered to
+// one account, is the case that leaves it disabled.
+export const PAYMENT_ID = 'pay-fixture-1'
+const PAYMENT_DATE = '2026-08-20'
+
+const txLeg = (over: {
+  id: string
+  accountId: string
+  accountName: string
+  amount: number
+  paymentId?: string | null
+  categoryId?: string | null
+  categoryName?: string | null
+  categoryEmoji?: string | null
+  notes?: string | null
+  date?: string
+}) => ({
+  categoryId: null,
+  categoryName: null,
+  categoryEmoji: null,
+  notes: null,
+  paymentId: null,
+  date: PAYMENT_DATE,
+  createdByUserId: 'user-1',
+  createdByDisplayName: 'ทศพล',
+  ...over,
+})
+
+/**
+ * One payment (เงินสด → KBank, ฿500) as its two legs, plus one ordinary
+ * transaction so a spec can prove the payment row is the SPECIAL one rather
+ * than the only one.
+ */
+export const globalTransactionsFixture = [
+  txLeg({
+    id: 'tx-pay-from', accountId: accountCash.id, accountName: accountCash.name,
+    amount: -500, paymentId: PAYMENT_ID,
+  }),
+  txLeg({
+    id: 'tx-pay-to', accountId: accountCreditKBank.id, accountName: accountCreditKBank.name,
+    amount: 500, paymentId: PAYMENT_ID,
+  }),
+  txLeg({
+    id: 'tx-plain', accountId: accountCash.id, accountName: accountCash.name,
+    amount: -120, categoryId: CATEGORY_FOOD, categoryName: 'ค่ากิน', categoryEmoji: '🍜',
+    notes: 'ข้าวมันไก่', date: '2026-08-19',
+  }),
+]
+
 type BudgetConfig = {
   me: unknown
   summary: unknown
   history: unknown[]
+  transactions: unknown[]
 }
 
 export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
@@ -132,6 +295,7 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
     me: meResponse,
     summary: budgetSummaryFixture,
     history: historyResponse,
+    transactions: globalTransactionsFixture,
   }
 
   const self = {
@@ -146,6 +310,11 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
     /** Pass [] to prove the rail's Undo/Redo go disabled with nothing to undo. */
     history: (rows: unknown[]) => {
       config.history = rows
+      return self
+    },
+    /** GET /api/budget/transactions — the GLOBAL feed. Pass [] for the empty state. */
+    transactions: (rows: unknown[]) => {
+      config.transactions = rows
       return self
     },
     apply: async () => {
@@ -167,9 +336,40 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
         await recordRequest(route, request, capture)
         await route.fulfill({ status: 204, body: '' })
       })
-      await page.route(/\/api\/budget\/accounts\/[^/]+\/transactions(\?|$)/, async (route, request) => {
+      // The GLOBAL transaction feed (`/budget/transactions`), which is where a
+      // payment's two legs are BOTH visible and therefore collapse into one
+      // editable row. Registered before the account-scoped route below; the
+      // patterns are disjoint (`/accounts/{id}/transactions` vs
+      // `/budget/transactions`), so neither shadows the other.
+      await page.route(/\/api\/budget\/transactions(\?|$)/, async (route, request) => {
         await recordRequest(route, request, capture)
-        await route.fulfill({ json: { account: { ...account, monthInflow: 0, monthOutflow: 0 }, items: [], hasMore: false } })
+        await route.fulfill({ json: config.transactions })
+      })
+      await page.route(/\/api\/budget\/accounts\/([^/]+)\/transactions(\?|$)/, async (route, request) => {
+        await recordRequest(route, request, capture)
+        const [, id] = new URL(request.url()).pathname.match(/\/accounts\/([^/]+)\/transactions/) ?? []
+        // menunest-207/212: AccountDetailPage's loading gate is `data?.account`,
+        // so a Credit or Loan account visited directly must resolve to ITS OWN
+        // row here, not fall back to the cash fixture — otherwise the page
+        // never gets past "Loading…" for those accounts.
+        const acct = (id && accountsById[id]) || accountCash
+        // `items` stays [] — no spec in this repo reads a transaction row off
+        // this route, so there is no row for BudgetTransactionDto's
+        // `paymentId` to land on. Not a dropped field: if a spec ever needs a
+        // grouped-payment-row fixture, add one row here with a real
+        // `paymentId` shared by both legs, per `lib/paymentRows.ts`'s
+        // `groupPaymentLegs`.
+        await route.fulfill({
+          json: { account: { ...acct, monthInflow: 0, monthOutflow: 0 }, items: [], hasMore: false },
+        })
+      })
+      await page.route(/\/api\/budget\/payments(\?|$)/, async (route, request) => {
+        await recordRequest(route, request, capture)
+        if (request.method() === 'POST') {
+          await route.fulfill({ status: 201, json: paymentFixture })
+          return
+        }
+        await route.fulfill({ status: 404, json: { message: 'not mocked' } })
       })
     },
   }

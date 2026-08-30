@@ -1,5 +1,6 @@
 using Mediator;
 using MenuNest.Application.Abstractions;
+using MenuNest.Application.UseCases.Budget.Accounts;
 using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -11,20 +12,31 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
     private readonly IApplicationDbContext _db;
     private readonly IUserProvisioner _users;
     private readonly AllowanceFreezer _freezer;
+    private readonly PaymentEnvelopeProvisioner _envelopes;
     private readonly IClock _clock;
 
     // Named projection for in-memory transaction rows (allows passing to static helpers).
     private readonly record struct TxRow(Guid? CategoryId, decimal Amount, DateOnly Date);
 
     public GetMonthlySummaryHandler(
-        IApplicationDbContext db, IUserProvisioner users, AllowanceFreezer freezer, IClock clock)
-    { _db = db; _users = users; _freezer = freezer; _clock = clock; }
+        IApplicationDbContext db, IUserProvisioner users, AllowanceFreezer freezer,
+        PaymentEnvelopeProvisioner envelopes, IClock clock)
+    { _db = db; _users = users; _freezer = freezer; _envelopes = envelopes; _clock = clock; }
 
     public async ValueTask<MonthlySummaryDto> Handle(GetMonthlySummaryQuery q, CancellationToken ct)
     {
         var (_, familyId) = await _users.RequireFamilyAsync(ct);
         var selected = new DateOnly(q.Year, q.Month, 1);
         var nextMonth = selected.AddMonths(1);
+
+        // menunest-202 / menunest-181's precedent: provision lazily on read, so
+        // Credit accounts that predate this feature gain their envelope on the
+        // first page load rather than needing a data backfill. The SAVING
+        // variant, deliberately: this is the hottest read in the app (every
+        // /budget load and every RTK Query refetch, from two devices at once),
+        // so the duplicate-key race is real here and must degrade to "someone
+        // else already created it" rather than to an HTTP 500.
+        await _envelopes.EnsureForFamilyAndSaveAsync(familyId, ct);
 
         // 1. Load reference data
         var groups = await _db.BudgetCategoryGroups
@@ -48,6 +60,97 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
             .Select(t => new TxRow(t.CategoryId, t.Amount, t.Date))
             .ToListAsync(ct);
 
+        // 2a. Accounts, their derived balances, and the Credit rows the Payment
+        //     envelopes are derived from. All three are needed by the envelope
+        //     loops below, so they are loaded before them.
+        var accountRows = await _db.BudgetAccounts
+            .Where(a => a.FamilyId == familyId)
+            .OrderBy(a => a.IsClosed).ThenBy(a => a.Type).ThenBy(a => a.SortOrder).ThenBy(a => a.Name)
+            .ToListAsync(ct);
+
+        // Derived account balances as of the END of the selected month
+        // (menunest-182). One grouped query, not one per account.
+        var balancesByAccount = (await _db.BudgetTransactions
+            .Where(t => t.FamilyId == familyId && t.Date < nextMonth)
+            .GroupBy(t => t.AccountId)
+            .Select(g => new { AccountId = g.Key, Total = g.Sum(t => t.Amount) })
+            .ToListAsync(ct))
+            .ToDictionary(x => x.AccountId, x => x.Total);
+
+        decimal DerivedBalance(Guid accountId) =>
+            balancesByAccount.TryGetValue(accountId, out var total) ? total : 0m;
+
+        // Every row on a Credit account, for the payment-envelope derivation (§4.2).
+        // Unlike allTx this keeps the UNcategorised rows — a payment and a cash
+        // advance are both uncategorised and both matter to the derivation.
+        var creditIds = accountRows
+            .Where(a => a.Type == BudgetAccountType.Credit).Select(a => a.Id).ToHashSet();
+        // Skipped entirely for a family with no Credit account — otherwise this
+        // is a guaranteed-empty round trip on the hottest read in the app.
+        var creditRowsByAccount = creditIds.Count == 0
+            ? new Dictionary<Guid, IReadOnlyList<TxRow>>()
+            : (await _db.BudgetTransactions
+                    .Where(t => t.FamilyId == familyId && t.Date < nextMonth
+                             && creditIds.Contains(t.AccountId))
+                    .Select(t => new { t.AccountId, t.CategoryId, t.Amount, t.Date })
+                    .ToListAsync(ct))
+                .GroupBy(t => t.AccountId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (IReadOnlyList<TxRow>)g
+                        .Select(t => new TxRow(t.CategoryId, t.Amount, t.Date))
+                        .ToList());
+
+        // A Payment envelope is derived from its card's rows (menunest-208), not
+        // from the assignment-plus-activity walk every other Envelope uses.
+        // CardSpending is null for an ordinary envelope; R-1 for a Payment one.
+        (decimal Available, decimal Assigned, decimal Activity, decimal? CardSpending) EnvelopeNumbers(
+            Domain.Entities.BudgetCategory cat)
+        {
+            var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
+            if (cat.PaymentForAccountId is not { } accId)
+            {
+                var catTx = allTx.Where(t => t.CategoryId == cat.Id).ToList();
+                var (available0, assignedThis0, activityThis0) =
+                    ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
+                return (available0, assignedThis0, activityThis0, null);
+            }
+
+            var assignedToDate = catAssignments.Sum(a => a.AssignedAmount);
+            var rows = creditRowsByAccount.TryGetValue(accId, out var r)
+                ? r : Array.Empty<TxRow>();
+            var available = PaymentEnvelopeMath.Available(
+                assignedToDate,
+                rows.Select(t => new PaymentEnvelopeMath.AccountTxRow(t.CategoryId, t.Amount)));
+            var assignedThis = catAssignments
+                .FirstOrDefault(a => a.Year == q.Year && a.Month == q.Month)?.AssignedAmount ?? 0m;
+            // Activity on a Payment envelope is money that left it: every
+            // uncategorised inflow to the card this month — payments, and
+            // anything else that reduces the envelope (an uncategorised merchant
+            // refund, a cashback credit). That is exactly the in-month part of
+            // the uncategorisedInflow term Available subtracts, so Activity and
+            // Available never disagree. Signed negative, like every other
+            // envelope's spending.
+            var activityThis = -rows
+                .Where(t => t.CategoryId == null && t.Amount > 0m
+                         && t.Date.Year == q.Year && t.Date.Month == q.Month)
+                .Sum(t => t.Amount);
+            // R-1: CardSpending is the term Available loses vs. Assigned+Activity
+            // for a Payment envelope — every categorised row on the card this
+            // month, negated so a purchase (a negative tx) reads as positive
+            // spending. Together with assignedThis and activityThis this is
+            // exactly the month-over-month change decomposition of
+            // PaymentEnvelopeMath.Available (assigned − categorised −
+            // uncategorisedInflow), so Available == assignedThis + cardSpendingThis
+            // + activityThis whenever there is no carried-in Available from a
+            // prior month (§4.3/R-1).
+            var cardSpendingThis = -rows
+                .Where(t => t.CategoryId != null
+                         && t.Date.Year == q.Year && t.Date.Month == q.Month)
+                .Sum(t => t.Amount);
+            return (available, assignedThis, activityThis, cardSpendingThis);
+        }
+
         // 3. Per-category: walk months and compute Available as of end of selected month,
         //    and Activity / Assigned *for* the selected month itself.
         var groupsDto = new List<EnvelopeGroupDto>();
@@ -62,18 +165,19 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
 
             foreach (var cat in categories.Where(c => c.GroupId == group.Id && !c.IsHidden))
             {
-                var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
-                var catTx = allTx.Where(t => t.CategoryId == cat.Id).ToList();
-
-                var (available, assignedThis, activityThis) =
-                    ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
+                var (available, assignedThis, activityThis, cardSpendingThis) = EnvelopeNumbers(cat);
 
                 var progress = ComputeProgress(cat, assignedThis, available, selected);
                 envelopes.Add(new EnvelopeDto(
                     cat.Id, cat.Name, cat.Emoji, cat.SortOrder, cat.IsHidden,
                     assignedThis, activityThis, available,
                     cat.TargetType, cat.TargetAmount, cat.TargetDueDate, cat.TargetDayOfMonth,
-                    progress.Fraction, progress.Hint, cat.IsEveryday));
+                    progress.Fraction, progress.Hint, cat.IsEveryday,
+                    cat.PaymentForAccountId,
+                    cat.PaymentForAccountId is { } payAcc
+                        ? PaymentEnvelopeMath.Shortfall(DerivedBalance(payAcc), available)
+                        : null,
+                    cardSpendingThis));
 
                 gAssigned += assignedThis; gActivity += activityThis; gAvailable += available;
             }
@@ -87,39 +191,49 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         }
 
         // 4. All-cats envelope available (including hidden) for RTA calculation.
-        // allTx already excludes uncategorized rows (CategoryId != null filter above),
-        // so this sums only money that landed in envelopes. Uncategorized inflows are
-        // reflected in totalAccountBalance instead.
+        // For ordinary envelopes allTx already excludes uncategorized rows
+        // (CategoryId != null filter above), so this sums only money that landed
+        // in envelopes; uncategorized inflows are reflected in totalAccountBalance
+        // instead. Payment envelopes MUST be in this sum: they are what holds a
+        // card's funded debt back, now that the card itself has left the balance.
         decimal totalEnvelopeAvailableAllCats = 0;
+        // §4.3: Available per Payment envelope's account, for the account-level
+        // Shortfall computed below — keyed by the CARD's account id, not the
+        // envelope's category id.
+        var availableByPaymentEnvelope = new Dictionary<Guid, decimal>();
+        var closedAccountIds = accountRows.Where(a => a.IsClosed).Select(a => a.Id).ToHashSet();
         foreach (var cat in categories)
         {
-            var catAssignments = allAssignments.Where(a => a.CategoryId == cat.Id).ToList();
-            var catTx          = allTx.Where(t => t.CategoryId == cat.Id).ToList();
-            var (available, _, _) = ComputeEnvelopeAvailable(catAssignments, catTx, q.Year, q.Month);
+            // menunest-210: a closed card's envelope leaves the total, which is
+            // what returns any over-funded remainder to Ready to Assign. This
+            // loop otherwise walks HIDDEN categories too (closing hides the
+            // envelope), so the exclusion has to be explicit here on top of the
+            // hide — SetHiddenForAccountClosure alone would leave the
+            // remainder locked in an envelope belonging to a card no longer in
+            // use. MonthlyAssignment rows are untouched, so reopening restores
+            // both the envelope and this sum exactly.
+            if (cat.PaymentForAccountId is { } closedAccId && closedAccountIds.Contains(closedAccId))
+                continue;
+
+            var (available, _, _, _) = EnvelopeNumbers(cat);
             totalEnvelopeAvailableAllCats += available;
+            if (cat.PaymentForAccountId is { } accId) availableByPaymentEnvelope[accId] = available;
         }
 
-        // 5a. Derived account balances as of the END of the selected month
-        //     (menunest-182). One grouped query, not one per account.
-        var balancesByAccount = (await _db.BudgetTransactions
-            .Where(t => t.FamilyId == familyId && t.Date < nextMonth)
-            .GroupBy(t => t.AccountId)
-            .Select(g => new { AccountId = g.Key, Total = g.Sum(t => t.Amount) })
-            .ToListAsync(ct))
-            .ToDictionary(x => x.AccountId, x => x.Total);
-
-        decimal DerivedBalance(Guid accountId) =>
-            balancesByAccount.TryGetValue(accountId, out var total) ? total : 0m;
-
         // 5. Total account balance.
-        var accountIds = await _db.BudgetAccounts
-            .Where(a => a.FamilyId == familyId).Select(a => a.Id).ToListAsync(ct);
-        var totalAccountBalance = accountIds.Sum(DerivedBalance);
+        // menunest-203 / menunest-206: Credit and Loan leave Ready to Assign.
+        // Their debt is held by a Payment envelope (cards) or by an ordinary
+        // Envelope the User made (loans) — counting the negative balance as well
+        // would hold the same money back twice.
+        var totalAccountBalance = accountRows
+            .Where(a => !PaymentEnvelopeMath.IsDebtType(a.Type))
+            .Sum(a => DerivedBalance(a.Id));
 
         // 6. Income = positive uncategorized inflows for the selected month.
         var income = await _db.BudgetTransactions
             .Where(t => t.FamilyId == familyId
                      && t.CategoryId == null
+                     && t.PaymentId == null      // menunest-204: paying your own card is not income
                      && t.Amount > 0m
                      && t.Date >= selected && t.Date < nextMonth)
             .SumAsync(t => (decimal?)t.Amount, ct) ?? 0m;
@@ -128,14 +242,19 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         decimal readyToAssign = totalAccountBalance - totalEnvelopeAvailableAllCats;
 
         // 7. Accounts list for the UI. DerivedBalance is a local function EF cannot
-        //    translate, so materialise the entities first and project in memory.
-        var accountRows = await _db.BudgetAccounts
-            .Where(a => a.FamilyId == familyId)
-            .OrderBy(a => a.IsClosed).ThenBy(a => a.Type).ThenBy(a => a.SortOrder).ThenBy(a => a.Name)
-            .ToListAsync(ct);
+        //    translate, so the entities were materialised at step 2a and are
+        //    projected in memory here. Every account is listed, including the
+        //    debt ones dropped from totalAccountBalance — they leave Ready to
+        //    Assign, not the UI.
+        var shortfallByAccount = accountRows
+            .Where(a => a.Type == BudgetAccountType.Credit)
+            .ToDictionary(a => a.Id, a => PaymentEnvelopeMath.Shortfall(
+                DerivedBalance(a.Id), availableByPaymentEnvelope.GetValueOrDefault(a.Id)));
+
         var accounts = accountRows
             .Select(a => new BudgetAccountDto(
-                a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed))
+                a.Id, a.Name, a.Type, DerivedBalance(a.Id), a.SortOrder, a.IsClosed,
+                shortfallByAccount.TryGetValue(a.Id, out var sf) ? sf : null))
             .ToList();
 
         // menunest-185/189: the card is current-month only, checked against

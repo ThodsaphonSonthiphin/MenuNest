@@ -5,16 +5,20 @@ import {AccountHero} from './AccountHero'
 import {AccountTransactionList} from './AccountTransactionList'
 import {TransactionDialog} from '../components/TransactionDialog'
 import {ReconcileBalanceDialog} from '../components/ReconcileBalanceDialog'
+import {PaymentDialog} from '../components/PaymentDialog'
+import {payActionWord} from '../lib/paymentLabel'
 import {TransactionUndoToast} from '../components/TransactionUndoToast'
 import {useAccountDetail} from './AccountDetailPage.hooks'
 import {useAppDispatch, useAppSelector} from '../../../store'
 import {
   api,
   useDeleteBudgetTransactionMutation,
+  useDeletePaymentMutation,
   useGetBudgetSummaryQuery,
   type BudgetTransactionDto,
 } from '../../../shared/api/api'
 import {getViewerTimeZone} from '../../../shared/utils/timeZone'
+import type {PaymentTxRow} from '../lib/paymentRows'
 
 interface PendingDelete {
   tx: BudgetTransactionDto
@@ -33,13 +37,29 @@ export function AccountDetailPage() {
   const [editing, setEditing] = useState<BudgetTransactionDto | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const [reconcileOpen, setReconcileOpen] = useState(false)
+  const [payOpen, setPayOpen] = useState(false)
   const [pending, setPending] = useState<PendingDelete | null>(null)
   const [errorToast, setErrorToast] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   const [deleteTx] = useDeleteBudgetTransactionMutation()
+  const [deletePayment] = useDeletePaymentMutation()
   const {year, month} = useAppSelector(s => s.budget)
   const {data: summary} = useGetBudgetSummaryQuery({year, month, tz: getViewerTimeZone()})
+
+  // menunest-207/212: the ONLY create-path entry point for a Loan payment.
+  // The Payment envelope card carries it for a Credit account, but menunest-206
+  // gives a Loan no envelope — so without this, `จ่ายค่างวด` is unreachable and
+  // the user falls back to a hand-written instalment, whose uncategorised
+  // positive row GetMonthlySummaryHandler counts as INCOME. That is
+  // menunest-207's rejected option C, which menunest-204 exists to remove.
+  //
+  // It lives in the ⋯ menu rather than on the account card: those tiles are
+  // stretched <Link>s, and the mock's marker 5 settled the pay action ONTO the
+  // envelope and away from the account card. A card reaching it here too is
+  // harmless — the same dialog, the same command.
+  const payAccount = summary?.accounts.find(a => a.id === accountId) ?? null
+  const canPay = payAccount?.type === 'Credit' || payAccount?.type === 'Loan'
 
   // Account-level top-bar menu outside-click handler (unchanged).
   useEffect(() => {
@@ -109,6 +129,27 @@ export function AccountDetailPage() {
     setPending({tx, timerId})
   }, [pending, commitPending, applyDelete])
 
+  // menunest-209: a payment is deleted as a PAIR, through its own route —
+  // DELETE on either leg is refused. This feed only ever holds one leg, so the
+  // undo toast (which restores a single BudgetTransaction) cannot cover it;
+  // a confirm takes its place and the row is dropped locally on success.
+  const handleDeletePayment = useCallback(async (row: PaymentTxRow) => {
+    if (!window.confirm('Delete this payment? Both halves are removed.')) return
+    try {
+      await deletePayment(row.paymentId).unwrap()
+      for (const leg of row.legs) applyDelete(leg.id)
+    } catch {
+      setErrorToast('Could not delete this payment.')
+    }
+  }, [deletePayment, applyDelete])
+
+  // Editing needs BOTH legs, and this feed is filtered to one account, so it
+  // never has them. PaymentTransactionRow disables its Edit item for exactly
+  // this reason; this is the belt-and-braces half of the same rule.
+  const handleEditPayment = useCallback(() => {
+    setErrorToast('การจ่ายต้องแก้ทั้งสองฝั่งพร้อมกัน — เปิดหน้า Transactions')
+  }, [])
+
   const handleUndo = useCallback(() => {
     if (!pending) return
     window.clearTimeout(pending.timerId)
@@ -151,6 +192,17 @@ export function AccountDetailPage() {
           >⋯</button>
           {menuOpen && (
             <div className="bdg-menu-pop">
+              {canPay && payAccount && (
+                <button
+                  type="button"
+                  className="bdg-menu-item"
+                  data-testid="bdg-menu-pay"
+                  onClick={() => { setMenuOpen(false); setPayOpen(true) }}
+                >
+                  <span className="icon">฿</span>
+                  <span>{payActionWord(payAccount.type)}</span>
+                </button>
+              )}
               <button
                 type="button"
                 className="bdg-menu-item"
@@ -181,9 +233,12 @@ export function AccountDetailPage() {
 
       <AccountTransactionList
         items={items}
+        accountType={account.type}
         endSentinelRef={endSentinelRef}
         onEdit={handleEdit}
         onDelete={handleDelete}
+        onEditPayment={handleEditPayment}
+        onDeletePayment={handleDeletePayment}
       />
 
       {!hasMore && items.length === 0 && (
@@ -213,6 +268,15 @@ export function AccountDetailPage() {
         <ReconcileBalanceDialog
           accountId={accountId}
           onClose={() => setReconcileOpen(false)}
+        />
+      )}
+
+      {payOpen && payAccount && summary && (
+        <PaymentDialog
+          toAccount={payAccount}
+          accounts={summary.accounts}
+          groups={summary.groups}
+          onClose={() => setPayOpen(false)}
         />
       )}
 

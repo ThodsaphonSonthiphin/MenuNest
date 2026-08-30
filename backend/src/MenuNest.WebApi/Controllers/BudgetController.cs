@@ -21,6 +21,9 @@ using MenuNest.Application.UseCases.Budget.Monthly.CoverOverspending;
 using MenuNest.Application.UseCases.Budget.Monthly.GetMonthlySummary;
 using MenuNest.Application.UseCases.Budget.Monthly.MoveMoney;
 using MenuNest.Application.UseCases.Budget.Monthly.SetAssignedAmount;
+using MenuNest.Application.UseCases.Budget.Payments.DeletePayment;
+using MenuNest.Application.UseCases.Budget.Payments.MakePayment;
+using MenuNest.Application.UseCases.Budget.Payments.UpdatePayment;
 using MenuNest.Application.UseCases.Budget.Transactions.CreateTransaction;
 using MenuNest.Application.UseCases.Budget.Transactions.DeleteTransaction;
 using MenuNest.Application.UseCases.Budget.Transactions.ListTransactions;
@@ -173,4 +176,26 @@ public sealed class BudgetController : ControllerBase
     [HttpDelete("transactions/{id:guid}")]
     public async Task<IActionResult> DeleteTx(Guid id, CancellationToken ct)
     { await _m.Send(new DeleteTransactionCommand(id), ct); return NoContent(); }
+
+    // ----- payments (menunest-204, menunest-207, menunest-214) -----
+    [HttpPost("payments")]
+    public async Task<ActionResult<PaymentDto>> MakePayment(
+        [FromBody] MakePaymentRequest r, CancellationToken ct) =>
+        Ok(await _m.Send(new MakePaymentCommand(
+            r.FromAccountId, r.ToAccountId, r.Amount, r.Date, r.Notes, r.TimeZoneId, r.CategoryId), ct));
+
+    // menunest-209: a payment is one row to the user — edited and deleted as a
+    // pair, never one leg. See UpdatePaymentHandler / DeletePaymentHandler.
+    [HttpPut("payments/{paymentId:guid}")]
+    public async Task<ActionResult<PaymentDto>> UpdatePayment(
+        Guid paymentId, [FromBody] UpdatePaymentRequest r, CancellationToken ct) =>
+        Ok(await _m.Send(new UpdatePaymentCommand(
+            paymentId, r.FromAccountId, r.ToAccountId, r.Amount, r.Date, r.Notes, r.CategoryId), ct));
+
+    [HttpDelete("payments/{paymentId:guid}")]
+    public async Task<IActionResult> DeletePayment(Guid paymentId, CancellationToken ct)
+    {
+        await _m.Send(new DeletePaymentCommand(paymentId), ct);
+        return NoContent();
+    }
 }

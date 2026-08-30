@@ -1,5 +1,6 @@
 using FluentAssertions;
 using MenuNest.Application.UnitTests.Support;
+using MenuNest.Application.UseCases.Budget.Accounts;
 using MenuNest.Application.UseCases.Budget.Allowance;
 using MenuNest.Application.UseCases.Budget.Monthly.GetMonthlySummary;
 using MenuNest.Domain.Entities;
@@ -13,7 +14,7 @@ public class GetMonthlySummaryDerivedBalanceTests
     private const string Bkk = "Asia/Bangkok";
 
     private static GetMonthlySummaryHandler Build(HandlerTestFixture fx) =>
-        new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db), fx.Clock);
+        new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db), new PaymentEnvelopeProvisioner(fx.Db), fx.Clock);
 
     /// <summary>
     /// July holds 30,000; August adds 22,480. Viewing July must show 30,000 —

@@ -24,7 +24,7 @@ internal static class TransactionDtoQuery
                 t.Id, t.AccountId, a.Name,
                 t.CategoryId, c != null ? c.Name : null, c != null ? c.Emoji : null,
                 t.Amount, t.Date, t.Notes,
-                t.CreatedByUserId, u.DisplayName))
+                t.CreatedByUserId, u.DisplayName, t.PaymentId))
             .FirstAsync(ct);
     }
 }

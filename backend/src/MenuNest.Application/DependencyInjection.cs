@@ -1,5 +1,6 @@
 using System.Reflection;
 using FluentValidation;
+using MenuNest.Application.UseCases.Budget.Accounts;
 using MenuNest.Application.UseCases.Budget.Allowance;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +23,7 @@ public static class DependencyInjection
 
         // Application services
         services.AddScoped<AllowanceFreezer>();
+        services.AddScoped<PaymentEnvelopeProvisioner>();
         services.AddScoped<UseCases.Budget.History.BudgetChangeRecorder>();
         services.AddScoped<UseCases.Budget.History.BudgetChangeApplier>();
 

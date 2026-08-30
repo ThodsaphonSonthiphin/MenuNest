@@ -12,6 +12,7 @@ import {
   type EnvelopeGroupDto,
 } from '../../../shared/api/api'
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
+import {transactionCategoryOptions} from '../lib/transactionCategoryOptions'
 
 type Direction = 'Expense' | 'Income'
 
@@ -85,15 +86,11 @@ export function TransactionDialog({
     .filter(a => !a.isClosed)
     .map(a => ({id: a.id, label: a.name}))
 
-  const categoryOptions = [
-    {id: UNCATEGORIZED_ID, label: '— Uncategorized —'},
-    ...groups.flatMap(g =>
-      g.categories.map(c => ({
-        id: c.categoryId,
-        label: `${c.emoji ?? '•'} ${c.name}`,
-      })),
-    ),
-  ]
+  // menunest-203: a Payment envelope is NOT offered here — categorising an
+  // ordinary transaction to one makes the money vanish from the budget. The
+  // rule and its reasoning live in lib/transactionCategoryOptions.ts, where
+  // vitest can actually reach them.
+  const categoryOptions = transactionCategoryOptions(groups, UNCATEGORIZED_ID)
 
   const onSubmit = handleSubmit(async values => {
     setErr(null)

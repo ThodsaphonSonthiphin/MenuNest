@@ -120,6 +120,9 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<Guid?>("PaymentForAccountId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -141,6 +144,10 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
+
+                    b.HasIndex("PaymentForAccountId")
+                        .IsUnique()
+                        .HasFilter("[PaymentForAccountId] IS NOT NULL");
 
                     b.HasIndex("FamilyId", "GroupId", "SortOrder");
 
@@ -268,6 +275,9 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<Guid?>("PaymentId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
@@ -278,6 +288,8 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("FamilyId", "Date");
+
+                    b.HasIndex("FamilyId", "PaymentId");
 
                     b.HasIndex("FamilyId", "CategoryId", "Date");
 
@@ -1825,6 +1837,11 @@ namespace MenuNest.Infrastructure.Persistence.Migrations
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("MenuNest.Domain.Entities.BudgetAccount", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentForAccountId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("MenuNest.Domain.Entities.BudgetCategoryGroup", b =>

@@ -1,13 +1,24 @@
 import {Fragment, useEffect, useRef, useState} from 'react'
-import type {BudgetTransactionDto} from '../../../shared/api/api'
+import type {BudgetAccountType, BudgetTransactionDto} from '../../../shared/api/api'
 import {formatTHB} from '../BudgetPage.hooks'
+import {groupPaymentLegs, type PaymentTxRow, type TxRow} from '../lib/paymentRows'
+import {PaymentTransactionRow} from '../components/PaymentTransactionRow'
 
 interface Props {
   items: BudgetTransactionDto[]
+  /**
+   * The type of the account this feed belongs to — menunest-212's action word,
+   * for a payment row whose INFLOW leg is on this very account. When only the
+   * outflow leg is here the account being paid is off-feed, and no word is
+   * guessed (see `paymentRowLabel`).
+   */
+  accountType: BudgetAccountType
   /** Sentinel for IntersectionObserver — page-end ref. Caller wires it. */
   endSentinelRef: React.RefObject<HTMLDivElement | null>
   onEdit: (tx: BudgetTransactionDto) => void
   onDelete: (tx: BudgetTransactionDto) => void
+  onEditPayment: (row: PaymentTxRow) => void
+  onDeletePayment: (row: PaymentTxRow) => void
 }
 
 function todayIso(): string {
@@ -30,13 +41,22 @@ function formatDateShort(iso: string): string {
   return `${months[m - 1]} ${d}`
 }
 
-export function AccountTransactionList({items, endSentinelRef, onEdit, onDelete}: Props) {
+export function AccountTransactionList({
+  items, accountType, endSentinelRef, onEdit, onDelete, onEditPayment, onDeletePayment,
+}: Props) {
+  // menunest-209: a payment is ONE row. This feed is filtered to a single
+  // account, so it only ever holds one leg of any payment — grouped anyway, so
+  // the row offers the payment's own controls instead of a transaction's,
+  // which the backend refuses on a leg.
+  const rows = groupPaymentLegs(items)
+
   // Bucket by Date — preserves CreatedAt DESC order within each bucket.
-  const buckets: {date: string; rows: BudgetTransactionDto[]}[] = []
-  for (const tx of items) {
+  const buckets: {date: string; rows: TxRow[]}[] = []
+  for (const row of rows) {
+    const date = row.kind === 'payment' ? row.date : row.tx.date
     const last = buckets[buckets.length - 1]
-    if (last && last.date === tx.date) last.rows.push(tx)
-    else buckets.push({date: tx.date, rows: [tx]})
+    if (last && last.date === date) last.rows.push(row)
+    else buckets.push({date, rows: [row]})
   }
 
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
@@ -66,7 +86,22 @@ export function AccountTransactionList({items, endSentinelRef, onEdit, onDelete}
       {buckets.map((b) => (
         <Fragment key={b.date}>
           <div className="bdg-tx-date-header">{dateHeaderFor(b.date)}</div>
-          {b.rows.map(tx => {
+          {b.rows.map(row => {
+            if (row.kind === 'payment') {
+              return (
+                <PaymentTransactionRow
+                  key={row.key}
+                  row={row}
+                  toAccountType={row.toLeg ? accountType : null}
+                  isOpen={openMenuId === row.key}
+                  onToggleMenu={setOpenMenuId}
+                  onEditPayment={onEditPayment}
+                  onDeletePayment={onDeletePayment}
+                  testId="bdg-tx-row"
+                />
+              )
+            }
+            const tx = row.tx
             const isOpen = openMenuId === tx.id
             return (
               <div key={tx.id} className="bdg-tx-row" data-testid="bdg-tx-row" data-tx-id={tx.id}>
