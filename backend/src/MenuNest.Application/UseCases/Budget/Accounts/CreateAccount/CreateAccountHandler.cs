@@ -60,12 +60,16 @@ public sealed class CreateAccountHandler : ICommandHandler<CreateAccountCommand,
         await _db.SaveChangesAsync(ct);
 
         // menunest-202: a Credit account is never without its Payment envelope.
-        // EnsureForFamilyAsync queries the database with LINQ, so it must run
-        // AFTER the account above is saved — it cannot see an Added-but-unsaved
-        // entity in the change tracker. A second SaveChangesAsync persists the
-        // envelope (and its group, the first time) in its own step right after.
-        await _envelopes.EnsureForFamilyAsync(familyId, ct);
-        await _db.SaveChangesAsync(ct);
+        // EnsureForFamilyAndSaveAsync queries the database with LINQ, so it
+        // must run AFTER the account above is saved — it cannot see an
+        // Added-but-unsaved entity in the change tracker. It saves itself, in
+        // its OWN SaveChangesAsync call — this is two separate units of work,
+        // not one: a failure between them leaves a Credit account without its
+        // envelope until the next summary read provisions it lazily
+        // (menunest-181's precedent). It also swallows the one concurrent-
+        // caller race that would otherwise surface as an HTTP 500 — see
+        // PaymentEnvelopeProvisioner's docstring.
+        await _envelopes.EnsureForFamilyAndSaveAsync(familyId, ct);
 
         return new BudgetAccountDto(acc.Id, acc.Name, acc.Type, acc.Balance, acc.SortOrder, acc.IsClosed);
     }
