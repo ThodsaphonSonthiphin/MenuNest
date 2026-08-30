@@ -221,6 +221,7 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         var income = await _db.BudgetTransactions
             .Where(t => t.FamilyId == familyId
                      && t.CategoryId == null
+                     && t.PaymentId == null      // menunest-204: paying your own card is not income
                      && t.Amount > 0m
                      && t.Date >= selected && t.Date < nextMonth)
             .SumAsync(t => (decimal?)t.Amount, ct) ?? 0m;
