@@ -144,13 +144,15 @@ public sealed record AccountTransactionsPageDto(
     bool HasMore
 );
 
-// ---------- Payments (menunest-204, menunest-207) ----------
+// ---------- Payments (menunest-204, menunest-207, menunest-214) ----------
 public sealed record PaymentDto(
     Guid PaymentId,
     Guid FromAccountId, string FromAccountName,
     Guid ToAccountId, string ToAccountName,
     decimal Amount, DateOnly Date, string? Notes);
 
+// CategoryId (menunest-214) is the Envelope funding the instalment — required
+// when paying a Loan, refused when paying a Credit card. See MakePaymentHandler.
 public sealed record MakePaymentRequest(
     Guid FromAccountId, Guid ToAccountId, decimal Amount,
-    DateOnly? Date, string? Notes, string? TimeZoneId);
+    DateOnly? Date, string? Notes, string? TimeZoneId, Guid? CategoryId = null);

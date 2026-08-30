@@ -90,10 +90,8 @@ public class PaymentEnvelopeDomainTests
         var userId = Guid.NewGuid();
         var date = new DateOnly(2026, 8, 30);
 
-        var outLeg = BudgetTransaction.CreatePaymentLeg(
-            famId, Guid.NewGuid(), -500m, date, null, userId, payId);
-        var inLeg = BudgetTransaction.CreatePaymentLeg(
-            famId, Guid.NewGuid(), 500m, date, null, userId, payId);
+        var outLeg = BudgetTransaction.CreatePaymentLeg(famId, Guid.NewGuid(), null, -500m, date, null, userId, payId);
+        var inLeg = BudgetTransaction.CreatePaymentLeg(famId, Guid.NewGuid(), null, 500m, date, null, userId, payId);
 
         outLeg.PaymentId.Should().Be(payId);
         inLeg.PaymentId.Should().Be(payId);

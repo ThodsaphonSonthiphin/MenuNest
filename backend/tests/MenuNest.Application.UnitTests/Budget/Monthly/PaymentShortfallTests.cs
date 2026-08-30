@@ -171,8 +171,8 @@ public class PaymentShortfallTests
         AddTx(w, w.CardId, null, -300m);         // 5. cash advance (uncategorised, negative — ignored)
         var payId = Guid.NewGuid();              // 6. pay 500
         w.Fx.Db.BudgetTransactions.AddRange(
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, D, null, w.Fx.User.Id, payId),
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, D, null, w.Fx.User.Id, payId));
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, null, -500m, D, null, w.Fx.User.Id, payId),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, null, 500m, D, null, w.Fx.User.Id, payId));
         w.Fx.Db.SaveChanges();
 
         var s = await SummaryAsync(w);
@@ -221,8 +221,8 @@ public class PaymentShortfallTests
         AddTx(w, w.CardId, w.FoodId, -400m);
         var pay1 = Guid.NewGuid();
         w.Fx.Db.BudgetTransactions.AddRange(
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -300m, D, null, w.Fx.User.Id, pay1),
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 300m, D, null, w.Fx.User.Id, pay1));
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, null, -300m, D, null, w.Fx.User.Id, pay1),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, null, 300m, D, null, w.Fx.User.Id, pay1));
         w.Fx.Db.SaveChanges();
 
         var s1 = await Build(w).Handle(new GetMonthlySummaryQuery(2026, 1, Bkk), default);
@@ -246,8 +246,8 @@ public class PaymentShortfallTests
             w.Fx.Family.Id, w.CardId, w.FoodId, -600m, feb, null, w.Fx.User.Id));
         var pay2 = Guid.NewGuid();
         w.Fx.Db.BudgetTransactions.AddRange(
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, feb, null, w.Fx.User.Id, pay2),
-            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, feb, null, w.Fx.User.Id, pay2));
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, null, -500m, feb, null, w.Fx.User.Id, pay2),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, null, 500m, feb, null, w.Fx.User.Id, pay2));
         w.Fx.Db.SaveChanges();
 
         var s2 = await Build(w).Handle(new GetMonthlySummaryQuery(2026, 2, Bkk), default);

@@ -13,15 +13,33 @@ using MenuNest.Domain.Exceptions;
 namespace MenuNest.Application.UnitTests.Budget.Payments;
 
 /// <summary>
-/// menunest-204 / menunest-207: paying a Credit or Loan account writes both
-/// legs of the payment in one <c>SaveChangesAsync</c>, spends the card's
-/// payment envelope down automatically (it is derived, never written to
-/// directly — see <see cref="Monthly.PaymentEnvelopeMath"/>), and must never
-/// be counted as Income by <see cref="GetMonthlySummaryHandler"/>.
+/// menunest-204 / menunest-207 / menunest-214: paying a Credit or Loan account
+/// writes both legs of the payment in one <c>SaveChangesAsync</c>, must never
+/// be counted as Income by <see cref="GetMonthlySummaryHandler"/>, and must
+/// leave Ready to Assign correctly accounted for on BOTH debt types:
+/// - Credit: nothing is written to the envelope; the card's Payment envelope
+///   falls by derivation (see <see cref="Monthly.PaymentEnvelopeMath"/>).
+/// - Loan: a Loan has no Payment envelope of its own (menunest-206), so the
+///   from-leg carries the ordinary Envelope that funds the instalment — see
+///   docs/adr/menunest-214-a-loan-payment-carries-the-envelope-that-funds-it.md.
 /// </summary>
 public class MakePaymentHandlerTests
 {
     private static readonly DateOnly D = new(2026, 1, 15);
+
+    private static MakePaymentHandler Handler(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object, new MakePaymentValidator(), fx.Clock);
+
+    // The handler provisions the payment envelope itself on every read
+    // (menunest-202), so nothing here has to stage one first.
+    private static GetMonthlySummaryHandler SummaryHandler(HandlerTestFixture fx) =>
+        new(fx.Db, fx.UserProvisioner.Object, new AllowanceFreezer(fx.Db),
+            new PaymentEnvelopeProvisioner(fx.Db), fx.Clock);
+
+    private static async Task<MonthlySummaryDto> SummaryAsync(HandlerTestFixture fx) =>
+        await SummaryHandler(fx).Handle(new GetMonthlySummaryQuery(2026, 1, "Asia/Bangkok"), default);
+
+    // ---------- Credit-card scenarios ----------
 
     private sealed record World(HandlerTestFixture Fx, Guid CashId, Guid CardId, Guid FoodId);
 
@@ -45,18 +63,6 @@ public class MakePaymentHandlerTests
         return new World(fx, cash.Id, card.Id, food.Id);
     }
 
-    private static MakePaymentHandler Handler(World w) =>
-        new(w.Fx.Db, w.Fx.UserProvisioner.Object, new MakePaymentValidator(), w.Fx.Clock);
-
-    // The handler provisions the payment envelope itself on every read
-    // (menunest-202), so nothing here has to stage one first.
-    private static GetMonthlySummaryHandler SummaryHandler(World w) =>
-        new(w.Fx.Db, w.Fx.UserProvisioner.Object, new AllowanceFreezer(w.Fx.Db),
-            new PaymentEnvelopeProvisioner(w.Fx.Db), w.Fx.Clock);
-
-    private static async Task<MonthlySummaryDto> SummaryAsync(World w) =>
-        await SummaryHandler(w).Handle(new GetMonthlySummaryQuery(2026, 1, "Asia/Bangkok"), default);
-
     private static void AddTx(World w, Guid accountId, Guid? categoryId, decimal amount)
     {
         w.Fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
@@ -68,7 +74,7 @@ public class MakePaymentHandlerTests
     public async Task It_writes_both_legs_with_one_shared_PaymentId()
     {
         var w = Seed(); using var _ = w.Fx;
-        var dto = await Handler(w).Handle(
+        var dto = await Handler(w.Fx).Handle(
             new MakePaymentCommand(w.CashId, w.CardId, 500m, new DateOnly(2026, 1, 20), null, "Asia/Bangkok"), default);
 
         var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == dto.PaymentId).ToList();
@@ -83,9 +89,9 @@ public class MakePaymentHandlerTests
     {
         var w = Seed(); using var _ = w.Fx;
         AddTx(w, w.CardId, w.FoodId, -500m);
-        await Handler(w).Handle(new MakePaymentCommand(w.CashId, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
+        await Handler(w.Fx).Handle(new MakePaymentCommand(w.CashId, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
 
-        var s = await SummaryAsync(w);
+        var s = await SummaryAsync(w.Fx);
         s.Groups.SelectMany(g => g.Categories).Single(e => e.PaymentForAccountId == w.CardId)
             .Available.Should().Be(0m);
         s.Accounts.Single(a => a.Id == w.CardId).Balance.Should().Be(0m);
@@ -96,45 +102,16 @@ public class MakePaymentHandlerTests
     public async Task A_payment_is_never_counted_as_Income()
     {
         var w = Seed(); using var _ = w.Fx;
-        var before = (await SummaryAsync(w)).Income;
-        await Handler(w).Handle(new MakePaymentCommand(w.CashId, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
-        (await SummaryAsync(w)).Income.Should().Be(before);
-    }
-
-    [Fact]
-    public async Task Paying_a_loan_works_the_same_way()
-    {
-        var w = Seed(); using var _ = w.Fx;
-        var loan = BudgetAccount.Create(w.Fx.Family.Id, "รถ", BudgetAccountType.Loan, -300_000m, 2);
-        w.Fx.Db.BudgetAccounts.Add(loan);
-        w.Fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
-            w.Fx.Family.Id, loan.Id, null, -300_000m, D, "Opening balance", w.Fx.User.Id));
-        w.Fx.Db.SaveChanges();
-
-        var rtaBefore = (await SummaryAsync(w)).ReadyToAssign;
-
-        var dto = await Handler(w).Handle(
-            new MakePaymentCommand(w.CashId, loan.Id, 5_000m, null, null, "Asia/Bangkok"), default);
-
-        var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == dto.PaymentId).ToList();
-        legs.Should().HaveCount(2);
-        legs.Single(l => l.AccountId == w.CashId).Amount.Should().Be(-5_000m);
-        legs.Single(l => l.AccountId == loan.Id).Amount.Should().Be(5_000m);
-        legs.Should().OnlyContain(l => l.CategoryId == null);
-
-        // A Loan has no Payment envelope (menunest-206) — its own balance
-        // never enters ReadyToAssign (menunest-203/206, IsDebtType), so the
-        // in-leg on the loan does not move RTA at all; only the out-leg on
-        // Cash (a real, RTA-bearing account) does, by the full payment amount.
-        var rtaAfter = (await SummaryAsync(w)).ReadyToAssign;
-        rtaAfter.Should().Be(rtaBefore - 5_000m);
+        var before = (await SummaryAsync(w.Fx)).Income;
+        await Handler(w.Fx).Handle(new MakePaymentCommand(w.CashId, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
+        (await SummaryAsync(w.Fx)).Income.Should().Be(before);
     }
 
     [Fact]
     public async Task Paying_INTO_a_cash_account_is_refused()
     {
         var w = Seed(); using var _ = w.Fx;
-        var act = async () => await Handler(w).Handle(
+        var act = async () => await Handler(w.Fx).Handle(
             new MakePaymentCommand(w.CardId, w.CashId, 500m, null, null, "Asia/Bangkok"), default);
         await act.Should().ThrowAsync<DomainException>().WithMessage("*Credit or Loan*");
     }
@@ -143,7 +120,7 @@ public class MakePaymentHandlerTests
     public async Task Paying_an_account_from_itself_is_refused()
     {
         var w = Seed(); using var _ = w.Fx;
-        var act = async () => await Handler(w).Handle(
+        var act = async () => await Handler(w.Fx).Handle(
             new MakePaymentCommand(w.CardId, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
         await act.Should().ThrowAsync<ValidationException>();
     }
@@ -152,11 +129,11 @@ public class MakePaymentHandlerTests
     public async Task A_zero_or_negative_amount_is_refused()
     {
         var w = Seed(); using var _ = w.Fx;
-        var zero = async () => await Handler(w).Handle(
+        var zero = async () => await Handler(w.Fx).Handle(
             new MakePaymentCommand(w.CashId, w.CardId, 0m, null, null, "Asia/Bangkok"), default);
         await zero.Should().ThrowAsync<ValidationException>();
 
-        var negative = async () => await Handler(w).Handle(
+        var negative = async () => await Handler(w.Fx).Handle(
             new MakePaymentCommand(w.CashId, w.CardId, -100m, null, null, "Asia/Bangkok"), default);
         await negative.Should().ThrowAsync<ValidationException>();
     }
@@ -178,11 +155,11 @@ public class MakePaymentHandlerTests
         w.Fx.Db.BudgetAccounts.Add(card2);
         w.Fx.Db.SaveChanges();
 
-        var sourceAvailableBefore = (await SummaryAsync(w))
+        var sourceAvailableBefore = (await SummaryAsync(w.Fx))
             .Groups.SelectMany(g => g.Categories).Single(e => e.PaymentForAccountId == card2.Id)
             .Available;
 
-        var dto = await Handler(w).Handle(
+        var dto = await Handler(w.Fx).Handle(
             new MakePaymentCommand(card2.Id, w.CardId, 500m, null, null, "Asia/Bangkok"), default);
 
         var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == dto.PaymentId).ToList();
@@ -190,11 +167,106 @@ public class MakePaymentHandlerTests
         legs.Single(l => l.AccountId == card2.Id).Amount.Should().Be(-500m);
         legs.Single(l => l.AccountId == w.CardId).Amount.Should().Be(500m);
 
-        var s = await SummaryAsync(w);
+        var s = await SummaryAsync(w.Fx);
         s.Accounts.Single(a => a.Id == card2.Id).Balance.Should().Be(-500m);
         var sourceAvailableAfter = s.Groups.SelectMany(g => g.Categories)
             .Single(e => e.PaymentForAccountId == card2.Id).Available;
         sourceAvailableAfter.Should().Be(sourceAvailableBefore,
             "the source card's own payment envelope must not move just because it paid another card");
+    }
+
+    [Fact]
+    public async Task A_card_payment_with_a_category_is_refused()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var act = async () => await Handler(w.Fx).Handle(
+            new MakePaymentCommand(w.CashId, w.CardId, 500m, null, null, "Asia/Bangkok", w.FoodId), default);
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*cannot be categorised*");
+    }
+
+    // ---------- Loan scenarios (menunest-214) ----------
+
+    private sealed record LoanWorld(HandlerTestFixture Fx, Guid CashId, Guid LoanId, Guid LoanEnvelopeId);
+
+    // Numbers match the reviewer's independently-confirmed reproduction exactly
+    // (cash 100,000 · "ผ่อนรถ" envelope 8,000 assigned/available · loan −300,000 ·
+    // RTA before = 92,000) so the fix can be checked against a known-good trace.
+    private static LoanWorld SeedLoan()
+    {
+        var fx = new HandlerTestFixture();           // Clock is 2026-01-01 UTC
+        var cash = BudgetAccount.Create(fx.Family.Id, "เงินสด", BudgetAccountType.Cash, 0m, 0);
+        var loan = BudgetAccount.Create(fx.Family.Id, "รถ", BudgetAccountType.Loan, 0m, 1);
+        fx.Db.BudgetAccounts.AddRange(cash, loan);
+
+        var group = BudgetCategoryGroup.Create(fx.Family.Id, "หนี้สิน", 0);
+        var envelope = BudgetCategory.Create(fx.Family.Id, group.Id, "ผ่อนรถ", "🚗", 0);
+        fx.Db.BudgetCategoryGroups.Add(group);
+        fx.Db.BudgetCategories.Add(envelope);
+
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, cash.Id, null, 100_000m, D, "Opening balance", fx.User.Id));
+        fx.Db.BudgetTransactions.Add(BudgetTransaction.Create(
+            fx.Family.Id, loan.Id, null, -300_000m, D, "Opening balance", fx.User.Id));
+        fx.Db.MonthlyAssignments.Add(MonthlyAssignment.Create(
+            fx.Family.Id, envelope.Id, 2026, 1, 8_000m));
+        fx.Db.SaveChanges();
+        return new LoanWorld(fx, cash.Id, loan.Id, envelope.Id);
+    }
+
+    [Fact]
+    public async Task Paying_a_loan_works_the_same_way()
+    {
+        var w = SeedLoan(); using var _ = w.Fx;
+
+        var before = await SummaryAsync(w.Fx);
+        before.ReadyToAssign.Should().Be(92_000m, "sanity check against the reviewer's confirmed trace");
+
+        var dto = await Handler(w.Fx).Handle(
+            new MakePaymentCommand(w.CashId, w.LoanId, 8_000m, null, null, "Asia/Bangkok", w.LoanEnvelopeId), default);
+
+        var legs = w.Fx.Db.BudgetTransactions.Where(t => t.PaymentId == dto.PaymentId).ToList();
+        legs.Should().HaveCount(2);
+        var outLeg = legs.Single(l => l.AccountId == w.CashId);
+        var inLeg = legs.Single(l => l.AccountId == w.LoanId);
+        outLeg.Amount.Should().Be(-8_000m);
+        inLeg.Amount.Should().Be(8_000m);
+        // menunest-214: the Envelope is on the from-leg only — the in-leg,
+        // landing on the debt account itself, is never categorised.
+        outLeg.CategoryId.Should().Be(w.LoanEnvelopeId);
+        inLeg.CategoryId.Should().BeNull();
+
+        var after = await SummaryAsync(w.Fx);
+        // The Envelope is what actually got spent — Available drops by the
+        // full instalment, to 0 (assigned 8,000 − categorised 8,000).
+        after.Groups.SelectMany(g => g.Categories).Single(e => e.CategoryId == w.LoanEnvelopeId)
+            .Available.Should().Be(0m);
+        // A Loan has no Payment envelope (menunest-206) and its own balance
+        // never enters ReadyToAssign (menunest-203/206, IsDebtType) — so RTA
+        // must be explained ENTIRELY by the from-leg's Envelope now holding
+        // the money, exactly like paying a Credit card. Symmetric with the
+        // card case: RTA is unchanged by the act of paying.
+        after.ReadyToAssign.Should().Be(before.ReadyToAssign);
+    }
+
+    [Fact]
+    public async Task A_loan_payment_without_a_category_is_refused()
+    {
+        var w = SeedLoan(); using var _ = w.Fx;
+        var act = async () => await Handler(w.Fx).Handle(
+            new MakePaymentCommand(w.CashId, w.LoanId, 8_000m, null, null, "Asia/Bangkok"), default);
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Envelope*");
+    }
+
+    [Fact]
+    public async Task A_loan_cannot_be_the_paying_account()
+    {
+        var w = SeedLoan(); using var _ = w.Fx;
+        var loan2 = BudgetAccount.Create(w.Fx.Family.Id, "บ้าน", BudgetAccountType.Loan, 0m, 2);
+        w.Fx.Db.BudgetAccounts.Add(loan2);
+        w.Fx.Db.SaveChanges();
+
+        var act = async () => await Handler(w.Fx).Handle(
+            new MakePaymentCommand(loan2.Id, w.LoanId, 1_000m, null, null, "Asia/Bangkok", w.LoanEnvelopeId), default);
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Loan account cannot be the paying account*");
     }
 }

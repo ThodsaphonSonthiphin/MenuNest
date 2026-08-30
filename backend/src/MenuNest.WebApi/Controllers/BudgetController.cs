@@ -175,10 +175,10 @@ public sealed class BudgetController : ControllerBase
     public async Task<IActionResult> DeleteTx(Guid id, CancellationToken ct)
     { await _m.Send(new DeleteTransactionCommand(id), ct); return NoContent(); }
 
-    // ----- payments (menunest-204, menunest-207) -----
+    // ----- payments (menunest-204, menunest-207, menunest-214) -----
     [HttpPost("payments")]
     public async Task<ActionResult<PaymentDto>> MakePayment(
         [FromBody] MakePaymentRequest r, CancellationToken ct) =>
         Ok(await _m.Send(new MakePaymentCommand(
-            r.FromAccountId, r.ToAccountId, r.Amount, r.Date, r.Notes, r.TimeZoneId), ct));
+            r.FromAccountId, r.ToAccountId, r.Amount, r.Date, r.Notes, r.TimeZoneId, r.CategoryId), ct));
 }
