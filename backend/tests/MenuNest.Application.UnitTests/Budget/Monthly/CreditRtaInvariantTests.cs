@@ -146,6 +146,50 @@ public class CreditRtaInvariantTests
         s.Accounts.Single(a => a.Id == w.CardId).Balance.Should().Be(-500m);
     }
 
+    /// <summary>
+    /// The composite. Every other case here drives ONE event; this one runs the
+    /// whole of spec §4.2's walk through the HANDLER, which is where
+    /// creditRowsByAccount, allTx and totalEnvelopeAvailableAllCats actually
+    /// interact. Ready to Assign must land back on the baseline.
+    /// </summary>
+    [Fact]
+    public async Task A_whole_sequence_on_one_card_leaves_it_where_it_started()
+    {
+        var w = Seed(); using var _ = w.Fx;
+        var before = await RtaAsync(w);
+
+        AddTx(w, w.CardId, null, -20_000m);      // 1. opening debt
+        AddTx(w, w.CardId, w.FoodId, -500m);     // 2. purchase
+        AddTx(w, w.CardId, w.FoodId, 500m);      // 3. refund
+        AddTx(w, w.CardId, w.FoodId, -500m);     // 4. purchase again
+        AddTx(w, w.CardId, null, -300m);         // 5. cash advance
+        var payId = Guid.NewGuid();              // 6. pay 500
+        w.Fx.Db.BudgetTransactions.AddRange(
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CashId, -500m, D, null, w.Fx.User.Id, payId),
+            BudgetTransaction.CreatePaymentLeg(w.Fx.Family.Id, w.CardId, 500m, D, null, w.Fx.User.Id, payId));
+        w.Fx.Db.SaveChanges();
+
+        var s = await SummaryAsync(w);
+        var envelopeId = w.Fx.Db.BudgetCategories
+            .Single(c => c.PaymentForAccountId == w.CardId).Id;
+        var env = s.Groups.SelectMany(g => g.Categories).Single(e => e.CategoryId == envelopeId);
+
+        // Derived by hand from spec §4.2:
+        //   Available = assigned − Σ(categorised) − Σ(uncategorised POSITIVE)
+        //   assigned              =      0   (nothing was ever assigned to it)
+        //   Σ(categorised)        = −500 + 500 − 500 = −500   (events 2, 3, 4)
+        //   Σ(uncat. positive)    = +500                       (event 6 only;
+        //                           events 1 and 5 are outflows, so unfunded debt)
+        //   Available = 0 − (−500) − 500 = 0
+        env.Available.Should().Be(0m);
+
+        // Balance = −20,000 − 500 + 500 − 500 − 300 + 500 = −20,300.
+        s.Accounts.Single(a => a.Id == w.CardId).Balance.Should().Be(-20_300m);
+
+        // 9,500 cash − (food 2,500 + payment 0) = 7,000, the baseline.
+        (await RtaAsync(w)).Should().Be(before);
+    }
+
     [Fact]
     public async Task Paying_the_card_is_the_payment_envelopes_activity()
     {

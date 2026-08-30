@@ -85,17 +85,21 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
         // advance are both uncategorised and both matter to the derivation.
         var creditIds = accountRows
             .Where(a => a.Type == BudgetAccountType.Credit).Select(a => a.Id).ToHashSet();
-        var creditRowsByAccount = (await _db.BudgetTransactions
-                .Where(t => t.FamilyId == familyId && t.Date < nextMonth
-                         && creditIds.Contains(t.AccountId))
-                .Select(t => new { t.AccountId, t.CategoryId, t.Amount, t.Date })
-                .ToListAsync(ct))
-            .GroupBy(t => t.AccountId)
-            .ToDictionary(
-                g => g.Key,
-                g => (IReadOnlyList<TxRow>)g
-                    .Select(t => new TxRow(t.CategoryId, t.Amount, t.Date))
-                    .ToList());
+        // Skipped entirely for a family with no Credit account — otherwise this
+        // is a guaranteed-empty round trip on the hottest read in the app.
+        var creditRowsByAccount = creditIds.Count == 0
+            ? new Dictionary<Guid, IReadOnlyList<TxRow>>()
+            : (await _db.BudgetTransactions
+                    .Where(t => t.FamilyId == familyId && t.Date < nextMonth
+                             && creditIds.Contains(t.AccountId))
+                    .Select(t => new { t.AccountId, t.CategoryId, t.Amount, t.Date })
+                    .ToListAsync(ct))
+                .GroupBy(t => t.AccountId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (IReadOnlyList<TxRow>)g
+                        .Select(t => new TxRow(t.CategoryId, t.Amount, t.Date))
+                        .ToList());
 
         // A Payment envelope is derived from its card's rows (menunest-208), not
         // from the assignment-plus-activity walk every other Envelope uses.
@@ -117,8 +121,13 @@ public sealed class GetMonthlySummaryHandler : IQueryHandler<GetMonthlySummaryQu
                 rows.Select(t => new PaymentEnvelopeMath.AccountTxRow(t.CategoryId, t.Amount)));
             var assignedThis = catAssignments
                 .FirstOrDefault(a => a.Year == q.Year && a.Month == q.Month)?.AssignedAmount ?? 0m;
-            // Activity on a Payment envelope is money that left it — payments made
-            // this month, signed negative like every other envelope's spending.
+            // Activity on a Payment envelope is money that left it: every
+            // uncategorised inflow to the card this month — payments, and
+            // anything else that reduces the envelope (an uncategorised merchant
+            // refund, a cashback credit). That is exactly the in-month part of
+            // the uncategorisedInflow term Available subtracts, so Activity and
+            // Available never disagree. Signed negative, like every other
+            // envelope's spending.
             var activityThis = -rows
                 .Where(t => t.CategoryId == null && t.Amount > 0m
                          && t.Date.Year == q.Year && t.Date.Month == q.Month)
