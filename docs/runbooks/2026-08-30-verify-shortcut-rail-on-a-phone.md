@@ -16,7 +16,7 @@ deployment, the bundle and the database; I do not click.
 
 ## Baseline
 
-**Re-measured 2026-08-30T08:10Z, and it had moved.** The first baseline (00:47Z) is kept below
+**Re-measured 2026-08-30T01:10Z, and it had moved.** The first baseline (00:47Z) is kept below
 it, struck through, because the difference is the point.
 
 | fact | value | measured how |
@@ -57,6 +57,27 @@ with a head, each head a current member, **1 member each**.
 
 ---
 
+### Superseded 2026-08-30T02:10Z — the #109 fix shipped
+
+The five commits were pushed and prod redeployed. **Everything above describes the build that was
+running during the test, not the one running now.**
+
+| fact | during the test | now |
+|---|---|---|
+| commit | `a821517` | **`61b0d8e`** |
+| API buildTime | `2026-08-30T00:57:06Z` | **`2026-08-30T02:08:31Z`** |
+| SPA JS bundle | `index-BnvfCauN.js` | **`index-Bx_csnJx.js`** |
+
+Workflows on `61b0d8e`: Azure Static Web Apps CI/CD **success**, backend App Service deploy
+**success**, CI **success**. Step 1 and the outcome table are updated to `61b0d8e`.
+
+**Two timestamp corrections.** Every reading I stamped `Z` between 01:10 and 02:10 was in fact
+Bangkok local time (UTC+7) written with a UTC suffix. They are corrected above. The 00:47Z
+baseline from the prior session is genuine UTC and is left alone — it is consistent with the
+API's own `buildTime` of 00:57:06Z, which came from the server rather than this machine.
+
+---
+
 ## Pre-declared assertions
 
 Stated before you act, so the after-check is a test and not an opinion.
@@ -76,7 +97,7 @@ Stated before you act, so the after-check is a test and not an opinion.
 
 ## Step 0 — The before-snapshot
 
-**Taken read-only through the MenuNest connector at 2026-08-30T08:2xZ**, not from the screen and
+**Taken read-only through the MenuNest connector at 2026-08-30T01:2xZ**, not from the screen and
 not from memory. August 2026, `Asia/Bangkok`.
 
 **Chosen Envelope: `ของใช้ในบ้าน` 🛒** (group `ใช้จ่ายประจำวัน`, id `e04efab7-…`)
@@ -85,7 +106,7 @@ not from memory. August 2026, `Asia/Bangkok`.
 |---|---|
 | **V** — its Assigned | **71.00** |
 | **R** — Ready to Assign | **2,160.81** |
-| **C** — rows in Change history | **0** — operator-counted 2026-08-30T08:4xZ. Expected: the undo engine only began recording on 2026-08-29, and no Envelope has been assigned or moved since. An empty sheet here is correct, not a fault. |
+| **C** — rows in Change history | **0** — operator-counted 2026-08-30T01:4xZ. Expected: the undo engine only began recording on 2026-08-29, and no Envelope has been assigned or moved since. An empty sheet here is correct, not a fault. |
 
 **Why this Envelope and not another.** It is the only kind with no second moving part:
 `targetType: None`, so no target bar or hint moves, and `isEveryday: false`, so the
@@ -145,7 +166,7 @@ This step exists because of the trap below. Do it first, every time.
 
 **Do:**
 1. Read the version badge. It must say **ตรงกัน**.
-2. Read the commit shown. It must be `a821517`.
+2. Read the commit shown. It must be `61b0d8e`.
 3. If either is wrong: close every tab of the app, then reopen the URL.
 4. If it is still wrong: open the page in a private/incognito window.
 
@@ -154,7 +175,7 @@ This step exists because of the trap below. Do it first, every time.
   build, and you would report a fault that was fixed yesterday.
 
 **How to verify yourself:** open https://menunest.azurewebsites.net/version in the phone
-browser. It needs no sign-in. It must show `"commit":"a821517"`. That is the API's own answer,
+browser. It needs no sign-in. It must show `"commit":"61b0d8e"`. That is the API's own answer,
 independent of anything the app shows you.
 
 **Then report:** the commit you saw.
@@ -367,7 +388,7 @@ This is the check that catches over-reach. Nothing above would fail if the rail 
 
 ## Step 4a measured — the assign landed, and nothing else moved
 
-**Measured 2026-08-30T08:5xZ through the MenuNest connector — a different channel from the UI
+**Measured 2026-08-30T01:5xZ through the MenuNest connector — a different channel from the UI
 the operator acted in.** This is measurement, not a report.
 
 | | before | after | verdict |
@@ -456,10 +477,11 @@ Write the result into this file and commit it. This file is the record; the chat
 
 | step | assertion | result | when (UTC) |
 |---|---|---|---|
-| 1 | commit is `a821517` | **ตรงกัน** — operator-reported, not independently measured (I cannot see the phone). The API side I did measure: `a821517`. | 2026-08-30T08:3xZ |
-| 2 | A1 indigo | **PASS — indigo**, operator-reported. The live stylesheet was measured separately: `.bdg-rail .e-fab.e-btn` → `background:var(--accent)`, `--accent:#4f46e5`. No pink regression. | 2026-08-30T08:3xZ |
-| 3 | A2 = 3, A3 order | **PASS** — 3 circles; bottom to top **Undo, Redo, Change history**, exactly menunest-191/192. Operator-reported. *Not reported:* whether the main button swapped to `×`. | 2026-08-30T08:4xZ |
-| 4 | A4, A5 return to V and R | **PASS — measured, not reported.** After Undo: Assigned `171.00 → 71.00` = **V**; Ready to Assign `2,060.81 → 2,160.81` = **R**; Available back to `0.00`; month totalAssigned back to `21,173.00`. Blast radius clean — every other Envelope, both accounts and the **Daily allowance** byte-identical to Step 0. **Caveat: reaching Undo required a full page reload** — see the DEFECT section. | 2026-08-30T09:0xZ |
-| 5 | A6 = C + 1 | **PASS, but only after a full reload.** C was `0`; the row appeared and Undo became pressable **only** once the page was reloaded. Operator-reported. Without the reload the sheet stayed empty indefinitely — that is the defect, not the assertion failing. | 2026-08-30T09:0xZ |
-| 7 | back to V and R | **PASS — measured.** The Step 4b Undo already restored it; no separate action was needed because Step 6 (Redo) was not reached. Budget verified at V=71.00 / R=2,160.81. | 2026-08-30T09:0xZ |
+| 1 | commit is `a821517` **at the time of the run** | **ตรงกัน** — operator-reported, not independently measured (I cannot see the phone). The API side I did measure: `a821517`. Step 1's instruction now names `61b0d8e` for the NEXT run; this row records what was actually checked, which was the older build. | 2026-08-30T01:3xZ |
+| 2 | A1 indigo | **PASS — indigo**, operator-reported. The live stylesheet was measured separately: `.bdg-rail .e-fab.e-btn` → `background:var(--accent)`, `--accent:#4f46e5`. No pink regression. | 2026-08-30T01:3xZ |
+| 3 | A2 = 3, A3 order | **PASS** — 3 circles; bottom to top **Undo, Redo, Change history**, exactly menunest-191/192. Operator-reported. *Not reported:* whether the main button swapped to `×`. | 2026-08-30T01:4xZ |
+| 4 | A4, A5 return to V and R | **PASS — measured, not reported.** After Undo: Assigned `171.00 → 71.00` = **V**; Ready to Assign `2,060.81 → 2,160.81` = **R**; Available back to `0.00`; month totalAssigned back to `21,173.00`. Blast radius clean — every other Envelope, both accounts and the **Daily allowance** byte-identical to Step 0. **Caveat: reaching Undo required a full page reload** — see the DEFECT section. | 2026-08-30T02:0xZ |
+| 5 | A6 = C + 1 | **PASS, but only after a full reload.** C was `0`; the row appeared and Undo became pressable **only** once the page was reloaded. Operator-reported. Without the reload the sheet stayed empty indefinitely — that is the defect, not the assertion failing. | 2026-08-30T02:0xZ |
+| 8 | hides on scroll, returns on stop | **PASS** — operator-reported, both halves: it hides on a downward flick and comes back on its own once scrolling stops. The timing logic is separately unit-tested (`railVisibility.test.ts`); what this confirms is that the CSS transform actually repaints it, which no automated gate here can see. | 2026-08-30T02:1xZ |
+| 7 | back to V and R | **PASS — measured.** The Step 4b Undo already restored it; no separate action was needed because Step 6 (Redo) was not reached. Budget verified at V=71.00 / R=2,160.81. | 2026-08-30T02:0xZ |
 | 9 | A7 present, A8 absent | | |
