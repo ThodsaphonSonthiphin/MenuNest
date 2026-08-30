@@ -18,6 +18,12 @@ public sealed class DeleteCategoryHandler : ICommandHandler<DeleteCategoryComman
         var cat = await _db.BudgetCategories
             .FirstOrDefaultAsync(x => x.Id == c.Id && x.FamilyId == familyId, ct)
             ?? throw new DomainException("Category not found.");
+
+        // menunest-205: it can hold money against a live debt.
+        if (cat.IsPaymentEnvelope)
+            throw new DomainException(
+                "A payment envelope cannot be deleted — close its account instead.");
+
         var hasTx = await _db.BudgetTransactions.AnyAsync(t => t.CategoryId == c.Id, ct);
         if (hasTx)
             throw new DomainException("Cannot delete category with transactions — hide it instead.");
