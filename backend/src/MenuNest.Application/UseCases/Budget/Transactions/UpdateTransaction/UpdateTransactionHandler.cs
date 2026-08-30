@@ -31,12 +31,15 @@ public sealed class UpdateTransactionHandler
             throw new DomainException(
                 "This is a payment — edit it from the payment, not one side of it.");
 
-        // Validate new category if provided.
-        if (c.CategoryId.HasValue)
+        // Validate new category if provided. menunest-203 / OrdinaryEnvelopeRule:
+        // exists, belongs to this family, and is NOT a Payment envelope. The edit
+        // path needs the clause exactly as much as the create path — re-categorising
+        // an ordinary row onto a Payment envelope makes the same money vanish, and
+        // is the easier of the two to reach by accident.
+        if (c.CategoryId is { } categoryId)
         {
-            var catOk = await _db.BudgetCategories.AnyAsync(
-                x => x.Id == c.CategoryId && x.FamilyId == familyId, ct);
-            if (!catOk) throw new DomainException("Category not found.");
+            _ = await OrdinaryEnvelopeRule.FindAsync(_db, categoryId, familyId, ct)
+                ?? throw new DomainException(OrdinaryEnvelopeRule.TransactionRefusal);
         }
 
         // Balance math:

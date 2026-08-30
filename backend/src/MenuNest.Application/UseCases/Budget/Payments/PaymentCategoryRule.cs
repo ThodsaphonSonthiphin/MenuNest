@@ -36,8 +36,10 @@ internal static class PaymentCategoryRule
         {
             if (categoryId is not { } id)
                 throw new DomainException("Paying a Loan requires an Envelope to fund it.");
-            return await db.BudgetCategories.FirstOrDefaultAsync(
-                x => x.Id == id && x.FamilyId == familyId && x.PaymentForAccountId == null, ct)
+            // The clause itself lives in OrdinaryEnvelopeRule so this rule and the
+            // ordinary transaction handlers cannot drift apart — they refuse the
+            // same thing for the same reason (menunest-203).
+            return await OrdinaryEnvelopeRule.FindAsync(db, id, familyId, ct)
                 ?? throw new DomainException(
                     "Category not found, or is a Payment envelope — a Payment envelope cannot fund another debt's payment.");
         }
