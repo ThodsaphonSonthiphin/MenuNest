@@ -257,6 +257,27 @@ public class MakePaymentHandlerTests
         await act.Should().ThrowAsync<DomainException>().WithMessage("*Envelope*");
     }
 
+    // menunest-214 review round 2: a card's own Payment envelope is derived
+    // solely from THAT card's rows (PaymentEnvelopeMath) — a categorised row
+    // elsewhere (here, the Loan's from-leg on Cash) never reaches that
+    // derivation, so funding a loan payment with one would reproduce the
+    // original defect one level down: the envelope stays pinned and RTA
+    // falls by the instalment again.
+    [Fact]
+    public async Task Paying_a_loan_with_a_cards_payment_envelope_is_refused()
+    {
+        var w = SeedLoan(); using var _ = w.Fx;
+        var card = BudgetAccount.Create(w.Fx.Family.Id, "KBank", BudgetAccountType.Credit, 0m, 2);
+        w.Fx.Db.BudgetAccounts.Add(card);
+        w.Fx.Db.SaveChanges();
+        await SummaryAsync(w.Fx); // provisions the card's Payment envelope (menunest-202)
+        var cardEnvelopeId = w.Fx.Db.BudgetCategories.Single(x => x.PaymentForAccountId == card.Id).Id;
+
+        var act = async () => await Handler(w.Fx).Handle(
+            new MakePaymentCommand(w.CashId, w.LoanId, 8_000m, null, null, "Asia/Bangkok", cardEnvelopeId), default);
+        await act.Should().ThrowAsync<DomainException>().WithMessage("*Payment envelope*");
+    }
+
     [Fact]
     public async Task A_loan_cannot_be_the_paying_account()
     {

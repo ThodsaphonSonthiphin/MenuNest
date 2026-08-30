@@ -95,8 +95,29 @@ public class PaymentEnvelopeDomainTests
 
         outLeg.PaymentId.Should().Be(payId);
         inLeg.PaymentId.Should().Be(payId);
-        outLeg.CategoryId.Should().BeNull("a payment is not spending");
-        inLeg.CategoryId.Should().BeNull("a payment is not spending");
+        // The "a payment is not spending" invariant that used to live here
+        // moved out of this factory when it gained categoryId (menunest-214) —
+        // it is now MakePaymentHandler's job to pass null for the in-leg
+        // unconditionally. All this checks now is that CreatePaymentLeg
+        // passes through whatever CategoryId its caller gave it.
+        outLeg.CategoryId.Should().BeNull("this call passed null");
+        inLeg.CategoryId.Should().BeNull("this call passed null");
+    }
+
+    // menunest-214: CreatePaymentLeg itself enforces nothing about CategoryId —
+    // it is a plain pass-through. The business rule (required for a Loan,
+    // refused for a Credit card, and refused for another debt's Payment
+    // envelope) lives entirely in MakePaymentHandler, covered in
+    // MakePaymentHandlerTests.
+    [Fact]
+    public void CreatePaymentLeg_passes_a_non_null_categoryId_through_unchanged()
+    {
+        var categoryId = Guid.NewGuid();
+        var leg = BudgetTransaction.CreatePaymentLeg(
+            Guid.NewGuid(), Guid.NewGuid(), categoryId, -8_000m,
+            new DateOnly(2026, 8, 30), null, Guid.NewGuid(), Guid.NewGuid());
+
+        leg.CategoryId.Should().Be(categoryId);
     }
 
     [Fact]
