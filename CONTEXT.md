@@ -476,18 +476,25 @@ vocabulary — **Available**, **Assigned**, **Activity**, **Target** — is stil
 glossary and belongs to the tickets that own those decisions._
 
 - **Account** — a place a **Family**'s money sits (`BudgetAccount` in code): Cash, Credit, Loan or
-  Closed. Its balance is **derived** — the sum of its **Budget transactions** up to the end of the
-  month being viewed — so a past month shows what the **Account** held *then*, not today. The stored
+  Closed. A **Credit** one is the only type that behaves differently: it is excluded from **Ready to
+  Assign** and carries a **Payment envelope** (menunest-202, menunest-203). Its balance is **derived**
+  — the sum of its **Budget transactions** up to the end of the month being viewed — so a past month shows what the **Account** held *then*, not today. The stored
   `Balance` field survives only as a fast copy of today's total, never as the truth for a past month.
   _Avoid_: wallet, bank account (only some are), balance (that is the number, not the thing).
 - **Budget transaction** — one dated, signed movement of money on an **Account** (`BudgetTransaction`).
   Negative is an outflow. It carries an **Envelope** or carries none; carrying none makes it income,
   and it lands in **Ready to Assign**. Every change to an **Account**'s money is one of these, with no
   exception for the assistant. _Avoid_: entry, payment, expense, spend (bare).
-- **Ready to Assign** — the money a **Family** holds that is in no **Envelope** yet: accounts total
-  minus everything sitting in envelopes, both measured as of the month being viewed. The target state
-  is zero. It is loud when non-zero and never blocks. _Avoid_: RTA (bare, in prose), to be budgeted,
-  unassigned, available (that is the **Envelope** number).
+- **Ready to Assign** — the money a **Family** holds that is in no **Envelope** yet: the total of its
+  **non-credit** accounts minus everything sitting in envelopes, both measured as of the month being
+  viewed. The target state is zero. It is loud when non-zero and never blocks.
+  **Credit accounts are excluded** (menunest-203): once a **Payment envelope** holds the money owed on
+  a card, counting the card's negative balance as well would hold that money back twice, and every
+  fully-budgeted card purchase would silently cut Ready to Assign by its own amount. The exclusion is
+  also what leaves **pre-budget debt** outside the budget entirely — it is neither money nor an
+  over-assignment, and it shows only as the gap between a Credit **Account**'s balance and its
+  **Payment envelope**. _Avoid_: RTA (bare, in prose), to be budgeted, unassigned, available (that is
+  the **Envelope** number).
 - **Balance correction** — the **Budget transaction** written when a **User** states an **Account**'s
   true balance and it differs from the derived one. It is the *only* way an **Account**'s money is
   corrected — the assistant posts one too, and cannot overwrite a balance silently. What it recovers
@@ -528,6 +535,30 @@ glossary and belongs to the tickets that own those decisions._
   one-tap controls know which **Envelope** is meant and a floating copy would have to ask
   (menunest-191). _Avoid_: FAB (that is the shape, not the thing), speed dial, quick actions,
   action bar, toolbar.
+- **Payment envelope (จ่ายบัตร)** — the **Envelope** bound one-to-one to a **Credit** **Account**,
+  created with it and living in its own **บัตรเครดิต** group. It holds the money set aside to pay
+  that card, and its **Available** against the **Account**'s balance is the single number that answers
+  "can I pay this bill in full?" (issue #112, menunest-202). It fills automatically: a **Budget
+  transaction** on the card that carries an **Envelope** moves that money here, so spending a budgeted
+  card purchase never leaves the payment unfunded. It is **fundable but not editable** (menunest-205):
+  assigning into it, a **Target** and **Move money** are all on — funding it by hand is the only way to
+  pay down **pre-budget debt** — while rename, regroup, delete, hide and the **Everyday envelope** mark
+  are all off. It is never spent from directly; money leaves it only through **จ่ายบัตร**
+  (menunest-204). _Avoid_: credit envelope, card envelope, payment category, debt envelope; **Envelope**
+  (bare — a Payment envelope is not one the **User** made).
+- **จ่ายบัตร** — the single action that pays a **Credit** **Account**'s bill: pick the paying
+  **Account**, give an amount, and MenuNest writes **both** **Budget transactions** as one pair — the
+  outflow on the payer and the inflow on the card — spending down the **Payment envelope**. It exists
+  because MenuNest has no transfer (a **Budget transaction** carries exactly one account), so by hand
+  the inflow would read as **Income** and half a pair would save cleanly (menunest-204).
+  _Avoid_: transfer, card payment (bare), pay off, settle.
+- **Pre-budget debt** — the part of a **Credit** **Account**'s balance that no **Budget transaction**
+  in MenuNest created: what was already on the card when the **Family** started budgeting. It sits
+  **outside** the budget — it never enters **Ready to Assign** and never enters the **Payment
+  envelope** — and is visible only as the gap between the **Account** balance and that **Envelope**
+  (menunest-203). It shrinks as the **User** assigns money into the **Payment envelope**.
+  _Avoid_: opening balance (that is the **Budget transaction** that records it), starting debt,
+  legacy balance, carried balance.
 - **Change history** — the third slot of the **Shortcut rail**: the list of the **User**'s recent
   undoable acts on the budget. It is **not** the transaction list on `/budget/transactions`, which
   holds only **Budget transactions** — assigning, moving money and covering overspending appear in
