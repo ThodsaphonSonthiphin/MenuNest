@@ -363,6 +363,14 @@ export const createBudgetMocks = (page: Page, capture: RequestCapture) => {
           json: { account: { ...acct, monthInflow: 0, monthOutflow: 0 }, items: [], hasMore: false },
         })
       })
+      // menunest-215: the monthly money-movement writes return 204 and the SPA
+      // re-fetches through invalidatesTags. Recorded, so a spec can assert the
+      // BODY — which is the only place `fromCategoryId: null` (cover from Ready
+      // to Assign) is observable from outside.
+      await page.route(/\/api\/budget\/monthly\/(cover|move)$/, async (route, request) => {
+        await recordRequest(route, request, capture)
+        await route.fulfill({ status: 204, body: '' })
+      })
       await page.route(/\/api\/budget\/payments(\?|$)/, async (route, request) => {
         await recordRequest(route, request, capture)
         if (request.method() === 'POST') {

@@ -245,6 +245,23 @@ public class BudgetToolsTests
         _mediator.Verify(m => m.Send(It.Is<CoverOverspendingCommand>(c => c.OverspentCategoryId == overspentId && c.FromCategoryId == fromId && c.Amount == 200m), It.IsAny<CancellationToken>()), Times.Once);
     }
 
+    /// <summary>
+    /// menunest-215: a null source means Ready to Assign. The null has to reach
+    /// the command AS null — a Guid.Empty here is what the validator refuses,
+    /// so a tool that defaulted the parameter instead of forwarding it would
+    /// fail every "cover it from the money I haven't budgeted yet" request.
+    /// </summary>
+    [Fact]
+    public async Task cover_overspending_forwards_a_null_source_as_a_cover_from_ready_to_assign()
+    {
+        var overspentId = Guid.NewGuid();
+        _mediator
+            .Setup(m => m.Send(It.Is<CoverOverspendingCommand>(c => c.OverspentCategoryId == overspentId && c.FromCategoryId == null && c.Amount == 110m), It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<Unit>(Unit.Value));
+        await _sut.cover_overspending(overspentId, null, 2026, 8, 110m, Tz, CancellationToken.None);
+        _mediator.Verify(m => m.Send(It.Is<CoverOverspendingCommand>(c => c.FromCategoryId == null && c.OverspentCategoryId == overspentId && c.Amount == 110m), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
     // ── Transactions ──────────────────────────────────────────────────────────
 
     [Fact]
