@@ -6,7 +6,13 @@ public sealed class CoverOverspendingValidator : AbstractValidator<CoverOverspen
 {
     public CoverOverspendingValidator()
     {
-        RuleFor(x => x.FromCategoryId).NotEmpty();
+        // menunest-215: a NULL source means Ready to Assign and is legal. An
+        // explicitly EMPTY Guid is not — that is a caller that meant to name an
+        // envelope and sent nothing, and letting it through would silently
+        // create money out of the derived figure instead of failing loudly.
+        RuleFor(x => x.FromCategoryId)
+            .Must(id => id != Guid.Empty)
+            .WithMessage("Source category must be a real envelope, or null for Ready to Assign.");
         RuleFor(x => x.OverspentCategoryId).NotEmpty()
             .Must((cmd, overspent) => overspent != cmd.FromCategoryId)
             .WithMessage("Source and overspent category must differ.");

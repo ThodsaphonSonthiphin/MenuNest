@@ -107,7 +107,12 @@ export function EnvelopeList({summary}: {summary: MonthlySummaryDto}) {
         <MoveMoneyDialog from={moveFrom} groups={summary.groups} onClose={() => setMoveFrom(null)} />
       )}
       {coverFor && (
-        <CoverOverspendingDialog overspent={coverFor} groups={summary.groups} onClose={() => setCoverFor(null)} />
+        <CoverOverspendingDialog
+          overspent={coverFor}
+          groups={summary.groups}
+          readyToAssign={summary.readyToAssign}
+          onClose={() => setCoverFor(null)}
+        />
       )}
       {addCatGroupId && (
         <AddCategoryDialog
