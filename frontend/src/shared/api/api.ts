@@ -599,7 +599,9 @@ export interface MoveMoneyRequest {
 
 export interface CoverOverspendingRequest {
     overspentCategoryId: string
-    fromCategoryId: string
+    // menunest-215: null covers from Ready to Assign, which owns no envelope
+    // row — the server then increments the overspent envelope alone.
+    fromCategoryId: string | null
     year: number
     month: number
     amount: number

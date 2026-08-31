@@ -205,10 +205,10 @@ public sealed class BudgetTools(IMediator mediator)
         CancellationToken ct)
         => await mediator.Send(new MoveMoneyCommand(fromCategoryId, toCategoryId, year, month, amount, timeZoneId), ct);
 
-    [McpServerTool, Description("Cover overspending in a category by pulling funds from another category")]
+    [McpServerTool, Description("Cover overspending in a category by pulling funds from another category, or from Ready to Assign when no source category is given")]
     public async Task cover_overspending(
         [Description("Overspent category ID that needs to be covered")] Guid overspentCategoryId,
-        [Description("Source category ID to take funds from")] Guid fromCategoryId,
+        [Description("Source category ID to take funds from. Pass null to cover from Ready to Assign — the money not yet placed in any envelope.")] Guid? fromCategoryId,
         [Description("Year")] int year,
         [Description("Month 1–12")] int month,
         [Description("Amount to cover")] decimal amount,
