@@ -12,6 +12,7 @@ import {
 import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {getViewerTimeZone} from '../../../shared/utils/timeZone'
 import {formatTHB} from '../BudgetPage.hooks'
+import {coverSourceOptions, toFromCategoryId} from '../lib/coverSourceOptions'
 
 interface FormValues {
   fromCategoryId: string
@@ -19,14 +20,16 @@ interface FormValues {
 }
 
 /**
- * Cover Overspending dialog — pulls positive "available" from another
- * envelope to zero out a negative envelope. Shares the same shape as
- * `MoveMoneyDialog`, but the source dropdown is filtered to categories
- * with `available > 0`, and the amount pre-fills with the overspent magnitude.
+ * Cover Overspending dialog — pulls money into a negative envelope to zero it
+ * out. Shares the same shape as `MoveMoneyDialog`, but the amount pre-fills
+ * with the overspent magnitude and the source list is built by
+ * `coverSourceOptions`: Ready to Assign first when it holds money
+ * (menunest-215 / #115), then every other envelope with spare cash.
  */
-export function CoverOverspendingDialog({overspent, groups, onClose}: {
+export function CoverOverspendingDialog({overspent, groups, readyToAssign, onClose}: {
   overspent: EnvelopeDto
   groups: EnvelopeGroupDto[]
+  readyToAssign: number
   onClose: () => void
 }) {
   const {year, month} = useAppSelector(s => s.budget)
@@ -38,20 +41,14 @@ export function CoverOverspendingDialog({overspent, groups, onClose}: {
     defaultValues: {fromCategoryId: '', amount: defaultAmount},
   })
 
-  const options = groups
-    .flatMap(g => g.categories)
-    .filter(c => c.categoryId !== overspent.categoryId && c.available > 0)
-    .map(c => ({
-      id: c.categoryId,
-      label: `${c.emoji ?? '•'} ${c.name} (${formatTHB(c.available)})`,
-    }))
+  const options = coverSourceOptions(groups, overspent, readyToAssign)
 
   const onSubmit = handleSubmit(async values => {
     setErr(null)
     try {
       await cover({
         overspentCategoryId: overspent.categoryId,
-        fromCategoryId: values.fromCategoryId,
+        fromCategoryId: toFromCategoryId(values.fromCategoryId),
         year,
         month,
         amount: Number(values.amount),
@@ -89,7 +86,7 @@ export function CoverOverspendingDialog({overspent, groups, onClose}: {
                 value={field.value || null}
                 placeholder={
                   options.length === 0
-                    ? 'No categories with available money'
+                    ? 'No unassigned money and no envelope with cash to spare'
                     : 'Pick source…'
                 }
                 disabled={options.length === 0}
