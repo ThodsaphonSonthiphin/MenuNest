@@ -132,8 +132,12 @@ public sealed record SetAssignedRequest(
     Guid CategoryId, int Year, int Month, decimal Amount, string? TimeZoneId, Guid? BatchId);
 public sealed record MoveMoneyRequest(
     Guid FromCategoryId, Guid ToCategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
+/// <summary>
+/// menunest-215: <paramref name="FromCategoryId"/> is null when the cover comes
+/// from Ready to Assign rather than from another envelope.
+/// </summary>
 public sealed record CoverOverspendingRequest(
-    Guid OverspentCategoryId, Guid FromCategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
+    Guid OverspentCategoryId, Guid? FromCategoryId, int Year, int Month, decimal Amount, string? TimeZoneId);
 
 // ---------- Account detail (transactions feed) ----------
 public sealed record AccountSummaryDto(
