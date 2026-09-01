@@ -30,6 +30,11 @@ An ordinary member of a two-person family opens Change history, or presses the s
 - The fix only ever NARROWS what is offered, so no existing test should turn red: every case in `ListChangesHandlerTests` calls as `fx.User`, who created the family and is therefore its head, and `budget.shortcut-rail.spec.ts` asserts one Undo and one Redo against a fixture whose rows are all `user-1`'s.
 - Prod is dormant on this: 2 families, 1 member each, measured by direct SQL on 2026-08-29. Nothing is broken for a live user today and nothing will be until a second person joins. That sets the urgency, not the correctness.
 - The sibling issue #107 (the head role has no UI) is NOT on this map. It is a separate ticket with its own screen work, and this map depends on none of it - `Family.HeadUserId` is already populated and already read by both handlers.
+- EVERY decision on this map is now closed and menunest-216 holds all four. `fix-and-verify` is the only ticket left and it is unblocked. Read menunest-197, menunest-198, menunest-201, then menunest-216, and the change is fully specified.
+- SUPERSEDES the note above that said the fix is "one handler, one DTO comment, two SPA comments". menunest-216's redo answer moves `RedoChangeHandler`'s own check from `change.UserId` to `change.UndoneByUserId` and rewords its message, so the change touches TWO handlers plus a new CSS class. Still no migration and no new `DbSet`. The earlier line stays because chart is additive and never deletes.
+- The rule that came out of grilling is one sentence and it is smaller than the four questions were: **you may reverse what you did, and the head may reverse anyone's.** Undo reverses an authoring so it reads `UserId`; redo reverses an undoing so it reads `UndoneByUserId`. The issue's suggested formula governed both on `UserId`, which would have left the head's undo redoable by its author.
+- The DTO ends up with FOUR fields, not two: `CanUndo`, `CanRedo`, `IsDead`, `BlockedReason`. `IsDead` exists solely so the SPA can tell menunest-197's permanent case from a temporary one WITHOUT matching the reason string, which ADR-145 forbids. It is not decoration - without it the chosen row treatment is not implementable.
+- ADR-145's gap is now confirmed as deliberate rather than merely unnoticed: `BlockedReason` is English inside a Thai sheet because ADR-145 rules on THROWN messages and a DTO display field is not one. A later session finding that odd should read menunest-216 §5 before "fixing" it.
 <!-- decision-map:notes:end -->
 
 ## Milestones
@@ -43,13 +48,18 @@ An ordinary member of a two-person family opens Change history, or presses the s
 <!-- decision-map:decisions:start -->
 #### two-member-safe — an ordinary member is never offered a control that will fail, and the head still sees every one enabled
 
+- [A row you may not undo - does it look like a dead row, what does it say, and in which language?](tickets/blocked-row-treatment.md) — A not-yours row keeps full strength with its button disabled and a MUTED reason line — greying stays reserved for menunest-197's permanent dead row. The reason names the head, not the author, and stays English, confirming the ADR-145 gap as deliberate.
 - [What does `canUndo` mean today, who reads it, and what exactly does a second member break?](tickets/canundo-consumers-audit.md) — Three SPA consumers trust one flag; the head check already exists twice server-side so the fix is a third copy, no migration. Two things the issue does not mention: "dead" and "not yours" render identically, and a member can already redo what the head undid.
+- [The rail's Undo will start reaching PAST another member's newer change - is that right?](tickets/rail-reach-past.md) — Reach past, chosen not inherited: the rail always undoes the newest thing YOU may undo, and says nothing about the colleague's newer row it stepped over. menunest-197's accepted rough edge was priced for a RARE case and does not cover this one.
+- [Is redo the same rule as undo, and may a member redo what the family head undid?](tickets/redo-symmetry.md) — The head's undo STICKS. Undo is governed by who AUTHORED the change, redo by who UNDID it — both widening to the head. The flag splits into CanUndo + CanRedo, and RedoChangeHandler's own check moves to UndoneByUserId.
 <!-- decision-map:decisions:end -->
 
 ## Not yet specified
 
 <!-- decision-map:fog:start -->
 - Whether the head should be told that a member tried to undo their change and was refused - nothing anywhere records a refused attempt today, and menunest-201's push notification fires only on a completed undo.
+- Whether the AUTHOR is told when the head's undo blocks their redo. `UndoChangeHandler` push-notifies the author when someone else undoes their work; menunest-216 gives that undo permanence and adds no notice in the other direction, so the author presses ทำซ้ำ, finds it disabled, and learns the rule from a sentence. Named by `redo-symmetry` and deliberately left.
+- Whether a member should be able to ASK the head to undo something - the fix makes "you may not" clear and offers no next step. Nothing in the app has a request-to-a-person shape today.
 - Whether `BlockedReason` should become a code rather than a sentence, so the SPA composes the copy. ADR-145 rejected exactly that (an error-code contract in ProblemDetails) as new cross-cutting infrastructure - but it rejected it for THROWN messages, and a DTO field is a much smaller surface. Named here so `blocked-row-treatment` can decline it deliberately rather than by not noticing.
 - Whether the family head badge that #107 will add should also appear on a Change history row, so a member can see WHO the "or the family head" in a blocked reason actually is. Neither map owns this.
 - How this interacts with a member LEAVING the family. `Family.HeadUserId` can point at a former member, and menunest-201's `LeaveFamily` guard only stops the head from leaving while others remain - it says nothing about the rows an ordinary member leaves behind, which would become undoable by nobody but the head.

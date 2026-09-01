@@ -24,16 +24,43 @@ graph TD
 ```
 <!-- decision-map:graph:end -->
 
-## The shape, as far as the audit settles it
+## The shape, now that the three grillings are closed
 
-- `ListChangesHandler.cs:19` stops discarding the caller; read `Family.HeadUserId` **once**
-  outside the row loop, not per row.
-- `CanUndo = !gone && (r.UserId == user.Id || user.Id == headUserId)`, with the two blocked
-  cases producing different `BlockedReason`s. Order matters: a deleted Envelope on somebody
-  else's row should say the Envelope thing, because that one is true for the head too.
-- One handler, one DTO comment, two SPA comments. **No migration, no new endpoint, no new
-  `DbSet`** — so CLAUDE.md's four-implementer rule and its manual-migration rule are both
-  inert here. Say that in the commit body so a reviewer does not go looking.
+Everything below is specified by **menunest-216**. Read it before starting; this section is
+its build list, not a second source of truth.
+
+**`ListChangesHandler`** — stop discarding the caller at line 19; read `Family.HeadUserId`
+**once** outside the row loop, not per row. Then per row:
+
+```
+isHead   = user.Id == headUserId
+IsDead   = gone                                            // menunest-197, unchanged
+CanUndo  = !gone && !r.IsUndone && (r.UserId == user.Id         || isHead)
+CanRedo  = !gone &&  r.IsUndone && (r.UndoneByUserId == user.Id || isHead)
+```
+
+Order the reasons: a deleted Envelope on somebody else's row says the **Envelope** thing,
+because that one is true for the head too.
+
+**`RedoChangeHandler`** — its check moves from `change.UserId` to `change.UndoneByUserId`,
+and its message is reworded: *"You can only redo your own changes."* stops being true of the
+rule it now enforces. This is a real behaviour change, not a DTO one, and it is the part of
+the build most easily missed.
+
+**`BudgetChangeDto`** — `CanUndo`, `CanRedo`, `IsDead`, `BlockedReason`. `IsDead` is what
+lets the SPA tell permanent from temporary without matching the reason string, which ADR-145
+forbids. Mirror all four into `api.ts`.
+
+**`ChangeHistorySheet`** — `is-dead` hangs off `isDead` alone; the undo button off `canUndo`,
+the redo button off `canRedo`. New `.bdg-history-note` in `var(--text-muted)` for a
+not-yours reason, beside the existing `.bdg-history-blocked` in `var(--red)`.
+
+**`latestUndoable.ts`** — `latestRedoable` reads `canRedo`. `latestUndoable` is unchanged;
+its reach-past behaviour is accepted (menunest-216 §6) and needs a test, not a fix.
+
+**No migration, no new endpoint, no new `DbSet`** — CLAUDE.md's four-implementer rule and its
+manual-migration rule are both inert here. Say so in the commit body so a reviewer does not
+go looking.
 
 ## Coverage owed
 
@@ -43,14 +70,20 @@ graph TD
   seeds `other` and `third` and repoints `fx.UserProvisioner`. **Trap:** `fx.User` created the
   family and is therefore the head, so a test that does not repoint the provisioner is
   silently testing the head and will pass either way.
+- **Backend, the redo rule** — the loop that no longer closes: the head undoes the member's
+  change, the member gets `canRedo:false` on it, and a redo call throws. The head still gets
+  `canRedo:true`. This is the case the issue does not ask for and menunest-216 §2 requires.
 - **Frontend e2e, required by CLAUDE.md** — vitest runs in `environment: 'node'` with no DOM,
   so nothing but Playwright can see a greyed row or a disabled button. Add a foreign blocked
   row to the fixture at `frontend/e2e/helpers/mockRoutes/budgetRoutes.ts:179-212` and assert
-  the treatment `blocked-row-treatment` chooses. The fixture already names a second member
-  (`undoneByDisplayName: 'มาลี'`), so it does not have to invent one.
+  **both** treatments: a dead row carries `is-dead`, a not-yours row does **not**. That
+  distinction is the whole of `blocked-row-treatment` and it is invisible to every other gate.
+  The fixture already names a second member (`undoneByDisplayName: 'มาลี'`), so it does not
+  have to invent one.
 - **`latestUndoable`** — a pure lib module with a real vitest suite already
-  (`latestUndoable.test.ts`), so whatever `rail-reach-past` decides is unit-testable there
-  regardless of which way it goes.
+  (`latestUndoable.test.ts`). Two cases owed: `latestRedoable` reads `canRedo`, and
+  `latestUndoable` skips a foreign newer row to arm on an older own one — the accepted
+  reach-past behaviour, pinned so a later reader does not "fix" it.
 - **Regression** — nothing existing should turn red, because the fix only narrows: every
   `ListChangesHandlerTests` case calls as the head, and `budget.shortcut-rail.spec.ts` runs on
   a fixture whose rows all belong to `user-1`. A red test here means the change went wider
@@ -66,12 +99,11 @@ second person joins is the end-to-end article: a real member seeing a real disab
 Decide with the user whether that is a release gate or a note on the issue. It should not
 silently become the reason the fix waits.
 
-## Is an ADR owed?
+## The ADR is written
 
-Probably yes, and small — this changes what `CanUndo` *means*, which two shipped ADRs
-(menunest-197, menunest-198) both document from their own side, and a later reader hitting the
-flag needs one place that says it now carries both rules. Mint the number per CLAUDE.md's
-global-max scan and name it `menunest-<n>-<slug>.md`.
+`docs/adr/menunest-216-canundo-carries-both-rules-and-redo-belongs-to-whoever-undid-it.md`.
+Number minted 2026-09-01 against a global max of 215. It holds all four answers and their
+rejected options; this ticket holds only the build list.
 
 ## Commit and ship notes
 

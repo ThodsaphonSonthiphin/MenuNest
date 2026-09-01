@@ -2,10 +2,10 @@
 title: A row you may not undo - does it look like a dead row, what does it say, and in which language?
 type: grilling
 mode: HITL
-status: open
-assignee:
+status: closed
+assignee: blocked-row-treatment-108
 blocked_by: [canundo-consumers-audit]
-gist:
+gist: A not-yours row keeps full strength with its button disabled and a MUTED reason line - greying stays reserved for menunest-197's permanent dead row. The reason names the head, not the author, and stays English, confirming the ADR-145 gap as deliberate.
 ---
 
 ## Question
@@ -66,3 +66,57 @@ graph TD
 | English sentence, like today | nothing. An English line under a Thai row, twice instead of once. |
 | Thai sentence on the DTO | nothing mechanically — but Thai UI copy now lives in the Application layer, which is the thing ADR-145 refused for exceptions. |
 | Code + Thai in the SPA | a `BlockedReason` enum, a switch in `ChangeHistorySheet`, and menunest-197's existing sentence retrofitted. Small, but it makes the DTO a contract the SPA must keep in step. |
+
+<!-- decision-map:resolution:start -->
+## Resolution
+
+A not-yours row keeps full strength with its button disabled and a MUTED reason line —
+greying stays reserved for menunest-197's permanent dead row. The reason names the head, not
+the author, and stays English, confirming the ADR-145 gap as deliberate.
+
+Detail: `docs/adr/menunest-216-canundo-carries-both-rules-and-redo-belongs-to-whoever-undid-it.md`
+
+```mermaid
+flowchart TD
+    ROW["A row you cannot press"]
+    ROW --> D1["Envelope DELETED (IsDead)"]
+    ROW --> D2["Not yours"]
+
+    D1 --> T1["opacity .55 + var(--red) reason<br/>menunest-197's treatment, unchanged"]
+    D2 --> T2["FULL strength, button disabled,<br/>var(--text-muted) reason"]
+
+    T1 --> W1["permanent - true for EVERYONE,<br/>including the head"]
+    T2 --> W2["temporary - FALSE for the head,<br/>and false for you the moment<br/>the role is handed over"]
+
+    style T1 fill:#fee2e2,stroke:#dc2626
+    style T2 fill:#dcfce7,stroke:#16a34a
+```
+
+## The three answers
+
+**Treatment — its own, quieter one.** `.is-dead` at `opacity:.55` now hangs off `IsDead`
+alone, never off "you may not act". A not-yours row renders normally with its button
+disabled and a reason line in `var(--text-muted)` — a new `.bdg-history-note`, not
+`.bdg-history-blocked`'s `var(--red)`. Red is an alarm; being asked not to touch somebody
+else's money is not one.
+
+**Copy — name the head, not the author.** The row already prints `{r.userDisplayName}` one
+line above, so repeating it would be the second time the sheet says the same name in three
+lines. *"Only the family head can undo someone else's change."* The member currently has no
+way to identify who that is — #107 has not shipped the badge — and that is a gap in #107, not
+a reason to write a worse sentence here. It is on the map's fog.
+
+**Language — English, as today.** ADR-145 was read and found genuinely not to cover this: it
+rules on messages **thrown** from the backend, and `BlockedReason` is display copy on a DTO
+that nothing throws. The gap is now confirmed as deliberate rather than left ambiguous. The
+code-plus-Thai option was declined on the cost named in the ticket's own table — it makes the
+DTO a contract the SPA must keep in step, for two sentences.
+
+## What this hands on
+
+- `fix-and-verify` inherits a **new CSS class**, and CLAUDE.md is explicit that neither `tsc`,
+  `npm run build` nor vitest can see whether it renders. The Playwright assertion is not
+  optional here — it is the only gate that can tell a muted line from a red one.
+- `IsDead` on the DTO is what makes this decidable at all: without it the SPA would have to
+  infer permanence from the reason **string**, which ADR-145 forbids.
+<!-- decision-map:resolution:end -->

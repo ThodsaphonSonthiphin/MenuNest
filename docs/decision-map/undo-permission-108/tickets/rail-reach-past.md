@@ -2,10 +2,10 @@
 title: The rail's Undo will start reaching PAST another member's newer change - is that right?
 type: grilling
 mode: HITL
-status: open
-assignee:
+status: closed
+assignee: rail-reach-past-108
 blocked_by: [canundo-consumers-audit]
-gist:
+gist: Reach past, chosen not inherited - the rail always undoes the newest thing YOU may undo, and says nothing about the colleague's newer row it stepped over. menunest-197's accepted rough edge was priced for a RARE case and does not cover this one.
 ---
 
 ## Question
@@ -68,3 +68,63 @@ There is no option here that makes the two experiences the same.
   stated price
 - There is no toast system: `docs/decision-map/trip-crud-50/tickets/delete-ux.md` records
   *"there is no shared toast system"* as the reason a delete gets no confirmation message
+
+<!-- decision-map:resolution:start -->
+## Resolution
+
+Reach past, chosen not inherited — the rail always undoes the newest thing *you* may undo,
+and says nothing about the colleague's newer row it stepped over. menunest-197's accepted
+rough edge was priced for a RARE case and does not cover this one.
+
+Detail: `docs/adr/menunest-216-canundo-carries-both-rules-and-redo-belongs-to-whoever-undid-it.md`
+
+```mermaid
+flowchart TD
+    R["latestUndoable: newest row with<br/>!isUndone && canUndo"]
+    R --> HEAD["HEAD: every row is theirs.<br/>Behaves exactly as today.<br/>This decision cannot touch them."]
+    R --> MEM["ORDINARY MEMBER: skips มาลี's ฿500<br/>from an hour ago, arms on MY ฿300<br/>from yesterday"]
+
+    MEM --> OK["ACCEPTED: never fails, never explains"]
+    MEM -.->|rejected| X1["Stop at the newest row:<br/>honest, but the rail goes dark whenever<br/>a colleague is active - often, in a<br/>two-person family"]
+    MEM -.->|rejected| X2["Say what it did:<br/>needs a surface this app does not have -<br/>there is no shared toast system"]
+
+    style OK fill:#dcfce7,stroke:#16a34a
+    style MEM fill:#fef3c7,stroke:#d97706
+```
+
+## Why "free with the fix" was still put to a decision
+
+The issue says `latestUndoable` "needs no change", and that is true of the code. It is not
+true of the behaviour: the rail starts skipping rows it never skipped, for a reason nobody had
+chosen. Taking it as settled because the diff is empty is how a behaviour change ships
+unowned.
+
+It was put with its cost named — press Undo, reverse something from two days ago, no
+indication the newest change was passed over — and the answer stood.
+
+## menunest-197's acceptance does not stretch this far, and the ADR says so
+
+menunest-197 accepted on the record that the rail's Undo "can look pressable and then refuse",
+because making it look dead would mean the budget page carrying the top history row's state.
+It priced that against a case it called **rare**: create-Envelope, assign and delete-Envelope
+inside seven days and one month.
+
+Roughly half the rows in a two-member family are somebody else's. Whatever menunest-197
+bought, it did not buy this — so menunest-216 records the acceptance again, on its own
+evidence, rather than inheriting a price quoted for a different thing.
+
+## The asymmetry, stated because no option removes it
+
+The head is unaffected by every option here: every row is theirs to undo, so their rail
+behaves today, tomorrow and after the fix exactly the same. This decision only ever changes
+what an **ordinary member** gets. There was no option on the table that made the two
+experiences the same, and pretending otherwise would have been the wrong frame to decide in.
+
+## What this hands on
+
+- `fix-and-verify` changes `latestRedoable` to read `canRedo` (per `redo-symmetry`) and
+  `latestUndoable` not at all. Both are pure lib functions with a real vitest suite, so the
+  reach-past behaviour is unit-testable — add the case where the newest row is a foreign one.
+- No new surface, no toast, no state on the budget page. This decision's whole cost is a test
+  and a sentence in the ADR.
+<!-- decision-map:resolution:end -->

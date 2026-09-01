@@ -2,10 +2,10 @@
 title: Is redo the same rule as undo, and may a member redo what the family head undid?
 type: grilling
 mode: HITL
-status: open
-assignee:
+status: closed
+assignee: redo-symmetry-108
 blocked_by: [canundo-consumers-audit]
-gist:
+gist: The head's undo STICKS. Undo is governed by who AUTHORED the change, redo by who UNDID it - both widening to the head. The flag splits into CanUndo + CanRedo, and RedoChangeHandler's own check moves to UndoneByUserId.
 ---
 
 ## Question
@@ -67,3 +67,74 @@ default.
 - `UndoChangeHandler.cs:52-75` — the author is push-notified when someone else undoes their
   work. There is no equivalent notice when someone redoes over the head, which the answer here
   may or may not want to change.
+
+<!-- decision-map:resolution:start -->
+## Resolution
+
+The head's undo **sticks**. Undo is governed by who AUTHORED the change, redo by who UNDID
+it — both widening to the head. The flag splits into `CanUndo` + `CanRedo`, and
+`RedoChangeHandler`'s own check moves from `change.UserId` to `change.UndoneByUserId`.
+
+Detail: `docs/adr/menunest-216-canundo-carries-both-rules-and-redo-belongs-to-whoever-undid-it.md`
+
+```mermaid
+flowchart TD
+    RULE["You may reverse what YOU did.<br/>The head may reverse anyone's."]
+    RULE --> U["UNDO governed by<br/>row.UserId - who authored it"]
+    RULE --> R["REDO governed by<br/>row.UndoneByUserId - who undid it"]
+
+    OLD["Issue's formula: BOTH on row.UserId"]
+    OLD --> LOOP["head undoes my change<br/>-> row is still MINE<br/>-> I redo it<br/>-> head undoes it again"]
+    LOOP --> DEAD["the head's one power lasts<br/>until the author presses ทำซ้ำ"]
+
+    style RULE fill:#dcfce7,stroke:#16a34a
+    style DEAD fill:#fee2e2,stroke:#dc2626
+```
+
+## The rule that came out of it is smaller than the question
+
+The ticket asked two things and the answer collapses them into one sentence: **you may
+reverse what you did, and the head may reverse anyone's.** Undo reverses an authoring, so it
+reads `UserId`; redo reverses an undoing, so it reads `UndoneByUserId`. The head's widening
+applies to both, unchanged.
+
+`BudgetChange.UndoneByUserId` is already stored, already projected into the DTO as
+`UndoneByDisplayName`, and already written by `MarkUndone`. So the whole cost is a field
+comparison — no entity change, no migration.
+
+## Both sub-questions, answered
+
+**1. Does the head's undo stick? Yes.** A row the head undid is redoable by the head and by
+nobody else. The contest reading — undo/redo between two people is something the app declines
+to arbitrate — was rejected because menunest-201 gave the head exactly one power, and on the
+author-governed formula that power expires the moment the author presses ทำซ้ำ. A power that
+can be reversed by the person it was used on is not a power.
+
+**2. Does the flag split? Yes, it has to.** `CanUndo` cannot express answer 1: after the head
+undoes my change the row is mine (so undo-permission would say yes) but not mine to redo.
+`BudgetChangeDto` gains `CanRedo`, and `latestRedoable` stops reading the undo flag —
+`latestUndoable.ts:17` is the one-word change.
+
+`BlockedReason` stays a single field: a row shows either ยกเลิก or ทำซ้ำ, never both, so one
+sentence always has exactly one button to explain.
+
+## This is a live defect, not only a DTO decision
+
+An ordinary member can redo the head's undo in prod **today** — the fix does not create it.
+What the fix does is strip away everything around it: once the other enabled controls on
+foreign rows go dark, this becomes the single visible place where two members' authority
+collides. Deciding it as a side effect of "which boolean goes on the DTO" is exactly how it
+would have been decided by default.
+
+## What this hands on
+
+- `fix-and-verify` changes **`RedoChangeHandler`**, not only `ListChangesHandler`. Its check
+  moves to `UndoneByUserId` and its message needs rewording — *"You can only redo your own
+  changes"* stops being true of the rule it now enforces.
+- The backend test owed is the loop that no longer closes: the head undoes the member's
+  change, the member lists history and gets `canRedo:false` on it, and a redo call throws.
+  `HeadUndoesAnyoneTests` seeds every actor this needs.
+- Not decided here, and now on the map's fog: whether the author is told their redo was
+  refused. `UndoChangeHandler` push-notifies the author when someone else undoes their work;
+  there is no equivalent notice in the other direction.
+<!-- decision-map:resolution:end -->
