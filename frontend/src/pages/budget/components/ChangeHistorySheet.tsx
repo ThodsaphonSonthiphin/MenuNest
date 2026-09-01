@@ -13,7 +13,12 @@ import {describeChange, groupByBatch} from '../lib/changeRowLabel'
  * can be redone.
  *
  * menunest-197: a row whose envelope was deleted also stays, unpressable, with
- * its reason. The server decides that and sends `canUndo` / `blockedReason`.
+ * its reason. The server decides that and sends `isDead` / `blockedReason`.
+ *
+ * menunest-216: so does a row belonging to somebody else — the server sends
+ * `canUndo` / `canRedo`, and this sheet decides NOTHING about permission. Never
+ * add an `isHead` check here: menunest-198's rule lives in one seam on the
+ * server, and a second copy in the SPA is the defect #108 was filed for.
  */
 export function ChangeHistorySheet({onClose}: {onClose: () => void}) {
   const {year, month} = useAppSelector(s => s.budget)
@@ -49,7 +54,7 @@ export function ChangeHistorySheet({onClose}: {onClose: () => void}) {
           {rows.map(r => (
             <div
               key={r.id}
-              className={`bdg-history-row ${r.isUndone ? 'is-undone' : ''} ${r.canUndo ? '' : 'is-dead'}`}
+              className={`bdg-history-row ${r.isUndone ? 'is-undone' : ''} ${r.isDead ? 'is-dead' : ''}`}
               data-testid="bdg-history-row"
             >
               <div className="bdg-history-main">
@@ -58,8 +63,14 @@ export function ChangeHistorySheet({onClose}: {onClose: () => void}) {
                   {r.userDisplayName}
                   {r.isUndone && r.undoneByDisplayName && ` · ${r.undoneByDisplayName} ยกเลิกไว้`}
                 </div>
-                {!r.canUndo && r.blockedReason && (
-                  <div className="bdg-history-blocked">{r.blockedReason}</div>
+                {/* menunest-216: a deleted envelope is permanent and shouts in red;
+                    "not yours" is temporary — false for the head, and false for you
+                    the moment the role is handed over — so it speaks quietly. */}
+                {r.blockedReason && (
+                  <div
+                    className={r.isDead ? 'bdg-history-blocked' : 'bdg-history-note'}
+                    data-testid={r.isDead ? 'bdg-history-blocked' : 'bdg-history-note'}
+                  >{r.blockedReason}</div>
                 )}
               </div>
 
@@ -68,7 +79,7 @@ export function ChangeHistorySheet({onClose}: {onClose: () => void}) {
                   type="button"
                   className="bdg-history-btn"
                   data-testid="bdg-history-redo"
-                  disabled={!r.canUndo || busy}
+                  disabled={!r.canRedo || busy}
                   onClick={() => void redoChange({id: r.id, year, month})}
                 >ทำซ้ำ</button>
               ) : (

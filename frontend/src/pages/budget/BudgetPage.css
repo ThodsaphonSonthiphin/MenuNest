@@ -912,7 +912,13 @@
 .bdg-history-main { flex: 1; min-width: 0; }
 .bdg-history-text { font-size: 12.5px; font-weight: 600; color: var(--text); }
 .bdg-history-who { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+/* menunest-197: the envelope is gone. Permanent, true for everyone, so it is
+   allowed to shout — and .is-dead above dims the whole row with it. */
 .bdg-history-blocked { font-size: 11px; color: var(--red); margin-top: 3px; }
+/* menunest-216: the row is not yours. Temporary — the family head can press it
+   right now — so it speaks quietly and the row keeps full strength. Do not
+   merge this back into .bdg-history-blocked; the difference IS the decision. */
+.bdg-history-note { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .bdg-history-btn {
   flex: 0 0 auto;
   background: var(--bg-card); border: 1px solid var(--accent); color: var(--accent);

@@ -16,7 +16,13 @@ public sealed class ListChangesHandler : IQueryHandler<ListChangesQuery, IReadOn
     public async ValueTask<IReadOnlyList<BudgetChangeDto>> Handle(
         ListChangesQuery q, CancellationToken ct)
     {
-        var (_, familyId) = await _users.RequireFamilyAsync(ct);
+        var (user, familyId) = await _users.RequireFamilyAsync(ct);
+
+        // menunest-216: the caller's permission is decided HERE, once, so no client
+        // has to re-derive menunest-198. Read the head ONCE for the whole list —
+        // per row it would be one query per history row.
+        var isHead = await _db.Families
+            .AnyAsync(f => f.Id == familyId && f.HeadUserId == user.Id, ct);
 
         // menunest-194: min(7 days, since the 1st of the requested month). The
         // month is a HARD cut — a row from a previous month is never returned,
@@ -63,6 +69,27 @@ public sealed class ListChangesHandler : IQueryHandler<ListChangesQuery, IReadOn
                 : categoryNames.TryGetValue(r.SecondCategoryId.Value, out var sn) ? sn : "(deleted envelope)";
             var gone = !hasCategory || secondName == "(deleted envelope)";
 
+            // menunest-216: you may reverse what YOU did, and the family head may
+            // reverse anyone's. Undo reverses an authoring, so it reads UserId;
+            // redo reverses an undoing, so it reads UndoneByUserId — which is what
+            // makes the head's undo stick instead of being redone by the author.
+            var mineToUndo = r.UserId == user.Id || isHead;
+            var mineToRedo = r.UndoneByUserId == user.Id || isHead;
+
+            var canUndo = !gone && !r.IsUndone && mineToUndo;
+            var canRedo = !gone && r.IsUndone && mineToRedo;
+
+            // The applicable button is whichever one the row shows, so exactly one
+            // reason is ever needed. A deleted Envelope wins: it is true for the
+            // head too, and saying "not yours" to the head would be a lie. Neither
+            // reason repeats the author's name — the row prints it one line above.
+            var blocked = r.IsUndone ? !canRedo : !canUndo;
+            var reason = !blocked ? null
+                : gone ? "That envelope was deleted."
+                : r.IsUndone
+                    ? "Only whoever undid this, or the family head, can redo it."
+                    : "Only the family head can undo someone else's change.";
+
             return new BudgetChangeDto(
                 r.Id, r.UserId, r.UserName, r.Kind, r.BatchId,
                 hasCategory ? categoryName! : "(deleted envelope)",
@@ -72,8 +99,10 @@ public sealed class ListChangesHandler : IQueryHandler<ListChangesQuery, IReadOn
                     ? null
                     : undoerNames.TryGetValue(r.UndoneByUserId.Value, out var un) ? un : null,
                 r.CreatedAt,
-                CanUndo: !gone,
-                BlockedReason: gone ? "That envelope was deleted." : null);
+                CanUndo: canUndo,
+                CanRedo: canRedo,
+                IsDead: gone,
+                BlockedReason: reason);
         }).ToList();
     }
 }

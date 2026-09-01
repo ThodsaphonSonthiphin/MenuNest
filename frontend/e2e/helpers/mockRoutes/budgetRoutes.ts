@@ -176,7 +176,50 @@ export const budgetSummaryFixture = {
   dailyAllowance: null,
 }
 
+// Newest-first, as the server sends it. The caller is ทศพล (user-1), an ORDINARY
+// member of a two-person Family — not the head — because that is the only shape
+// in which menunest-216's permission states are visible at all. The two rows
+// above chg-2 are deliberately unpressable, so a spec that clicks the enabled
+// Undo also proves the rail's accepted reach-past behaviour.
 const historyResponse = [
+  {
+    // menunest-216: มาลี's row. Valid, live in the head's hands, NOT dead.
+    id: 'chg-4',
+    userId: 'user-2',
+    userDisplayName: 'มาลี',
+    kind: 'Assign',
+    batchId: null,
+    categoryName: 'ค่าไฟ',
+    secondCategoryName: null,
+    delta: 500,
+    flagValue: null,
+    isUndone: false,
+    undoneByDisplayName: null,
+    createdAt: '2026-08-28T11:00:00Z',
+    canUndo: false,
+    canRedo: false,
+    isDead: false,
+    blockedReason: "Only the family head can undo someone else's change.",
+  },
+  {
+    // menunest-197: the envelope is gone. Permanent, and the only greyed row.
+    id: 'chg-3',
+    userId: 'user-1',
+    userDisplayName: 'ทศพล',
+    kind: 'Assign',
+    batchId: null,
+    categoryName: '(deleted envelope)',
+    secondCategoryName: null,
+    delta: 120,
+    flagValue: null,
+    isUndone: false,
+    undoneByDisplayName: null,
+    createdAt: '2026-08-28T10:00:00Z',
+    canUndo: false,
+    canRedo: false,
+    isDead: true,
+    blockedReason: 'That envelope was deleted.',
+  },
   {
     id: 'chg-2',
     userId: 'user-1',
@@ -191,9 +234,12 @@ const historyResponse = [
     undoneByDisplayName: null,
     createdAt: '2026-08-28T09:00:00Z',
     canUndo: true,
+    canRedo: false,
+    isDead: false,
     blockedReason: null,
   },
   {
+    // Undone by the caller, so the caller may redo it (menunest-216).
     id: 'chg-1',
     userId: 'user-1',
     userDisplayName: 'ทศพล',
@@ -204,10 +250,33 @@ const historyResponse = [
     delta: -200,
     flagValue: null,
     isUndone: true,
-    undoneByDisplayName: 'มาลี',
+    undoneByDisplayName: 'ทศพล',
     createdAt: '2026-08-27T09:00:00Z',
-    canUndo: true,
+    canUndo: false,
+    canRedo: true,
+    isDead: false,
     blockedReason: null,
+  },
+  {
+    // menunest-216: the head undid the caller's own change, so it STICKS — the
+    // row is theirs and is not theirs to redo. canUndo would say yes here; this
+    // is exactly why redo needs its own field.
+    id: 'chg-0',
+    userId: 'user-1',
+    userDisplayName: 'ทศพล',
+    kind: 'Assign',
+    batchId: null,
+    categoryName: 'ค่าน้ำ',
+    secondCategoryName: null,
+    delta: 80,
+    flagValue: null,
+    isUndone: true,
+    undoneByDisplayName: 'มาลี',
+    createdAt: '2026-08-26T09:00:00Z',
+    canUndo: false,
+    canRedo: false,
+    isDead: false,
+    blockedReason: 'Only whoever undid this, or the family head, can redo it.',
   },
 ]
 

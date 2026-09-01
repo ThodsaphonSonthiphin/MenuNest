@@ -641,8 +641,21 @@ export interface BudgetChangeDto {
   isUndone: boolean
   undoneByDisplayName: string | null
   createdAt: string
-  /** menunest-197: false when the envelope was deleted — the row stays, unpressable. */
+  /**
+   * menunest-216: the server decides who may act, per row, so the SPA never
+   * re-derives menunest-198. `canUndo` is who authored the change; `canRedo` is
+   * who UNDID it — two fields on purpose, because after the family head undoes
+   * your change the row is still yours and is not yours to redo.
+   */
   canUndo: boolean
+  canRedo: boolean
+  /**
+   * menunest-197: the envelope was deleted, so NOBODY can act on this row. The
+   * only thing that greys it — being unable to press a row you simply do not own
+   * is temporary and must not look permanent.
+   */
+  isDead: boolean
+  /** Why the applicable button is off. Rendered verbatim (ADR-145). */
   blockedReason: string | null
 }
 

@@ -2,10 +2,10 @@
 title: Move the permission into CanUndo, cover it, and verify it without a two-member prod family
 type: task
 mode: HITL
-status: open
-assignee:
+status: closed
+assignee: fix-and-verify-108
 blocked_by: [blocked-row-treatment, rail-reach-past, redo-symmetry]
-gist:
+gist: Built and green - 1045 backend tests and 535 vitest specs pass, and the four Playwright specs that can SEE the row treatment pass against the real browser. Prod verification still needs a two-member family, which prod does not have.
 ---
 
 ## Question
@@ -113,3 +113,63 @@ rejected options; this ticket holds only the build list.
 - The pre-commit hook runs the **whole** suite (backend build + test, `tsc --noEmit`,
   `npm run build`), so every commit must leave everything green, not just this feature's tests.
 - Pushing to `main` deploys to prod. Ask first.
+
+<!-- decision-map:resolution:start -->
+## Resolution
+
+Built and green. Prod verification still needs a two-member family, which prod does not have.
+
+### What landed
+
+| file | change |
+|---|---|
+| `ListChangesHandler.cs` | takes the caller, reads `HeadUserId` once, computes all four fields |
+| `RedoChangeHandler.cs` | check moves to `UndoneByUserId`; new message; not-undone guard moved ahead of it |
+| `BudgetChangeDto.cs` | `CanUndo`, `CanRedo`, `IsDead`, `BlockedReason` |
+| `ListChangesPermissionTests.cs` | new, 7 cases |
+| `api.ts`, `ChangeHistorySheet.tsx`, `BudgetPage.css` | mirrored fields, `.bdg-history-note`, `is-dead` off `isDead` |
+| `latestUndoable.ts` (+ test) | `latestRedoable` reads `canRedo`; reach-past pinned |
+| `budgetRoutes.ts`, `budget.shortcut-rail.spec.ts` | 5-row two-member fixture, 3 new specs |
+
+No migration, no new endpoint, no new `DbSet` — so CLAUDE.md's four-implementer rule and its
+manual-migration rule never came into play.
+
+### Gates run, and what each one proves
+
+| gate | result |
+|---|---|
+| `dotnet build -c Release` | 0 errors |
+| `dotnet test -c Release` (all four projects) | **1045 passed, 0 failed** |
+| `tsc -b --noEmit` | clean |
+| `vitest run` | **535 passed** (60 files) |
+| `npm run build` | built |
+| `playwright test budget.shortcut-rail` | **9 passed**, including the 3 new ones |
+
+The Playwright run is the load-bearing one. Per CLAUDE.md nothing else in the toolchain can
+see whether the not-yours row renders dimmed, and menunest-216 §4's whole content is that it
+must not. The spec asserts the computed colours — `rgb(185, 28, 28)` on the dead row's reason,
+`rgb(71, 85, 105)` on the not-yours note — not merely that an element exists.
+
+### The tests were checked for teeth, not just for green
+
+`RedoChangeHandler`'s check was reverted to `change.UserId` (the formula the issue suggested)
+and the suite re-run: **1 of the 7 failed**, the head's-undo-sticks case. So that test fails
+for the reason it exists, rather than passing whatever the code does. The handler was restored
+and the full suite re-run green afterwards.
+
+### One environment finding, unrelated to this change
+
+`budget.smoke.spec.ts`'s first case (`authed user reaches /budget`) times out waiting for
+`bdg-page` in this container. It was re-run on a **clean tree with the change stashed** and
+fails identically, so it is pre-existing here and not a regression. Two notes for whoever
+picks it up: this container ships Playwright browser build **1194** while the repo pins a
+version wanting **1223**, so every spec has to be pointed at `/opt/pw-browsers/chromium`; and
+neither the .NET SDK nor `node_modules` is present at session start, so `frontend/.husky/pre-commit`
+cannot have run on the doc commits that came before this one.
+
+### What is still owed
+
+Nothing in code. What remains is what the runbook already recorded and what no CI gate can
+supply: a real second person joining a Family, an ordinary member seeing the disabled Undo
+with its reason, and the head seeing the same rows enabled.
+<!-- decision-map:resolution:end -->

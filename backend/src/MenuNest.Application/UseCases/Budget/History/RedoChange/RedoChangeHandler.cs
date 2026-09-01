@@ -29,16 +29,28 @@ public sealed class RedoChangeHandler : ICommandHandler<RedoChangeCommand, Unit>
             c => c.Id == cmd.ChangeId && c.FamilyId == familyId, ct)
             ?? throw new DomainException("Change not found.");
 
-        // Same seam as UndoChangeHandler, and widened the same way: a member may
-        // redo their own, the FAMILY HEAD may redo anyone's (menunest-198).
-        if (change.UserId != user.Id)
+        // BEFORE the permission check, because the check below reads
+        // UndoneByUserId and that is null on a row nobody has undone — so without
+        // this line "redo something that is not undone" would be reported as a
+        // permission failure. MarkRedone throws the same sentence; it just throws
+        // it too late to be the message the caller sees.
+        if (!change.IsUndone) throw new DomainException("This change is not undone.");
+
+        // Same seam as UndoChangeHandler and widened the same way to the FAMILY
+        // HEAD (menunest-198) — but it reads a DIFFERENT field, and that is the
+        // whole of menunest-216. Redo reverses an UNDOING, not an authoring, so it
+        // belongs to whoever undid the row. Reading change.UserId here instead
+        // would let the author redo an undo the head performed, which would leave
+        // the head's one power (menunest-201) lasting exactly until the author
+        // pressed ทำซ้ำ.
+        if (change.UndoneByUserId != user.Id)
         {
             var isHead = await _db.Families
                 .AnyAsync(f => f.Id == familyId && f.HeadUserId == user.Id, ct);
 
             if (!isHead)
             {
-                throw new DomainException("You can only redo your own changes.");
+                throw new DomainException("You can only redo a change you undid yourself.");
             }
         }
 

@@ -1,4 +1,4 @@
-import { expect } from '@playwright/test'
+import { expect, type Page } from '@playwright/test'
 import { test } from './fixtures/healthFixture'
 
 /**
@@ -128,32 +128,80 @@ test.describe('Budget — shortcut rail', () => {
     await expect(fab).toHaveCSS('opacity', '1')
   })
 
-  test('Change history opens a sheet listing both rows', async ({ authedPage: page }) => {
+  /** Opens the rail and the Change history sheet. */
+  async function openHistory(page: Page) {
     await page.goto('/budget')
     await expect(page.getByTestId('bdg-rail-fab')).toBeVisible()
     await page.getByTestId('bdg-rail-fab').click()
     await page.getByText('Change history', { exact: false }).click()
-
     await expect(page.getByTestId('bdg-history-sheet')).toBeVisible()
-    // menunest-195: an undone row STAYS on the list so it can be redone, so the
-    // sheet shows one Undo button and one Redo button, not one row.
-    await expect(page.getByTestId('bdg-history-row')).toHaveCount(2)
-    await expect(page.getByTestId('bdg-history-undo')).toHaveCount(1)
-    await expect(page.getByTestId('bdg-history-redo')).toHaveCount(1)
+  }
+
+  test('Change history lists every row, undone and unpressable ones included', async ({
+    authedPage: page,
+  }) => {
+    await openHistory(page)
+
+    // menunest-195: an undone row STAYS on the list so it can be redone.
+    // menunest-197 / menunest-216: so does a dead one and somebody else's.
+    await expect(page.getByTestId('bdg-history-row')).toHaveCount(5)
+    await expect(page.getByTestId('bdg-history-undo')).toHaveCount(3)
+    await expect(page.getByTestId('bdg-history-redo')).toHaveCount(2)
   })
 
   test('undoing from the sheet posts to the undo endpoint', async ({
     authedPage: page,
     capturedRequests,
   }) => {
-    await page.goto('/budget')
-    await expect(page.getByTestId('bdg-rail-fab')).toBeVisible()
-    await page.getByTestId('bdg-rail-fab').click()
-    await page.getByText('Change history', { exact: false }).click()
-    await page.getByTestId('bdg-history-undo').click()
+    await openHistory(page)
+    // The caller is an ordinary member, so the first two Undo buttons belong to
+    // rows they may not press. chg-2 is the newest row that is theirs.
+    await page.getByTestId('bdg-history-row').nth(2).getByTestId('bdg-history-undo').click()
 
     const req = await capturedRequests.waitFor('POST', /\/api\/budget\/history\/[^/]+\/undo$/)
     expect(req.pathname).toContain('chg-2')
+  })
+
+  test('a row you may not undo is disabled but NOT greyed like a dead one', async ({
+    authedPage: page,
+  }) => {
+    // menunest-216 §4. This is the assertion nothing else in the toolchain can
+    // make: tsc, the build and vitest are all blind to whether the row renders
+    // dimmed, and the decision is precisely that it must not.
+    await openHistory(page)
+
+    const foreign = page.getByTestId('bdg-history-row').nth(0)   // มาลี's row
+    const dead = page.getByTestId('bdg-history-row').nth(1)      // deleted envelope
+
+    await expect(foreign.getByTestId('bdg-history-undo')).toBeDisabled()
+    await expect(dead.getByTestId('bdg-history-undo')).toBeDisabled()
+
+    // Permanent shouts in red (--red #b91c1c) and dims the row…
+    await expect(dead).toHaveClass(/is-dead/)
+    await expect(dead.getByTestId('bdg-history-blocked'))
+      .toHaveCSS('color', 'rgb(185, 28, 28)')
+
+    // …temporary speaks quietly (--text-muted #475569) and keeps full strength.
+    await expect(foreign).not.toHaveClass(/is-dead/)
+    await expect(foreign.getByTestId('bdg-history-note'))
+      .toHaveCSS('color', 'rgb(71, 85, 105)')
+  })
+
+  test('the family head\'s undo sticks: the author gets a disabled Redo', async ({
+    authedPage: page,
+  }) => {
+    // menunest-216 §2. chg-0 is the caller's OWN change, undone by มาลี. Under
+    // the one-flag shape this button was enabled and the request failed.
+    await openHistory(page)
+
+    const stuck = page.getByTestId('bdg-history-row').nth(4)
+    await expect(stuck.getByTestId('bdg-history-redo')).toBeDisabled()
+    await expect(stuck.getByTestId('bdg-history-note')).toBeVisible()
+
+    // …while a row the caller undid themselves is still redoable.
+    await expect(
+      page.getByTestId('bdg-history-row').nth(3).getByTestId('bdg-history-redo'),
+    ).toBeEnabled()
   })
 
   test('the rail does NOT render on the account detail page', async ({ authedPage: page }) => {

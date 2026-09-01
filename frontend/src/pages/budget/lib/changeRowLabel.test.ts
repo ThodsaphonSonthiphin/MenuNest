@@ -7,7 +7,7 @@ function row(over: Partial<BudgetChangeDto> = {}): BudgetChangeDto {
     id: 'x', userId: 'u', userDisplayName: 'ทศพล', kind: 'Assign', batchId: null,
     categoryName: 'ค่ากิน', secondCategoryName: null, delta: 300, flagValue: null,
     isUndone: false, undoneByDisplayName: null, createdAt: '2026-08-20T00:00:00Z',
-    canUndo: true, blockedReason: null,
+    canUndo: true, canRedo: false, isDead: false, blockedReason: null,
     ...over,
   }
 }
