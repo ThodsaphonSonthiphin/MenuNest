@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!--
+    Nest app icon — vector source for every raster in this folder.
+
+    Layout follows the W3C maskable-icon safe zone: the launcher may crop
+    anything outside the centred circle of radius 40% (205px), so the
+    nest + eggs sit inside a 300px box around the centre. The background
+    is full-bleed so a circle / squircle / rounded-square mask never
+    shows a seam.
+
+    `.bg--rounded` is toggled on by render-icons.mjs for the purpose=any
+    192px icon (launchers that do NOT mask), so it gets soft corners of
+    its own instead of a hard square.
+  -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+    <linearGradient id="nestFront" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#d97706"/>
+      <stop offset="1" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="nestBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#78350f"/>
+      <stop offset="1" stop-color="#b45309"/>
+    </linearGradient>
+    <radialGradient id="eggCream" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#fde68a"/>
+    </radialGradient>
+    <radialGradient id="eggBlue" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#7dd3fc"/>
+    </radialGradient>
+    <radialGradient id="eggWhite" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e2e8f0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- background: full-bleed square; rx is set via CSS class for the rounded variant -->
+  <rect class="bg" width="512" height="512" fill="url(#bg)"/>
+
+  <!-- art is drawn around y≈318; shift up + scale so it fills the safe zone centred at 256 -->
+  <g class="art" transform="translate(256 256) scale(1.12) translate(-256 -318)">
+    <!-- back wall of the nest -->
+    <path fill="url(#nestBack)"
+          d="M118 300 C118 262 180 236 256 236 C332 236 394 262 394 300 C394 318 370 330 340 336 L172 336 C142 330 118 318 118 300 Z"/>
+
+    <!-- eggs -->
+    <ellipse cx="200" cy="286" rx="36" ry="46" fill="url(#eggCream)" transform="rotate(-14 200 286)"/>
+    <ellipse cx="312" cy="286" rx="36" ry="46" fill="url(#eggBlue)"  transform="rotate(14 312 286)"/>
+    <ellipse cx="256" cy="266" rx="38" ry="50" fill="url(#eggWhite)"/>
+    <!-- subtle speckles on the middle egg -->
+    <g fill="#94a3b8" opacity="0.55">
+      <circle cx="246" cy="252" r="3.5"/>
+      <circle cx="266" cy="240" r="2.5"/>
+      <circle cx="270" cy="274" r="3"/>
+      <circle cx="244" cy="284" r="2.5"/>
+    </g>
+
+    <!-- front bowl of the nest -->
+    <path fill="url(#nestFront)"
+          d="M104 302 C104 332 170 356 256 356 C342 356 408 332 408 302 C408 330 380 400 256 400 C132 400 104 330 104 302 Z"/>
+    <!-- rim -->
+    <ellipse cx="256" cy="302" rx="152" ry="26" fill="#f59e0b"/>
+    <ellipse cx="256" cy="302" rx="126" ry="16" fill="#b45309"/>
+
+    <!-- woven twigs on the front bowl -->
+    <g fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round" opacity="0.9">
+      <path d="M128 322 C180 350 240 356 300 352"/>
+      <path d="M150 350 C210 378 290 380 356 360"/>
+      <path d="M212 384 C260 394 320 386 372 348"/>
+      <path d="M180 306 C240 336 330 340 392 316"/>
+    </g>
+    <g fill="none" stroke="#78350f" stroke-width="6" stroke-linecap="round" opacity="0.7">
+      <path d="M140 340 C190 362 250 370 320 368"/>
+      <path d="M176 368 C230 386 300 388 366 372"/>
+      <path d="M232 396 C280 400 330 394 366 380"/>
+    </g>
+    <!-- a few loose twigs sticking out of the sides -->
+    <g fill="none" stroke="#fbbf24" stroke-width="7" stroke-linecap="round">
+      <path d="M112 312 L86 296"/>
+      <path d="M118 334 L94 336"/>
+      <path d="M400 312 L426 296"/>
+      <path d="M394 334 L418 336"/>
+    </g>
+  </g>
+</svg>
