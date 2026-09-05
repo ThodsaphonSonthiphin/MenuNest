@@ -56,3 +56,46 @@ occupied.
 This follows the established precedent rather than choosing a new one. The alternative — hiding the
 chip — would make a capped **Stop** indistinguishable from a **Place** that is not a **Beach**, which
 is exactly the failure menunest-031 exists to prevent.
+
+---
+
+## Amendment — 2026-09-05, same day
+
+**The "not metered" half of this ADR is wrong. The ceiling half stands.**
+
+This ADR recorded that a tide fetch is *never* charged to a **User**. The **User** subsequently
+corrected it: *"tide is free for some user but the app still need limit for prevent cost that come
+from a bug"*.
+
+**Tide is a metered surface after all.** It follows the same exemption model as every other paid call
+— map #119's ticket #127 already states the requirement that *"some Users have no limit"*. So:
+
+- A **User** who is **exempt** gets tide free, with no limit. That is what "free for some user" means.
+- Every other **User** has tide counted like any other paid call, under whatever unit #119 settles.
+
+The title of this ADR is therefore **half accurate** and is left unchanged deliberately, so that
+citations to it still resolve; read it with this amendment.
+
+### What survives unchanged
+
+Everything about the **ceiling** stands, and the **User** explicitly reaffirmed it. It was never a
+metering mechanism: it bounds a **bug**. A retry loop or runaway prefetch multiplies a tiny unit cost
+by an unbounded number against prepaid credits on a real card, and per-**User** metering does not
+protect against that — an exempt **User** has no limit at all, so for them the server-side ceiling is
+the *only* bound that exists. Its value remains deliberately unset.
+
+The degradation rule stands too: ceiling reached, or over a metered limit, renders a visible
+"no tide data" chip per menunest-031, never a hidden one.
+
+### What this costs
+
+**#143 is no longer fully answerable on map #138.** The metering *mechanism* — what unit is counted,
+which surfaces are metered, how exemption is expressed — belongs to three still-open tickets on map
+#119: `metered-unit` (#121), `metered-surfaces` (#126) and `exemption-model` (#127). The decision-map
+tooling cannot draw a blocking edge between two maps, so this dependency is recorded as a note rather
+than wired.
+
+This was foreseen: option B in the diagram above was rejected *because* it would block this ticket on
+another map's work. The **User** chose C, then corrected to B's substance a few minutes later. The
+rejection reason was right about the consequence; it was wrong to treat that consequence as
+disqualifying.
