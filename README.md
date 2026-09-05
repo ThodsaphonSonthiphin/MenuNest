@@ -82,93 +82,18 @@ menunest/
 
 ---
 
-## Local Development
+## Running it
 
-### Prerequisites
-
-**Runtime / tooling**
-- .NET 10 SDK
-- Node.js 20.19+ (or 22 LTS) and npm — required by Vite 8 / React 19
-- Azure SQL, SQL Server LocalDB, or a Docker SQL container — schema is created by EF Core migrations
-
-**Cloud / external accounts** (you can stub out anything you don't plan to test)
-
-| What | Why | Required for |
-|---|---|---|
-| **Azure Entra ID app registration** | Microsoft sign-in (multi-tenant + personal accounts) | Sign-in via Microsoft |
-| **Google OAuth Client ID** (Google Cloud Console → APIs & Services → Credentials) | Google sign-in via GIS | Sign-in via Google (alternative to Entra) |
-| **Azurite** or an **Azure Storage account** | Drug / episode / recipe photo uploads (direct browser → Blob via user-delegation SAS) | Photo upload in Health + Recipes |
-| **Gemini API key** (Google AI Studio) | The `AiAssistant` chat agent (function-calling) | `/ai-assistant` page |
-| **VAPID key pair** (`web-push generate-vapid-keys`) | Encrypted web push for follow-up pings | 0-tap follow-up notifications in Health |
-| **Syncfusion Community License key** | Syncfusion components (Grid, Schedule, QR generator) | Suppresses the trial banner |
-| **Azure Speech key** *(optional)* | Voice input in the AI assistant | Speech-to-text in `/ai-assistant` |
-
-> Without VAPID, the follow-up dispatcher still runs but logs a warning and returns 0 — pings are still marked `Asked` and surface in the in-app modal. Without Gemini, the `/ai-assistant` page returns a friendly error. Without the Syncfusion key everything still works but you get a trial banner. So the minimum for "useful local dev" is: .NET + Node + SQL + Azurite + **one** of (Entra OR Google).
-
-### Setup
 ```bash
-# Backend
-cd backend
-dotnet restore
-dotnet ef database update --project src/MenuNest.Infrastructure --startup-project src/MenuNest.WebApi
-dotnet run --project src/MenuNest.WebApi
-# → https://localhost:5001/swagger
+# Backend  → https://localhost:5001/swagger
+cd backend && dotnet run --project src/MenuNest.WebApi
 
-# Frontend (in a separate terminal)
-cd frontend
-npm install
-npm run dev
-# → http://localhost:5173
+# Frontend → http://localhost:5173
+cd frontend && npm install && npm run dev
 ```
 
-Copy `appsettings.Development.json.example` and `.env.example`, then fill in your own credentials.
-
----
-
-## Deployment (Azure)
-
-The app is split across two Azure services:
-
-- **Frontend → Azure Static Web Apps.** Hosts the built `frontend/dist`.
-  SPA routing and security headers live in
-  [frontend/staticwebapp.config.json](frontend/staticwebapp.config.json).
-  SWA's built-in `/.auth/*` endpoints are **not** used — auth is handled
-  client-side by MSAL against Entra ID (needed for personal accounts).
-- **Backend → Azure App Service (Linux, .NET 10).** Hosts the Web API,
-  connects to Azure SQL and Blob Storage.
-
-### Backend configuration (App Service → Application settings)
-
-| Setting | Value |
-|---|---|
-| `ConnectionStrings__DefaultConnection` | Azure SQL connection string (use Managed Identity where possible) |
-| `AzureAd__ClientId` | Entra ID app client ID |
-| `AzureAd__Audience` | Entra ID app client ID (**GUID only**, not `api://{guid}`) — MSAL.js SPAs receive v2.0 tokens whose `aud` claim is the bare client ID |
-| `AzureBlob__ConnectionString` | Storage account connection string (or use Managed Identity) |
-| `Cors__AllowedOrigins` | Comma-separated list including the SWA origin, e.g. `https://menunest.azurestaticapps.net,https://menunest.app` |
-| `AzureAd__ClientSecret` | Entra app client secret — the MCP OAuth proxy uses it to exchange auth codes with Entra server-side |
-| `Jwt__SigningKey` | Strong random secret; HMAC-SHA256 key for the proxy's minted MCP access tokens |
-| `MCP__ServerUrl` | Full MCP endpoint URL, e.g. `https://menunest.azurewebsites.net/mcp` (used as `aud`/`iss` of proxy JWTs) |
-
-### Frontend configuration (SWA → Application settings / `.env.production`)
-
-| Setting | Value |
-|---|---|
-| `VITE_MSAL_CLIENT_ID` | Entra ID app client ID |
-| `VITE_MSAL_AUTHORITY` | `https://login.microsoftonline.com/common` |
-| `VITE_API_SCOPE` | `api://<api-app-id>/access_as_user` |
-| `VITE_API_BASE_URL` | `https://menunest.azurewebsites.net` |
-| `VITE_SYNCFUSION_LICENSE_KEY` | Your Syncfusion Community License key |
-
-### Entra ID App Registration (one-time setup)
-
-- Platform: **Single-page application** with redirect URIs for both
-  `http://localhost:5173` (dev) and the production SWA URL.
-- Add a **Web** redirect URI `https://<your-host>/oauth/callback` for the MCP OAuth proxy.
-- Expose an API scope `access_as_user`.
-- Supported account types: **multi-tenant + personal Microsoft accounts**.
-
----
+Full prerequisites, external accounts and first-run setup: **[docs/development.md](docs/development.md)**
+Azure topology and every configuration setting: **[docs/deployment.md](docs/deployment.md)**
 
 ## Contributing
 
