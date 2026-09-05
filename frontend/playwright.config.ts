@@ -42,6 +42,10 @@ export default defineConfig({
     // Thai locale — the app's user-facing copy (including the public
     // share page error messages we assert on) is Thai.
     locale: 'th-TH',
+    // Local escape hatch only: this container ships a Chromium build that
+    // differs from the one the pinned Playwright expects. CI installs its
+    // own browsers and leaves this unset, so the default resolution stands.
+    launchOptions: {executablePath: process.env.PW_CHROMIUM_PATH},
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
