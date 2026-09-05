@@ -25,7 +25,7 @@ public sealed class ListTripsHandler : IQueryHandler<ListTripsQuery, PagedResult
         }
 
         var isDesc = string.Equals(q.SortDirection, "Descending", StringComparison.OrdinalIgnoreCase);
-        query = (q.SortColumn?.ToLowerInvariant()) switch
+        var ordered = (q.SortColumn?.ToLowerInvariant()) switch
         {
             "name" => isDesc ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name),
             "destination" => isDesc ? query.OrderByDescending(t => t.Destination) : query.OrderBy(t => t.Destination),
@@ -37,6 +37,12 @@ public sealed class ListTripsHandler : IQueryHandler<ListTripsQuery, PagedResult
             // edited, so a never-edited trip is ranked by when it was created.
             _ => query.OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
         };
+
+        // Every sort key above allows ties — two trips to "Japan", two 3-day trips, two
+        // never-edited trips created in the same tick. SQL Server does not promise a
+        // stable order for those, so a tied row can repeat on one page of the grid and
+        // vanish from the next. Id is unique, which makes the paging deterministic.
+        query = ordered.ThenBy(t => t.Id);
 
         var count = await query.CountAsync(ct);
 

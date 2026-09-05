@@ -122,8 +122,9 @@ export function TripsPage() {
             <Columns>
               <Column field="name" headerText="Trip Name" width="200" />
               <Column field="destination" headerText="Destination" width="150" />
-              {/* `startDate` arrives as a DateOnly string, which the Grid's own
-                  date `format` never touches — format it ourselves. */}
+              {/* Formatted here rather than with the Column's own `format`, which
+                  reads the DateOnly string as UTC midnight and shifts the day for
+                  any viewer west of Greenwich. See formatTripDate. */}
               <Column
                 field="startDate"
                 headerText="Date"

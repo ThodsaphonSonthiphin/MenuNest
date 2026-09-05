@@ -115,6 +115,40 @@ public sealed class ListTripsOrderingTests : IDisposable
         paged.Result.Select(t => t.Name).Should().ContainInOrder("Beta", "Alpha");
     }
 
+    [Fact]
+    public async Task Rows_tied_on_the_sort_key_fall_back_to_a_stable_order()
+    {
+        // Every trip is identical on the sort key (Destination) and on both timestamps,
+        // so only the Id tiebreaker can decide the order.
+        //
+        // The rows are written HIGHEST Id first, one SaveChanges each, so that SQLite's
+        // physical (rowid) order is the exact reverse of the Id order we expect back.
+        // Batching them in one save would not do: EF orders a batch by key, which makes
+        // rowid order agree with Id order and lets this test pass with no tiebreaker at
+        // all. Verified by removing `ThenBy(t => t.Id)` from the handler — this fails.
+        var stamp = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var ids = Enumerable.Range(0, 5)
+            .Select(i => new Guid($"{i:D8}-1111-1111-1111-111111111111"))
+            .ToArray();
+        foreach (var id in ids.Reverse())
+        {
+            var trip = Seed($"Trip {id}", new DateOnly(2026, 1, 1), createdAt: stamp, updatedAt: null);
+            _db.Entry(trip).Property(nameof(Trip.Id)).CurrentValue = id;
+            await _db.SaveChangesAsync();
+        }
+
+        var page1 = await NewHandler().Handle(
+            new ListTripsQuery(Skip: 0, Take: 3, SortColumn: "destination"), CancellationToken.None);
+        var page2 = await NewHandler().Handle(
+            new ListTripsQuery(Skip: 3, Take: 3, SortColumn: "destination"), CancellationToken.None);
+
+        page1.Result.Select(t => t.Id).Should().Equal(ids.Take(3));
+        page2.Result.Select(t => t.Id).Should().Equal(ids.Skip(3));
+        // The point of the tiebreaker: no row repeats across pages and none is lost.
+        page1.Result.Concat(page2.Result).Select(t => t.Id).Should().OnlyHaveUniqueItems();
+        page1.Result.Concat(page2.Result).Should().HaveCount(5);
+    }
+
     public void Dispose()
     {
         _db.Dispose();

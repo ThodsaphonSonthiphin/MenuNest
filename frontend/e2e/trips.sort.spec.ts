@@ -8,8 +8,9 @@ import {test} from './fixtures/healthFixture'
 //     indicator, `initiateSort` re-derives 'Ascending' on every click, the URL
 //     never changes, the deferred data request is never resolved, and the grid
 //     hangs behind its spinner overlay — unclickable from then on.
-//   - `startDate` is a DateOnly string, so the Grid's `type="date"`/`format`
-//     pair never applied and the raw ISO text was rendered.
+//   - the column's `format="yMd"` rendered 2026-01-10 as `1/10/2026` — US
+//     month-first, which a Thai reader reads as 1 October — and the Grid's date
+//     parsing shifts the day west of Greenwich (see the timezone test below).
 //   - Sorting is server-side, so the assertions have to follow the URL through
 //     to the request the grid actually issues.
 const TRIPS = [
@@ -32,7 +33,10 @@ async function stubTripsApi(page: import('@playwright/test').Page, calls: string
     const result = [...TRIPS]
     if (u.searchParams.get('sortColumn') === 'startDate') {
       result.sort((a, b) => a.startDate.localeCompare(b.startDate))
-      // Case-sensitive on purpose: the server compares against 'Descending'.
+      // Stricter than the real server, which compares case-insensitively. The
+      // point is the Grid, not the server: matched case-sensitively, a regression
+      // to the adaptor's lower-cased direction shows up as unreversed rows here
+      // instead of passing quietly.
       if (u.searchParams.get('sortDirection') === 'Descending') result.reverse()
     }
     await route.fulfill({
@@ -95,6 +99,27 @@ test.describe('Trips — Date column', () => {
     // still responding is the assertion that the grid did not deadlock.
     await page.getByRole('columnheader', {name: 'Trip Name'}).click({timeout: 10000})
     await expect(page).toHaveURL(/sortColumn=name/)
+  })
+
+  // The obvious fix for the format is `format="dd/MM/yyyy" type="date"` on the
+  // Column, and it looks right on a UTC machine. It is wrong: the Grid parses the
+  // `yyyy-MM-dd` string as UTC midnight and renders it in the viewer's timezone, so
+  // west of Greenwich every trip shows the day before it starts. Measured under
+  // America/Los_Angeles: a 2026-01-10 trip rendered 09/01/2026. This is the guard
+  // against someone simplifying the valueAccessor back into a `format` attribute.
+  test.describe('west of Greenwich', () => {
+    test.use({timezoneId: 'America/Los_Angeles'})
+
+    test('the day does not shift with the viewer timezone', async ({authedPage: page}) => {
+      await stubTripsApi(page, [])
+
+      await page.goto('/trips?skip=0&take=10')
+      await expect(page.getByRole('grid')).toBeVisible({timeout: 20000})
+
+      const cells = await page.getByRole('grid').getByRole('row').nth(1).getByRole('gridcell').allInnerTexts()
+      expect(cells).toContain('10/01/2026')
+      expect(cells).not.toContain('09/01/2026')
+    })
   })
 
   test('the unsorted list asks the server for its own default order', async ({authedPage: page}) => {

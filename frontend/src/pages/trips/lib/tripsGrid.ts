@@ -24,11 +24,16 @@ export function normalizeSortDirection(direction: unknown): SortDirection {
 /**
  * Render a trip's `startDate` as dd/MM/yyyy.
  *
- * The API serialises `DateOnly` as a plain `yyyy-MM-dd` string, so the Grid's
- * `type="date"` / `format` pair never applies (it formats Date objects only).
- * Splitting the string rather than going through `new Date()` also keeps the
- * day off the timezone: `new Date('2026-03-01')` is UTC midnight and renders as
- * the 28th of February anywhere west of Greenwich.
+ * The Grid's own `format` attribute does work on the `yyyy-MM-dd` string the API
+ * serialises `DateOnly` into — the column previously carried `format="yMd"`, which
+ * rendered 2026-01-10 as `1/10/2026`, i.e. US month-first, which a Thai reader
+ * reads as 1 October. `format="dd/MM/yyyy"` fixes the field order but not the
+ * second, worse half: the Grid parses the string as UTC midnight and formats it in
+ * the viewer's timezone, so west of Greenwich every trip shows the day *before* it
+ * starts (measured under America/Los_Angeles: 2026-01-10 rendered `09/01/2026`).
+ *
+ * Splitting the string keeps the day off the clock entirely, which is right for a
+ * DateOnly: it names a calendar day, not an instant.
  */
 export function formatTripDate(value: unknown): string {
   if (typeof value !== 'string') return ''
