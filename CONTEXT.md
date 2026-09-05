@@ -280,18 +280,28 @@ the glossary wins until the glossary is deliberately changed.
   Schedule**, an **arrival** time or any computed value. Unlike a Weather reading it is **not** bounded by
   the **Forecast horizon** — tides are predictable years ahead, so a far-dated Stop shows real tide values
   beside slashed-cloud weather chips (menunest-220). Sourced from WorldTides, cached by `(station, date)`
-  and served to every **User** from that one cache. _Avoid_: tidal warning (the issue-#135 word — this
-  judges, it does not warn); tide chip (that is the UI that renders it); **Weather reading** (a different
-  concept on the same card).
+  and served to every **User** from that one cache. _Avoid_: tidal warning (the issue-#135 word — the reading
+  itself judges but does not warn; the warning is the **Tide alert**); tide chip (that is the UI that renders
+  it); **Weather reading** (a different concept on the same card).
 - **Tide verdict** — the judgement half of a **Tide reading**: whether the tide makes that **Beach** worth
   visiting at that time (e.g. "เดินหาดได้"). Computed from **one fixed rule for every Beach** — there is no
   per-**Place** setting for what the **User** intends to do there, because the purpose is fixed: walking the
   beach and playing in the sand, which always wants a low tide (menunest-218). "Low" is **relative to
   that station's own high-to-low range for that day**, never an absolute height in metres, because Thai
   stations differ too widely in range for a fixed threshold to transfer (menunest-219). The **tide height**
-  stays on the chip beside it precisely so a wrong verdict is survivable. _Avoid_: tide alert, tide warning
-  (it is not a **Weather alert** and has no **Weather-alert threshold**); good/bad (that is **Season
-  period**'s `kind`).
+  stays on the chip beside it precisely so a wrong verdict is survivable. _Avoid_: **Tide alert** (that is the badge the verdict
+  *drives*, not the verdict itself); **Weather alert** (a different concept, and unlike it the verdict has no
+  threshold); good/bad (that is **Season period**'s `kind`).
+- **Tide alert (เตือนน้ำขึ้น)** — a warning badge shown on a **Stop**'s compact itinerary card when its
+  **On-arrival** **Tide verdict** is bad — the beach is under water at the time the **User** arrives
+  (menunest-221). Driven by the **verdict**, never by a number: unlike a **Weather alert** it has **no**
+  **Weather-alert threshold**, because "low" is relative to each station's own range (menunest-219) and no
+  absolute height would transfer between beaches. Its only control is a per-**User** **on/off**, stored as a
+  boolean on `UserSettings` — deliberately *not* the `null`/`0`/`N` tri-state the **UV index** and
+  **Feels-like** thresholds use, so that no future session can put a number in it. Display-only, and a
+  **planning** signal rather than a hazard alarm — safety warnings are out of scope. _Avoid_: tide warning,
+  tidal warning (the issue-#135 words); **Weather alert** (the weather one); **Tide verdict** (what drives
+  this badge, not the badge).
 - **Beach (ชายหาด)** — the **Place category** that makes a **Place** tide-relevant: a Beach is the only
   category that shows a **Tide reading** (menunest-218). Assigned automatically at **Capture** from Google's
   place types for the live-search and map-tap paths; a coordinate **Place** falls to `Other` and the **User**
