@@ -1,0 +1,384 @@
+<title>Tide on a Stop Card</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600;700&family=Spline+Sans+Mono:wght@400;500;700&display=swap">
+<style>
+  /* ── page chrome: theme-aware, so the mock reads on any host ground ── */
+  :root {
+    --pg-bg:      #f2f5f7;
+    --pg-ink:     #16232e;
+    --pg-mute:    #5b7183;
+    --pg-line:    #dbe4ea;
+    --pg-card:    #ffffff;
+    --pg-accent:  #0b7a87;
+    --pg-note-bg: #eef6f7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --pg-bg:      #0e1519;
+      --pg-ink:     #e5eef2;
+      --pg-mute:    #93a8b5;
+      --pg-line:    #23323b;
+      --pg-card:    #162126;
+      --pg-accent:  #4fc4d1;
+      --pg-note-bg: #16262a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --pg-bg:      #0e1519;
+    --pg-ink:     #e5eef2;
+    --pg-mute:    #93a8b5;
+    --pg-line:    #23323b;
+    --pg-card:    #162126;
+    --pg-accent:  #4fc4d1;
+    --pg-note-bg: #16262a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--pg-bg);
+    color: var(--pg-ink);
+    font-family: 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 40px 24px 72px; }
+
+  header.pg { border-bottom: 2px solid var(--pg-line); padding-bottom: 22px; margin-bottom: 34px; }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--pg-accent); margin: 0 0 8px;
+  }
+  h1 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; text-wrap: balance; font-weight: 700; }
+  .lede { margin: 0; max-width: 64ch; color: var(--pg-mute); font-size: 15px; }
+
+  h2.sec {
+    font-size: 13px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--pg-mute); margin: 44px 0 4px; padding-bottom: 8px; border-bottom: 1px solid var(--pg-line);
+  }
+  .sec-note { margin: 10px 0 22px; color: var(--pg-mute); font-size: 14px; max-width: 66ch; }
+
+  .rail { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+  .spec { width: 300px; flex: 0 0 auto; }
+  .spec > figcaption {
+    margin-top: 11px; font-size: 12.5px; color: var(--pg-mute);
+  }
+  .spec > figcaption b { color: var(--pg-ink); font-weight: 700; display: block; margin-bottom: 2px; }
+
+  /* ── phone canvas: the app's REAL trips palette, light-only, because that is what the app is ── */
+  .app {
+    --teal:#0e8f9e; --teal-deep:#0b7a87; --teal-soft:#e3f5f6;
+    --ink:#0f172a;  --page:#f8fafc;  --surface:#fff; --border:#eef2f6; --muted:#94a3b8;
+    --warn:#b4791f; --warn-bg:#fff4e0; --warn-ink:#7a5310;
+    --bad:#b42318;  --bad-bg:#fdeceb;
+    --now:#0b7a87;  --now-bg:#e3f5f6;
+    --arr:#1863b7;  --arr-bg:#e9f1fb;
+    background: var(--page);
+    color: var(--ink);
+    border: 1px solid #dfe7ec;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 1px 2px rgba(15,23,42,0.05);
+  }
+
+  .stop {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 11px 12px 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .stop + .stop { margin-top: 9px; }
+  .stop-top { display: flex; align-items: baseline; gap: 8px; }
+  .stop-num {
+    width: 20px; height: 20px; border-radius: 999px; background: var(--teal); color: #fff;
+    font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center;
+    flex: 0 0 auto; align-self: center;
+  }
+  .stop-name { font-size: 14px; font-weight: 700; flex: 1 1 auto; }
+  .stop-arr {
+    font-family: 'Spline Sans Mono', ui-monospace, monospace;
+    font-size: 12.5px; font-weight: 500; color: var(--teal-deep);
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+  .chip {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .chip.wx { font-size: 11px; padding: 2px 9px 2px 5px; }
+  .chip.wx .lab {
+    font-size: 9px; font-weight: 700; opacity: 0.72; text-transform: uppercase; letter-spacing: 0.03em;
+  }
+  .chip.wx.now { background: var(--now-bg); color: var(--now); }
+  .chip.wx.arr { background: var(--arr-bg); color: var(--arr); }
+  .chip.wx.nodata { background: #f1f5f9; color: var(--muted); }
+  .chip .t { font-weight: 700; }
+  .chip .feels { font-size: 11px; font-weight: 600; color: #64748b; }
+  .chip .uv { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
+              background: #ffe6cf; color: #c85e0c; }
+
+  /* tide: same Now/On-arrival colours as weather, because they are a matched pair (menunest-220) */
+  .num { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-weight: 700; }
+  .verdict { font-weight: 700; }
+  .chip.tide.now { background: var(--now-bg); color: var(--now); }
+  .chip.tide.arr { background: var(--arr-bg); color: var(--arr); }
+  .chip.tide.arr.bad { background: var(--warn-bg); color: var(--warn-ink); }
+  .chip.tide.nodata { background: #f1f5f9; color: var(--muted); }
+
+  .badge-alert {
+    font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+    background: var(--bad-bg); color: var(--bad); display: inline-flex; align-items: center; gap: 4px;
+  }
+
+  .sheet {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 14px;
+  }
+  .sheet h3 { margin: 0 0 2px; font-size: 16px; font-weight: 700; }
+  .sheet .sub { margin: 0 0 13px; font-size: 12px; color: var(--muted); }
+  .sheet-block { border-top: 1px solid var(--border); padding-top: 11px; margin-top: 11px; }
+  .sheet-block > .h {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--muted); margin-bottom: 8px;
+  }
+  .turns { display: flex; flex-direction: column; gap: 6px; }
+  .turn { display: flex; align-items: baseline; gap: 9px; font-size: 12.5px; }
+  .turn .when {
+    font-family: 'Spline Sans Mono', ui-monospace, monospace; font-weight: 700;
+    color: var(--ink); min-width: 46px;
+  }
+  .turn .what { color: var(--muted); flex: 1 1 auto; }
+  .turn .h { font-family: 'Spline Sans Mono', ui-monospace, monospace; color: var(--teal-deep); font-weight: 700; }
+  .turn.is-now { background: var(--teal-soft); border-radius: 7px; padding: 4px 7px; margin: -4px -7px; }
+
+  .attrib { margin-top: 12px; font-size: 9.5px; color: var(--muted); line-height: 1.5; }
+
+  /* ── question / decision panels ── */
+  .panel {
+    background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 12px;
+    padding: 18px 20px; margin-top: 16px;
+  }
+  .panel.ask { border-left: 3px solid var(--pg-accent); background: var(--pg-note-bg); }
+  .panel h3 { margin: 0 0 10px; font-size: 15px; font-weight: 700; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--pg-line); vertical-align: top; }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--pg-mute); font-weight: 700; }
+  td.adr { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 12px; color: var(--pg-accent); white-space: nowrap; }
+  .tablewrap { overflow-x: auto; }
+  ol.qs { margin: 0; padding-left: 20px; }
+  ol.qs li { margin-bottom: 11px; }
+  ol.qs li:last-child { margin-bottom: 0; }
+  ol.qs b { display: block; }
+  .rec { color: var(--pg-mute); font-size: 13px; }
+  code {
+    font-family: 'Spline Sans Mono', ui-monospace, monospace; font-size: 0.88em;
+    background: var(--pg-note-bg); padding: 1px 5px; border-radius: 4px;
+  }
+</style>
+
+<div class="wrap">
+  <header class="pg">
+    <p class="eyebrow">Decision map #138 · ticket #144 · surfaces</p>
+    <h1>Tide on a Stop Card</h1>
+    <p class="lede">
+      How the six tide decisions already taken read as an actual screen. Everything below is drawn with
+      MenuNest's real trips tokens — the same teal <b>ตอนนี้</b> and blue <b>ไปถึง</b> chip colours the
+      Weather reading already uses. Nothing here is built yet.
+    </p>
+  </header>
+
+  <h2 class="sec">1 · The compact Stop card</h2>
+  <p class="sec-note">
+    The decided surface. A <b>Tide reading</b> is two chips, matching the Weather reading pair above it,
+    each carrying the height <em>and</em> a verdict. Four states, left to right.
+  </p>
+
+  <div class="rail">
+    <figure class="spec">
+      <div class="app">
+        <div class="stop">
+          <div class="stop-top">
+            <span class="stop-num">2</span>
+            <span class="stop-name">หาดบานชื่น</span>
+            <span class="stop-arr">15:00</span>
+          </div>
+          <div class="chips">
+            <span class="chip wx now"><span class="lab">ตอนนี้</span>☀️ <span class="t">33°</span></span>
+            <span class="chip wx arr"><span class="lab">ไปถึง</span>☀️ แดดจัด <span class="t">33°</span>
+              <span class="uv">UV 9</span></span>
+          </div>
+          <div class="chips">
+            <span class="chip tide now"><span class="lab">ตอนนี้</span>🌊 น้ำลง <span class="num">0.6 ม.</span></span>
+            <span class="chip tide arr"><span class="lab">ไปถึง</span>🌊 น้ำลง <span class="num">0.4 ม.</span>
+              <span class="verdict">· เดินหาดได้</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Good tide</b>Water is out at arrival. Sand to walk on. No badge.</figcaption>
+    </figure>
+
+    <figure class="spec">
+      <div class="app">
+        <div class="stop">
+          <div class="stop-top">
+            <span class="stop-num">3</span>
+            <span class="stop-name">หาดไร่เลย์</span>
+            <span class="stop-arr">16:30</span>
+          </div>
+          <div class="chips">
+            <span class="chip wx now"><span class="lab">ตอนนี้</span>☀️ <span class="t">31°</span></span>
+            <span class="chip wx arr"><span class="lab">ไปถึง</span>⛅ มีเมฆ <span class="t">30°</span></span>
+          </div>
+          <div class="chips">
+            <span class="chip tide now"><span class="lab">ตอนนี้</span>🌊 น้ำลง <span class="num">1.1 ม.</span></span>
+            <span class="chip tide arr bad"><span class="lab">ไปถึง</span>🌊 น้ำขึ้น <span class="num">2.4 ม.</span>
+              <span class="verdict">· หาดจมน้ำ</span></span>
+            <span class="badge-alert">⚠ เตือนน้ำขึ้น</span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Bad tide + Tide alert</b>No beach at arrival. The badge is the thing that survives a scan.</figcaption>
+    </figure>
+
+    <figure class="spec">
+      <div class="app">
+        <div class="stop">
+          <div class="stop-top">
+            <span class="stop-num">4</span>
+            <span class="stop-name">หาดตาแหวน เกาะล้าน</span>
+            <span class="stop-arr">10:00</span>
+          </div>
+          <div class="chips">
+            <span class="chip wx now"><span class="lab">ตอนนี้</span>☀️ <span class="t">32°</span></span>
+            <span class="chip wx nodata"><span class="lab">ไปถึง</span>🚫 ไม่มีข้อมูลอากาศ</span>
+          </div>
+          <div class="chips">
+            <span class="chip tide now"><span class="lab">ตอนนี้</span>🌊 น้ำลง <span class="num">0.8 ม.</span></span>
+            <span class="chip tide nodata"><span class="lab">ไปถึง</span>🚫 ไม่มีข้อมูลน้ำ</span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>No tide data</b>Ceiling reached, or no station. Shown, never hidden — menunest-031.</figcaption>
+    </figure>
+
+    <figure class="spec">
+      <div class="app">
+        <div class="stop">
+          <div class="stop-top">
+            <span class="stop-num">5</span>
+            <span class="stop-name">ร้านครัวทะเลตราด</span>
+            <span class="stop-arr">18:00</span>
+          </div>
+          <div class="chips">
+            <span class="chip wx now"><span class="lab">ตอนนี้</span>☀️ <span class="t">30°</span></span>
+            <span class="chip wx arr"><span class="lab">ไปถึง</span>🌙 แจ่มใส <span class="t">28°</span></span>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Not a Beach</b>Category is ร้านอาหาร, so no tide row at all. This is the contrast that
+      makes “no tide data” meaningful.</figcaption>
+    </figure>
+  </div>
+
+  <h2 class="sec">2 · The detail sheet — where the turn times live</h2>
+  <p class="sec-note">
+    menunest-217 kept the turn times off the compact chip and put them behind a tap. This is where they land.
+    The data is already fetched: the relative rule needs the day's high and low to compute the verdict at all.
+  </p>
+
+  <div class="rail">
+    <figure class="spec" style="width:340px">
+      <div class="app">
+        <div class="sheet">
+          <h3>หาดบานชื่น</h3>
+          <p class="sub">ชายหาด · ตราด · ถึง 15:00</p>
+
+          <div class="chips">
+            <span class="chip tide arr"><span class="lab">ไปถึง</span>🌊 น้ำลง <span class="num">0.4 ม.</span>
+              <span class="verdict">· เดินหาดได้</span></span>
+          </div>
+
+          <div class="sheet-block">
+            <div class="h">น้ำขึ้นน้ำลงวันนี้</div>
+            <div class="turns">
+              <div class="turn"><span class="when">08:12</span><span class="what">น้ำขึ้นสูงสุด</span><span class="h">2.5 ม.</span></div>
+              <div class="turn"><span class="when">14:10</span><span class="what">น้ำลงต่ำสุด</span><span class="h">0.2 ม.</span></div>
+              <div class="turn is-now"><span class="when">15:00</span><span class="what">คุณไปถึง</span><span class="h">0.4 ม.</span></div>
+              <div class="turn"><span class="when">20:30</span><span class="what">น้ำขึ้นสูงสุด</span><span class="h">2.6 ม.</span></div>
+            </div>
+          </div>
+
+          <p class="attrib">
+            Tidal data retrieved from www.worldtides.info. Copyright © 2014–2026 Brainware LLC.
+          </p>
+        </div>
+      </div>
+      <figcaption><b>StopDetailSheet</b>Turn times, and the ~5 hours of beach you have before the water returns.
+      The WorldTides attribution is mandatory wherever the data shows — menunest-222.</figcaption>
+    </figure>
+
+    <figure class="spec" style="width:340px">
+      <div class="app">
+        <div class="sheet">
+          <h3>หาดกะตะ</h3>
+          <p class="sub">ชายหาด · ภูเก็ต · จาก Discover</p>
+          <div class="chips">
+            <span class="chip tide now"><span class="lab">ตอนนี้</span>🌊 น้ำลง <span class="num">0.7 ม.</span>
+              <span class="verdict">· เดินหาดได้</span></span>
+          </div>
+          <div class="sheet-block">
+            <div class="h">ยังไม่ได้ตัดสินใจ</div>
+            <p style="margin:0;font-size:12.5px;color:#94a3b8">
+              A Place in Discover sits on no Day, so it has no arrival time — only ตอนนี้ can exist here.
+              Is that worth showing?
+            </p>
+          </div>
+        </div>
+      </div>
+      <figcaption><b>Discover PlaceSheet — open</b>The one surface with no answer yet, and the reason is
+      structural, not cosmetic.</figcaption>
+    </figure>
+  </div>
+
+  <h2 class="sec">3 · What this renders</h2>
+  <div class="panel">
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Decision</th><th>Where you see it</th><th>ADR</th></tr></thead>
+        <tbody>
+          <tr><td>Height <em>and</em> verdict, both on the chip</td><td>every tide chip</td><td class="adr">menunest-217</td></tr>
+          <tr><td>Turn times behind a tap, not on the chip</td><td>detail sheet, §2</td><td class="adr">menunest-217</td></tr>
+          <tr><td>Only a <b>Beach</b> shows tide</td><td>card 4 has no tide row</td><td class="adr">menunest-218</td></tr>
+          <tr><td>“Low” is relative to that station's own day</td><td>0.4 m reads น้ำลง against a 0.2–2.6 m day</td><td class="adr">menunest-219</td></tr>
+          <tr><td>Two chips, ตอนนี้ + ไปถึง</td><td>every card</td><td class="adr">menunest-220</td></tr>
+          <tr><td>A bad verdict raises a badge; no threshold</td><td>card 2</td><td class="adr">menunest-221</td></tr>
+          <tr><td>Unavailable renders, never hides</td><td>card 3</td><td class="adr">menunest-031</td></tr>
+          <tr><td>WorldTides attribution is mandatory</td><td>detail sheet footer</td><td class="adr">menunest-222</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="sec">4 · What I need you to react to</h2>
+  <div class="panel ask">
+    <h3>Four open questions — the mock is my recommended answer to each</h3>
+    <ol class="qs">
+      <li>
+        <b>Is the tide a second row, or does it join the weather row?</b>
+        <span class="rec">Drawn as its own row. Four chips on one row wraps badly at phone width, and the
+        pairing reads better stacked. Say if you want them merged.</span>
+      </li>
+      <li>
+        <b>Does <code>ตอนนี้</code> earn its place on a future-dated Stop?</b>
+        <span class="rec">menunest-220 said two chips for symmetry with weather. On a Trip five months out,
+        the ตอนนี้ tide is real but meaningless. Drawn anyway, as decided — but this is where it looks weakest.</span>
+      </li>
+      <li>
+        <b>Does Discover show tide at all?</b>
+        <span class="rec">A Place in Discover has no arrival time, so only ตอนนี้ can exist there. Drawn as
+        a question rather than an answer.</span>
+      </li>
+      <li>
+        <b>Is the Hourly forecast strip a tide surface too?</b>
+        <span class="rec">Not drawn. A tide curve across the same hours would fit, but it doubles the
+        work and the strip is already dense. My recommendation is no, for now.</span>
+      </li>
+    </ol>
+  </div>
+</div>
