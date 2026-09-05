@@ -6,7 +6,7 @@ The app is split across two Azure services:
 
 - **Frontend → Azure Static Web Apps.** Hosts the built `frontend/dist`.
   SPA routing and security headers live in
-  [frontend/staticwebapp.config.json](frontend/staticwebapp.config.json).
+  [frontend/public/staticwebapp.config.json](../frontend/public/staticwebapp.config.json).
   SWA's built-in `/.auth/*` endpoints are **not** used — auth is handled
   client-side by MSAL against Entra ID (needed for personal accounts).
 - **Backend → Azure App Service (Linux, .NET 10).** Hosts the Web API,
