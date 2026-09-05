@@ -8,6 +8,7 @@ import {setCreateTripOpen} from './tripsSlice'
 import {CreateTripDialog} from './components/CreateTripDialog'
 import {SuitcaseIcon} from './components/TripFormIcons'
 import {getErrorMessage} from '../../shared/utils/getErrorMessage'
+import {formatTripDate, normalizeSortDirection} from './lib/tripsGrid'
 import './trips-tokens.css'
 import './TripsPage.css'
 
@@ -62,7 +63,10 @@ export function TripsPage() {
 
     if (event.sort && event.sort.length > 0) {
       p.set('sortColumn', event.sort[0].name || event.sort[0].field)
-      p.set('sortDirection', event.sort[0].direction)
+      // The adaptor lower-cases the direction; the Grid's header only draws its
+      // indicator for the capitalised form, and without that indicator it can
+      // never toggle to Descending. See normalizeSortDirection.
+      p.set('sortDirection', normalizeSortDirection(event.sort[0].direction))
     } else {
       p.delete('sortColumn')
       p.delete('sortDirection')
@@ -100,7 +104,7 @@ export function TripsPage() {
               // Seeded from the URL for the same reason as the search term: the
               // list arrives sorted, so the header must show which column did it.
               columns: sortColumn
-                ? [{field: sortColumn, direction: sortDirection || 'Ascending'}]
+                ? [{field: sortColumn, direction: normalizeSortDirection(sortDirection)}]
                 : [],
             }}
             filterSettings={{enabled: false}}
@@ -118,7 +122,14 @@ export function TripsPage() {
             <Columns>
               <Column field="name" headerText="Trip Name" width="200" />
               <Column field="destination" headerText="Destination" width="150" />
-              <Column field="startDate" headerText="Date" width="120" format="yMd" type="date" />
+              {/* `startDate` arrives as a DateOnly string, which the Grid's own
+                  date `format` never touches — format it ourselves. */}
+              <Column
+                field="startDate"
+                headerText="Date"
+                width="120"
+                valueAccessor={(props: any) => formatTripDate(props?.data?.startDate)}
+              />
               <Column field="dayCount" headerText="Days" width="80" textAlign="Right" />
             </Columns>
           </Grid>

@@ -30,7 +30,12 @@ public sealed class ListTripsHandler : IQueryHandler<ListTripsQuery, PagedResult
             "name" => isDesc ? query.OrderByDescending(t => t.Name) : query.OrderBy(t => t.Name),
             "destination" => isDesc ? query.OrderByDescending(t => t.Destination) : query.OrderBy(t => t.Destination),
             "daycount" => isDesc ? query.OrderByDescending(t => t.DayCount) : query.OrderBy(t => t.DayCount),
-            _ => isDesc ? query.OrderByDescending(t => t.StartDate) : query.OrderBy(t => t.StartDate)
+            // Explicit — the default below is no longer StartDate, so callers that ask
+            // for it (the Discover trip picker, the grid's Date header) must name it.
+            "startdate" => isDesc ? query.OrderByDescending(t => t.StartDate) : query.OrderBy(t => t.StartDate),
+            // Unsorted: most recently touched first. UpdatedAt is null until the trip is
+            // edited, so a never-edited trip is ranked by when it was created.
+            _ => query.OrderByDescending(t => t.UpdatedAt ?? t.CreatedAt)
         };
 
         var count = await query.CountAsync(ct);
