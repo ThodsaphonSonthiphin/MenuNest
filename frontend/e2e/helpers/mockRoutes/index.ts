@@ -6,6 +6,7 @@ import { createDrugMocks } from './drugRoutes'
 import { createSettingsMocks } from './settingsRoutes'
 import { createBudgetMocks } from './budgetRoutes'
 import {createTripMocks} from './tripRoutes'
+import {createChatMocks} from './chatRoutes'
 
 export const createMockApi = (page: Page, capture: RequestCapture) => ({
   episodes: createEpisodeMocks(page, capture),
@@ -14,6 +15,7 @@ export const createMockApi = (page: Page, capture: RequestCapture) => ({
   settings: createSettingsMocks(page, capture),
   budget: createBudgetMocks(page, capture),
   trips: createTripMocks(page, capture),
+  chat: createChatMocks(page, capture),
 })
 
 export type MockApi = ReturnType<typeof createMockApi>
