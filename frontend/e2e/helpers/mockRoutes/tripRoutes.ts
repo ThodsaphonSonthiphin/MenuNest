@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test'
-import {recordRequest, type RequestCapture} from './types'
+import {meResponse, recordRequest, type RequestCapture} from './types'
 
 /**
  * `/trips` is NOT behind FamilyRequiredRoute (src/router.tsx:55-77), so it
@@ -8,20 +8,6 @@ import {recordRequest, type RequestCapture} from './types'
  *
  * TravelMode is 'Drive' | 'Walk' | 'Transit' (api.ts:667). Not 'Driving'.
  */
-
-const meResponse = {
-  userId: 'user-1',
-  email: 'test@menunest.app',
-  displayName: 'ทศพล',
-  familyId: 'family-1',
-  familyName: 'ครอบครัวทดสอบ',
-  familyInviteCode: 'TEST01',
-  authProvider: 'Google',
-  homePath: null,
-  uvWarnThreshold: null,
-  feelsLikeWarnThreshold: null,
-  activeTargetRule: null,
-}
 
 export const tripsFixture = [
   {

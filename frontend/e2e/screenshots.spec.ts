@@ -1,18 +1,34 @@
 import {mkdirSync, readFileSync} from 'node:fs'
 import {dirname, resolve} from 'node:path'
 import {fileURLToPath} from 'node:url'
-import {expect, type Page} from '@playwright/test'
+import {expect} from '@playwright/test'
 import {test} from './fixtures/healthFixture'
+import {hideSyncfusionTrialBanner} from './helpers/healthTestUtils'
 import {budgetSummaryFixture} from './helpers/mockRoutes/budgetRoutes'
 
 /**
  * Regenerates the README's screenshots. Opt-in — it writes files into the
- * repo, so it must never run as part of the normal e2e suite:
+ * repo, so it must never run as part of the normal e2e suite. From a clean
+ * checkout, in `frontend/`:
  *
+ *   cp -n .env.example .env
  *   SHOOT=1 npx playwright test screenshots.spec.ts
+ *
+ * `.env` is gitignored; without it the SPA degrades and pages render an
+ * error instead of content. If the run instead dies with
+ * `Executable doesn't exist at .../chromium_headless_shell-<build>`, the
+ * locally installed Chromium build does not match the one Playwright
+ * expects — set `PW_CHROMIUM_PATH` to a working Chromium/Chrome binary
+ * (only needed when the default browser resolution fails):
+ *
+ *   PW_CHROMIUM_PATH=/path/to/chrome SHOOT=1 npx playwright test screenshots.spec.ts
  *
  * Every screen is driven against mocked API responses, so no backend, no
  * Azure, no SQL and no real health or financial data is involved.
+ *
+ * The command succeeding is not enough — LOOK AT the five regenerated PNGs
+ * in docs/images/ afterwards. This repo's CLAUDE.md records two incidents
+ * (#36, #46) where visually broken UI passed every automated gate.
  */
 
 const baseDir = dirname(fileURLToPath(import.meta.url))
@@ -163,23 +179,6 @@ const BUDGET_SUMMARY_FOR_SHOOT = {
   month: now.getMonth() + 1,
 }
 
-/**
- * No real `VITE_SYNCFUSION_LICENSE_KEY` is configured for this environment
- * (`.env.example` ships it blank), so any page that mounts a Syncfusion
- * component injects a fixed, full-width trial banner
- * (`@syncfusion/ej2-base`'s `validate-lic.js`) directly onto `document.body`
- * — with no id/class, only matchable by its text. Left in place it covers
- * the top of the screen in every screenshot. It is injected once per full
- * page load, so removing it right before each shot is enough.
- */
-async function hideSyncfusionBanner(page: Page) {
-  await page.evaluate(() => {
-    document.querySelectorAll('body > div').forEach((el) => {
-      if (el.textContent?.includes('trial version of Syncfusion')) el.remove()
-    })
-  })
-}
-
 test.describe('README screenshots', () => {
   test.use({viewport: {width: 1280, height: 800}})
 
@@ -190,10 +189,10 @@ test.describe('README screenshots', () => {
 
   test('budget', async ({authedPage: page, mockApi}) => {
     await mockApi.budget.summary(BUDGET_SUMMARY_FOR_SHOOT).apply()
+    // authedPage already installs hideSyncfusionTrialBanner (fixtures/healthFixture.ts).
     await page.goto('/budget')
     await expect(page.getByTestId('bdg-rta-hero')).toBeVisible()
     await page.waitForLoadState('networkidle')
-    await hideSyncfusionBanner(page)
     await page.screenshot({path: `${OUT}/budget.png`})
   })
 
@@ -201,28 +200,31 @@ test.describe('README screenshots', () => {
     await mockApi.episodes.activeNone().startSuccess().apply()
     await page.route('**/api/symptoms', (route) => route.fulfill({json: SYMPTOMS}))
     await page.route('**/api/triggers', (route) => route.fulfill({json: TRIGGERS}))
+    // authedPage already installs hideSyncfusionTrialBanner (fixtures/healthFixture.ts).
     await page.goto('/health/log')
     await expect(page.getByRole('button', {name: /บันทึก attack/})).toBeEnabled()
     await page.waitForLoadState('networkidle')
-    await hideSyncfusionBanner(page)
     await page.screenshot({path: `${OUT}/health-quick-log.png`})
   })
 
   test('doctor report', async ({page, mockApi}) => {
     await mockApi.report.publicReport(REPORT_WITH_DAYS).apply()
+    // This test does not use authedPage, so the banner-hiding init script
+    // (unlike the other four cases) is not installed yet — it must be added
+    // before navigation, not called after.
+    await hideSyncfusionTrialBanner(page)
     await page.goto('/share/valid-token-abc')
     await expect(page.getByText('ทดสอบ ใจดี')).toBeVisible()
     await page.waitForLoadState('networkidle')
-    await hideSyncfusionBanner(page)
     await page.screenshot({path: `${OUT}/doctor-report.png`, fullPage: true})
   })
 
   test('trips', async ({authedPage: page, mockApi}) => {
     await mockApi.trips.apply()
+    // authedPage already installs hideSyncfusionTrialBanner (fixtures/healthFixture.ts).
     await page.goto('/trips')
     await expect(page.getByRole('heading', {name: /ทริปของฉัน/})).toBeVisible()
     await page.waitForLoadState('networkidle')
-    await hideSyncfusionBanner(page)
     await page.screenshot({path: `${OUT}/trips.png`})
   })
 
@@ -234,13 +236,13 @@ test.describe('README screenshots', () => {
   // conversation. Clicking the conversation and asserting a real message is
   // visible before shooting is required to get a populated screenshot.
   test('ai assistant', async ({authedPage: page, mockApi}) => {
+    // authedPage already installs hideSyncfusionTrialBanner (fixtures/healthFixture.ts).
     await mockApi.chat.apply()
     await page.goto('/ai-assistant')
     await expect(page.getByRole('heading', {name: 'AI Assistant'})).toBeVisible()
     await page.getByText('เมนูเย็นนี้').click()
     await expect(page.getByText(/มีไข่กับหมูสับ/)).toBeVisible()
     await page.waitForLoadState('networkidle')
-    await hideSyncfusionBanner(page)
     await page.screenshot({path: `${OUT}/ai-assistant.png`})
   })
 })

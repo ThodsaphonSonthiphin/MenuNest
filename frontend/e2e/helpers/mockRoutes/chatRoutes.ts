@@ -1,5 +1,5 @@
 import type {Page} from '@playwright/test'
-import {recordRequest, type RequestCapture} from './types'
+import {meResponse, recordRequest, type RequestCapture} from './types'
 
 /**
  * `/ai-assistant` IS behind FamilyRequiredRoute (src/router.tsx:79), so
@@ -10,20 +10,6 @@ import {recordRequest, type RequestCapture} from './types'
  *   GET /api/chat/conversations                  → ConversationSummaryDto[]
  *   GET /api/chat/conversations/{id}/messages    → ChatMessageDto[]
  */
-
-const meResponse = {
-  userId: 'user-1',
-  email: 'test@menunest.app',
-  displayName: 'ทศพล',
-  familyId: 'family-1',
-  familyName: 'ครอบครัวทดสอบ',
-  familyInviteCode: 'TEST01',
-  authProvider: 'Google',
-  homePath: null,
-  uvWarnThreshold: null,
-  feelsLikeWarnThreshold: null,
-  activeTargetRule: null,
-}
 
 export const conversationsFixture = [
   {id: 'conv-1', title: 'เมนูเย็นนี้', createdAt: '2026-09-01T10:00:00Z', updatedAt: '2026-09-01T10:04:00Z'},
