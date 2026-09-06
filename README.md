@@ -2,7 +2,7 @@
 
 A household web app in daily production use: migraine tracking that produces an anonymous clinical report a doctor opens from a QR code, zero-based envelope budgeting, meal planning against real pantry stock, and weather-aware trip planning.
 
-.NET 10 Clean Architecture and React 19 — plus an MCP server that exposes all 83 of the app's operations behind a hand-rolled OAuth 2.1 proxy, so an AI client drives the same handlers the SPA does.
+.NET 10 Clean Architecture and React 19 — plus an MCP server that exposes the budget, trips, meals, pantry and writing as 83 tools behind a hand-rolled OAuth 2.1 proxy, so an AI client drives the same handlers the SPA does.
 
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
 ![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
@@ -10,7 +10,7 @@ A household web app in daily production use: migraine tracking that produces an 
 ![Azure](https://img.shields.io/badge/Azure-App%20Service%20%C2%B7%20SQL%20%C2%B7%20SWA-0078D4?style=flat-square&logo=microsoftazure&logoColor=white)
 ![MCP](https://img.shields.io/badge/MCP-83%20tools-1f6feb?style=flat-square)
 
-**The UI is in Thai**, because this is not a portfolio exercise dressed up as a product — it is the app my household actually uses every day, and Thai is the language we use it in. What follows is in English; the screenshots are not.
+**The UI is in Thai** — it is the app my household actually uses every day, and Thai is the language we use it in. What follows is in English; the screenshots are not.
 
 ![The budget screen: Ready to Assign, account cards, and envelopes with assigned, activity and available](docs/images/budget.png)
 
@@ -20,19 +20,19 @@ A household web app in daily production use: migraine tracking that produces an 
 
 ## What it does
 
-**Health — migraine tracking.** An attack is logged in two taps from the home screen; severity, aura, location, quality, associated symptoms and triggers are all optional refinements on top of that. Medication is gated server-side, not by the UI: a drug is *active in effect*, *takeable*, or *blocked* by its daily-dose cap and its still-active window, so the API is the guard even when the client is stale. A follow-up web push fires 30 minutes later and can be answered **from the lock screen without opening the app** — the service worker POSTs the response itself.
+**Health — migraine tracking.** An attack is logged in two taps from the home screen; severity, aura, location, quality, associated symptoms and triggers are all optional refinements on top of that. Which medication you may take is worked out server-side rather than in the UI: the API buckets every drug into *active in effect*, *takeable* or *blocked* from its daily-dose cap and its still-active window, so the SPA, the PWA and the lock-screen action all see one partition instead of each re-deriving it. A follow-up web push fires 30 minutes later and can be answered **from the lock screen without opening the app** — the service worker POSTs the response itself.
 
 **The doctor report.** A date-bounded, HMAC-signed share token renders an anonymous report: attack frequency and severity over the window, ICHD-3 criteria fit, trigger correlation, and per-drug relief rate and average onset. The database stores only the token's SHA-256 hash, so a database leak yields no working link.
 
-**Budget — zero-based envelopes.** Ready to Assign is `sum(non-credit accounts) − sum(every envelope's available)`, computed on read rather than persisted, so it cannot drift out of sync with the ledger. Credit accounts are deliberately outside that sum: their payment envelope already holds the money owed, and counting both would hold the same baht back twice ([menunest-203](docs/adr/menunest-203-ready-to-assign-stops-counting-credit-accounts.md)).
+**Budget — zero-based envelopes.** Ready to Assign is `sum(non-debt accounts) − sum(every envelope's available)`, computed on read rather than persisted, so it cannot drift out of sync with the ledger. Credit cards and loans sit deliberately outside that sum: an envelope already holds the money owed on them, and counting the negative balance as well would hold the same baht back twice ([menunest-203](docs/adr/menunest-203-ready-to-assign-stops-counting-credit-accounts.md) for cards, [menunest-206](docs/adr/menunest-206-loan-accounts-leave-ready-to-assign-but-get-no-payment-envelope.md) for loans).
 
-**Meal planning and pantry.** Recipes → weekly plan → stock check → shopping list, and back again: cooking a batch deducts the ingredients (clamped at zero, partial deductions warn rather than fail) and ticking an item as bought restocks the pantry. Stock is an append-only transaction log, not a mutable quantity field, so every movement has a cause.
+**Meal planning and pantry.** Recipes → weekly plan → stock check → shopping list, and back again: cooking a batch deducts the ingredients (clamped at zero, partial deductions warn rather than fail) and ticking an item as bought restocks the pantry. Every movement also writes a `StockTransaction` — an append-only ledger kept beside the running quantity — so the number in the pantry can always be traced back to the cook, purchase or correction that produced it.
 
 **Trips.** An itinerary of ordered stops, each carrying its own weather reading. A stop can be re-timed to a target hour to arrive when the temperature is bearable, and the rest of the day cascades — but the new schedule is *proposed and confirmed*, never applied silently, because the traveller has to stay in control of their own day ([ADR-112](docs/adr/112-weather-based-retiming-scope-view-and-assist.md)).
 
 **Writing, Pomodoro, Discover.** Timed writing entries are corrected over MCP by the writer's own AI client; words-per-minute and errors-per-100-words are derived server-side from elapsed time and hit/miss counts rather than trusted as tool inputs ([ADR-175](docs/adr/175-writingtools-exposes-four-mcp-tools-and-entry-creation-is-never-one.md)). Discover is a map-forward screen with an *armed* capture mode, because on a map a tap already means "select" and overloading it silently is how you lose the user's pin.
 
-**MCP server.** The whole domain as 83 tools, behind an OAuth 2.1 authorization-server facade that had to be written by hand because Entra ID and claude.ai cannot agree on one parameter — [detailed below](#the-mcp-server).
+**MCP server.** Every area above except the health tracker — budget, trips, meals, the pantry, writing — reachable as 83 tools behind an OAuth 2.1 authorization-server facade that had to be written by hand because Entra ID and claude.ai cannot agree on one parameter. [Detailed below.](#the-mcp-server)
 
 ---
 
@@ -100,7 +100,7 @@ Per-feature sequence diagrams for every flow above (auth and user provisioning, 
 
 ## The MCP server
 
-83 tools across 8 classes — Trip 26, Budget 24, Shopping 10, MealPlan 7, Recipe 5, Writing 4, Ingredient 4, Stock 3 — let an AI client drive the domain. Not a read-only bridge: it creates recipes, plans meals, re-times stops and pays credit cards. The standing rule is [menunest-213](docs/adr/menunest-213-every-function-this-feature-adds-is-reachable-over-mcp.md): every function a feature adds is reachable over MCP, decided when the feature is designed rather than retrofitted.
+83 tools across 8 classes — Trip 26, Budget 24, Shopping 10, MealPlan 7, Recipe 5, Writing 4, Ingredient 4, Stock 3 — let an AI client drive the planning and household side of the app. Not a read-only bridge: it creates recipes, plans meals, re-times stops and pays credit cards. The standing rule since [menunest-213](docs/adr/menunest-213-every-function-this-feature-adds-is-reachable-over-mcp.md) is that every function a feature adds is reachable over MCP, decided while the feature is being designed rather than retrofitted afterwards — which is why the newer domains are covered and the health tracker, which predates the rule, still has no tools at all.
 
 ### The OAuth 2.1 proxy, and why it exists
 
@@ -147,14 +147,12 @@ Source: [`backend/src/MenuNest.McpServer/Tools/`](backend/src/MenuNest.McpServer
 
 ## Engineering practice
 
-Unusual for a personal project, and all of it one click away:
-
-- **1,043 backend tests** across four projects — Application 874, McpServer 80, WebApi 65, Infrastructure integration 24. Application handler tests run against a real SQLite-backed `DbContext` that applies the production EF configurations, so unique indexes and FK behaviour that the in-memory provider silently ignores are actually exercised.
+- **1,043 backend tests** across four projects — Application 874, McpServer 80, WebApi 65, Infrastructure integration 24. **Relational** handler tests run against a real SQLite-backed `DbContext` that applies the production EF configurations, so unique indexes and FK behaviour the in-memory provider silently ignores are actually exercised.
 - **61 frontend vitest files** and **37 Playwright e2e specs**.
-- **[216 ADRs](docs/adr/)** — every design decision recorded with the alternatives that were rejected and why. The interesting ones are the reversals.
+- **[216 ADRs](docs/adr/)** — every design decision recorded with the alternatives that were rejected and why. The interesting ones are the reversals: [menunest-203](docs/adr/menunest-203-ready-to-assign-stops-counting-credit-accounts.md) takes credit accounts back out of a formula that had already shipped, and [menunest-206](docs/adr/menunest-206-loan-accounts-leave-ready-to-assign-but-get-no-payment-envelope.md) then does the same for loans.
 - **[56 design specs](docs/superpowers/specs/)**, written before the implementation they describe.
 - **[Postmortems](docs/postmortems/)**, including one on a budgeting bug this project shipped to itself.
-- **CI** — four GitHub Actions workflows. `ci.yml` builds and tests the backend and typechecks and builds the frontend on every push and PR; `playwright.yml` runs the e2e suite on the same triggers; the other two deploy the API to App Service and the SPA to Static Web Apps from `main`.
+- **CI** — four GitHub Actions workflows. On pushes to `main` and `feat/**` and on every PR to `main`, `ci.yml` builds and tests the backend and typechecks, unit-tests and builds the frontend, while `playwright.yml` runs the e2e suite. The other two deploy the API to App Service and the SPA to Static Web Apps from `main`.
 - **A pre-commit hook** that runs the full backend build and test suite plus the frontend typecheck and build, on every commit. It is slow, and it is not bypassed.
 
 ---
