@@ -7,19 +7,16 @@ import {
   readPlays,
   readSwMsgs,
 } from './helpers/pomodoroSpies'
+import { installPausedClock, resetAppStorage } from './helpers/healthTestUtils'
 
 test.describe('Pomodoro — notifications + sound + SW', () => {
   test.beforeEach(async ({ authedPage: page, context }) => {
     await context.grantPermissions(['notifications'])
     await installPomodoroSpies(page)
-    await page.clock.install({ time: new Date('2026-06-01T09:00:00Z') })
-    // Sentinel — clear LS once per test, preserve across reload.
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('__pomo_lsCleared')) {
-        localStorage.clear()
-        sessionStorage.setItem('__pomo_lsCleared', '1')
-      }
-    })
+    await installPausedClock(page)
+    // `once` — clear LS on the first navigation only, preserving state
+    // across reload.
+    await resetAppStorage(page, { once: true })
   })
 
   test('first Start asks for notification permission exactly once', async ({
