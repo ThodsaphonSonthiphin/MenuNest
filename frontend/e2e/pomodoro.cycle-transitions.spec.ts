@@ -1,10 +1,11 @@
 import { expect } from '@playwright/test'
 import { test } from './fixtures/healthFixture'
+import { installPausedClock, resetAppStorage } from './helpers/healthTestUtils'
 
 test.describe('Pomodoro — cycle transitions', () => {
   test.beforeEach(async ({ authedPage: page }) => {
-    await page.clock.install({ time: new Date('2026-06-01T09:00:00Z') })
-    await page.addInitScript(() => localStorage.clear())
+    await installPausedClock(page)
+    await resetAppStorage(page)
   })
 
   test('focus → break flip when the focus cycle ends', async ({ authedPage: page }) => {

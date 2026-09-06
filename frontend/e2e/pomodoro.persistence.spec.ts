@@ -1,21 +1,14 @@
 import { expect } from '@playwright/test'
 import { test } from './fixtures/healthFixture'
+import { installPausedClock, resetAppStorage } from './helpers/healthTestUtils'
 
 test.describe('Pomodoro — persistence', () => {
   test.beforeEach(async ({ authedPage: page }) => {
-    await page.clock.install({ time: new Date('2026-06-01T09:00:00Z') })
-    // Clear localStorage on the FIRST navigation per test only. The naïve
-    // `localStorage.clear()` init script re-fires on every navigation —
-    // including `page.reload()` — which wipes the persisted state we're
-    // trying to assert on. The sentinel in sessionStorage (reset for
-    // every test because Playwright spawns a fresh BrowserContext) makes
-    // the clear happen exactly once.
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('__pomo_lsCleared')) {
-        localStorage.clear()
-        sessionStorage.setItem('__pomo_lsCleared', '1')
-      }
-    })
+    await installPausedClock(page)
+    // `once` — clear on the FIRST navigation per test only. A clear that
+    // re-fires on every navigation (including `page.reload()`) would wipe
+    // the persisted state we're trying to assert on.
+    await resetAppStorage(page, { once: true })
   })
 
   test('reload while running restores the correct remaining time', async ({
