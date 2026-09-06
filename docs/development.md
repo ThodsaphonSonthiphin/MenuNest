@@ -30,7 +30,7 @@ cd backend
 dotnet restore
 dotnet ef database update --project src/MenuNest.Infrastructure --startup-project src/MenuNest.WebApi
 dotnet run --project src/MenuNest.WebApi
-# → https://localhost:5001/swagger
+# → https://localhost:5001/scalar
 
 # Frontend (in a separate terminal)
 cd frontend
@@ -39,7 +39,17 @@ npm run dev
 # → http://localhost:5173
 ```
 
-Copy `appsettings.Development.json.example` and `.env.example`, then fill in your own credentials.
+Copy `frontend/.env.example` to `frontend/.env` and fill in your own credentials.
+
+The backend has no `appsettings.Development.json`-style template to copy — no `.example` counterpart
+exists in this repo, unlike the frontend's `.env.example`. `MenuNest.WebApi.csproj` sets a
+`UserSecretsId`, and `WebApplication.CreateBuilder` loads the user-secrets store automatically in
+Development — so the intended path is `dotnet user-secrets set <Key> <Value> --project src/MenuNest.WebApi`
+for each credential listed in the prerequisites table above (`AzureAd:ClientId`, `AzureAd:ClientSecret`,
+`Google:ClientId`, `Gemini:ApiKey`, `AzureSpeech:SubscriptionKey`, `Push:VapidPublicKey`,
+`Push:VapidPrivateKey`, `Jwt:SigningKey`, `Share:TokenSigningKey`, and `ConnectionStrings:DefaultConnection`
+if you're not using the LocalDB default in `appsettings.json`). An `appsettings.Development.json` you
+create by hand works too — user secrets just avoid the risk of committing it.
 
 ---
 

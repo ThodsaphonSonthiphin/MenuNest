@@ -12,9 +12,9 @@ A household web app in daily production use: migraine tracking that produces an 
 
 **The UI is in Thai** — it is the app my household actually uses every day, and Thai is the language we use it in. What follows is in English; the screenshots are not.
 
-![The budget screen: Ready to Assign, account cards, and envelopes with assigned, activity and available](docs/images/budget.png)
+![The budget screen: Still to place (Ready to Assign), account cards, and envelopes with assigned, activity and available](docs/images/budget.png)
 
-*Zero-based budgeting. Every baht in the accounts is either assigned to an envelope or sitting in Ready to Assign — a number that is derived on every read, never stored.*
+*Zero-based budgeting. Every baht in the accounts is either assigned to an envelope or sitting in "Still to place" — the UI label for Ready to Assign, a number that is derived on every read, never stored.*
 
 ---
 
