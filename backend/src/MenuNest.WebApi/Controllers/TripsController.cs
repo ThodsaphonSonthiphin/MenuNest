@@ -7,6 +7,7 @@ using MenuNest.Application.UseCases.Trips.CreateTrip;
 using MenuNest.Application.UseCases.Trips.DetachChecklistItem;
 using MenuNest.Application.UseCases.Trips.DeleteTrip;
 using MenuNest.Application.UseCases.Trips.DeleteTripPlace;
+using MenuNest.Application.UseCases.Trips.FindWeatherWindows;
 using MenuNest.Application.UseCases.Trips.GetHourlyForecast;
 using MenuNest.Application.UseCases.Trips.GetItinerary;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
@@ -143,6 +144,12 @@ public sealed class TripsController : ControllerBase
 
     [HttpPost("api/trips/weather/hourly")]
     public async Task<ActionResult<IReadOnlyList<HourlyReadingDto>>> HourlyWeather([FromBody] GetHourlyForecastQuery q, CancellationToken ct)
+        => Ok(await _mediator.Send(q, ct));
+
+    /// <summary>Weather windows at a bare location (issue #153). Authenticated by the fallback policy,
+    /// no resource check — the same as the two weather reads above it.</summary>
+    [HttpPost("api/trips/weather/windows")]
+    public async Task<ActionResult<WeatherWindowResultDto>> WeatherWindows([FromBody] FindWeatherWindowsQuery q, CancellationToken ct)
         => Ok(await _mediator.Send(q, ct));
 
     [HttpPost("api/trips/{tripId:guid}/days/{dayId:guid}/retime")]
