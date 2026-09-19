@@ -167,6 +167,36 @@ public sealed class FindWeatherWindowsHandlerTests : IDisposable
         result.Windows.Should().ContainSingle().Which.StartLocal.Hour.Should().Be(8);
     }
 
+    [Fact]
+    public async Task Honours_the_stored_UV_threshold()
+    {
+        SeedThresholds(uv: 3, feels: null);
+        _weather.Hours = new[] { H(0, 6, uv: 4), H(0, 7, uv: 4) };
+
+        var result = await Run(Q(WeatherSignal.Sun));
+
+        result.Miss!.Reason.Should().Be(WeatherWindowMissReason.AllHoursBlocked);
+        result.Miss.Threshold.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task Ignores_another_Users_settings()
+    {
+        var otherUser = User.CreateFromExternalLogin("other-oid", "other@example.com", "Other", AuthProvider.Microsoft);
+        _db.Users.Add(otherUser);
+        _db.SaveChanges();
+        var otherSettings = UserSettings.Create(otherUser.Id);
+        otherSettings.SetWeatherAlerts(null, 30);
+        _db.UserSettings.Add(otherSettings);
+        _db.SaveChanges();
+
+        _weather.Hours = new[] { H(0, 6, feels: 35), H(0, 7, feels: 35) };
+
+        var result = await Run(Q(WeatherSignal.Heat));
+
+        result.Windows.Should().ContainSingle("the current user's built-in 40C applies, not the other user's 30C");
+    }
+
     // ── provider failure ──────────────────────────────────────────────────────
 
     [Fact]
@@ -216,6 +246,27 @@ public sealed class FindWeatherWindowsHandlerTests : IDisposable
 
         result.HorizonTruncated.Should().BeFalse();
         result.SearchedThrough.Should().Be(Day0.AddDays(1));
+    }
+
+    [Fact]
+    public async Task Truncated_one_hour_short_of_a_wrapped_bands_last_hour()
+    {
+        // FromHour 18, ToHour 2, ToDate Day0+1 -> the band's last hour is Day0+2 01:00.
+        _weather.Hours = Hours(0, 0, 49); // ends at Day0+2 00:00
+
+        var result = await Run(Q() with { ToDate = Day0.AddDays(1), FromHour = 18, ToHour = 2 });
+
+        result.HorizonTruncated.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task Not_truncated_when_the_forecast_reaches_a_wrapped_bands_last_hour()
+    {
+        _weather.Hours = Hours(0, 0, 50); // ends at Day0+2 01:00
+
+        var result = await Run(Q() with { ToDate = Day0.AddDays(1), FromHour = 18, ToHour = 2 });
+
+        result.HorizonTruncated.Should().BeFalse();
     }
 
     [Fact]

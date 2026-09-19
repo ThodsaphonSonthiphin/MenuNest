@@ -52,6 +52,21 @@ public class WeatherHourJudgeTests
         => WeatherHourJudge.BandDate(new DateTime(2026, 9, 21, 1, 0, 0), 0, 24)
             .Should().Be(new DateOnly(2026, 9, 21));
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(5)]
+    [InlineData(23)]
+    public void An_equal_from_and_to_hour_is_a_full_day_band_starting_at_fromHour(int hour)
+        => WeatherHourJudge.InBand(hour, 5, 5).Should().BeTrue();
+
+    [Fact]
+    public void An_equal_from_and_to_hour_dates_the_tail_before_fromHour_to_the_earlier_day()
+    {
+        WeatherHourJudge.BandDate(new DateTime(2026, 9, 21, 4, 0, 0), 5, 5).Should().Be(new DateOnly(2026, 9, 20));
+        WeatherHourJudge.BandDate(new DateTime(2026, 9, 21, 5, 0, 0), 5, 5).Should().Be(new DateOnly(2026, 9, 21));
+    }
+
     [Fact]
     public void An_hour_below_every_threshold_is_good()
     {

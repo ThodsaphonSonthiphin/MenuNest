@@ -96,6 +96,11 @@ public class FindWeatherWindowsValidatorTests
             .ShouldHaveValidationErrorFor(x => x.Lat);
 
     [Fact]
+    public void Rejects_an_out_of_range_longitude()
+        => _v.TestValidate(Q(WeatherSignal.Rain) with { Lng = 181 })
+            .ShouldHaveValidationErrorFor(x => x.Lng);
+
+    [Fact]
     public void Rejects_the_maximum_date_as_toDate()
         => _v.TestValidate(Q(WeatherSignal.Rain) with { ToDate = DateOnly.MaxValue })
             .ShouldHaveValidationErrorFor(x => x.ToDate);

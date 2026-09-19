@@ -102,6 +102,25 @@ public class WeatherWindowSelectionTests
     }
 
     [Fact]
+    public void A_wrapping_band_filters_by_band_date_not_local_date()
+    {
+        // The existing Run helper can't pass midnight, so build hours directly from a DateTime.
+        var start = Day0.ToDateTime(new TimeOnly(17, 0));
+        var hours = Enumerable.Range(0, 35)
+            .Select(i => new HourlyReading(start.AddHours(i), true, 28, 30, "CLEAR", null, 10, 2));
+
+        var cut = Cut(hours, fromHour: 18, toHour: 2, from: Day0.AddDays(1), to: Day0.AddDays(1));
+
+        var w = cut.Windows.Should().ContainSingle().Subject;
+        w.Date.Should().Be(Day0.AddDays(1));
+        w.StartLocal.Should().Be(Day0.AddDays(1).ToDateTime(new TimeOnly(18, 0)));
+        w.EndLocalExclusive.Should().Be(Day0.AddDays(2).ToDateTime(new TimeOnly(2, 0)));
+        w.Hours.Should().Be(8);
+        cut.FirstExaminedDate.Should().Be(Day0.AddDays(1));
+        cut.LastExaminedDate.Should().Be(Day0.AddDays(1));
+    }
+
+    [Fact]
     public void The_date_range_filters_by_band_date()
     {
         var cut = Cut(Run(0, 6, 3).Concat(Run(1, 6, 3)), from: Day0.AddDays(1), to: Day0.AddDays(1));
