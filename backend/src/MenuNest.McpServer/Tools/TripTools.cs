@@ -20,6 +20,7 @@ using MenuNest.Application.UseCases.Trips.SetDayUseCurrentTime;
 using MenuNest.Application.UseCases.Trips.SetTripDaily;
 using MenuNest.Application.UseCases.Trips.GetStopWeather;
 using MenuNest.Application.UseCases.Trips.GetStopHourlyForecast;
+using MenuNest.Application.UseCases.Trips.FindWeatherWindows;
 using MenuNest.Application.UseCases.Trips.RetimeStopToWeather;
 using MenuNest.Application.UseCases.Trips.ListChecklistItems;
 using MenuNest.Application.UseCases.Trips.AttachChecklistItem;
@@ -209,6 +210,39 @@ public sealed class TripTools(IMediator mediator)
         [Description("Forecast hours to return (1-240)")] int hours,
         CancellationToken ct)
         => await mediator.Send(new GetStopHourlyForecastQuery(tripId, stopId, hours), ct);
+
+    [McpServerTool, Description(
+        "Find Weather windows at a location: dated runs of consecutive forecast hours in which EVERY selected signal " +
+        "stays below its threshold, within the 10-day forecast horizon. Use it when the user asks which day or time at " +
+        "a place is not rainy / not hot / not harsh sun — typically BEFORE a trip exists. Get lat/lng from resolve_place first. " +
+        "Choose signals from the user's words and add nothing they did not ask about: " +
+        "'ฝนไม่ตก' / not raining -> [Rain]; 'ไม่ร้อน' / not hot -> [Heat]; 'แดดไม่แรง' / low UV -> [Sun]; " +
+        "'แดดไม่ร้อน' -> [Heat, Sun]; 'ฝนไม่ตกและไม่ร้อน' -> [Rain, Heat]. " +
+        "An hour is BLOCKED when a selected value is AT OR ABOVE its threshold. Thresholds default to the user's own " +
+        "weather-alert settings (feels-like 40 C and UV 6 unless they changed them; a signal they switched off never blocks) " +
+        "and rain 60%. Pass maxRainPct / maxFeelsLikeC / maxUvIndex only for a selected signal and only when the user asks. " +
+        "Use fromHour/toHour for a time of day (toHour is exclusive; if toHour <= fromHour the band wraps past midnight, e.g. 18-2). " +
+        "If windows is empty, read miss: AllHoursBlocked names blockingSignal, threshold and closestValue — the lowest value " +
+        "that blocked an hour. To relax, a threshold must be ABOVE closestValue; offer that to the user, do not do it silently. " +
+        "NoWindowLongEnough means good hours exist but in runs shorter than minWindowHours (default 2) — offer a shorter minimum. " +
+        "NoWeatherData means there is no forecast for that range — never tell the user the weather is bad. " +
+        "horizonTruncated=true means toDate was past the forecast; say which dates were searched (searchedFrom..searchedThrough).")]
+    public async Task<WeatherWindowResultDto> find_weather_windows(
+        [Description("Latitude, from resolve_place")] double lat,
+        [Description("Longitude, from resolve_place")] double lng,
+        [Description("Signals that judge an hour: Rain, Heat (feels-like), Sun (UV). At least one.")] WeatherSignal[] signals,
+        [Description("First local date to search, YYYY-MM-DD. Default: today.")] DateOnly? fromDate = null,
+        [Description("Last local date to search, YYYY-MM-DD. Default: the end of the 10-day forecast.")] DateOnly? toDate = null,
+        [Description("Start hour of each day, 0-23 (default 0).")] int? fromHour = null,
+        [Description("End hour of each day, 1-24, exclusive (default 24). If <= fromHour the band wraps past midnight.")] int? toHour = null,
+        [Description("Rain % that blocks an hour (1-100, default 60). Only with Rain selected.")] int? maxRainPct = null,
+        [Description("Feels-like C that blocks an hour (1-60, default the user's setting). Only with Heat selected.")] double? maxFeelsLikeC = null,
+        [Description("UV index that blocks an hour (1-20, default the user's setting). Only with Sun selected.")] int? maxUvIndex = null,
+        [Description("Shortest window worth returning, in hours (1-24, default 2).")] int? minWindowHours = null,
+        CancellationToken ct = default)
+        => await mediator.Send(new FindWeatherWindowsQuery(
+            lat, lng, signals, fromDate, toDate, fromHour, toHour,
+            maxRainPct, maxFeelsLikeC, maxUvIndex, minWindowHours), ct);
 
     [McpServerTool, Description("Re-time the plan so a stop arrives at a target hour, or the coolest daytime/nighttime hour. Shifts the day start (and whole trip StartDate for a cross-day target); turns off the day's current-time-start. The resulting day-start assumes inter-stop travel only — no approach leg from a live location — so a user later opening the trip in-app with location enabled may see the anchor arrive slightly later than the targeted hour by their travel time to the first stop. Returns whether the whole trip moved.")]
     public async Task<RetimeResultDto> retime_stop_to_weather(
