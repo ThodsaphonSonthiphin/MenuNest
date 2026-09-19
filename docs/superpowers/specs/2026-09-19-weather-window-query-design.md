@@ -184,8 +184,12 @@ the hours-of-day band work without special handling: with a band of 08–16, the
 1 and the 08:00 bucket of day 2 are not consecutive, so they never join into one window.
 
 **The blocking signal** is the selected signal that failed the most hours; ties break in the
-declared order `Rain`, `Heat`, `Sun`. `ClosestValue` is the best value that signal reached across
-the examined hours — the number the assistant quotes when it offers to relax the threshold.
+declared order `Rain`, `Heat`, `Sun`. `ClosestValue` is the **lowest over-threshold** value that
+signal reached — that is, the smallest threshold that would unblock at least one hour, and so the
+number the assistant quotes when it offers to relax it. Deliberately **not** the minimum across all
+examined hours: an hour that already passes this signal (and was rejected by a different one) says
+nothing about how far to relax *this* number, and quoting it would send the assistant to a
+threshold that changes nothing.
 
 **A window may cross midnight** when the band wraps (`ToHour <= FromHour`, e.g. 18→02 for a
 ตลาดกลางคืน). The wrapped tail belongs to the band opened on the earlier date, and the window's
