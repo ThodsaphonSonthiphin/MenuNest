@@ -27,16 +27,21 @@ public static class WeatherHourJudge
         return toHour <= fromHour && displayLocal.Hour < toHour ? date.AddDays(-1) : date;
     }
 
+    /// <summary>The value a signal judges. Heat is rounded half away from zero, exactly like
+    /// <c>weatherAlertBadges</c> in frontend/src/pages/trips/lib/weather.ts, so a 39.6 °C hour compares
+    /// as 40 here too — the same hour the app's Stop card would heat-badge. Rain and UV are already
+    /// integers.</summary>
     public static double? ValueOf(HourlyReading hour, WeatherSignal signal) => signal switch
     {
         WeatherSignal.Rain => hour.RainPct,
-        WeatherSignal.Heat => hour.FeelsLikeC,
+        WeatherSignal.Heat => hour.FeelsLikeC is { } f ? Math.Round(f, MidpointRounding.AwayFromZero) : null,
         WeatherSignal.Sun => hour.UvIndex,
         _ => throw new ArgumentOutOfRangeException(nameof(signal), signal, null),
     };
 
     /// <summary>Blocked when any gating signal is AT OR ABOVE its threshold. Only signals with a
-    /// non-null threshold gate the hour.</summary>
+    /// non-null threshold gate the hour. Heat is judged on the value <see cref="ValueOf"/> rounds half
+    /// away from zero, matching <c>weatherAlertBadges</c>.</summary>
     public static HourVerdict Judge(HourlyReading hour, WeatherThresholds thresholds)
     {
         var failed = new List<WeatherSignal>(3);

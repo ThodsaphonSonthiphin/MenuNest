@@ -55,7 +55,7 @@ public class WeatherHourJudgeTests
     [Fact]
     public void An_hour_below_every_threshold_is_good()
     {
-        var v = WeatherHourJudge.Judge(Hour(rain: 59, feels: 39.9, uv: 5), new WeatherThresholds(All, 60, 40, 6));
+        var v = WeatherHourJudge.Judge(Hour(rain: 59, feels: 39.4, uv: 5), new WeatherThresholds(All, 60, 40, 6));
 
         v.IsGood.Should().BeTrue();
         v.IsBlocked.Should().BeFalse();
@@ -104,7 +104,20 @@ public class WeatherHourJudgeTests
         var h = Hour(rain: 55, feels: 33.5, uv: 7);
 
         WeatherHourJudge.ValueOf(h, WeatherSignal.Rain).Should().Be(55);
-        WeatherHourJudge.ValueOf(h, WeatherSignal.Heat).Should().Be(33.5);
+        WeatherHourJudge.ValueOf(h, WeatherSignal.Heat).Should().Be(34);
         WeatherHourJudge.ValueOf(h, WeatherSignal.Sun).Should().Be(7);
+    }
+
+    [Theory]
+    [InlineData(39.4, true)]
+    [InlineData(39.5, false)]
+    [InlineData(40.4, false)]
+    public void Heat_is_judged_on_the_rounded_feels_like_like_the_apps_badge(double feels, bool expectedGood)
+    {
+        var v = WeatherHourJudge.Judge(
+            Hour(feels: feels), new WeatherThresholds(new[] { WeatherSignal.Heat }, null, 40, null));
+
+        v.IsGood.Should().Be(expectedGood);
+        if (!expectedGood) v.Failed.Should().Equal(WeatherSignal.Heat);
     }
 }

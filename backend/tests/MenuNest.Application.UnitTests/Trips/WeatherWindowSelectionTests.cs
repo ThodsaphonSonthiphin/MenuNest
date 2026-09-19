@@ -210,4 +210,17 @@ public class WeatherWindowSelectionTests
         Cut(Run(0, 6, 2)).Miss.Should().BeNull();
         Cut(new[] { H(0, 6, rain: 99) }).Miss.Should().NotBeNull();
     }
+
+    [Fact]
+    public void ClosestValue_for_heat_is_the_rounded_value()
+    {
+        var thresholds = new WeatherThresholds(new[] { WeatherSignal.Heat }, null, 39, null);
+        var cut = Cut(new[] { H(0, 6, feels: 39.6) }, thresholds);
+
+        var m = cut.Miss!;
+        m.Reason.Should().Be(WeatherWindowMissReason.AllHoursBlocked);
+        m.BlockingSignal.Should().Be(WeatherSignal.Heat);
+        m.ClosestValue.Should().Be(40);
+        m.Threshold.Should().Be(39);
+    }
 }

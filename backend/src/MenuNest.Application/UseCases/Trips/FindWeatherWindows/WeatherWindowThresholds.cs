@@ -18,8 +18,9 @@ public sealed record WeatherThresholds(
     };
 }
 
-/// <summary>Server twin of <c>effectiveThreshold</c> in frontend/src/pages/trips/lib/weather.ts and of
-/// frontend/src/pages/settings/weatherAlertControl.ts. Change the rule in all three places or none.</summary>
+/// <summary>Server twin of <c>effectiveThreshold</c> and <c>weatherAlertBadges</c> in
+/// frontend/src/pages/trips/lib/weather.ts, and of frontend/src/pages/settings/weatherAlertControl.ts.
+/// Change the rule in all three places or none.</summary>
 public static class WeatherWindowThresholds
 {
     public const int DefaultRainPct = 60;    // RAIN_TINT_THRESHOLD
