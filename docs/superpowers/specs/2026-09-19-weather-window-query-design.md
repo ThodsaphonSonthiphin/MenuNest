@@ -69,14 +69,17 @@ and has **never been read by the backend**. Every evaluation lives in
 | `Lat` | `double` | yes | — |
 | `Lng` | `double` | yes | — |
 | `Signals` | `IReadOnlyList<WeatherSignal>` | yes, non-empty | — |
-| `FromDate` | `DateOnly?` | no | the local date of the first forecast bucket |
+| `FromDate` | `DateOnly?` | no | no lower bound — the search starts at the first forecast hour; with a band that wraps past midnight, a call made before `ToHour` examines the tail of the band opened yesterday, so a window can be dated yesterday |
 | `ToDate` | `DateOnly?` | no | the last date inside the **Forecast horizon** |
 | `FromHour` | `int?` 0–23 | no | `0` |
 | `ToHour` | `int?` 1–24 | no | `24` |
-| `MaxRainPct` | `int?` 0–100 | no | `60` — the web app's `RAIN_TINT_THRESHOLD` |
-| `MaxFeelsLikeC` | `double?` | no | the **User**'s effective **Feels-like** threshold |
-| `MaxUvIndex` | `int?` | no | the **User**'s effective **UV index** threshold |
+| `MaxRainPct` | `int?` 1–100 | no | `60` — the web app's `RAIN_TINT_THRESHOLD` |
+| `MaxFeelsLikeC` | `double?` 1–60 | no | the **User**'s effective **Feels-like** threshold |
+| `MaxUvIndex` | `int?` 1–20 | no | the **User**'s effective **UV index** threshold |
 | `MinWindowHours` | `int?` 1–24 | no | `2` |
+
+A per-call threshold is never "off" — `0` is the stored "off" value, and because blocking is `>=` an
+explicit `0` would block every hour; to drop a gate, leave the signal out of `Signals`.
 
 `WeatherSignal` is a new `MenuNest.Domain.Enums` enum: `Rain`, `Heat`, `Sun`.
 
@@ -108,6 +111,10 @@ wrong.
 
 A signal whose threshold resolves to **off** is selected but never blocks. That is deliberate: a
 **User** who switched the heat alert off is asking for no heat gate, and menunest-219 says so.
+
+**Feels-like is compared after rounding half away from zero**, exactly like the app's heat badge
+(`weatherAlertBadges` in `frontend/src/pages/trips/lib/weather.ts`) — a 39.6 °C hour compares as 40,
+matching the badge the User's Stop card would already show for it.
 
 ### 4.3 Result
 
@@ -193,8 +200,9 @@ threshold that changes nothing.
 
 **A window may cross midnight** when the band wraps (`ToHour <= FromHour`, e.g. 18→02 for a
 ตลาดกลางคืน). The wrapped tail belongs to the band opened on the earlier date, and the window's
-`Date` is the local date of its **first** hour. This matches ADR-118, which already makes the
-**Hourly forecast** cross midnight visibly.
+`Date` is the **band date** of its first hour — the date whose band that hour belongs to, which is
+the earlier date for a wrapped tail. This matches ADR-118, which already makes the **Hourly
+forecast** cross midnight visibly.
 
 **Horizon truncation.** A `ToDate` past the 10-day **Forecast horizon** is cut to the horizon and
 `HorizonTruncated` is set, with `SearchedThrough` naming the real last date. It is never an error —
@@ -287,10 +295,11 @@ One `forecast/hours:lookup` walk per uncached call — the same request the **On
 and the **Hourly forecast** already make, so **no new billing SKU** (ADR-093, ADR-119).
 
 `GetHourlyAsync`'s cache key embeds the requested `hours` and the current UTC hour, so different
-`hours` values at the same point are separate cached walks. The handler therefore rounds
-`hoursNeeded` **up to a multiple of 24** before calling, so a two-day and a three-day question at
-the same place share entries with each other and with the SPA's 48 h calls, instead of minting a
-fresh 10-page walk for every distinct range.
+`hours` values at the same point are separate cached walks. The handler rounds `hoursNeeded` **up to
+a multiple of 24** before calling — this does **not** make a two-day and a three-day question at the
+same place share entries with each other: `ToDate` +1 requests 72 h and +2 requests 96 h, which are
+different cache keys. Whole-day rounding instead stops the cache fragmenting per hour-of-day; repeat
+calls with the same range share an entry, which covers the relax-and-retry flow in §6.
 
 ## 10. Tests
 
