@@ -273,6 +273,20 @@ the glossary wins until the glossary is deliberately changed.
 - **Anchor Stop** — the **Stop** whose **Hourly forecast** is open; a **Weather-based retiming** target
   applies to it — its **arrival** is what is driven to the chosen hour, and its **Day** index sets the
   **Trip** date shift for a cross-day target. _Avoid_: target stop, selected stop.
+- **Weather window (ช่วงอากาศดี)** — a **dated**, contiguous run of **Hourly forecast** hours at a
+  point where **every selected signal** stays inside its threshold (issue #153). Derived from the
+  **Hourly forecast** at read time and **never stored** (ADR-033); bounded by a caller **date range**
+  and **hours-of-day band** (menunest-222) and by the **Forecast horizon**. Answers "วันไหนฝนไม่ตก" /
+  "วันไหนแดดไม่ร้อน" for a bare location, over MCP, to plan a **Trip** (menunest-217). _Avoid_:
+  **Best-time window** (the *authored*, repeating time-of-day window on a **Place** — a different
+  concept), best time, good window, weather slot.
+- **Selected signal** — one of the three per-hour cues a **Weather window** may be judged on, chosen
+  **per call** by the caller from the question the **User** asked (menunest-220): **rain** (rain %),
+  **heat** (**Feels-like**) and **sun** (**UV index**) — heat and sun stay separate because the
+  **Weather-alert threshold** already holds two independent numbers (menunest-221, ADR-091). An hour
+  is good when *every* selected signal is inside its threshold; unselected signals are ignored
+  entirely, never merely reported. Each threshold defaults to the **User**'s **Weather-alert
+  threshold** and is overridable per call (menunest-219). _Avoid_: criterion, filter, rule.
 - **Review link** — a per-**Place** (TripPlace) link to an external short-video **review** of that
   Place — framed around TikTok but accepting any well-formed `http(s)` URL (YouTube, Instagram, etc.,
   see ADR-050). A Place carries an ordered **list** of Review links, each an entry of `{ url, label? }`
@@ -342,6 +356,7 @@ the glossary wins until the glossary is deliberately changed.
   avoid kind; anything outside **all** windows is **off-window**. The whole list is optional. Consumed by the
   **off-window** **Timing flag** and the Discover **best-time-of-day** **Discovery signal**. Time-of-day
   only — never a calendar/season concept (ADR-077). _Avoid_: best time (bare — it is now plural), best hour,
+  **Weather window** (the dated, forecast-derived run of hours — authored by nobody, stored nowhere),
   opening window (that is **opening hours**), **Season period** (the month axis — a different concept).
 - **Season period** — one entry in a **Place**'s season data (issue #19): a value object
   `{ kind, months, note? }` where **kind** is `good` (UI "ควรไป") or `bad` (UI "ควรเลี่ยง"), **months**
