@@ -24,6 +24,8 @@ public sealed class FindWeatherWindowsValidator : AbstractValidator<FindWeatherW
             .Must(x => x.FromDate is null || x.ToDate is null || x.FromDate <= x.ToDate)
             .WithMessage("fromDate must not be after toDate.");
 
+        RuleFor(x => x.ToDate).Must(d => d is null || d < DateOnly.MaxValue).WithMessage("toDate is out of range.");
+
         // A per-call threshold is never "off" (that is the stored 0); to drop a gate, leave the signal out.
         RuleFor(x => x.MaxRainPct!.Value).InclusiveBetween(1, 100)
             .When(x => x.MaxRainPct is not null).OverridePropertyName(nameof(FindWeatherWindowsQuery.MaxRainPct));
