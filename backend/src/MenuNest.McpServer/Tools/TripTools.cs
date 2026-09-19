@@ -226,7 +226,9 @@ public sealed class TripTools(IMediator mediator)
         "that blocked an hour. To relax, a threshold must be ABOVE closestValue; offer that to the user, do not do it silently. " +
         "NoWindowLongEnough means good hours exist but in runs shorter than minWindowHours (default 2) — offer a shorter minimum. " +
         "NoWeatherData means there is no forecast for that range — never tell the user the weather is bad. " +
-        "horizonTruncated=true means toDate was past the forecast; say which dates were searched (searchedFrom..searchedThrough).")]
+        "horizonTruncated=true means toDate was past the forecast; say which dates were searched (searchedFrom..searchedThrough). " +
+        "If miss.hoursExamined is 0, nothing was searched — do not quote searchedFrom..searchedThrough; with " +
+        "horizonTruncated=true the whole requested range is past the 10-day forecast.")]
     public async Task<WeatherWindowResultDto> find_weather_windows(
         [Description("Latitude, from resolve_place")] double lat,
         [Description("Longitude, from resolve_place")] double lng,

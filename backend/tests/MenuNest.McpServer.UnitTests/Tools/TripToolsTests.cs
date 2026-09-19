@@ -144,6 +144,7 @@ public class TripToolsTests
         description.Should().Contain("ABOVE closestValue");
         description.Should().Contain("NoWeatherData");
         description.Should().Contain("horizonTruncated");
+        description.Should().Contain("hoursExamined is 0");
         description.Should().NotContain("best time", "the term is Weather window, never 'best time' (menunest-223)");
     }
 }
