@@ -1,5 +1,6 @@
 import { expect } from '@playwright/test'
 import { test } from './fixtures/healthFixture'
+import { installPausedClock, resetAppStorage } from './helpers/healthTestUtils'
 
 const setRangeValue = async (locator: import('@playwright/test').Locator, value: number) => {
   await locator.evaluate((el, v) => {
@@ -15,14 +16,10 @@ const setRangeValue = async (locator: import('@playwright/test').Locator, value:
 
 test.describe('Pomodoro — settings', () => {
   test.beforeEach(async ({ authedPage: page }) => {
-    await page.clock.install({ time: new Date('2026-06-01T09:00:00Z') })
-    // Sentinel — clear LS once per test so reload preserves saved settings.
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('__pomo_lsCleared')) {
-        localStorage.clear()
-        sessionStorage.setItem('__pomo_lsCleared', '1')
-      }
-    })
+    await installPausedClock(page)
+    // `once` — clear LS on the first navigation only, so reload preserves
+    // the saved settings under test.
+    await resetAppStorage(page, { once: true })
   })
 
   test('changing focus duration while idle updates the displayed time', async ({

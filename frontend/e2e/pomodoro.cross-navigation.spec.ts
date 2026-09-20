@@ -1,18 +1,14 @@
 import { expect } from '@playwright/test'
 import { test } from './fixtures/healthFixture'
+import { installPausedClock, resetAppStorage } from './helpers/healthTestUtils'
 
 test.describe('Pomodoro — cross-page navigation', () => {
   test.beforeEach(async ({ authedPage: page }) => {
-    await page.clock.install({ time: new Date('2026-06-01T09:00:00Z') })
-    // Sentinel pattern — clear LS once per test. The naive init script
-    // would wipe persisted state on every page navigation, hiding the
-    // cross-page survival behaviour we're testing.
-    await page.addInitScript(() => {
-      if (!sessionStorage.getItem('__pomo_lsCleared')) {
-        localStorage.clear()
-        sessionStorage.setItem('__pomo_lsCleared', '1')
-      }
-    })
+    await installPausedClock(page)
+    // `once` — clear LS on the first navigation only. Clearing on every
+    // navigation would wipe persisted state, hiding the cross-page
+    // survival behaviour we're testing.
+    await resetAppStorage(page, { once: true })
   })
 
   test('timer state survives navigating to /health and back', async ({

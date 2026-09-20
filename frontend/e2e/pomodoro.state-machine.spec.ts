@@ -1,10 +1,11 @@
 import { expect } from '@playwright/test'
 import { test } from './fixtures/healthFixture'
+import { installPausedClock, resetAppStorage } from './helpers/healthTestUtils'
 
 test.describe('Pomodoro — state machine', () => {
   test.beforeEach(async ({ authedPage: page }) => {
-    await page.clock.install({ time: new Date('2026-06-01T09:00:00Z') })
-    await page.addInitScript(() => localStorage.clear())
+    await installPausedClock(page)
+    await resetAppStorage(page)
   })
 
   test('idle → Start → running, time counts down', async ({ authedPage: page }) => {

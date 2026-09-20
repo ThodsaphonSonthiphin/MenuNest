@@ -59,3 +59,22 @@ public sealed record RetimeResultDto(
 /// <summary>Wire shape of a weather re-timing target (mirrors RetimeTarget).
 /// Kind ∈ hour | coolestDaytime | coolestNighttime.</summary>
 public sealed record RetimeTargetDto(string Kind, DateTime? LocalDateTime, int? WindowHours);
+
+/// <summary>One Weather window: a dated, contiguous run of forecast hours in which every selected
+/// signal stayed below its threshold (menunest-218). Worst* are null for unselected signals.</summary>
+public sealed record WeatherWindowDto(
+    DateOnly Date, DateTime StartLocal, DateTime EndLocalExclusive, int Hours,
+    int? WorstRainPct, double? WorstFeelsLikeC, int? WorstUvIndex);
+
+/// <summary>Why no window came back (menunest-225). ClosestValue is the lowest value of the blocking
+/// signal among the hours it blocked; blocking is &gt;=, so only a threshold ABOVE it unblocks one.</summary>
+public sealed record WeatherWindowMissDto(
+    WeatherWindowMissReason Reason, WeatherSignal? BlockingSignal,
+    double? ClosestValue, double? Threshold,
+    int HoursExamined, int HoursBlocked, int LongestRunHours);
+
+/// <summary>Miss is null exactly when Windows is non-empty. SearchedFrom/SearchedThrough name the
+/// band dates actually examined; HorizonTruncated says ToDate ran past the forecast.</summary>
+public sealed record WeatherWindowResultDto(
+    IReadOnlyList<WeatherWindowDto> Windows, WeatherWindowMissDto? Miss,
+    bool HorizonTruncated, DateOnly SearchedFrom, DateOnly SearchedThrough);

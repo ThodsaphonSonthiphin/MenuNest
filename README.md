@@ -1,181 +1,183 @@
-# 🍽️ MenuNest
+# MenuNest
 
-Two-in-one personal web app: a **migraine / symptom tracker** that produces shareable doctor reports, and a **family meal planner** that turns recipes + pantry stock into meal plans and shopping lists.
+A household web app in daily production use: migraine tracking that produces an anonymous clinical report a doctor opens from a QR code, zero-based envelope budgeting, meal planning against real pantry stock, and weather-aware trip planning.
 
-**Domain:** menunest.app
-**Default landing:** `/health` (the migraine tracker — meal-planning lives at `/dashboard` and the top nav)
+.NET 10 Clean Architecture and React 19 — plus an MCP server that exposes the budget, trips, meals, pantry and writing as 83 tools behind a hand-rolled OAuth 2.1 proxy, so an AI client drives the same handlers the SPA does.
 
----
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript 6](https://img.shields.io/badge/TypeScript-6.0-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![Azure](https://img.shields.io/badge/Azure-App%20Service%20%C2%B7%20SQL%20%C2%B7%20SWA-0078D4?style=flat-square&logo=microsoftazure&logoColor=white)
+![MCP](https://img.shields.io/badge/MCP-83%20tools-1f6feb?style=flat-square)
 
-## Features
+**The UI is in Thai** — it is the app my household actually uses every day, and Thai is the language we use it in. What follows is in English; the screenshots are not.
 
-### 🤒 Health — migraine & symptom tracker (personal, single-user)
+![The budget screen: Still to place (Ready to Assign), account cards, and envelopes with assigned, activity and available](docs/images/budget.png)
 
-- 🔐 Sign in with **Microsoft Entra ID** (work / school / personal) or **Google** — works without joining a family
-- 📝 **Quick-log attack** — pick a symptom + severity 1–10; optional migraine attributes (aura, location, quality, associated symptoms, functional impact, triggers, on-period flag)
-- 💊 **Take medication** — drugs are bucketed into *active in effect* / *takeable* / *blocked* (daily-dose cap + still-active window enforced server-side); "ไม่กินยา" fallback records the reason
-- ⏰ **+30 min follow-up push** — VAPID web-push from a 1-min `BackgroundService`; lock-screen **0-tap response** for *Resolved* / *Same* (the SW POSTs without opening the app)
-- 📸 **Drug photos** — multi-photo per drug, uploaded direct browser → Blob via short-lived user-delegation SAS
-- 📊 **History & active episode** — timeline of all episodes + a dedicated screen for an in-progress attack
-- 👨‍⚕️ **Doctor report share link** — date-bounded, HMAC-signed token, rendered as a QR code; doctor scans → opens an **anonymous** report page with summary, MOH/chronic clinical flags, trigger correlations, per-drug treatment efficacy (relief rate, avg onset), and a per-day timeline. Only a SHA-256 hash is stored — a DB leak does not expose live tokens.
-- 📱 **PWA** — installable, service worker handles push + notification actions
-
-### 🍳 Meal planning (family-scoped, multi-user)
-
-- 👪 **Family management** — create a family, invite members with a code, set relationships between members
-- 🧂 **Ingredient master** — per-family list with autocomplete and on-the-fly creation
-- 📖 **Recipe library** — store recipes with photos (Blob SAS) and ingredient quantities
-- 📦 **Stock** — manually track what you have on hand; every change is audit-logged
-- 📅 **Meal plan** — plan meals by day × slot (breakfast / lunch / dinner)
-- ✅ **Stock check** — compare planned meals against current stock and report what's missing
-- 🍳 **Cook action** — one click deducts ingredients automatically (clamped at zero, partial deductions allowed with a warning)
-- 🛒 **Shopping list** — persistent lists you can build manually or auto-generate from a meal plan range; ticking an item as bought auto-restocks the pantry
-- 💸 **Budget** — track spend per shopping list
-- 🤖 **AI assistant (Gemini)** — function-calling agent that can search recipes, check stock, get the meal plan, and (with explicit Thai/English confirmation) create recipes, add to the meal plan, or create shopping lists
-
-> 📐 For end-to-end sequence diagrams of every flow above, see **[docs/architecture.md](docs/architecture.md)**.
+*Zero-based budgeting. Every baht in the accounts is either assigned to an envelope or sitting in "Still to place" — the UI label for Ready to Assign, a number that is derived on every read, never stored.*
 
 ---
 
-## Tech Stack
+## What it does
 
-### Frontend — `frontend/`
-- React 18 + TypeScript + Vite
-- Redux Toolkit (RTK + RTK Query) — state and API client
-- React Router v6
-- MSAL.js (`@azure/msal-react`) — Entra ID authentication
-- Syncfusion (Community License) — Grid, Schedule, inputs
-- Pattern: page-scoped folders (`pages/{feature}/{components,hooks,api,slice}`) with a component-plus-hook style
+**Health — migraine tracking.** An attack is logged in two taps from the home screen; severity, aura, location, quality, associated symptoms and triggers are all optional refinements on top of that. Which medication you may take is worked out server-side rather than in the UI: the API buckets every drug into *active in effect*, *takeable* or *blocked* from its daily-dose cap and its still-active window, so the SPA, the PWA and the lock-screen action all see one partition instead of each re-deriving it. A follow-up web push fires 30 minutes later and can be answered **from the lock screen without opening the app** — the service worker POSTs the response itself.
 
-### Backend — `backend/`
-- ASP.NET 10 (LTS) Clean Architecture
-- EF Core 10 with the SQL Server provider (Azure SQL)
-- `Mediator` (martinothamar) — CQRS with pipeline behaviors
-- `FluentValidation` — request validation
-- `Mapster` — DTO mapping
-- `Microsoft.Identity.Web` — JWT bearer auth (multi-tenant + personal accounts)
-- `Azure.Storage.Blobs` — recipe image storage
-- Serilog + Application Insights
+**The doctor report.** A date-bounded, HMAC-signed share token renders an anonymous report: attack frequency and severity over the window, ICHD-3 criteria fit, trigger correlation, and per-drug relief rate and average onset. The database stores only the token's SHA-256 hash, so a database leak yields no working link.
 
-### Infra — `infra/`
-- Azure App Service (backend)
-- Azure Static Web Apps (frontend)
-- Azure SQL Database
-- Azure Storage Account (blob container: `recipe-images`)
-- Application Insights
-- Azure App Registration (Entra ID — multi-tenant + personal)
+**Budget — zero-based envelopes.** Ready to Assign is `sum(non-debt accounts) − sum(every envelope's available)`, computed on read rather than persisted, so it cannot drift out of sync with the ledger. Credit cards and loans sit deliberately outside that sum: an envelope already holds the money owed on them, and counting the negative balance as well would hold the same baht back twice ([menunest-203](docs/adr/menunest-203-ready-to-assign-stops-counting-credit-accounts.md) for cards, [menunest-206](docs/adr/menunest-206-loan-accounts-leave-ready-to-assign-but-get-no-payment-envelope.md) for loans).
+
+**Meal planning and pantry.** Recipes → weekly plan → stock check → shopping list, and back again: cooking a batch deducts the ingredients (clamped at zero, partial deductions warn rather than fail) and ticking an item as bought restocks the pantry. Every movement also writes a `StockTransaction` — an append-only ledger kept beside the running quantity — so the number in the pantry can always be traced back to the cook, purchase or correction that produced it.
+
+**Trips.** An itinerary of ordered stops, each carrying its own weather reading. A stop can be re-timed to a target hour to arrive when the temperature is bearable, and the rest of the day cascades — but the new schedule is *proposed and confirmed*, never applied silently, because the traveller has to stay in control of their own day ([ADR-112](docs/adr/112-weather-based-retiming-scope-view-and-assist.md)).
+
+**Writing, Pomodoro, Discover.** Timed writing entries are corrected over MCP by the writer's own AI client; words-per-minute and errors-per-100-words are derived server-side from elapsed time and hit/miss counts rather than trusted as tool inputs ([ADR-175](docs/adr/175-writingtools-exposes-four-mcp-tools-and-entry-creation-is-never-one.md)). Discover is a map-forward screen with an *armed* capture mode, because on a map a tap already means "select" and overloading it silently is how you lose the user's pin.
+
+**MCP server.** Every area above except the health tracker — budget, trips, meals, the pantry, writing — reachable as 83 tools behind an OAuth 2.1 authorization-server facade that had to be written by hand because Entra ID and claude.ai cannot agree on one parameter. [Detailed below.](#the-mcp-server)
 
 ---
 
-## Folder Structure
+## Screenshots
 
+Every screenshot on this page is rendered by [`frontend/e2e/screenshots.spec.ts`](frontend/e2e/screenshots.spec.ts) against mocked API routes — the data in them is fabricated, and no real record appears here.
+
+![Quick-log screen: a 1–10 severity slider set to 7, with location and quality attribute chips below](docs/images/health-quick-log.png)
+
+*Quick-log, in the dark theme it is actually used in — because the reason you are opening this screen is that light hurts.*
+
+![Trip list showing three trips with destination, date and day count](docs/images/trips.png)
+
+*Trips. Each row opens an itinerary of ordered, weather-checked stops.*
+
+![AI assistant chat answering a question about what to cook from current pantry stock](docs/images/ai-assistant.png)
+
+*The in-app Gemini assistant, answering "I have eggs and minced pork — what can I make?" from live stock. It can write, too, but only after an explicit confirmation.*
+
+<details>
+<summary><b>The doctor report</b> — the anonymous page a clinician opens from the QR code (long; click to expand)</summary>
+
+*Frequency and severity charts, aura and associated-symptom breakdown, location and quality distributions, trigger correlation, per-drug treatment efficacy, a per-day timeline of every attack and dose, and a clinical summary — with no name, no account and no identifier anywhere on the page.*
+
+![The shared doctor report: profile table, attack frequency and severity charts, aura and symptom breakdown, location and quality donuts, trigger correlation, treatment efficacy table, pattern analysis, per-day timeline, clinical summary](docs/images/doctor-report.png)
+
+</details>
+
+---
+
+## Architecture
+
+```mermaid
+flowchart LR
+    SPA["React 19 SPA<br/>Azure Static Web Apps"]
+    CLIENT["AI client<br/>(claude.ai)"]
+
+    subgraph host["App Service Linux — one .NET 10 process"]
+      direction TB
+      WEB["<b>WebApi</b><br/>endpoints · MSAL/JWT auth<br/>/oauth facade"]
+      MCP["<b>McpServer</b><br/>83 tools"]
+      APP["<b>Application</b><br/>Mediator handlers · FluentValidation"]
+      DOM["<b>Domain</b><br/>entities · invariants"]
+      INF["<b>Infrastructure</b><br/>EF Core · Blob · Gemini · web push"]
+      WEB --> APP
+      MCP --> APP
+      APP --> DOM
+      INF -. implements .-> APP
+    end
+
+    SQL[("Azure SQL")]
+    BLOB[("Blob Storage")]
+
+    SPA -->|Bearer JWT| WEB
+    CLIENT -->|Bearer minted JWT| MCP
+    INF --> SQL
+    INF --> BLOB
 ```
-menunest/
-├── backend/          # ASP.NET 10 Clean Architecture solution
-├── frontend/         # Vite + React + TypeScript app
-├── docs/             # Architecture, design spec, API docs
-└── infra/            # Bicep / ARM templates (optional)
-```
 
-- **Architecture & flows** (sequence diagrams for every major feature): [docs/architecture.md](docs/architecture.md)
-- **Implementation plan** (scope, data model): [docs/plan.md](docs/plan.md)
+Dependencies point inward. `Domain` references nothing; `Application` references only `Domain`; `Infrastructure` implements `Application`'s interfaces rather than being called by it. The two hosts — the REST API and the MCP server — are peers that both enter through the same `Mediator` handlers, which is why a feature does not have to be written twice.
+
+Per-feature sequence diagrams for every flow above (auth and user provisioning, cook-batch stock deduction, the 0-tap follow-up push, SAS photo upload, the doctor-report token, the Gemini tool loop) are in **[docs/architecture.md](docs/architecture.md)**.
 
 ---
 
-## Local Development
+## The MCP server
 
-### Prerequisites
+83 tools across 8 classes — Trip 26, Budget 24, Shopping 10, MealPlan 7, Recipe 5, Writing 4, Ingredient 4, Stock 3 — let an AI client drive the planning and household side of the app. Not a read-only bridge: it creates recipes, plans meals, re-times stops and pays credit cards. The standing rule since [menunest-213](docs/adr/menunest-213-every-function-this-feature-adds-is-reachable-over-mcp.md) is that every function a feature adds is reachable over MCP, decided while the feature is being designed rather than retrofitted afterwards — which is why the newer domains are covered and the health tracker, which predates the rule, still has no tools at all.
 
-**Runtime / tooling**
-- .NET 10 SDK
-- Node.js 20.19+ (or 22 LTS) and npm — required by Vite 8 / React 19
-- Azure SQL, SQL Server LocalDB, or a Docker SQL container — schema is created by EF Core migrations
+### The OAuth 2.1 proxy, and why it exists
 
-**Cloud / external accounts** (you can stub out anything you don't plan to test)
+Entra ID v2 rejects the RFC 8707 `resource` parameter that claude.ai mandates on the authorization request, returning `AADSTS500011`. There is no configuration that reconciles the two. So `MenuNest.WebApi` hosts its own OAuth 2.1 Authorization-Server facade at `/oauth/*`: it advertises discovery documents and dynamic client registration, absorbs the `resource` parameter, runs a clean `resource`-free authorization-code flow against Entra server-side, keeps the Entra tokens server-side where the client never sees them, and mints its own short HMAC JWT scoped to `/mcp` ([ADR-003](docs/adr/003-mcp-oauth-proxy.md), [ADR-004](docs/adr/004-oauth-proxy-signin-authority-common.md)).
 
-| What | Why | Required for |
-|---|---|---|
-| **Azure Entra ID app registration** | Microsoft sign-in (multi-tenant + personal accounts) | Sign-in via Microsoft |
-| **Google OAuth Client ID** (Google Cloud Console → APIs & Services → Credentials) | Google sign-in via GIS | Sign-in via Google (alternative to Entra) |
-| **Azurite** or an **Azure Storage account** | Drug / episode / recipe photo uploads (direct browser → Blob via user-delegation SAS) | Photo upload in Health + Recipes |
-| **Gemini API key** (Google AI Studio) | The `AiAssistant` chat agent (function-calling) | `/ai-assistant` page |
-| **VAPID key pair** (`web-push generate-vapid-keys`) | Encrypted web push for follow-up pings | 0-tap follow-up notifications in Health |
-| **Syncfusion Community License key** | Syncfusion components (Grid, Schedule, QR generator) | Suppresses the trial banner |
-| **Azure Speech key** *(optional)* | Voice input in the AI assistant | Speech-to-text in `/ai-assistant` |
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as AI client (claude.ai)
+    participant P as MenuNest /oauth proxy
+    participant E as Microsoft Entra
+    participant M as /mcp
+    C->>P: GET /.well-known/oauth-protected-resource
+    C->>P: POST /oauth/register (DCR) → client_id
+    C->>P: GET /oauth/authorize (PKCE)
+    P->>E: 302 authorize (no `resource` param)
+    E->>P: GET /oauth/callback?code
+    P->>E: POST /token (code + client_secret)
+    E-->>P: Entra tokens (kept server-side)
+    P-->>C: 302 with proxy auth code
+    C->>P: POST /oauth/token
+    P-->>C: minted HMAC JWT + refresh code
+    C->>M: POST /mcp + Bearer → 83 tools
+```
 
-> Without VAPID, the follow-up dispatcher still runs but logs a warning and returns 0 — pings are still marked `Asked` and surface in the in-app modal. Without Gemini, the `/ai-assistant` page returns a friendly error. Without the Syncfusion key everything still works but you get a trial banner. So the minimum for "useful local dev" is: .NET + Node + SQL + Azurite + **one** of (Entra OR Google).
+### What a tool looks like
 
-### Setup
+```csharp
+[McpServerTool, Description("Add a recipe to a meal slot on a specific date")]
+public async Task<MealPlanEntryDto> create_meal_plan_entry(
+    [Description("Date for the meal")] DateOnly date,
+    [Description("Meal slot: Breakfast, Lunch, or Dinner")] MealSlot mealSlot,
+    [Description("Recipe ID")] Guid recipeId,
+    [Description("Optional notes")] string? notes,
+    CancellationToken ct)
+    => await mediator.Send(new CreateMealPlanEntryCommand(date, mealSlot, recipeId, notes), ct);
+```
+
+Two things in that method are load-bearing. The `[Description]` annotations *are* the tool schema — the parameter documentation an AI reads is the same text a C# caller reads, so it cannot drift. And the body is a single `mediator.Send`: the tool calls the identical handler the SPA's `POST /api/meal-plan` calls, so validation, authorization and business rules apply once, in one place, and a tool cannot become a back door around them.
+
+Source: [`backend/src/MenuNest.McpServer/Tools/`](backend/src/MenuNest.McpServer/Tools/) · handshake detail in [docs/architecture.md](docs/architecture.md) §13.
+
+---
+
+## Engineering practice
+
+- **1,043 backend tests** across four projects — Application 874, McpServer 80, WebApi 65, Infrastructure integration 24. **Relational** handler tests run against a real SQLite-backed `DbContext` that applies the production EF configurations, so unique indexes and FK behaviour the in-memory provider silently ignores are actually exercised.
+- **61 frontend vitest files** and **37 Playwright e2e specs**.
+- **[216 ADRs](docs/adr/)** — every design decision recorded with the alternatives that were rejected and why. The interesting ones are the reversals: [menunest-203](docs/adr/menunest-203-ready-to-assign-stops-counting-credit-accounts.md) takes credit accounts back out of a formula that had already shipped, and [menunest-206](docs/adr/menunest-206-loan-accounts-leave-ready-to-assign-but-get-no-payment-envelope.md) then does the same for loans.
+- **[56 design specs](docs/superpowers/specs/)**, written before the implementation they describe.
+- **[Postmortems](docs/postmortems/)**, including one on a budgeting bug this project shipped to itself.
+- **CI** — four GitHub Actions workflows. On pushes to `main` and `feat/**` and on every PR to `main`, `ci.yml` builds and tests the backend and typechecks, unit-tests and builds the frontend, while `playwright.yml` runs the e2e suite. The other two deploy the API to App Service and the SPA to Static Web Apps from `main`.
+- **A pre-commit hook** that runs the full backend build and test suite plus the frontend typecheck and build, on every commit. It is slow, and it is not bypassed.
+
+---
+
+## Running it
+
 ```bash
-# Backend
-cd backend
-dotnet restore
-dotnet ef database update --project src/MenuNest.Infrastructure --startup-project src/MenuNest.WebApi
-dotnet run --project src/MenuNest.WebApi
-# → https://localhost:5001/swagger
+# Backend  → https://localhost:5001/scalar
+cd backend && dotnet run --project src/MenuNest.WebApi
 
-# Frontend (in a separate terminal)
-cd frontend
-npm install
-npm run dev
-# → http://localhost:5173
+# Frontend → http://localhost:5173
+cd frontend && npm install && npm run dev
 ```
 
-Copy `appsettings.Development.json.example` and `.env.example`, then fill in your own credentials.
+Prerequisites, the external accounts you need and first-run setup: **[docs/development.md](docs/development.md)**
+Azure topology and every configuration setting: **[docs/deployment.md](docs/deployment.md)**
 
 ---
 
-## Deployment (Azure)
+## Status
 
-The app is split across two Azure services:
+Actively developed, and in daily use by one household.
 
-- **Frontend → Azure Static Web Apps.** Hosts the built `frontend/dist`.
-  SPA routing and security headers live in
-  [frontend/staticwebapp.config.json](frontend/staticwebapp.config.json).
-  SWA's built-in `/.auth/*` endpoints are **not** used — auth is handled
-  client-side by MSAL against Entra ID (needed for personal accounts).
-- **Backend → Azure App Service (Linux, .NET 10).** Hosts the Web API,
-  connects to Azure SQL and Blob Storage.
+**There is no live demo link, and that is deliberate.** The production instance holds real medical records and real bank balances for real people. There is no version of a public demo that does not mean either exposing that data or seeding a parallel account with fabricated records into the production database. The screenshots above are rendered from mocked API responses instead; the code is all here to read.
 
-### Backend configuration (App Service → Application settings)
+External pull requests are not accepted — this is a family project, not an open-source one.
 
-| Setting | Value |
-|---|---|
-| `ConnectionStrings__DefaultConnection` | Azure SQL connection string (use Managed Identity where possible) |
-| `AzureAd__ClientId` | Entra ID app client ID |
-| `AzureAd__Audience` | Entra ID app client ID (**GUID only**, not `api://{guid}`) — MSAL.js SPAs receive v2.0 tokens whose `aud` claim is the bare client ID |
-| `AzureBlob__ConnectionString` | Storage account connection string (or use Managed Identity) |
-| `Cors__AllowedOrigins` | Comma-separated list including the SWA origin, e.g. `https://menunest.azurestaticapps.net,https://menunest.app` |
-| `AzureAd__ClientSecret` | Entra app client secret — the MCP OAuth proxy uses it to exchange auth codes with Entra server-side |
-| `Jwt__SigningKey` | Strong random secret; HMAC-SHA256 key for the proxy's minted MCP access tokens |
-| `MCP__ServerUrl` | Full MCP endpoint URL, e.g. `https://menunest.azurewebsites.net/mcp` (used as `aud`/`iss` of proxy JWTs) |
-
-### Frontend configuration (SWA → Application settings / `.env.production`)
-
-| Setting | Value |
-|---|---|
-| `VITE_MSAL_CLIENT_ID` | Entra ID app client ID |
-| `VITE_MSAL_AUTHORITY` | `https://login.microsoftonline.com/common` |
-| `VITE_API_SCOPE` | `api://<api-app-id>/access_as_user` |
-| `VITE_API_BASE_URL` | `https://menunest.azurewebsites.net` |
-| `VITE_SYNCFUSION_LICENSE_KEY` | Your Syncfusion Community License key |
-
-### Entra ID App Registration (one-time setup)
-
-- Platform: **Single-page application** with redirect URIs for both
-  `http://localhost:5173` (dev) and the production SWA URL.
-- Add a **Web** redirect URI `https://<your-host>/oauth/callback` for the MCP OAuth proxy.
-- Expose an API scope `access_as_user`.
-- Supported account types: **multi-tenant + personal Microsoft accounts**.
-
----
-
-## Contributing
-
-This is a family/personal project — external pull requests are not accepted.
-
----
-
-## License
-
-Private / unpublished (TBD)
+**License:** private / unpublished.

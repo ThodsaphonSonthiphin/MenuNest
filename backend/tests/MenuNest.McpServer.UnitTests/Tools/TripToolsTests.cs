@@ -1,12 +1,17 @@
+using System.ComponentModel;
+using System.Reflection;
+using System.Text.Json;
 using FluentAssertions;
 using Mediator;
 using MenuNest.Application.UseCases.Trips;
+using MenuNest.Application.UseCases.Trips.FindWeatherWindows;
 using MenuNest.Application.UseCases.Trips.GetStopHourlyForecast;
 using MenuNest.Application.UseCases.Trips.PushPlaceProfile;
 using MenuNest.Application.UseCases.Trips.RetimeStopToWeather;
 using MenuNest.Domain.Enums;
 using MenuNest.McpServer.Tools;
 using Moq;
+using ModelContextProtocol.Server;
 
 namespace MenuNest.McpServer.UnitTests.Tools;
 
@@ -80,5 +85,66 @@ public class TripToolsTests
 
         _mediator.Verify(m => m.Send(It.Is<RetimeStopToWeatherCommand>(c => c.TripId == tripId && c.DayId == dayId && c.StopId == stopId && c.Target == target), It.IsAny<CancellationToken>()), Times.Once);
         result.Should().BeSameAs(expected);
+    }
+
+    // ── find_weather_windows (#153) ───────────────────────────────────────────
+
+    [Fact]
+    public async Task find_weather_windows_sends_the_query_with_every_argument()
+    {
+        var dto = new WeatherWindowResultDto(
+            Array.Empty<WeatherWindowDto>(), null, false, new DateOnly(2026, 9, 26), new DateOnly(2026, 9, 27));
+        _mediator
+            .Setup(m => m.Send(It.IsAny<FindWeatherWindowsQuery>(), It.IsAny<CancellationToken>()))
+            .Returns<FindWeatherWindowsQuery, CancellationToken>((_, _) => new ValueTask<WeatherWindowResultDto>(dto));
+
+        var result = await _sut.find_weather_windows(
+            19.36, 98.44, new[] { WeatherSignal.Heat, WeatherSignal.Sun },
+            fromDate: new DateOnly(2026, 9, 26), toDate: new DateOnly(2026, 9, 27),
+            fromHour: 8, toHour: 12, maxFeelsLikeC: 38, maxUvIndex: 7, minWindowHours: 3,
+            ct: CancellationToken.None);
+
+        result.Should().BeSameAs(dto);
+        _mediator.Verify(m => m.Send(It.Is<FindWeatherWindowsQuery>(q =>
+            q.Lat == 19.36 && q.Lng == 98.44
+            && q.Signals.SequenceEqual(new[] { WeatherSignal.Heat, WeatherSignal.Sun })
+            && q.FromDate == new DateOnly(2026, 9, 26) && q.ToDate == new DateOnly(2026, 9, 27)
+            && q.FromHour == 8 && q.ToHour == 12
+            && q.MaxRainPct == null && q.MaxFeelsLikeC == 38 && q.MaxUvIndex == 7
+            && q.MinWindowHours == 3), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public void find_weather_windows_requires_only_lat_lng_and_signals()
+    {
+        var method = typeof(TripTools).GetMethod(nameof(TripTools.find_weather_windows))!;
+        var tool = McpServerTool.Create(method, new TripTools(new Mock<IMediator>().Object), null);
+        var schema = tool.ProtocolTool.InputSchema;
+
+        schema.GetProperty("required").EnumerateArray().Select(e => e.GetString())
+            .Should().BeEquivalentTo(new[] { "lat", "lng", "signals" });
+        schema.GetProperty("properties").GetProperty("signals").GetRawText()
+            .Should().Contain("\"Rain\"").And.Contain("\"Heat\"").And.Contain("\"Sun\"");
+    }
+
+    // The description is the ONLY place the assistant learns which signals a Thai question means,
+    // that blocking is >=, and that an empty result is not bad weather. A silent edit is a silent
+    // behaviour change, so it is pinned.
+    [Fact]
+    public void find_weather_windows_description_teaches_signal_choice_and_how_to_read_a_miss()
+    {
+        var description = typeof(TripTools)
+            .GetMethod(nameof(TripTools.find_weather_windows))!
+            .GetCustomAttribute<DescriptionAttribute>()!.Description;
+
+        description.Should().Contain("resolve_place", "the location must be resolved upstream (menunest-217)");
+        description.Should().Contain("แดดไม่ร้อน").And.Contain("[Heat, Sun]");
+        description.Should().Contain("ฝนไม่ตก").And.Contain("[Rain]");
+        description.Should().Contain("AT OR ABOVE");
+        description.Should().Contain("ABOVE closestValue");
+        description.Should().Contain("NoWeatherData");
+        description.Should().Contain("horizonTruncated");
+        description.Should().Contain("hoursExamined is 0");
+        description.Should().NotContain("best time", "the term is Weather window, never 'best time' (menunest-223)");
     }
 }

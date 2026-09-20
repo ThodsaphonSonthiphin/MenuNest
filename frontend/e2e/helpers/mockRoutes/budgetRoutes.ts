@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test'
-import { recordRequest, type RequestCapture } from './types'
+import { meResponse, recordRequest, type RequestCapture } from './types'
 
 /**
  * `/budget` sits behind FamilyRequiredRoute, so a spec that does not answer
@@ -24,20 +24,6 @@ export const CREDIT_GROUP_ID = 'grp-credit'
 export const CREDIT_ENVELOPE_ID = 'cat-payment-kbank'
 export const CREDIT_ACCOUNT_ID = 'acct-credit-kbank'
 export const LOAN_ACCOUNT_ID = 'acct-loan-car'
-
-const meResponse = {
-  userId: 'user-1',
-  email: 'test@menunest.app',
-  displayName: 'ทศพล',
-  familyId: 'family-1',
-  familyName: 'ครอบครัวทดสอบ',
-  familyInviteCode: 'TEST01',
-  authProvider: 'Google',
-  homePath: null,
-  uvWarnThreshold: null,
-  feelsLikeWarnThreshold: null,
-  activeTargetRule: null,
-}
 
 const envelope = (categoryId: string, name: string, available: number) => ({
   categoryId,

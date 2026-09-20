@@ -1,5 +1,9 @@
 import { test as base, type Page } from '@playwright/test'
-import { applyGoogleAuth, type GoogleTokenPayload } from '../helpers/healthTestUtils'
+import {
+  applyGoogleAuth,
+  hideSyncfusionTrialBanner,
+  type GoogleTokenPayload,
+} from '../helpers/healthTestUtils'
 import { createMockApi, createCapture, type MockApi, type RequestCapture } from '../helpers/mockRoutes'
 
 export type HealthFixtures = {
@@ -29,6 +33,9 @@ export const test = base.extend<HealthFixtures>({
 
   authedPage: async ({ page, googleAuth }, use) => {
     await googleAuth()
+    // The licence-less trial banner covers the NavBar and eats its clicks —
+    // an artifact of the test environment, not behaviour under test (#150).
+    await hideSyncfusionTrialBanner(page)
     await use(page)
   },
 })

@@ -53,6 +53,27 @@ export const createCapture = (): RequestCapture => {
   }
 }
 
+/**
+ * Shared `/api/me` fixture. `budgetRoutes.ts`, `chatRoutes.ts` and
+ * `tripRoutes.ts` each register a route for `/api/me` (`.apply()`), so if a
+ * spec ever composes two of those `.apply()`s on the same page, be aware
+ * Playwright matches routes in REVERSE registration order — the LAST
+ * `.apply()` called wins `/api/me`, not the first. No spec does this today.
+ */
+export const meResponse = {
+  userId: 'user-1',
+  email: 'test@menunest.app',
+  displayName: 'ทศพล',
+  familyId: 'family-1',
+  familyName: 'ครอบครัวทดสอบ',
+  familyInviteCode: 'TEST01',
+  authProvider: 'Google',
+  homePath: null,
+  uvWarnThreshold: null,
+  feelsLikeWarnThreshold: null,
+  activeTargetRule: null,
+}
+
 export const recordRequest = async (
   route: Route,
   request: Request,
