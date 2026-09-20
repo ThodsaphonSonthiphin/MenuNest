@@ -212,12 +212,35 @@ the glossary wins until the glossary is deliberately changed.
   leaves the app. The whole-day route starts from the device's current location
   through the day's Stops in order (see ADR-011).
   _Avoid_: Directions, Routing (that is the Routes API / **Leg** travel time).
-- **Itinerary map band** — the collapsible in-app **map** strip (~188px, expanded by
-  default) at the top of the **Itinerary** view on mobile/tablet, showing the active
-  **Day**'s numbered **Stops** and **Leg** polylines. It can be collapsed to a thin strip
-  to give the stop list more room, and re-expanded. Distinct from the desktop split's
-  full-height right-pane map (same data, different container). See ADR-026.
-  _Avoid_: peek, mini-map (informal).
+- **Itinerary map band** — *(retired by menunest-234)* the collapsible ~188px **map** strip
+  that sat at the top of the mobile **Itinerary** view (ADR-026). Replaced by the
+  full-screen map plus the **Plan sheet**; kept here only so older ADRs and commits stay
+  readable. _Avoid_: using it for anything current — say **Plan sheet** or **map**.
+- **Plan sheet (แผ่นแผน)** — the draggable, **non-modal** sheet that carries a **Day**'s plan
+  over the full-screen **map** on mobile/tablet (menunest-234). Non-modal is definitional: the
+  map keeps pan, zoom and tap while the sheet is open, and no scrim is drawn. Its desktop
+  counterpart is the **Plan panel** — same contents, different container (menunest-236).
+  _Avoid_: drawer, modal, dock (that is Discover's own two-height surface, ADR-097).
+- **Detent** — one of the **Plan sheet**'s three resting heights: **summary** (the opening
+  state — day label, start–end, total travel, นำทาง), **half** (adds the **Stop** list), and
+  **full** (adds จัดลำดับ, + เพิ่มจุดแวะ and the มาแล้ว drawer). A **Day** always opens at
+  summary. _Avoid_: snap point, state, peek/expanded (ADR-026's retired vocabulary).
+- **Plan panel** — the floating, collapsible ~376px panel holding the **Plan sheet**'s
+  contents on desktop, inset over the left edge of the full-bleed **map** (menunest-236).
+  Collapsed, the map is the entire canvas. _Avoid_: sidebar, left column, split pane.
+- **Ghost pin (หมุดจาง)** — the map marker for a **Place** on this **Trip** that is *not* a
+  **Stop** on the active **Day**: small, desaturated, unnumbered, behind the route. Tapping
+  one offers เพิ่มเข้าวัน N, which schedules it (menunest-235, issue #6). Drawn by default
+  behind a `คลัง · N` map toggle, and never extends the map's bounds (menunest-239, -241).
+  _Avoid_: library pin, inactive pin, unused place.
+- **Selected Stop** — the one **Stop** the trip screen currently has selected. It is a single
+  piece of state shared by both surfaces: selecting a **route pin** selects its **Stop** card
+  and vice versa, and the map pans to the pin (menunest-238). _Avoid_: active stop (that reads
+  as "the one you are at"), focused stop, tapped pin.
+- **Compact stop card** — what a **Selected Stop** shows on the **Plan sheet** at the summary
+  **detent**: ordinal + name, ถึง/ออก/อยู่, its **Timing flag** and **Weather reading**, and
+  three actions — นำทาง, แก้ไข, มาแล้ว — plus ดูทั้งหมด, which opens the full `StopDetailSheet`
+  unchanged (menunest-238). _Avoid_: preview, popup, mini sheet.
 - **Weather reading** — a per-**Stop** indication of sky/precipitation conditions — plus its **UV index** and **Feels-like** temperature (issue #40) — shown as a
   small chip on the Stop. Each Stop carries two readings side by side — **Now** and
   **On-arrival** — never a toggle between them (ADR-029). _Avoid_: forecast (names only one
