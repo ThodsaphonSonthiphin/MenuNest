@@ -111,6 +111,12 @@ split), and make each task carry its own files, commands and checks.
 - **A pre-commit hook runs the whole suite** — backend `dotnet build` + `dotnet test`
   (Release) and frontend `tsc --noEmit` + `npm run build`. Every commit must leave the whole
   suite green. Do not `--no-verify`.
+  **Caveat, measured on 2026-09-20:** `git config core.hooksPath` is `frontend/.husky/_`, and
+  on the originating machine that directory is **empty** — so the hook did **not** run on the
+  two commits that carry this handoff, and it will not run in a fresh clone either until
+  husky is installed (`npm install` in `frontend/`). Those commits are docs-only, so nothing
+  was skipped that mattered. Before you commit **code**, either install husky or run the four
+  checks by hand — do not assume the gate is armed.
 - **Never `git add -A` / `git add .`** — `daily-state.md` and `AGENTS.md` are working files
   that must never enter a feature commit. Stage explicit paths.
 - **Every commit references the issue** — `type(scope): summary (#154)`, or
