@@ -1,10 +1,17 @@
 // frontend/src/pages/trips/components/TripMap.tsx
 // Google Maps: Syncfusion has no interactive street map (frontend-guidelines §2 allowed exception).
+//
+// Since menunest-234…241 this is the trip screen's ONE map — the surface, not furniture.
+// It carries three pin classes (spec §6.1):
+//   route pin  — a Stop on the active Day. Numbered, severity-coloured, TAPPABLE.
+//   ghost pin  — a Place on this Trip that is not a Stop on the active Day. Faint, tappable.
+//   viewer pin — the device location. Unchanged, and it never extends the bounds.
 import {useCallback, useEffect, useMemo, useState} from 'react'
 import {APIProvider, Map, AdvancedMarker, Pin, useMap, useMapsLibrary} from '@vis.gl/react-google-maps'
 import type {TripPlaceDto} from '../../../shared/api/api'
 import type {RouteStop, RouteSegment} from '../hooks/useDayRoute'
 import type {FlagSeverity} from '../hooks/useSchedule'
+import type {GhostPin} from '../lib/ghostPins'
 import {trackGoogleMapsError} from '../../../shared/telemetry/googleMapsTelemetry'
 import {AddPlaceMode, type AddStopContext} from './AddPlaceMode'
 
@@ -31,6 +38,10 @@ const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string | undefined) |
 
 // Bangkok city-centre fallback when no places are loaded yet.
 const BKK_CENTER = {lat: 13.7563, lng: 100.5018}
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+}
 
 // Per-leg route lines. Routed legs draw the decoded encodedPolyline (road-following,
 // solid teal); Estimated legs draw a dashed, faded, straight line between the two stops
@@ -61,18 +72,18 @@ function RouteSegments({segments}: {segments: RouteSegment[]}) {
   return null
 }
 
-// Frame all stops. LatLngBounds lives in the 'core' library, not 'maps' (CF6).
-// fitPadding keeps the route off the container edges; the itinerary map band is
-// only 188px tall, so it passes a small, top-weighted padding (route pins hang
-// ABOVE their coordinate — callout + numbered dot — so the top needs the most room)
-// instead of the desktop default 64 which would over-zoom-out the route at that height.
+// Frame the active Day's Stops. LatLngBounds lives in the 'core' library, not 'maps' (CF6).
 //
-// Re-fits on container resize too: when the band expands from its collapsed strip the
-// container grows, and @vis.gl/react-google-maps (v1.8.3) ships no ResizeObserver of
-// its own — without a re-fit the newly-revealed tiles stay grey and the route keeps
-// the zoom it had at strip height. Re-running fitBounds provably changes the viewport,
-// so it both repaints the tiles and reframes for the new size (a stronger, more certain
-// remedy than a no-op camera nudge, which may not force a repaint).
+// `fitPadding` keeps the route clear of the chrome overlaid on the map — the floating top
+// bar, the Plan sheet, the Plan panel (spec §6.2). It is an OBJECT, and its identity is
+// deliberately load-bearing: when the detent or the panel-collapsed state changes, the map
+// CONTAINER does not resize, so the ResizeObserver below never fires and a new padding
+// object is the only signal this effect gets that the visible area moved. Callers must
+// therefore memoise the padding on the SETTLED detent, never on a live drag height.
+//
+// The ResizeObserver still earns its keep for real container changes (an orientation flip,
+// the desktop window resizing): @vis.gl/react-google-maps (v1.8.3) ships none of its own,
+// and without a re-fit the newly-revealed tiles stay grey.
 function FitBounds({path, fitPadding = 64}: {path: LatLng[]; fitPadding?: number | google.maps.Padding}) {
   const map = useMap()
   const core = useMapsLibrary('core')
@@ -106,6 +117,39 @@ function FitBounds({path, fitPadding = 64}: {path: LatLng[]; fitPadding?: number
   return null
 }
 
+/**
+ * Bring the **Selected Stop** into view (menunest-238). Only pans — never zooms — so the
+ * frame the user built by pinching is not thrown away by a tap on a card.
+ */
+function PanToSelected({stop}: {stop: RouteStop | null}) {
+  const map = useMap()
+  const lat = stop?.lat
+  const lng = stop?.lng
+  useEffect(() => {
+    if (!map || lat == null || lng == null) return
+    if (prefersReducedMotion()) map.setCenter({lat, lng})
+    else map.panTo({lat, lng})
+  }, [map, lat, lng])
+  return null
+}
+
+/**
+ * The locate-me control. Keyed on a NONCE, not on the point: the viewer's position barely
+ * changes between reads, so panning "when it changes" would make the button dead on the
+ * second tap.
+ */
+function RecenterOnViewer({point, nonce}: {point?: {lat: number; lng: number} | null; nonce: number}) {
+  const map = useMap()
+  useEffect(() => {
+    if (!map || !point || nonce === 0) return
+    if (prefersReducedMotion()) map.setCenter(point)
+    else map.panTo(point)
+    // `point` is intentionally not a dependency — only a fresh tap recentres.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, nonce])
+  return null
+}
+
 export function TripMap({
   places,
   route,
@@ -118,6 +162,12 @@ export function TripMap({
   fitPadding,
   tripId,
   viewerLocation,
+  ghostPins = [],
+  ghostLabels = true,
+  recenterNonce = 0,
+  selectedStopId = null,
+  onSelectStop,
+  onSelectGhost,
   onExitAddMode,
 }: {
   places: TripPlaceDto[]
@@ -131,15 +181,26 @@ export function TripMap({
   fitPadding?: number | google.maps.Padding
   tripId?: string
   viewerLocation?: {lat: number; lng: number} | null
+  /** Places on this Trip that are not Stops on the active Day (spec §6.1). */
+  ghostPins?: GhostPin[]
+  /** False above the density limit — dots only, no labels (menunest-241). */
+  ghostLabels?: boolean
+  /** Bumped by the locate-me control; each bump pans to `viewerLocation`. */
+  recenterNonce?: number
+  selectedStopId?: string | null
+  onSelectStop?(stopId: string | null): void
+  onSelectGhost?(ghost: GhostPin): void
   onExitAddMode?: () => void
 }) {
   const routeStops = route ?? []
-  // `route` is a stable reference from useDayRoute (memoised), so depending on it
-  // directly memoises path correctly without rebuilding the polyline each render.
-  const path = useMemo<LatLng[]>(() => {
-    const pts = (route ?? []).map((r) => ({lat: r.lat, lng: r.lng}))
-    return viewerLocation ? [{lat: viewerLocation.lat, lng: viewerLocation.lng}, ...pts] : pts
-  }, [route, viewerLocation])
+  // menunest-239: the frame is the active Day's Stops and NOTHING else. `viewerLocation` used
+  // to be prepended here, which is what zoomed the map out across the province until the
+  // Stops piled up in one corner — the Approach leg still draws, because `useDayRoute` keeps
+  // the viewer point in `segments`; only the bounds stop counting it.
+  const path = useMemo<LatLng[]>(
+    () => (route ?? []).map((r) => ({lat: r.lat, lng: r.lng})),
+    [route],
+  )
 
   // The POI place_id most recently tapped on the map (add-mode only). Pushed down
   // to AddPlaceMode, which resolves it once and clears it via onTapConsumed.
@@ -169,6 +230,7 @@ export function TripMap({
     : places.length
       ? {lat: places[0].lat, lng: places[0].lng}
       : BKK_CENTER
+  const selectedStop = routeStops.find((r) => r.id === selectedStopId) ?? null
 
   return (
     <APIProvider apiKey={KEY} onError={trackGoogleMapsError}>
@@ -182,7 +244,12 @@ export function TripMap({
           disableDefaultUI
           internalUsageAttributionIds={['gmp_git_agentskills_v1']}
           onClick={(ev) => {
-            if (!addMode) return
+            if (!addMode) {
+              // Tapping empty map drops the selection — the way out of a Compact stop card
+              // that does not require finding its ✕ (spec §6.3).
+              onSelectStop?.(null)
+              return
+            }
             // POI clicks carry a placeId; empty-ground clicks do not (ADR-016).
             // Grounded: google IconMouseEvent exposes `placeId` + `latLng`, and
             // event.stop() suppresses the default POI info window; @vis.gl surfaces
@@ -204,6 +271,8 @@ export function TripMap({
             <>
               <RouteSegments segments={segments ?? []} />
               <FitBounds path={path} fitPadding={fitPadding} />
+              <PanToSelected stop={selectedStop} />
+              <RecenterOnViewer point={viewerLocation} nonce={recenterNonce} />
               {viewerLocation && (
                 <AdvancedMarker
                   position={{lat: viewerLocation.lat, lng: viewerLocation.lng}}
@@ -213,20 +282,42 @@ export function TripMap({
                   <div className="viewer-pin" aria-label="ตำแหน่งปัจจุบันของคุณ" />
                 </AdvancedMarker>
               )}
+
+              {/* Ghost pins render in route mode TOO — this layer used to be the `else` of
+                  route mode, which is exactly why a saved Place was invisible while planning
+                  a Day (issue #6, menunest-235). Below the route pins, always. */}
+              <GhostLayer pins={ghostPins} labels={ghostLabels} armed={addMode} onSelect={onSelectGhost} />
+
               {routeStops.map((r) => (
                 <AdvancedMarker
                   key={r.id}
                   position={{lat: r.lat, lng: r.lng}}
                   title={r.name}
-                  zIndex={r.order}
+                  zIndex={r.id === selectedStopId ? 500 : r.order}
+                  // While armed every tap belongs to capture (ADR-163), so the pins stop
+                  // taking selections rather than competing with the capture surface.
+                  clickable={!addMode}
+                  onClick={() => { if (!addMode) onSelectStop?.(r.id) }}
                 >
-                  <div
-                    className={`route-pin${r.severity ? ' ' + PIN_CLASS[r.severity] : ''}`}
-                    aria-label={r.flagNote ? `${r.name} — ${r.flagNote}` : undefined}
+                  {/* A real <button>: the map is not the only route to any action, but every
+                      map-tappable pin still has to be reachable by keyboard and named for AT
+                      (spec §8). The marker's own onClick above covers the pointer path. */}
+                  <button
+                    type="button"
+                    className={`route-pin${r.severity ? ' ' + PIN_CLASS[r.severity] : ''}${r.id === selectedStopId ? ' sel' : ''}`}
+                    data-testid="route-pin"
+                    aria-pressed={r.id === selectedStopId}
+                    aria-label={
+                      `จุดที่ ${r.order} — ${r.name}, ถึง ${r.arrival}` + (r.flagNote ? ` (${r.flagNote})` : '')
+                    }
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (!addMode) onSelectStop?.(r.id)
+                    }}
                   >
-                    <div className="route-callout">{r.arrival} · {r.name}</div>
-                    <div className="route-dot">{r.order}</div>
-                  </div>
+                    <span className="route-callout">{r.arrival} · {r.name}</span>
+                    <span className="route-dot">{r.order}</span>
+                  </button>
                 </AdvancedMarker>
               ))}
             </>
@@ -274,5 +365,54 @@ export function TripMap({
         )}
       </div>
     </APIProvider>
+  )
+}
+
+/**
+ * The ghost layer. 12px desaturated dot with the Place's name beside it, `zIndex` below
+ * every route pin so it can never bury the route it is meant to sit behind.
+ */
+function GhostLayer({
+  pins,
+  labels,
+  armed,
+  onSelect,
+}: {
+  pins: GhostPin[]
+  labels: boolean
+  armed: boolean
+  onSelect?(ghost: GhostPin): void
+}) {
+  return (
+    <>
+      {pins.map((g) => (
+        <AdvancedMarker
+          key={g.id}
+          position={{lat: g.lat, lng: g.lng}}
+          title={g.name}
+          zIndex={1}
+          clickable={!armed}
+          onClick={() => { if (!armed) onSelect?.(g) }}
+        >
+          <button
+            type="button"
+            className={`ghost-pin${armed ? ' armed' : ''}`}
+            data-testid="ghost-pin"
+            aria-label={
+              g.scheduledDayNumber == null
+                ? `${g.name} — ยังไม่อยู่ในแผนวันไหน`
+                : `${g.name} — อยู่ในวัน ${g.scheduledDayNumber}`
+            }
+            onClick={(e) => {
+              e.stopPropagation()
+              if (!armed) onSelect?.(g)
+            }}
+          >
+            <span className="ghost-dot" aria-hidden="true" />
+            {labels && <span className="ghost-label">{g.name}</span>}
+          </button>
+        </AdvancedMarker>
+      ))}
+    </>
   )
 }

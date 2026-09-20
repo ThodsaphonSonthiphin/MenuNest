@@ -1,6 +1,6 @@
 // frontend/src/pages/trips/tripsSlice.test.ts
 import {describe, it, expect} from 'vitest'
-import reducer, {setAddMode, setItineraryMapExpanded, startAddStopCapture, endAddStopCapture} from './tripsSlice'
+import reducer, {setActiveDay, setAddMode, setSelectedStop} from './tripsSlice'
 
 const init = reducer(undefined, {type: '@@INIT'})
 
@@ -14,31 +14,29 @@ describe('tripsSlice add-mode', () => {
     const off = reducer(on, setAddMode(false))
     expect(off.addMode).toBe(false)
   })
-})
-
-describe('tripsSlice itinerary map band', () => {
-  it('defaults itineraryMapExpanded to false (map inline on open)', () => {
-    expect(init.itineraryMapExpanded).toBe(false)
+  it('arming clears the Selected Stop — the armed map owns every tap (ADR-163)', () => {
+    const selected = reducer(init, setSelectedStop('stop-1'))
+    expect(reducer(selected, setAddMode(true)).selectedStopId).toBeNull()
   })
-  it('setItineraryMapExpanded toggles the flag', () => {
-    const expanded = reducer(init, setItineraryMapExpanded(true))
-    expect(expanded.itineraryMapExpanded).toBe(true)
-    const collapsed = reducer(expanded, setItineraryMapExpanded(false))
-    expect(collapsed.itineraryMapExpanded).toBe(false)
+  it('disarming leaves the selection alone', () => {
+    const armed = reducer(init, setAddMode(true))
+    expect(reducer(armed, setAddMode(false)).selectedStopId).toBeNull()
   })
 })
 
-describe('tripsSlice add-stop capture context', () => {
-  it('defaults addStopForDayId to null', () => {
-    expect(init.addStopForDayId).toBeNull()
+describe('tripsSlice Selected Stop', () => {
+  it('defaults selectedStopId to null — a Trip opens with nothing selected', () => {
+    expect(init.selectedStopId).toBeNull()
   })
-  it('startAddStopCapture stores the day id', () => {
-    const on = reducer(init, startAddStopCapture('day-1'))
-    expect(on.addStopForDayId).toBe('day-1')
+  it('setSelectedStop stores and clears the id', () => {
+    const on = reducer(init, setSelectedStop('stop-1'))
+    expect(on.selectedStopId).toBe('stop-1')
+    expect(reducer(on, setSelectedStop(null)).selectedStopId).toBeNull()
   })
-  it('endAddStopCapture clears it', () => {
-    const on = reducer(init, startAddStopCapture('day-1'))
-    const off = reducer(on, endAddStopCapture())
-    expect(off.addStopForDayId).toBeNull()
+  it('switching Day drops the selection, so the sheet never sits on a dead card', () => {
+    const on = reducer(init, setSelectedStop('stop-1'))
+    const moved = reducer(on, setActiveDay('day-2'))
+    expect(moved.activeDayId).toBe('day-2')
+    expect(moved.selectedStopId).toBeNull()
   })
 })

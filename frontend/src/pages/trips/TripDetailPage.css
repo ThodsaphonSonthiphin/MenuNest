@@ -1,7 +1,10 @@
 /* ============================================================
-   TripDetailPage — teal-accented, mobile-first layout.
-   Teal palette tokens and shared component styles live in
-   trips-tokens.css (Task 19 consolidation).
+   TripDetailPage — the map-driven screen (menunest-234 … 241, #154).
+   ONE full-bleed map; the day's plan floats over it in a Plan sheet
+   (mobile/tablet) or a Plan panel (desktop). Diffed against the approved
+   mocks `screens/trip-detail-mobile.html` (4 frames) and
+   `screens/trip-detail-desktop.html` (option A) in Claude Design.
+   Teal palette tokens live in trips-tokens.css.
    ============================================================ */
 
 .trip-detail {
@@ -20,114 +23,292 @@
 
   background: var(--trp-bg-page);
   color: var(--trp-text);
-  min-height: calc(100vh - 56px);
-  padding: 16px 16px 96px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
   font-size: 14px;
 }
 
-@media (min-width: 600px) {
-  .trip-detail { max-width: 600px; margin: 0 auto; padding: 24px 24px 96px; }
-}
-
-/* Mobile / tablet: single column (default flex-direction: column above) */
-@media (max-width: 1023px) {
-  .trip-detail { display: block; }
-}
-
-/* ── Desktop split layout (≥1024 px) ── */
-/* Map-forward: break out of AppLayout's centered 1200px cap
-   (index.css .app-main { max-width:1200px; margin:0 auto }) so the map
-   fills the viewport instead of collapsing into a narrow centred panel. */
-.app-main:has(.trip-detail.desktop) {
+/* Break out of AppLayout's centred 1200px cap (index.css `.app-main
+   { max-width:1200px; margin:0 auto }`) so the map is the page and not a
+   narrow panel inside it — the same escape `.discover-page` makes. */
+.app-main:has(.trip-detail.map-driven) {
   max-width: none;
   padding: 0;
 }
 
-.trip-detail.desktop {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 64px);
-  max-width: 100%;
-  padding: 0;
+/* The map IS the page: one positioning context, everything else floats in it.
+   `dvh` (not `vh`) so the mobile URL bar collapsing does not leave a dead strip
+   below the sheet. */
+.trip-detail.map-driven {
+  position: relative;
+  height: calc(100dvh - 56px);
   overflow: hidden;
 }
 
-/* Full-bleed dark trip top-bar (desktop only). Shows only data that exists:
-   trip name + destination + date range (members/FX/budget are deferred, ADR-009). */
-.trip-detail.desktop .trip-topbar {
-  flex: none;
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  padding: 14px 32px;
-  background: var(--ink);
-  color: #fff;
+@media (min-width: 1024px) {
+  .trip-detail.map-driven { height: calc(100dvh - 64px); }
 }
-.trip-topbar-name { font-size: 16px; font-weight: 800; }
-.trip-topbar-meta { font-size: 12px; color: #9fb0c4; }
 
-/* Two-pane body below the top-bar: 464px itinerary column + flex map */
-.trip-detail.desktop .trip-detail-body {
+.trip-detail.map-driven .trip-map {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+}
+
+/* ── Floating top chrome (mobile / tablet) ───────────────────────────────── */
+/* A column of floating cards, not a bar: the map runs edge to edge underneath.
+   `pointer-events: none` on the stack with `auto` on its cards is what keeps the
+   gaps BETWEEN them draggable map — the sheet is non-modal, and so is this. */
+.trip-topchrome {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  pointer-events: none;
+}
+.trip-topchrome > * { pointer-events: auto; }
+
+.trip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 3px 14px rgba(15, 23, 42, 0.14);
+}
+
+.trip-head-btn {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #475569;
+  font-size: 17px;
+  cursor: pointer;
+}
+.trip-head-btn:hover { background: #f1f5f9; }
+
+.trip-head-txt { flex: 1; min-width: 0; line-height: 1.25; }
+.trip-head-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--ink, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trip-head-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  color: #64748b;
+}
+
+/* ── Day chips ───────────────────────────────────────────────────────────── */
+.day-chips {
+  display: flex;
+  gap: 6px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.day-chips::-webkit-scrollbar { display: none; }
+
+.day-chip {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 6px 13px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 9px rgba(15, 23, 42, 0.13);
+  cursor: pointer;
+}
+.day-chip.on { background: var(--ink, #0f172a); color: #fff; }
+.day-chip.add { color: var(--teal, #0e8f9e); }
+.day-chip:disabled { opacity: 0.55; cursor: default; }
+
+/* ── The map's own control stack (bottom-right, above the sheet) ─────────── */
+.map-controls {
+  position: absolute;
+  right: 10px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.map-controls.desktop { right: 16px; bottom: 16px; }
+
+.map-ctl {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 12px;
+  background: #fff;
+  color: #334155;
+  font-size: 19px;
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.2);
+  cursor: pointer;
+}
+.map-ctl.wide {
+  width: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+}
+.map-ctl.wide svg { font-size: 11px; }
+/* The toggle reads as ON when the ghost layer is drawn — the default (menunest-241). */
+.map-ctl.wide.on { color: #334155; }
+.map-ctl.wide:not(.on) { color: #94a3b8; text-decoration: line-through; }
+.map-ctl.primary { background: var(--teal, #0e8f9e); color: #fff; }
+.map-ctl.primary:hover { background: var(--teal-deep, #0b7a87); }
+
+/* The way out of the armed map, in the same corner the + armed it from. */
+.map-disarm {
+  position: absolute;
+  right: 10px;
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  z-index: 8;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  background: var(--ink, #0f172a);
+  color: #fff;
+  font-size: 19px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.32);
+  cursor: pointer;
+}
+
+/* An error has to reach the user even though the plan container may be collapsed
+   or dropped to summary — so it floats over the map rather than living in a panel. */
+.trip-float-error {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(112px + env(safe-area-inset-top, 0px));
+  z-index: 9;
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 11px;
+  background: #fdeceb;
+  color: #b42318;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 6px 18px rgba(180, 35, 24, 0.18);
+}
+
+/* ── Desktop: the Plan panel ─────────────────────────────────────────────── */
+/* 376px, inset 16px over the LEFT edge of the map, elevated (menunest-236).
+   It floats — the map canvas behind it is full width, which is why collapsing it
+   changes no container size and `fitPadding` has to drive the re-fit. */
+.plan-panel {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  bottom: 16px;
+  z-index: 6;
+  width: 376px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.24);
+  transition: transform 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.plan-panel.collapsed {
+  /* Translated off-canvas rather than unmounted, so the list keeps its scroll
+     position and the stop cards do not remount on every collapse. */
+  transform: translateX(calc(-100% - 16px));
+  pointer-events: none;
+}
+
+.plan-panel-head { flex: none; padding: 13px 15px 0; }
+.plan-panel-head .trip-head {
+  padding: 0 0 11px;
+  border-radius: 0;
+  background: none;
+  backdrop-filter: none;
+  box-shadow: none;
+  border-bottom: 1px solid var(--border, #eef2f6);
+}
+.plan-panel-head .trip-head-name { font-size: 16px; }
+.plan-panel-head .trip-head-btn { background: #f1f5f9; border-radius: 9px; }
+.plan-panel-head .day-chips { padding: 11px 0 0; }
+.plan-panel-head .day-chip {
+  background: #f1f5f9;
+  backdrop-filter: none;
+  box-shadow: none;
+}
+.plan-panel-head .day-chip.on { background: var(--ink, #0f172a); color: #fff; }
+.plan-panel-head .day-chip.add { background: #f0fafb; }
+
+.plan-panel-body {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: 464px 1fr;
-  /* Constrain the single row to the body height so a long itinerary scrolls
-     inside the left column instead of expanding the row past the viewport. */
-  grid-template-rows: minmax(0, 1fr);
-  gap: 16px;
-  padding: 24px 32px;
-  overflow: hidden;
-}
-
-/* Left column — itinerary/places pane — scrollable */
-.trip-detail.desktop .trip-detail-col-left {
-  min-height: 0; /* allow the grid item to shrink so overflow-y can scroll */
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding-right: 4px;
+  padding: 0 15px 16px;
 }
 
-/* Right column — persistent full-height map */
-.trip-detail.desktop .trip-detail-col-right {
-  position: sticky;
-  top: 0;
-  height: 100%;
+/* Outside the panel so it survives the panel's own translate. */
+.plan-panel-rail {
+  position: absolute;
+  left: 392px;
+  top: 50%;
+  z-index: 7;
+  width: 22px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 0 9px 9px 0;
+  background: #fff;
+  color: #94a3b8;
+  font-size: 12px;
+  box-shadow: 3px 2px 10px rgba(15, 23, 42, 0.16);
+  cursor: pointer;
+  transition: left 220ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.plan-panel-rail.collapsed { left: 0; }
+.plan-panel-rail:hover { color: #334155; }
+
+@media (prefers-reduced-motion: reduce) {
+  .plan-panel,
+  .plan-panel-rail { transition: none; }
 }
 
-.trip-detail.desktop .trip-map {
-  height: 100%;
-  min-height: unset;
-  border-radius: 12px;
-}
-
-/* -------- Header -------- */
-.trip-detail-header {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-bottom: 4px;
-}
-
-.trip-detail-name {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: var(--trp-text);
-  letter-spacing: -0.02em;
-  line-height: 1.25;
-}
-
-.trip-detail-meta {
-  font-size: 0.85rem;
-  color: var(--trp-text-muted);
-}
-
-/* -------- Places tab -------- */
+/* -------- Places list (the `คลัง` segment) -------- */
 .trip-places {
   display: flex;
   flex-direction: column;
@@ -565,80 +746,137 @@
 .stop-editor-dialog .se-save:active { transform: translateY(1px); }
 .stop-editor-dialog .se-save:disabled { opacity: 0.6; cursor: default; box-shadow: none; }
 
-/* -------- Mobile/tablet itinerary route-map band (ADR-026, issue #8) -------- */
-/* Scoped to .itinerary-tab so it never matches the mobile places->map (.trip-places)
-   or the desktop right-pane map (.trip-detail-col-right). min-height:0 is REQUIRED —
-   the base .trip-map carries min-height 320px (280 <=479px) which would floor the box. */
-.itinerary-tab .itin-map-band {
-  position: relative;
-  flex: none;
-  height: 188px;
-  min-height: 0;
-  overflow: hidden;
-  border-radius: 12px;
-  transition: height 0.2s ease;
+/* -------- The Plan sheet's contents (menunest-234, mock frames 1–4) -------- */
+
+/* The summary block. Its MEASURED height is what the `summary` detent resolves to,
+   so nothing in here may have a height that depends on the detent. */
+.plan-summary { padding-top: 4px; }
+.ps-row1 { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.ps-title { font-size: 13.5px; font-weight: 800; color: var(--ink, #0f172a); }
+.ps-visited {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700; color: #475569;
+  background: #f1f5f9; border-radius: 999px; padding: 2px 8px;
 }
-.itinerary-tab .itin-map-band-placeholder { height: 188px; }
-.itinerary-tab .itin-map-band.full-screen {
-  position: fixed;
-  inset: 0;
-  height: 100dvh;
-  z-index: 1000;
-  border-radius: 0;
-  margin: 0;
+.ps-visited .d { width: 6px; height: 6px; border-radius: 50%; background: var(--teal, #0e8f9e); }
+
+.ps-row2 { display: flex; align-items: center; gap: 10px; }
+.ps-stat { line-height: 1.15; min-width: 0; }
+.ps-stat .k { display: block; font-size: 9.5px; font-weight: 600; color: #64748b; }
+.ps-stat .v {
+  display: flex; align-items: center; gap: 2px;
+  font-size: 15px; font-weight: 700; color: var(--ink, #0f172a);
+  font-variant-numeric: tabular-nums;
 }
-.itinerary-tab .itin-map-band .trip-map {
-  height: 100%;
-  min-height: 0;
+.ps-dash { color: #94a3b8; }
+.ps-sep { flex: none; width: 1px; height: 22px; background: var(--border, #eef2f6); }
+
+.ps-nav {
+  margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; border-radius: 11px;
+  background: var(--teal, #0e8f9e); color: #fff;
+  font-size: 12.5px; font-weight: 800; text-decoration: none;
+  box-shadow: 0 3px 10px rgba(14, 143, 158, 0.35);
 }
-/* Collapse affordance (full-screen state) — small round icon button, top-right over the map */
-.itinerary-tab .itin-map-collapse {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 10px);
-  right: calc(env(safe-area-inset-right, 0px) + 10px);
-  z-index: 2;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--ink);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.ps-nav svg { width: 15px; height: 15px; }
+.ps-nav:hover { background: var(--teal-deep, #0b7a87); }
+
+/* The header carries a rule only once there is a list below it to divide — at the
+   summary detent there is nothing below the fold to separate from (mock frame 1). */
+.plan-sheet .plan-sheet-head { border-bottom: 1px solid var(--border, #eef2f6); }
+.plan-sheet[data-detent='summary'] .plan-sheet-head { border-bottom: 0; }
+
+.plan-content { padding-top: 10px; }
+.plan-content .seg-tabs { margin-bottom: 10px; }
+.plan-panel .plan-summary {
+  padding: 11px 0 12px;
+  border-top: 1px solid var(--border, #eef2f6);
+  border-bottom: 1px solid var(--border, #eef2f6);
+  margin-top: 11px;
+}
+
+/* -------- Compact stop card (mock frame 4) -------- */
+.compact-stop { padding: 4px 0 2px; }
+.cs-head { display: flex; align-items: flex-start; gap: 9px; }
+.cs-num {
+  flex: none; width: 22px; height: 22px; margin-top: 2px;
+  display: grid; place-items: center; border-radius: 50%;
+  background: var(--teal, #0e8f9e); color: #fff; font-size: 12px; font-weight: 800;
+}
+.cs-num.warn { background: #b4791f; }
+.cs-num.bad { background: #b42318; }
+.cs-title { flex: 1; min-width: 0; }
+.cs-name { font-size: 15px; font-weight: 800; line-height: 1.3; color: var(--ink, #0f172a); }
+.cs-sub {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  margin-top: 2px; font-size: 11px; color: #64748b;
+}
+.cs-close {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 0; background: transparent; color: #94a3b8; font-size: 15px;
+  border-radius: 8px; cursor: pointer;
+}
+.cs-close:hover { background: #f1f5f9; color: #475569; }
+
+.cs-times { display: flex; gap: 16px; margin: 11px 0 12px; }
+.cs-stat { line-height: 1.15; }
+.cs-stat .k { display: block; font-size: 9.5px; font-weight: 600; color: #64748b; }
+.cs-stat .v { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.cs-flag {
+  display: flex; align-items: center; gap: 5px;
+  margin: 0 0 11px; font-size: 10.5px; font-weight: 700;
+}
+.cs-flag.bad { color: #b42318; }
+.cs-flag.warn { color: #b4791f; }
+.cs-flag .d { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+
+.cs-actions { display: flex; gap: 8px; }
+.cs-act {
+  flex: 1; min-width: 0;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 10px 8px; border: 0; border-radius: 11px;
+  background: #f1f5f9; color: #334155;
+  font: inherit; font-size: 12px; font-weight: 700; text-decoration: none;
   cursor: pointer;
 }
-.itinerary-tab .itin-map-collapse svg { width: 24px; height: 24px; }
-/* Expand affordance (inline state) — transparent button covering the map */
-.itinerary-tab .itin-map-expand-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 10px;
+.cs-act svg { width: 14px; height: 14px; }
+.cs-act.main { background: var(--teal, #0e8f9e); color: #fff; }
+.cs-act.main:hover { background: var(--teal-deep, #0b7a87); }
+.cs-act.on { background: #e9f6ee; color: #1f7a45; }
+.cs-act.disabled { opacity: 0.5; cursor: default; }
+
+.cs-more {
+  display: block; width: 100%; margin-top: 9px; padding: 8px;
+  border: 0; background: transparent; color: var(--teal, #0e8f9e);
+  font: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.cs-more:hover { text-decoration: underline; }
+
+/* -------- Ghost pin card (spec §6.1) -------- */
+.ghost-card { padding: 4px 0 2px; }
+.gc-head { display: flex; align-items: flex-start; gap: 9px; }
+.gc-dot {
+  flex: none; width: 13px; height: 13px; margin-top: 5px; border-radius: 50%;
+  background: #fff; border: 2.5px solid #9fb3bd;
+}
+.gc-title { flex: 1; min-width: 0; }
+.gc-name { font-size: 15px; font-weight: 800; line-height: 1.3; color: var(--ink, #0f172a); }
+.gc-sub { margin-top: 2px; font-size: 11px; color: #64748b; }
+.gc-close {
+  flex: none; width: 30px; height: 30px; display: grid; place-items: center;
+  border: 0; background: transparent; color: #94a3b8; border-radius: 8px; cursor: pointer;
+}
+.gc-close:hover { background: #f1f5f9; color: #475569; }
+.gc-actions { display: flex; gap: 8px; margin-top: 12px; }
+.gc-act {
+  flex: 1; padding: 10px 8px; border: 0; border-radius: 11px;
+  background: #f1f5f9; color: #334155; font: inherit; font-size: 12px; font-weight: 700;
   cursor: pointer;
 }
-.itinerary-tab .itin-map-expand-badge {
-  background: rgba(255, 255, 255, 0.95);
-  padding: 8px 16px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--teal-deep);
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
-  pointer-events: none; /* Let the parent button handle clicks */
-}
-.itinerary-tab .itin-map-expand-badge svg { width: 16px; height: 16px; flex: none; }
+.gc-act.main { background: var(--teal, #0e8f9e); color: #fff; }
+.gc-act.main:hover { background: var(--teal-deep, #0b7a87); }
 
 /* Review link (TikTok) affordance — trailing icon + popover (ADR-052) */
 .stop-review-wrap { position: relative; display: flex; }

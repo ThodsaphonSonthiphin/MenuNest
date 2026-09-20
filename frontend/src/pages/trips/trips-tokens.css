@@ -190,6 +190,12 @@
 }
 .stop-card.warn { background: #fffdf7; border-color: #f3e2c2; }
 .stop-card.bad { background: #fffbfb; border-color: #f4d0cc; }
+/* The Selected Stop's card — the list half of the pin ⇄ card pair (menunest-238, the
+   mock's `.card.sel`). Declared AFTER .warn/.bad so a flagged Stop still reads as selected. */
+.stop-card.selected {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(14, 143, 158, 0.18), 0 4px 14px rgba(15, 23, 42, 0.1);
+}
 
 /* ── Visited ("มาแล้ว") — leading checkbox + de-emphasised row (ADR-040) ── */
 .stop-check {
@@ -434,9 +440,24 @@
   width: 100%;
 }
 
-/* ── Itinerary route markers (numbered teal pins + time/name callout) ── */
-.route-pin { display: flex; flex-direction: column; align-items: center; }
+/* ── Itinerary route markers (numbered teal pins + time/name callout) ──
+   The pin is a real <button> since menunest-238 — the map is a surface now, and every
+   tappable pin has to be reachable by keyboard and named for AT (spec §8). These first
+   declarations strip the UA button chrome so the mark looks exactly as it did. */
+.route-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.route-pin:focus-visible { outline: none; }
+.route-pin:focus-visible .route-dot { outline: 3px solid #fff; outline-offset: 2px; }
 .route-callout {
+  display: block;
   max-width: 190px;
   margin-bottom: 4px;
   padding: 4px 9px;
@@ -476,6 +497,61 @@
   box-shadow: 0 4px 12px rgba(214, 64, 39, 0.5);
 }
 
+/* The Selected Stop's pin (menunest-238, mock frame 4): bigger dot, teal halo, and an
+   inverted callout, so which Stop the sheet is describing is unmistakable on the map. */
+.route-pin.sel .route-dot {
+  width: 38px;
+  height: 38px;
+  font-size: 16px;
+  box-shadow: 0 0 0 7px rgba(14, 143, 158, 0.25), 0 4px 12px rgba(15, 23, 42, 0.35);
+}
+.route-pin.sel .route-callout {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* ── Ghost pins: a Place on this Trip that is NOT a Stop on the active Day ──
+   (menunest-235/241.) Desaturated, small, and rendered under every route pin, because a
+   ghost that competes with the route defeats the layer. */
+.ghost-pin {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+.ghost-pin.armed { cursor: default; }
+.ghost-dot {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2.5px solid #9fb3bd;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.18);
+}
+.ghost-label {
+  max-width: 140px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #475569;
+  font-size: 9.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Armed, EVERY own pin dims — one of the three signals that the map is in capture mode
+   (R8.3), and the same treatment Discover's own pins get. */
+.ghost-pin.armed .ghost-dot { opacity: 0.45; }
+.ghost-pin.armed .ghost-label { opacity: 0.45; }
+.ghost-pin:focus-visible { outline: none; }
+.ghost-pin:focus-visible .ghost-dot { outline: 2px solid var(--teal); outline-offset: 2px; }
+
 /* ── Viewer's live-location marker on the itinerary map (ADR-027) ── */
 .viewer-pin {
   width: 16px;
@@ -486,19 +562,23 @@
   box-shadow: 0 0 0 4px rgba(66, 133, 244, 0.35), 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* ── Day-summary card pinned bottom-right of the map ── */
+/* ── Day roll-up badge, top-right of the map (spec §4.3, desktop mock) ──
+   Moved from bottom-right, where the map's own control stack now lives. Dark, so it
+   reads over both street and satellite tiles. Its CONTENT is unchanged — the same
+   `summaryText` useDayRoute has always produced. */
 .map-day-card {
   position: absolute;
-  right: 14px;
-  bottom: 14px;
+  right: 16px;
+  top: 16px;
   z-index: 2;
-  padding: 10px 14px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+  padding: 8px 13px;
+  background: rgba(15, 23, 42, 0.88);
+  border-radius: 11px;
+  line-height: 1.35;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.3);
 }
-.map-day-label { font-size: 10px; font-weight: 600; color: var(--muted); }
-.map-day-text { font-size: 14px; font-weight: 700; color: var(--ink); }
+.map-day-label { font-size: 10px; font-weight: 600; color: #9fb0c4; }
+.map-day-text { font-size: 12.5px; font-weight: 700; color: #fff; }
 
 /* ── AddPlaceSheet extras (T14) ── */
 .add-place-row {
@@ -929,9 +1009,9 @@
 /* Push the floating search bar below the banner when it is shown */
 .add-search-wrap--banner { top: 66px; }
 
-/* ── Mobile full-screen capture overlay (#36 / ADR-070) ── */
-.capture-overlay { position: fixed; inset: 0; z-index: 1100; background: #fff; }
-.capture-overlay .trip-map { height: 100%; min-height: 0; }
+/* The mobile full-screen capture overlay (#36 / ADR-070) is GONE — menunest-240 arms the
+   one map already on screen instead of stacking a second one over it, so `.capture-overlay`
+   has no element left to style. */
 
 
 /* Two same-level commit actions, stacked, for a capture whose Trip is undecided

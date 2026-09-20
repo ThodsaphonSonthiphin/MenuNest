@@ -132,6 +132,44 @@ export function ChevronRightIcon({className}: IconProps) {
   )
 }
 
+/** Chevron left — back, and the Plan panel's collapse rail (menunest-236). */
+export function ChevronLeftIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  )
+}
+
+/** Crosshair — the map's locate-me control in the floating control stack. */
+export function LocateIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <circle cx="12" cy="12" r="3.2" />
+      <circle cx="12" cy="12" r="8" opacity="0.45" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+    </svg>
+  )
+}
+
+/** ✕ — closes the Compact stop card and leaves armed capture. */
+export function CloseIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  )
+}
+
+/** A hollow dot, matching the Ghost pin's own mark — leads the `คลัง · N` toggle. */
+export function GhostDotIcon({className}: IconProps) {
+  return (
+    <svg {...base} className={className} strokeWidth={3}>
+      <circle cx="12" cy="12" r="7" />
+    </svg>
+  )
+}
+
 /** Folded map — lead glyph on the collapsed "show route map" strip. */
 export function MapRouteIcon({className}: IconProps) {
   return (

@@ -50,6 +50,7 @@ export function ItineraryStopCard({
   arrivalReading,
   tripMonth,
   reorderMode = false,
+  selected = false,
   onOpenDetail,
   uvWarn,
   feelsWarn,
@@ -63,6 +64,8 @@ export function ItineraryStopCard({
   arrivalReading?: WeatherReadingDto
   tripMonth: number
   reorderMode?: boolean
+  /** This Stop is the **Selected Stop** — its pin is enlarged on the map (menunest-238). */
+  selected?: boolean
   onOpenDetail?: () => void
   uvWarn?: number | null
   feelsWarn?: number | null
@@ -80,7 +83,7 @@ export function ItineraryStopCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`stop-card compact${cardFlag}${isDragging ? ' dragging' : ''}${season.kind === 'bad' ? ' season-bad' : season.kind === 'good' ? ' season-good' : ''}`}
+      className={`stop-card compact${cardFlag}${selected ? ' selected' : ''}${isDragging ? ' dragging' : ''}${season.kind === 'bad' ? ' season-bad' : season.kind === 'good' ? ' season-good' : ''}`}
       data-testid="itin-stop-card"
       data-stop-id={id}
     >

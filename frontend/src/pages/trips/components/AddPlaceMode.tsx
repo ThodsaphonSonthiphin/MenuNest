@@ -20,6 +20,8 @@ export interface AddStopContext {
   dayId: string
   dayLabel: string
   travelMode: TravelMode
+  /** 1-based Day number, so the primary action can name what the tap does: `เพิ่มเข้าวัน 2`. */
+  dayNumber?: number
 }
 
 /**
@@ -165,7 +167,7 @@ export function AddPlaceMode({target, onExit, tappedPlaceId, onTapConsumed, tapp
     search.reset()
   }, [search])
 
-  const doAdd = useCallback(async (via: 'primary' | 'createTrip' | 'pickOther') => {
+  const doAdd = useCallback(async (via: 'primary' | 'createTrip' | 'pickOther' | 'library') => {
     if (!selected) return
     if (!captureNameValid(name)) {
       setFormError('ตั้งชื่อสถานที่ก่อนบันทึก')
@@ -208,7 +210,11 @@ export function AddPlaceMode({target, onExit, tappedPlaceId, onTapConsumed, tapp
         createdRef.current ??
         (await addTripPlace(addTripPlaceArgsForCapture(target.tripId, payload)).unwrap()).id
       createdRef.current = placeId
-      if (addStopContext) {
+      // menunest-240 / spec §6.4: the trip surface's SECOND action stops at the library —
+      // the Place is saved and becomes a Ghost pin, but nothing is scheduled. Without it,
+      // ghost pins could never be created at all, because the library-only + is the control
+      // the redesign removes.
+      if (addStopContext && via !== 'library') {
         // ADR-071: non-atomic — if addStop fails, the Place stays captured and a retry
         // reuses createdRef (above) rather than creating a duplicate.
         await addStop({
@@ -236,8 +242,14 @@ export function AddPlaceMode({target, onExit, tappedPlaceId, onTapConsumed, tapp
     target.kind === 'choose'
       ? captureCommitLabel(target.rememberedTripName ? {id: '', name: target.rememberedTripName} : null)
       : addStopContext
-        ? 'เพิ่มเป็นจุดแวะ'
+        ? addStopContext.dayNumber != null
+          ? `เพิ่มเข้าวัน ${addStopContext.dayNumber}`
+          : 'เพิ่มเป็นจุดแวะ'
         : 'เพิ่มลงทริป'
+
+  // The trip surface's second action. Discover's own second action (สร้างทริปใหม่) keeps the
+  // slot there; the two never collide, because a `choose` target has no addStopContext.
+  const showKeepInLibrary = target.kind === 'trip' && !!addStopContext
 
   return (
     <>
@@ -283,8 +295,14 @@ export function AddPlaceMode({target, onExit, tappedPlaceId, onTapConsumed, tapp
           confirmLabel={primaryLabel}
           onPrimaryAlt={target.kind === 'choose' && target.rememberedTripName ? () => { void doAdd('pickOther') } : undefined}
           primaryAltLabel="เลือกทริปอื่น"
-          secondaryLabel={target.kind === 'choose' ? 'สร้างทริปใหม่' : undefined}
-          onSecondary={target.kind === 'choose' ? () => { void doAdd('createTrip') } : undefined}
+          secondaryLabel={target.kind === 'choose' ? 'สร้างทริปใหม่' : showKeepInLibrary ? 'เก็บเข้าคลัง' : undefined}
+          onSecondary={
+            target.kind === 'choose'
+              ? () => { void doAdd('createTrip') }
+              : showKeepInLibrary
+                ? () => { void doAdd('library') }
+                : undefined
+          }
           error={formError}
         />
       )}
