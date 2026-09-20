@@ -683,69 +683,124 @@
   }
 }
 
-/* ── Editable day-start value in the summary bar (ADR-012 / ADR-013) ── */
-.day-start-edit { display: inline-flex; align-items: center; gap: 6px; }
+/* ── Editable day-start value in the Plan summary (ADR-012 / ADR-013) ──
+   These rules used to be scoped to `.day-summary` — the dark bar the map-driven redesign
+   deleted (#154). Nothing matched `.day-summary` any more, so the TimePicker fell back to
+   its raw Syncfusion chrome: `.sf-input` lost `width: 5ch` and collapsed, leaving a bare
+   40px clock icon with NO readable time. They are re-scoped to `.plan-summary` here, and
+   re-themed for that LIGHT card — the old values were white-on-ink and washed out on it. */
 
-/* Neutralize the Syncfusion TimePicker chrome so it reads as bar text at rest.
-   The React package (@syncfusion/react-calendars v33) emits sf-* classes, NOT
-   the legacy ej2 .e-*. Confirm exact sub-element classes in devtools. */
-.day-summary .day-start-picker.sf-input-group,
-.day-summary .day-start-picker {
+/* Neutralize the Syncfusion TimePicker chrome so the value reads as the stat's own text.
+   The React package (@syncfusion/react-calendars v33) emits sf-* classes, NOT the legacy
+   ej2 .e-*. Confirm exact sub-element classes in devtools. */
+/* Every override below carries `.sf-input-group` deliberately. Syncfusion's own sizing is
+   `.sf-medium.sf-input-group .sf-input` — specificity (0,3,0), exactly what a plain
+   `.plan-summary .day-start-picker .sf-input` scores. A tie is decided by source order, and
+   the vendor sheet is imported after this one, so the un-weighted selector silently loses.
+   Adding the class takes these to (0,4,0) and they win outright. */
+.plan-summary .day-start-picker.sf-input-group,
+.plan-summary .day-start-picker {
   width: auto;
+  height: auto;
+  min-height: 0;
   display: inline-flex;
+  align-items: center;
   margin: 0;
-  padding: 2px 6px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 1px 5px;
+  border: 1px solid var(--border, #eef2f6);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
+  background: #f8fafc;
+  font-size: 15px;
+  line-height: 1.2;
+  letter-spacing: normal;
   transition: border-color 0.12s ease, background 0.12s ease;
 }
 /* remove the animated focus underline */
-.day-summary .day-start-picker.sf-input-group::before,
-.day-summary .day-start-picker.sf-input-group::after { display: none; }
+.plan-summary .day-start-picker.sf-input-group::before,
+.plan-summary .day-start-picker.sf-input-group::after { display: none; }
 
-.day-summary .day-start-picker:hover,
-.day-summary .day-start-picker:focus-within {
-  border-color: var(--teal);
-  background: rgba(14, 143, 158, 0.18);
+.plan-summary .day-start-picker:hover,
+.plan-summary .day-start-picker:focus-within {
+  border-color: var(--teal, #0e8f9e);
+  background: var(--teal-soft, #e3f5f6);
 }
 
-.day-summary .day-start-picker .sf-input {
+/* `font: inherit` + tabular-nums deliberately, NOT the mono stack: the value sits beside the
+   plain-font `dayEnd` inside the same `.ps-stat .v`, and the two must read as one figure. */
+.plan-summary .day-start-picker.sf-input-group .sf-input {
   width: 5ch;
   min-width: 0;
+  height: auto;
   padding: 0;
   border: 0;
   background: transparent;
-  color: #fff;
-  font-weight: 700;
-  font-size: 12px;
-  font-family: 'Spline Sans Mono', ui-monospace, monospace;
+  color: var(--ink, #0f172a);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
   text-align: left;
   cursor: pointer;
 }
-/* clock icon tint (confirm the icon's sf-* class in devtools) */
-.day-summary .day-start-picker .sf-time-icon,
-.day-summary .day-start-picker .sf-input-group-icon { color: #9fb0c4; }
+/* The icon is the only "this opens" affordance left once the value reads as plain text, so
+   it stays — but sized down from Syncfusion's 40px button, which alone was the whole picker. */
+.plan-summary .day-start-picker.sf-input-group .sf-input-icon {
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin-inline: 3px 0;
+  padding: 0;
+  color: #94a3b8;
+}
+/* Syncfusion sizes the glyph through `font-size: var(--sf-font-size-xl)` (20px) and an
+   `sf-icon-size` that reads 1em — so the glyph shrinks by setting the font-size, not width. */
+.plan-summary .day-start-picker.sf-input-group .sf-input-icon svg {
+  width: 14px;
+  height: 14px;
+  font-size: 14px;
+}
+.plan-summary .day-start-picker.sf-input-group.sf-disabled,
+.plan-summary .day-start-picker.sf-input-group[aria-disabled='true'] { opacity: 0.55; }
+
+/* ── The Day's start-time controls, in the Plan body (see DayTimeControls) ──
+   `ตอนนี้` + `ใช้เวลาปัจจุบันเสมอ` cost 153px of the summary row's 346px, which crushed the
+   `เดินทางรวม` stat to 22px (#154). They live below the fold now, on a light surface. */
+.day-time-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--border, #eef2f6);
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.dtc-label {
+  margin-right: auto;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748b;
+}
 
 /* "ตอนนี้" (now) quick-set button — sets the day start to the current time */
 .day-start-now-btn {
   flex: none;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid var(--border, #eef2f6);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  color: #9fb0c4;
+  background: #fff;
+  color: #475569;
   font: inherit;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
-  padding: 3px 9px;
+  padding: 3px 10px;
   cursor: pointer;
   transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
 }
 .day-start-now-btn:hover,
 .day-start-now-btn:focus-visible {
-  border-color: var(--teal);
-  background: rgba(14, 143, 158, 0.18);
-  color: #fff;
+  border-color: var(--teal, #0e8f9e);
+  background: var(--teal-soft, #e3f5f6);
+  color: var(--teal-deep, #0b7a87);
   outline: none;
 }
 
@@ -754,17 +809,14 @@
 .day-start-live-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
+  gap: 5px;
+  font-size: 10.5px;
   font-weight: 600;
-  color: #9fb0c4;
+  color: #475569;
   cursor: pointer;
   white-space: nowrap;
 }
-.day-start-live-toggle input { accent-color: var(--teal); cursor: pointer; }
-
-.day-summary .day-start-picker.sf-disabled,
-.day-summary .day-start-picker[aria-disabled='true'] { opacity: 0.55; }
+.day-start-live-toggle input { accent-color: var(--teal, #0e8f9e); cursor: pointer; }
 
 /* ── Editable trip start date in the detail header (ADR-012 / ADR-013) ── */
 /* Reuses the day-start editor treatment: neutralize the Syncfusion DatePicker

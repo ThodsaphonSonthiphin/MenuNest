@@ -34,6 +34,7 @@ import {getErrorMessage} from '../../../shared/utils/getErrorMessage'
 import {reorderKeepingVisited} from '../lib/reorder'
 import type {Plan} from '../hooks/usePlan'
 import {SegmentedTabs} from './SegmentedTabs'
+import {DayTimeControls} from './DayStartEditor'
 import {ItineraryStopCard} from './ItineraryStopCard'
 import {VisitedStopRow} from './VisitedStopRow'
 import {PlaceCard} from './PlaceCard'
@@ -117,10 +118,13 @@ function AddStopPicker({
 export function PlanContent({
   tripId,
   plan,
+  isDaily,
   onActivateStop,
 }: {
   tripId: string
   plan: Plan
+  /** Daily Trips re-seed the Day start from the clock, so its controls render locked. */
+  isDaily: boolean
   /**
    * A Stop card was tapped. The PAGE decides what that means per surface: on a sheet it
    * selects, and `ดูทั้งหมด` on the Compact stop card opens the detail; on the panel, where
@@ -223,6 +227,21 @@ export function PlanContent({
         )
       ) : (
         <>
+          {/* The Day's start-time controls. They used to sit inside the summary header; at
+              346px that row could not hold them and the `เดินทางรวม` stat was crushed to 22px
+              (#154). Here they are reachable from the `half` detent up. */}
+          {plan.day && (
+            <DayTimeControls
+              key={plan.day.id}
+              tripId={tripId}
+              dayId={plan.day.id}
+              dayStartTime={plan.day.dayStartTime}
+              useCurrentTimeAsStart={plan.day.useCurrentTimeAsStart}
+              locked={isDaily}
+              onError={setActionError}
+            />
+          )}
+
           {dayNav?.overflow && (
             <p className="nav-note">
               นำทางครอบคลุม {dayNav.coveredCount} จุดแรก — จุดที่เหลือใช้ปุ่มนำทางรายจุด

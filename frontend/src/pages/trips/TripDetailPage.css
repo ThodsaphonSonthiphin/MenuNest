@@ -761,7 +761,12 @@
 .ps-visited .d { width: 6px; height: 6px; border-radius: 50%; background: var(--teal, #0e8f9e); }
 
 .ps-row2 { display: flex; align-items: center; gap: 10px; }
-.ps-stat { line-height: 1.15; min-width: 0; }
+/* A stat must never break mid-word. `min-width: 0` on BOTH of them let flexbox shrink the
+   `เดินทางรวม` stat to 22px, so Chrome's Thai line-breaker wrapped it one syllable per line
+   and the value stacked four rows deep (#154). Only the start–end stat may give, and it
+   clips rather than wraps; the travel figure and the nav pill hold their size. */
+.ps-stat { line-height: 1.15; flex: none; white-space: nowrap; }
+.ps-row2 > .ps-stat:first-child { flex: 0 1 auto; min-width: 0; overflow: hidden; }
 .ps-stat .k { display: block; font-size: 9.5px; font-weight: 600; color: #64748b; }
 .ps-stat .v {
   display: flex; align-items: center; gap: 2px;

@@ -176,6 +176,37 @@ test.describe('Trips — the map-driven trip screen', () => {
     await expect(page.getByTestId('plan-sheet')).toBeVisible()
   })
 
+  // The Plan summary is the one row that must survive on BOTH surfaces, so it is asserted on
+  // both. It regressed once (#154): `DayStartEditor` moved from the deleted `.day-summary`
+  // dark bar into `.plan-summary`, its CSS did not follow, and the row carried two controls
+  // the spec never put there. `เดินทางรวม` was squeezed to 22px, Chrome's Thai line-breaker
+  // wrapped it one syllable per line, the row grew to 67px and the start time rendered as a
+  // bare clock icon with no digits. `tsc`, `npm run build` and vitest all passed.
+  for (const [surface, width, height] of [['desktop', 1440, 900], ['mobile', 390, 780]] as const) {
+    test(`${surface}: the summary row is one line and the start time is readable`, async ({authedPage: page}) => {
+      await page.setViewportSize({width, height})
+      await page.goto(`/trips/${TRIP_ID}`)
+      await expect(page.getByTestId('plan-summary')).toBeVisible()
+
+      // One line. The wrapped row measured 67px; a single line is ~34px.
+      const row = await page.locator('.ps-row2').boundingBox()
+      expect(row!.height).toBeLessThan(44)
+
+      // The travel stat keeps its label on one line rather than breaking mid-word.
+      const k = await page.locator('.ps-row2 .ps-stat').last().locator('.k').boundingBox()
+      expect(k!.height).toBeLessThan(16)
+
+      // The TimePicker shows its VALUE, not just its icon — the collapsed `.sf-input` was
+      // ~0px wide when the `.day-summary`-scoped `width: 5ch` stopped matching.
+      const input = await page.locator('.day-start-picker input').boundingBox()
+      expect(input!.width).toBeGreaterThan(30)
+
+      // The two Day controls belong to the Plan body now, never to the summary row.
+      await expect(page.locator('.ps-row2 .day-start-live-toggle')).toHaveCount(0)
+      await expect(page.locator('.ps-row2 .day-start-now-btn')).toHaveCount(0)
+    })
+  }
+
   test('desktop: the Plan panel renders and its rail collapses it', async ({authedPage: page}) => {
     await page.setViewportSize({width: 1440, height: 900})
     await page.goto(`/trips/${TRIP_ID}`)

@@ -52,8 +52,9 @@ export function PlanSummary({
                 tripId={tripId}
                 dayId={day.id}
                 dayStartTime={day.dayStartTime}
-                useCurrentTimeAsStart={day.useCurrentTimeAsStart}
-                locked={isDaily}
+                // Daily mode re-seeds the start from the clock on every fetch, so the value is
+                // not editable then either — the same lock the `ใช้เวลาปัจจุบันเสมอ` flag applies.
+                useCurrentTimeAsStart={isDaily || day.useCurrentTimeAsStart}
                 onError={onError}
               />
               <span className="ps-dash">–</span>

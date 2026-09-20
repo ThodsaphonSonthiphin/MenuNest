@@ -269,7 +269,14 @@ export function TripDetailPage() {
       <PlanSummary tripId={tripId} plan={plan} isDaily={trip?.isDaily ?? false} onError={setActionError} />
     )
 
-  const planBody = <PlanContent tripId={tripId} plan={plan} onActivateStop={activateStopFromList} />
+  const planBody = (
+    <PlanContent
+      tripId={tripId}
+      plan={plan}
+      isDaily={trip?.isDaily ?? false}
+      onActivateStop={activateStopFromList}
+    />
+  )
 
   const tripHeader = (
     <div className="trip-head">
