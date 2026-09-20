@@ -57,17 +57,25 @@ test.describe('Trips — grid search', () => {
 
     await expect(grid.getByRole('row')).toHaveCount(11)
     expect(page.url()).toContain('search=Tokyo')
-    expect(calls.some(c => c.includes('search=Tokyo'))).toBe(true)
-    const names = (await grid.getByRole('row').allInnerTexts()).slice(1)
-    expect(names.every(n => n.includes('Tokyo'))).toBe(true)
+    // The refetch is ASYNC and nothing above waits for it: the row count is 11 either way
+    // (25 unfiltered and 13 Tokyo both fill a 10-row page), and the URL updates before the
+    // request goes out. Asserting synchronously here passes only when the runner happens to
+    // land the response first — it failed twice on a loaded CI runner. Poll for the same
+    // conditions instead, so the test waits for what it already claims.
+    await expect.poll(() => calls.some(c => c.includes('search=Tokyo'))).toBe(true)
+    await expect
+      .poll(async () => (await grid.getByRole('row').allInnerTexts()).slice(1).every(n => n.includes('Tokyo')))
+      .toBe(true)
 
     await box.fill('')
     await box.press('Enter')
 
     await expect(grid.getByRole('row')).toHaveCount(11)
     expect(page.url()).not.toContain('search=')
-    const cleared = (await grid.getByRole('row').allInnerTexts()).slice(1)
-    expect(cleared.some(n => n.includes('Osaka'))).toBe(true)
+    // Same race on the way back out — Osaka only reappears once the unfiltered refetch renders.
+    await expect
+      .poll(async () => (await grid.getByRole('row').allInnerTexts()).slice(1).some(n => n.includes('Osaka')))
+      .toBe(true)
   })
 
   test('a search term in the URL filters the list and seeds the search box', async ({authedPage: page}) => {
@@ -168,7 +176,10 @@ test.describe('Trips — grid search', () => {
     await box.press('Enter')
 
     await expect(page).toHaveURL(/search=Osaka/)
-    const names = (await grid.getByRole('row').allInnerTexts()).slice(1)
-    expect(names.every(n => n.includes('Osaka'))).toBe(true)
+    // The URL lands before the response does, so reading the rows straight after it is a
+    // race — this is the assertion that has been red on main independently of any change.
+    await expect
+      .poll(async () => (await grid.getByRole('row').allInnerTexts()).slice(1).every(n => n.includes('Osaka')))
+      .toBe(true)
   })
 })
