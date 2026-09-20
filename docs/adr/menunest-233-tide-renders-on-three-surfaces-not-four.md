@@ -21,10 +21,10 @@ at phone width, and the stacked pairing reads as two related-but-separate facts,
 are. A **Place** that is not a **Beach** shows **no tide row at all** — that absence is what makes the
 "ไม่มีข้อมูลน้ำ" state legible rather than looking like a bug.
 
-**StopDetailSheet — the turn times.** menunest-217 kept them off the chip; this is where they land,
+**StopDetailSheet — the turn times.** menunest-226 kept them off the chip; this is where they land,
 with the day's high and low and the arrival marked among them. The data is already in hand: the
-relative rule (menunest-219) needs that day's extremes to compute the verdict at all. The WorldTides
-attribution string (menunest-222) renders here.
+relative rule (menunest-228) needs that day's extremes to compute the verdict at all. The WorldTides
+attribution string (menunest-231) renders here.
 
 **Discover PlaceSheet — `ตอนนี้` only.** A **Place** in **Discover** sits on no **Day**, so it has no
 **arrival** time and an **On-arrival** reading cannot exist for it. One `ตอนนี้` chip answers the
@@ -43,10 +43,10 @@ complexity, and that cost falls if it is ever redesigned.
 
 **Discover** is the only tide surface where call volume can grow with browsing rather than with
 planning: it can list many **Place**s, and each **Beach** a **User** opens is one WorldTides call
-under Design B (menunest-222), which is per-**User** and cannot be shared. Every other surface is
+under Design B (menunest-231), which is per-**User** and cannot be shared. Every other surface is
 bounded by the **Stop**s on one **Day**.
 
-This does not change menunest-223's answer — tide is metered under #119's exemption model, and
+This does not change menunest-232's answer — tide is metered under #119's exemption model, and
 MenuNest's own credit ceiling still bounds a bug — but **Discover is where that ceiling is most likely
 to be approached first**, and whoever implements it should not treat browsing volume as equivalent to
 itinerary volume.
@@ -55,7 +55,7 @@ itinerary volume.
 
 Two things only became visible once drawn:
 
-- **`ตอนนี้` is the weakest element on a future-dated Stop.** menunest-220 chose two chips for
+- **`ตอนนี้` is the weakest element on a future-dated Stop.** menunest-229 chose two chips for
   symmetry with the **Weather reading**, and that still stands — but on a **Trip** five months out the
   current tide is real and meaningless. Recorded here because it is the first thing to reconsider if
   the card ever needs to lose an element.

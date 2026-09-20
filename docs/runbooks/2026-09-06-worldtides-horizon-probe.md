@@ -181,7 +181,7 @@ and a `max - min` spread close to Step 2's.
 ## Step 4 — Only if Step 3 passed: do turn times reach that far too?
 
 **Tide reading** on the **StopDetailSheet** shows turn times, and those come from `extremes`, not
-`heights` (menunest-224). Step 3 proves nothing about `extremes`.
+`heights` (menunest-233). Step 3 proves nothing about `extremes`.
 
 **Go to:** your terminal, same shell session.
 

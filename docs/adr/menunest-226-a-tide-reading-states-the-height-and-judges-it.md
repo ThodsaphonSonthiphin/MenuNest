@@ -17,7 +17,7 @@ own. A **User** who is told `น้ำลง 0.4 ม.` still has to know what 0.
 beach, which is exactly the work the feature exists to do for them.
 
 But the verdict alone (option C) has no floor. The verdict is computed from one fixed rule for every
-**Beach** (menunest-218), so it will sometimes be wrong for what the **User** actually planned — low
+**Beach** (menunest-227), so it will sometimes be wrong for what the **User** actually planned — low
 tide is good for walking out and bad for swimming, and the rule cannot know which. Keeping the height
 on the chip means a wrong verdict costs the **User** nothing: the number is still there and they can
 overrule it themselves. **The number is the fallback that makes a single fixed rule safe to ship.**
@@ -31,7 +31,7 @@ element on a phone-width card is where that row stops being readable. The SPA ha
 visual test harness, so nothing automated would catch it overflowing.
 
 The turn times are therefore shown when the **User** taps through to the detail view. **No data is
-lost by this**: menunest-219 makes the verdict relative to that station's own daily range, so the
+lost by this**: menunest-228 makes the verdict relative to that station's own daily range, so the
 day's high and low must be fetched to compute the verdict at all. They are already in hand — this is
 a display split, not a second request.
 

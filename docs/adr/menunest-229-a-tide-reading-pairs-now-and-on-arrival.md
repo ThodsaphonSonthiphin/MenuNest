@@ -20,7 +20,7 @@ months tells the **User** nothing; and one chip halves the data per station-day.
 It lost on consistency. A card where weather shows two chips and tide shows one teaches the **User**
 that the two are different kinds of thing, when they are both display-only per-**Stop** readings that
 never feed the **Smart Schedule**. The data saving is also smaller than it looks: readings are cached
-by `(station, date)` and served to every **User** from one cache (menunest-219), so the marginal cost
+by `(station, date)` and served to every **User** from one cache (menunest-228), so the marginal cost
 of the second chip is not per-**User**.
 
 ## Tide outlives the Forecast horizon, and that is a feature

@@ -51,7 +51,7 @@ have to be rediscovered. But it is **out of scope**, not merely deferred: it wou
 migration, a **Place**-editor field, a **Seed-on-capture** path and a glossary term to express a
 distinction the **User** does not have.
 
-menunest-217 keeps the raw tide height on the chip anyway, so a **User** whose purpose ever does
+menunest-226 keeps the raw tide height on the chip anyway, so a **User** whose purpose ever does
 change is not stranded — they can read the number and judge for themselves.
 
 Option C — pushing intent into the category axis — was rejected outright rather than deferred. A

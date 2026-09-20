@@ -58,5 +58,5 @@ per-**User** cost to matter, and the shape of Design A is recorded here so it ne
 WorldTides publishes **no maximum future date** anywhere public — the only documented range limit is
 `1 to 7 days`, and it applies solely to `plot` requests, not to `heights` or `extremes`. Dates past
 31 December were the whole reason WorldTides was chosen over the Thai Hydrographic Department tables
-(menunest-218's sibling decision on #139), so this must be probed on a live key. **If it fails, the
+(menunest-227's sibling decision on #139), so this must be probed on a live key. **If it fails, the
 source decision itself is revisited, not worked around.**

@@ -114,7 +114,7 @@
   .chip .uv { font-size: 10px; font-weight: 700; padding: 1px 6px; border-radius: 999px;
               background: #ffe6cf; color: #c85e0c; }
 
-  /* tide: same Now/On-arrival colours as weather, because they are a matched pair (menunest-220) */
+  /* tide: same Now/On-arrival colours as weather, because they are a matched pair (menunest-229) */
   .num { font-family: 'Spline Sans Mono', ui-monospace, monospace; font-weight: 700; }
   .verdict { font-weight: 700; }
   .chip.tide.now { background: var(--now-bg); color: var(--now); }
@@ -278,7 +278,7 @@
 
   <h2 class="sec">2 · The detail sheet — where the turn times live</h2>
   <p class="sec-note">
-    menunest-217 kept the turn times off the compact chip and put them behind a tap. This is where they land.
+    menunest-226 kept the turn times off the compact chip and put them behind a tap. This is where they land.
     The data is already fetched: the relative rule needs the day's high and low to compute the verdict at all.
   </p>
 
@@ -310,7 +310,7 @@
         </div>
       </div>
       <figcaption><b>StopDetailSheet</b>Turn times, and the ~5 hours of beach you have before the water returns.
-      The WorldTides attribution is mandatory wherever the data shows — menunest-222.</figcaption>
+      The WorldTides attribution is mandatory wherever the data shows — menunest-231.</figcaption>
     </figure>
 
     <figure class="spec" style="width:340px">
@@ -342,14 +342,14 @@
       <table>
         <thead><tr><th>Decision</th><th>Where you see it</th><th>ADR</th></tr></thead>
         <tbody>
-          <tr><td>Height <em>and</em> verdict, both on the chip</td><td>every tide chip</td><td class="adr">menunest-217</td></tr>
-          <tr><td>Turn times behind a tap, not on the chip</td><td>detail sheet, §2</td><td class="adr">menunest-217</td></tr>
-          <tr><td>Only a <b>Beach</b> shows tide</td><td>card 4 has no tide row</td><td class="adr">menunest-218</td></tr>
-          <tr><td>“Low” is relative to that station's own day</td><td>0.4 m reads น้ำลง against a 0.2–2.6 m day</td><td class="adr">menunest-219</td></tr>
-          <tr><td>Two chips, ตอนนี้ + ไปถึง</td><td>every card</td><td class="adr">menunest-220</td></tr>
-          <tr><td>A bad verdict raises a badge; no threshold</td><td>card 2</td><td class="adr">menunest-221</td></tr>
+          <tr><td>Height <em>and</em> verdict, both on the chip</td><td>every tide chip</td><td class="adr">menunest-226</td></tr>
+          <tr><td>Turn times behind a tap, not on the chip</td><td>detail sheet, §2</td><td class="adr">menunest-226</td></tr>
+          <tr><td>Only a <b>Beach</b> shows tide</td><td>card 4 has no tide row</td><td class="adr">menunest-227</td></tr>
+          <tr><td>“Low” is relative to that station's own day</td><td>0.4 m reads น้ำลง against a 0.2–2.6 m day</td><td class="adr">menunest-228</td></tr>
+          <tr><td>Two chips, ตอนนี้ + ไปถึง</td><td>every card</td><td class="adr">menunest-229</td></tr>
+          <tr><td>A bad verdict raises a badge; no threshold</td><td>card 2</td><td class="adr">menunest-230</td></tr>
           <tr><td>Unavailable renders, never hides</td><td>card 3</td><td class="adr">menunest-031</td></tr>
-          <tr><td>WorldTides attribution is mandatory</td><td>detail sheet footer</td><td class="adr">menunest-222</td></tr>
+          <tr><td>WorldTides attribution is mandatory</td><td>detail sheet footer</td><td class="adr">menunest-231</td></tr>
         </tbody>
       </table>
     </div>
@@ -366,7 +366,7 @@
       </li>
       <li>
         <b>Does <code>ตอนนี้</code> earn its place on a future-dated Stop?</b>
-        <span class="rec">menunest-220 said two chips for symmetry with weather. On a Trip five months out,
+        <span class="rec">menunest-229 said two chips for symmetry with weather. On a Trip five months out,
         the ตอนนี้ tide is real but meaningless. Drawn anyway, as decided — but this is where it looks weakest.</span>
       </li>
       <li>

@@ -24,10 +24,10 @@ water and no sand for a child to play on.
 A **Weather-alert threshold** works because its number is absolute. `UV ≥ 6` means the same thing in
 ตราด and in ภูเก็ต, so the **User** types `6` once and it travels.
 
-**A tide has no such number.** menunest-219 made "low" relative to each station's own daily range,
+**A tide has no such number.** menunest-228 made "low" relative to each station's own daily range,
 because the water is fully out at 0.4 m at หาดบานชื่น and at 1.2 m near Bangkok Bar. A stored
 `เตือนเมื่อน้ำต่ำกว่า 0.5 ม.` would be correct at one station and wrong at most others — which is the
-exact failure menunest-219 exists to prevent.
+exact failure menunest-228 exists to prevent.
 
 So the threshold machinery has **nothing coherent to store**. The **Tide alert** therefore takes a
 per-**User** **on/off only**: a boolean on `UserSettings`, not the `null` / `0` / `N` tri-state
@@ -48,7 +48,7 @@ no beach when you arrive" to survive that scan. That is what a badge is for, and
 ## What this does not change
 
 The **Tide alert** is **display-only**, like everything else on this card: it never feeds the
-**Smart Schedule**, an **arrival** time or a **Timing flag** (menunest-217, menunest-220). It is
+**Smart Schedule**, an **arrival** time or a **Timing flag** (menunest-226, menunest-229). It is
 **not** a safety warning — the map put rip currents and unsafe-swimming alarms out of scope, and a
 badge saying the beach is submerged is a planning signal, not a hazard alarm.
 
